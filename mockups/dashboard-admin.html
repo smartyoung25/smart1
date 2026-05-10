@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>스마트팜 플랫폼 관리자</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --cloud-white: #ffffff;
+  --canvas-fog:  #fafaf9;
+  --slate-text:  #0c0a09;
+  --ash-gray:    #78716c;
+  --stone-border:#e5e7eb;
+  --steel-gray:  #a8a29e;
+  --blue:        #3ba6f1;
+  --sky-tint:    #c1e1f7;
+  --amber-tint:  #fef3c7;
+  --amber-text:  #92400e;
+  --red-tint:    #fee2e2;
+  --red-text:    #991b1b;
+  --green-tint:  #dcfce7;
+  --green-text:  #166534;
+
+  --shadow-md:     rgba(0,0,0,.05) 0 4px 16px 0;
+  --shadow-xl:     rgba(17,12,46,.12) 0 12px 45px 0;
+  --shadow-subtle: rgba(0,0,0,.05) 0 1px 2px 0;
+
+  --r-sm: 4px; --r-md: 10px; --r-lg: 16px; --r-full: 9999px;
+  --sp-4:4px; --sp-8:8px; --sp-12:12px; --sp-16:16px;
+  --sp-20:20px; --sp-24:24px; --sp-32:32px;
+
+  --font: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --sidebar-w: 220px;
+  --topbar-h: 56px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:var(--canvas-fog);color:var(--slate-text);-webkit-font-smoothing:antialiased}
+button{font-family:var(--font);cursor:pointer}
+
+/* ── SHELL ── */
+.app{display:flex;flex-direction:column;min-height:100dvh}
+
+/* ── TOPBAR ── */
+.topbar{
+  height:var(--topbar-h);
+  background:var(--cloud-white);
+  border-bottom:1px solid var(--stone-border);
+  box-shadow:var(--shadow-subtle);
+  display:flex; align-items:center;
+  padding:0 var(--sp-16); gap:var(--sp-12);
+  position:sticky; top:0; z-index:50;
+}
+.topbar-brand{
+  display:flex; align-items:center; gap:var(--sp-8);
+  font-size:15px; font-weight:600; color:var(--slate-text);
+}
+.brand-badge{
+  background:var(--slate-text); color:var(--cloud-white);
+  font-size:10px; font-weight:600; letter-spacing:.05em;
+  padding:2px 7px; border-radius:var(--r-full);
+}
+.topbar-right{margin-left:auto; display:flex; align-items:center; gap:var(--sp-12);}
+.topbar-stat{
+  display:flex; align-items:center; gap:var(--sp-6);
+  font-size:13px; font-weight:500; color:var(--ash-gray);
+}
+.topbar-stat strong{color:var(--slate-text); font-weight:600;}
+.alert-pill{
+  display:inline-flex; align-items:center; gap:var(--sp-4);
+  padding:5px 12px; border-radius:var(--r-full);
+  font-size:13px; font-weight:600;
+  background:var(--red-tint); color:var(--red-text);
+  border:1px solid #fca5a5;
+}
+
+/* ── BODY ── */
+.body{display:flex; flex:1;}
+
+/* ── SIDEBAR ── */
+.sidebar{
+  width:var(--sidebar-w); flex-shrink:0;
+  background:var(--cloud-white);
+  border-right:1px solid var(--stone-border);
+  display:flex; flex-direction:column;
+  position:sticky; top:var(--topbar-h);
+  height:calc(100dvh - var(--topbar-h));
+  overflow-y:auto;
+  padding:var(--sp-12) 0;
+}
+.sidebar-section-label{
+  font-size:11px; font-weight:600; color:var(--steel-gray);
+  letter-spacing:.06em; text-transform:uppercase;
+  padding:var(--sp-12) var(--sp-16) var(--sp-4);
+}
+.sidebar-item{
+  display:flex; align-items:center; gap:var(--sp-12);
+  padding:10px var(--sp-16);
+  font-size:14px; font-weight:500; color:var(--ash-gray);
+  cursor:pointer;
+  border-left:3px solid transparent;
+  transition:all .15s; text-decoration:none; border:none; background:none; width:100%;
+}
+.sidebar-item:hover{background:var(--canvas-fog); color:var(--slate-text);}
+.sidebar-item.active{color:var(--blue); border-left-color:var(--blue); background:var(--sky-tint);}
+.sidebar-item svg{width:16px; height:16px; flex-shrink:0;}
+.sidebar-badge{
+  margin-left:auto; font-size:11px; font-weight:600;
+  padding:2px 7px; border-radius:var(--r-full);
+  background:var(--red-tint); color:var(--red-text);
+}
+.sidebar-badge.ok{background:var(--green-tint); color:var(--green-text);}
+
+/* ── MAIN ── */
+.main{flex:1; min-width:0;}
+.content{padding:var(--sp-32); display:flex; flex-direction:column; gap:var(--sp-24);}
+
+/* ── PAGE TITLE ── */
+.page-header{margin-bottom:var(--sp-8);}
+.page-title{font-size:20px; font-weight:600; color:var(--slate-text); margin-bottom:4px;}
+.page-sub{font-size:14px; color:var(--ash-gray);}
+
+/* ── SECTION ── */
+.section-label{
+  font-size:12px; font-weight:600; color:var(--steel-gray);
+  letter-spacing:.05em; text-transform:uppercase;
+  margin-bottom:var(--sp-12);
+}
+
+/* ── CARDS ── */
+.card{
+  background:var(--cloud-white);
+  border:1px solid var(--stone-border);
+  border-radius:var(--r-md);
+  box-shadow:var(--shadow-md);
+  padding:var(--sp-24);
+}
+.card-lg{
+  background:var(--cloud-white);
+  border:1px solid var(--stone-border);
+  border-radius:var(--r-lg);
+  box-shadow:var(--shadow-xl);
+  padding:var(--sp-24);
+  position:relative; overflow:hidden;
+}
+.card-lg::before{
+  content:''; position:absolute; top:0; left:0; right:0;
+  height:3px; background:var(--blue);
+}
+
+/* ── KPI GRID ── */
+.kpi-grid{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:var(--sp-16);
+}
+@media(min-width:900px){.kpi-grid{grid-template-columns:repeat(4,1fr);}}
+
+.kpi-card{
+  background:var(--cloud-white);
+  border:1px solid var(--stone-border);
+  border-radius:var(--r-md);
+  box-shadow:var(--shadow-md);
+  padding:var(--sp-20) var(--sp-24);
+}
+.kpi-label{font-size:12px; font-weight:600; color:var(--steel-gray); letter-spacing:.04em; margin-bottom:var(--sp-8);}
+.kpi-val{font-size:32px; font-weight:600; color:var(--slate-text); line-height:1; margin-bottom:var(--sp-4);}
+.kpi-val.blue{color:var(--blue);}
+.kpi-val.green{color:#16a34a;}
+.kpi-val.amber{color:var(--amber-text);}
+.kpi-trend{
+  display:inline-flex; align-items:center; gap:3px;
+  font-size:12px; font-weight:600;
+  padding:3px 8px; border-radius:var(--r-full);
+}
+.kpi-trend.up{background:var(--green-tint); color:var(--green-text);}
+.kpi-trend.warn{background:var(--amber-tint); color:var(--amber-text);}
+.kpi-trend.down{background:var(--red-tint); color:var(--red-text);}
+
+/* ── 2-COL GRID ── */
+.two-col{display:grid; grid-template-columns:1fr; gap:var(--sp-24);}
+@media(min-width:900px){.two-col{grid-template-columns:1fr 1fr;}}
+.three-col{display:grid; grid-template-columns:1fr; gap:var(--sp-24);}
+@media(min-width:900px){.three-col{grid-template-columns:1fr 1fr 1fr;}}
+
+/* ── TABLE ── */
+.table-wrap{overflow-x:auto;}
+table{width:100%; border-collapse:collapse; font-size:14px;}
+thead tr{border-bottom:2px solid var(--stone-border);}
+thead th{
+  padding:10px var(--sp-12); text-align:left;
+  font-size:12px; font-weight:600; color:var(--steel-gray);
+  letter-spacing:.04em; text-transform:uppercase; white-space:nowrap;
+}
+tbody tr{border-bottom:1px solid var(--stone-border); transition:background .1s;}
+tbody tr:hover{background:var(--canvas-fog);}
+tbody tr:last-child{border-bottom:none;}
+td{padding:12px var(--sp-12); font-size:14px; color:var(--slate-text); white-space:nowrap;}
+td.muted{color:var(--ash-gray);}
+
+/* ── BADGES ── */
+.badge{
+  display:inline-flex; align-items:center; gap:4px;
+  padding:3px 10px; border-radius:var(--r-full);
+  font-size:12px; font-weight:600; white-space:nowrap;
+}
+.badge.green{background:var(--green-tint); color:var(--green-text);}
+.badge.amber{background:var(--amber-tint); color:var(--amber-text);}
+.badge.red{background:var(--red-tint); color:var(--red-text);}
+.badge.blue{background:var(--sky-tint); color:#1e6fa5;}
+.badge.gray{background:var(--canvas-fog); color:var(--ash-gray); border:1px solid var(--stone-border);}
+
+/* ── PROGRESS BAR ── */
+.progress-wrap{display:flex; align-items:center; gap:var(--sp-8);}
+.progress-bar{
+  flex:1; height:6px; background:var(--stone-border);
+  border-radius:var(--r-full); overflow:hidden;
+}
+.progress-fill{height:100%; border-radius:var(--r-full); background:var(--blue);}
+.progress-fill.green{background:#16a34a;}
+.progress-fill.amber{background:#f59e0b;}
+.progress-fill.red{background:#ef4444;}
+.progress-pct{font-size:13px; font-weight:600; color:var(--slate-text); flex-shrink:0; width:36px; text-align:right;}
+
+/* ── FARM STATUS ROW ── */
+.farm-row{
+  display:flex; align-items:center; gap:var(--sp-12);
+  padding:14px 0; border-bottom:1px solid var(--stone-border);
+}
+.farm-row:last-child{border-bottom:none;}
+.farm-avatar{
+  width:36px; height:36px; border-radius:var(--r-md);
+  background:var(--canvas-fog); border:1px solid var(--stone-border);
+  display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  font-size:16px;
+}
+.farm-name-wrap .farm-name{font-size:14px; font-weight:600; color:var(--slate-text);}
+.farm-name-wrap .farm-meta{font-size:12px; color:var(--ash-gray); margin-top:1px;}
+.farm-stats{margin-left:auto; display:flex; align-items:center; gap:var(--sp-16);}
+.farm-stat{text-align:right;}
+.farm-stat-val{font-size:14px; font-weight:600; color:var(--slate-text);}
+.farm-stat-label{font-size:11px; color:var(--steel-gray);}
+
+/* ── MODEL STATUS ── */
+.model-row{
+  display:flex; align-items:center; gap:var(--sp-12);
+  padding:14px 0; border-bottom:1px solid var(--stone-border);
+}
+.model-row:last-child{border-bottom:none;}
+.model-id{
+  width:32px; height:32px; border-radius:var(--r-sm);
+  background:var(--sky-tint); color:var(--blue);
+  font-size:11px; font-weight:700;
+  display:flex; align-items:center; justify-content:center; flex-shrink:0;
+}
+.model-name{font-size:14px; font-weight:600; color:var(--slate-text);}
+.model-algo{font-size:12px; color:var(--ash-gray);}
+.model-right{margin-left:auto; display:flex; align-items:center; gap:var(--sp-12);}
+.metric{text-align:right;}
+.metric-val{font-size:15px; font-weight:600; color:var(--slate-text);}
+.metric-val.pass{color:#16a34a;}
+.metric-val.fail{color:#ef4444;}
+.metric-label{font-size:11px; color:var(--steel-gray);}
+
+/* ── DATA SOURCE ── */
+.source-row{
+  display:flex; align-items:center; gap:var(--sp-12);
+  padding:14px 0; border-bottom:1px solid var(--stone-border);
+}
+.source-row:last-child{border-bottom:none;}
+.source-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.source-dot.live{background:#22c55e;}
+.source-dot.warn{background:#f59e0b;}
+.source-dot.dead{background:#ef4444;}
+.source-name{font-size:14px;font-weight:600;color:var(--slate-text);}
+.source-meta{font-size:12px;color:var(--ash-gray);}
+.source-right{margin-left:auto;display:flex;align-items:center;gap:var(--sp-12);}
+
+/* ── VARIABLE REGISTRY ── */
+.var-row{display:flex;align-items:center;gap:var(--sp-12);padding:10px 0;border-bottom:1px solid var(--stone-border);}
+.var-row:last-child{border-bottom:none;}
+.var-name{font-size:13px;font-weight:600;color:var(--slate-text);width:120px;flex-shrink:0;font-family:monospace;}
+.var-unit{font-size:12px;color:var(--ash-gray);width:60px;flex-shrink:0;}
+.var-sources{display:flex;gap:4px;flex-wrap:wrap;}
+.var-source-chip{
+  font-size:11px;font-weight:500;
+  padding:2px 8px;border-radius:var(--r-full);
+  background:var(--canvas-fog);color:var(--ash-gray);
+  border:1px solid var(--stone-border);
+}
+.var-source-chip.mapped{background:var(--sky-tint);color:#1e6fa5;border-color:var(--blue);}
+.var-coverage{margin-left:auto;font-size:12px;font-weight:600;}
+.var-coverage.full{color:#16a34a;}
+.var-coverage.partial{color:var(--amber-text);}
+.var-coverage.missing{color:#ef4444;}
+
+/* ── BUTTONS ── */
+.btn-primary{
+  background:var(--blue);color:var(--cloud-white);
+  font-size:13px;font-weight:600;padding:8px 16px;
+  border-radius:var(--r-full);border:none;
+  min-height:36px;white-space:nowrap;
+  transition:opacity .15s;display:inline-flex;align-items:center;gap:var(--sp-4);
+}
+.btn-primary:hover{opacity:.88;}
+.btn-ghost{
+  background:transparent;color:var(--ash-gray);
+  font-size:13px;font-weight:500;padding:7px 14px;
+  border-radius:var(--r-full);border:1px solid var(--stone-border);
+  min-height:36px;white-space:nowrap;transition:all .15s;
+}
+.btn-ghost:hover{background:var(--canvas-fog);color:var(--slate-text);}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- TOPBAR -->
+<header class="topbar">
+  <div class="topbar-brand">
+    스마트팜 플랫폼
+    <span class="brand-badge">ADMIN</span>
+  </div>
+  <div class="topbar-right">
+    <div class="topbar-stat">농가 <strong>5</strong></div>
+    <div class="topbar-stat">모델 <strong>7</strong></div>
+    <div class="alert-pill">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      이상 1건
+    </div>
+  </div>
+</header>
+
+<div class="body">
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-section-label">모니터링</div>
+  <button class="sidebar-item active">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+    개요
+  </button>
+  <button class="sidebar-item">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+    농가 현황
+    <span class="sidebar-badge ok">5</span>
+  </button>
+  <button class="sidebar-item">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+    AI 모델 성능
+    <span class="sidebar-badge">1</span>
+  </button>
+
+  <div class="sidebar-section-label">데이터</div>
+  <button class="sidebar-item">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+    데이터 소스
+  </button>
+  <button class="sidebar-item">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+    변수 레지스트리
+  </button>
+
+  <div class="sidebar-section-label">운영</div>
+  <button class="sidebar-item">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+    학습 파이프라인
+  </button>
+  <button class="sidebar-item">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+    로그
+  </button>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+<div class="content">
+
+  <!-- 페이지 헤더 -->
+  <div class="page-header">
+    <div class="page-title">플랫폼 개요</div>
+    <div class="page-sub">2026년 5월 9일 오전 10:42 기준 · 자동 갱신 중</div>
+  </div>
+
+  <!-- KPI 카드 4개 -->
+  <div>
+    <div class="section-label">핵심 지표</div>
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">연결 농가</div>
+        <div class="kpi-val blue">5</div>
+        <div class="kpi-trend up">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="18 15 12 9 6 15"/></svg>
+          목표 5/5
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">평균 생육 R²</div>
+        <div class="kpi-val green">0.81</div>
+        <div class="kpi-trend up">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="18 15 12 9 6 15"/></svg>
+          목표 ≥0.62 통과
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">데이터 완전성</div>
+        <div class="kpi-val amber">87%</div>
+        <div class="kpi-trend warn">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          목표 ≥90%
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">월 예상 농가 소득↑</div>
+        <div class="kpi-val">+5.2%</div>
+        <div class="kpi-trend up">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="18 15 12 9 6 15"/></svg>
+          목표 M6 +5%p 통과
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI 모델 성능 + 데이터 소스 -->
+  <div class="two-col">
+
+    <!-- AI 모델 성능 -->
+    <div class="card-lg">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--sp-20);">
+        <div>
+          <div style="font-size:15px;font-weight:600;color:var(--slate-text);">AI 모델 성능</div>
+          <div style="font-size:13px;color:var(--ash-gray);margin-top:2px;">M1~M7 배포 게이트 현황</div>
+        </div>
+        <button class="btn-ghost">재학습 요청</button>
+      </div>
+      <div>
+        <div class="model-row">
+          <div class="model-id">M1</div>
+          <div><div class="model-name">생육 예측</div><div class="model-algo">XGB+LSTM</div></div>
+          <div class="model-right">
+            <div class="metric"><div class="metric-val pass">0.81</div><div class="metric-label">R² (목표 ≥0.62)</div></div>
+            <span class="badge green">통과</span>
+          </div>
+        </div>
+        <div class="model-row">
+          <div class="model-id">M2</div>
+          <div><div class="model-name">수확량 예측</div><div class="model-algo">XGB+LGB</div></div>
+          <div class="model-right">
+            <div class="metric"><div class="metric-val pass">21%</div><div class="metric-label">MAPE (목표 ≤25%)</div></div>
+            <span class="badge green">통과</span>
+          </div>
+        </div>
+        <div class="model-row">
+          <div class="model-id">M3</div>
+          <div><div class="model-name">수확 시기</div><div class="model-algo">GDD+Prophet</div></div>
+          <div class="model-right">
+            <div class="metric"><div class="metric-val pass">±4일</div><div class="metric-label">오차 (목표 ±5일)</div></div>
+            <span class="badge green">통과</span>
+          </div>
+        </div>
+        <div class="model-row">
+          <div class="model-id">M4</div>
+          <div><div class="model-name">수익 추정</div><div class="model-algo">Prophet+SARIMA</div></div>
+          <div class="model-right">
+            <div class="metric"><div class="metric-val fail">24%</div><div class="metric-label">오차 (목표 ≤20%)</div></div>
+            <span class="badge amber">재조정 중</span>
+          </div>
+        </div>
+        <div class="model-row">
+          <div class="model-id">M5</div>
+          <div><div class="model-name">병해 진단</div><div class="model-algo">EfficientNet-B4</div></div>
+          <div class="model-right">
+            <div class="metric"><div class="metric-val pass">0.91</div><div class="metric-label">F1 (목표 ≥0.88)</div></div>
+            <span class="badge green">통과</span>
+          </div>
+        </div>
+        <div class="model-row">
+          <div class="model-id">M6</div>
+          <div><div class="model-name">에너지 효율</div><div class="model-algo">RL (학습 대기)</div></div>
+          <div class="model-right">
+            <div class="metric"><div class="metric-val" style="color:var(--ash-gray)">—</div><div class="metric-label">Phase 2</div></div>
+            <span class="badge gray">준비 중</span>
+          </div>
+        </div>
+        <div class="model-row">
+          <div class="model-id">M7</div>
+          <div><div class="model-name">품질 예측</div><div class="model-algo">CNN+회귀</div></div>
+          <div class="model-right">
+            <div class="metric"><div class="metric-val" style="color:var(--ash-gray)">—</div><div class="metric-label">Phase 4</div></div>
+            <span class="badge gray">준비 중</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 데이터 소스 상태 -->
+    <div style="display:flex;flex-direction:column;gap:var(--sp-24);">
+
+      <div class="card-lg">
+        <div style="font-size:15px;font-weight:600;margin-bottom:var(--sp-4);">데이터 소스 연결 상태</div>
+        <div style="font-size:13px;color:var(--ash-gray);margin-bottom:var(--sp-20);">실시간 수집 현황</div>
+        <div>
+          <div class="source-row">
+            <div class="source-dot live"></div>
+            <div><div class="source-name">IoT 센서 (이암허브)</div><div class="source-meta">10분 주기 · 16개 변수</div></div>
+            <div class="source-right"><span class="badge green">정상</span></div>
+          </div>
+          <div class="source-row">
+            <div class="source-dot live"></div>
+            <div><div class="source-name">농진청 API</div><div class="source-meta">매일 09:00 · 생육 데이터</div></div>
+            <div class="source-right"><span class="badge green">정상</span></div>
+          </div>
+          <div class="source-row">
+            <div class="source-dot live"></div>
+            <div><div class="source-name">KAMIS 가격 API</div><div class="source-meta">매일 06:00 · 품목별 단가</div></div>
+            <div class="source-right"><span class="badge green">정상</span></div>
+          </div>
+          <div class="source-row">
+            <div class="source-dot warn"></div>
+            <div><div class="source-name">기상청 TMY 데이터</div><div class="source-meta">계절별 · 에너지 AI용</div></div>
+            <div class="source-right"><span class="badge amber">Phase 2 대기</span></div>
+          </div>
+          <div class="source-row">
+            <div class="source-dot live"></div>
+            <div><div class="source-name">WUR 네덜란드 데이터셋</div><div class="source-meta">정적 · 방울토마토 전이학습</div></div>
+            <div class="source-right"><span class="badge blue">적재 완료</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 데이터 완전성 -->
+      <div class="card">
+        <div style="font-size:15px;font-weight:600;margin-bottom:var(--sp-4);">농가별 데이터 완전성</div>
+        <div style="font-size:13px;color:var(--ash-gray);margin-bottom:var(--sp-20);">오늘 기준 센서 데이터 수신율</div>
+        <div style="display:flex;flex-direction:column;gap:var(--sp-12);">
+          <div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:500;margin-bottom:5px;">
+              <span>이암허브 (딸기)</span>
+            </div>
+            <div class="progress-wrap">
+              <div class="progress-bar"><div class="progress-fill green" style="width:96%"></div></div>
+              <div class="progress-pct">96%</div>
+            </div>
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:500;margin-bottom:5px;">
+              <span>농가 B (방울토마토)</span>
+            </div>
+            <div class="progress-wrap">
+              <div class="progress-bar"><div class="progress-fill green" style="width:91%"></div></div>
+              <div class="progress-pct">91%</div>
+            </div>
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:500;margin-bottom:5px;">
+              <span>농가 C (완숙토마토)</span>
+            </div>
+            <div class="progress-wrap">
+              <div class="progress-bar"><div class="progress-fill amber" style="width:78%"></div></div>
+              <div class="progress-pct" style="color:var(--amber-text)">78%</div>
+            </div>
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:500;margin-bottom:5px;">
+              <span>농가 D (참외)</span>
+            </div>
+            <div class="progress-wrap">
+              <div class="progress-bar"><div class="progress-fill green" style="width:94%"></div></div>
+              <div class="progress-pct">94%</div>
+            </div>
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:500;margin-bottom:5px;">
+              <span>농가 E (딸기)</span>
+            </div>
+            <div class="progress-wrap">
+              <div class="progress-bar"><div class="progress-fill amber" style="width:82%"></div></div>
+              <div class="progress-pct">82%</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 변수 레지스트리 -->
+  <div class="card-lg">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--sp-20);">
+      <div>
+        <div style="font-size:15px;font-weight:600;">변수 레지스트리</div>
+        <div style="font-size:13px;color:var(--ash-gray);margin-top:2px;">데이터 소스별 변수 조화 현황</div>
+      </div>
+      <button class="btn-primary">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        변수 추가
+      </button>
+    </div>
+    <div class="table-wrap">
+      <div style="display:flex;gap:var(--sp-12);align-items:center;padding:8px 0;border-bottom:2px solid var(--stone-border);font-size:12px;font-weight:600;color:var(--steel-gray);letter-spacing:.04em;text-transform:uppercase;">
+        <div style="width:140px;flex-shrink:0;">정규 변수명</div>
+        <div style="width:70px;flex-shrink:0;">단위</div>
+        <div style="flex:1;">소스 매핑 현황</div>
+        <div style="width:60px;text-align:right;">커버리지</div>
+      </div>
+      <div class="var-row">
+        <div class="var-name">temp_internal</div>
+        <div class="var-unit">°C</div>
+        <div class="var-sources">
+          <div class="var-source-chip mapped">IoT센서<br><span style="font-size:10px">온도_내부</span></div>
+          <div class="var-source-chip mapped">농진청<br><span style="font-size:10px">내부온도</span></div>
+          <div class="var-source-chip mapped">WUR<br><span style="font-size:10px">T_air</span></div>
+        </div>
+        <div class="var-coverage full">5/5</div>
+      </div>
+      <div class="var-row">
+        <div class="var-name">humidity_int</div>
+        <div class="var-unit">%</div>
+        <div class="var-sources">
+          <div class="var-source-chip mapped">IoT센서<br><span style="font-size:10px">상대습도_내부</span></div>
+          <div class="var-source-chip mapped">농진청<br><span style="font-size:10px">내부습도</span></div>
+          <div class="var-source-chip" style="opacity:.5;">WUR<br><span style="font-size:10px">없음</span></div>
+        </div>
+        <div class="var-coverage partial">4/5</div>
+      </div>
+      <div class="var-row">
+        <div class="var-name">co2_ppm</div>
+        <div class="var-unit">ppm</div>
+        <div class="var-sources">
+          <div class="var-source-chip mapped">IoT센서<br><span style="font-size:10px">잔존CO2</span></div>
+          <div class="var-source-chip" style="opacity:.5;">농진청<br><span style="font-size:10px">없음</span></div>
+          <div class="var-source-chip mapped">WUR<br><span style="font-size:10px">CO2_conc</span></div>
+        </div>
+        <div class="var-coverage partial">3/5</div>
+      </div>
+      <div class="var-row">
+        <div class="var-name">ec_dsm</div>
+        <div class="var-unit">dS/m</div>
+        <div class="var-sources">
+          <div class="var-source-chip mapped">IoT센서<br><span style="font-size:10px">EC (mS→변환)</span></div>
+          <div class="var-source-chip" style="opacity:.5;">농진청<br><span style="font-size:10px">없음</span></div>
+          <div class="var-source-chip mapped">WUR<br><span style="font-size:10px">EC_solution</span></div>
+        </div>
+        <div class="var-coverage partial">3/5</div>
+      </div>
+      <div class="var-row">
+        <div class="var-name">solar_rad</div>
+        <div class="var-unit">W/m²</div>
+        <div class="var-sources">
+          <div class="var-source-chip mapped">IoT센서<br><span style="font-size:10px">일사량_외부</span></div>
+          <div class="var-source-chip mapped">WUR<br><span style="font-size:10px">I_glob</span></div>
+          <div class="var-source-chip" style="opacity:.5;">농진청<br><span style="font-size:10px">없음</span></div>
+        </div>
+        <div class="var-coverage partial">4/5</div>
+      </div>
+      <div class="var-row">
+        <div class="var-name">yield_kg_m2</div>
+        <div class="var-unit">kg/m²</div>
+        <div class="var-sources">
+          <div class="var-source-chip mapped">농진청<br><span style="font-size:10px">수확량</span></div>
+          <div class="var-source-chip mapped">WUR<br><span style="font-size:10px">Fresh_weight</span></div>
+          <div class="var-source-chip" style="opacity:.5;">IoT센서<br><span style="font-size:10px">없음</span></div>
+        </div>
+        <div class="var-coverage full">5/5</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 학습 파이프라인 -->
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--sp-20);">
+      <div style="font-size:15px;font-weight:600;">학습 파이프라인 최근 실행</div>
+      <button class="btn-ghost">전체 로그 보기</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>모듈</th>
+            <th>트리거</th>
+            <th>시작</th>
+            <th>소요</th>
+            <th>결과</th>
+            <th>배포</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>M1</strong> 생육 예측</td>
+            <td class="muted">자동 (주간)</td>
+            <td class="muted">05-09 03:00</td>
+            <td class="muted">1h 24m</td>
+            <td>R² 0.81 → <strong>0.83</strong></td>
+            <td><span class="badge green">자동 배포</span></td>
+          </tr>
+          <tr>
+            <td><strong>M5</strong> 병해 진단</td>
+            <td class="muted">수동</td>
+            <td class="muted">05-08 14:30</td>
+            <td class="muted">3h 12m</td>
+            <td>F1 0.89 → <strong>0.91</strong></td>
+            <td><span class="badge green">자동 배포</span></td>
+          </tr>
+          <tr>
+            <td><strong>M4</strong> 수익 추정</td>
+            <td class="muted">자동 (이상감지)</td>
+            <td class="muted">05-07 02:00</td>
+            <td class="muted">45m</td>
+            <td>오차 24% → <strong>24%</strong> 개선 없음</td>
+            <td><span class="badge amber">게이트 미통과</span></td>
+          </tr>
+          <tr>
+            <td><strong>M2</strong> 수확량</td>
+            <td class="muted">자동 (주간)</td>
+            <td class="muted">05-06 03:00</td>
+            <td class="muted">58m</td>
+            <td>MAPE 23% → <strong>21%</strong></td>
+            <td><span class="badge green">자동 배포</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+</main>
+</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>스마트팜 AI 플랫폼 — 경영자 대시보드 사용 설명서</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --blue:      #3ba6f1;
+  --blue-bg:   #eff8ff;
+  --green:     #16a34a;
+  --green-bg:  #f0fdf4;
+  --amber:     #d97706;
+  --amber-bg:  #fffbeb;
+  --red:       #dc2626;
+  --red-bg:    #fef2f2;
+  --ink:       #111827;
+  --ink2:      #4b5563;
+  --muted:     #9ca3af;
+  --border:    #e5e7eb;
+  --fog:       #fafaf9;
+  --white:     #ffffff;
+  --sidebar-w: 240px;
+}
+*,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'Inter', sans-serif;
+  color: var(--ink); background: var(--fog);
+  line-height: 1.7; font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--blue); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* ── Layout ── */
+.shell   { display: flex; min-height: 100vh; }
+.sidebar {
+  width: var(--sidebar-w); flex-shrink: 0;
+  background: var(--white); border-right: 1px solid var(--border);
+  position: sticky; top: 0; height: 100vh; overflow-y: auto;
+  padding: 24px 0;
+}
+.sidebar-logo {
+  padding: 0 20px 20px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+.sidebar-logo h1 { font-size: 1rem; font-weight: 800; color: var(--ink); line-height: 1.3; }
+.sidebar-logo p  { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+.sidebar-section { padding: 8px 20px 4px; font-size: 0.65rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 8px; }
+.sidebar a {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 20px; font-size: 0.875rem;
+  color: var(--ink2); border-left: 3px solid transparent;
+  transition: background 120ms, color 120ms;
+}
+.sidebar a:hover { background: var(--fog); color: var(--ink); text-decoration: none; }
+.sidebar a.active { background: var(--blue-bg); color: var(--blue); border-left-color: var(--blue); font-weight: 700; }
+.sidebar-dot { width:7px;height:7px;border-radius:50%;flex-shrink:0; }
+
+.main { flex:1; max-width: 860px; padding: 48px 40px; }
+
+/* ── Hero ── */
+.hero {
+  background: linear-gradient(135deg, var(--blue-bg) 0%, var(--white) 60%);
+  border: 1px solid var(--border);
+  border-radius: 16px; padding: 40px 40px 32px;
+  margin-bottom: 48px;
+}
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--blue); color: #fff;
+  border-radius: 9999px; padding: 4px 14px;
+  font-size: 0.75rem; font-weight: 700; margin-bottom: 16px;
+}
+.hero h1 { font-size: 2rem; font-weight: 800; line-height: 1.25; margin-bottom: 12px; }
+.hero p   { font-size: 1rem; color: var(--ink2); line-height: 1.7; }
+.hero-meta { display: flex; gap: 24px; margin-top: 24px; flex-wrap: wrap; }
+.hero-meta-item { font-size: 0.875rem; color: var(--ink2); }
+.hero-meta-item strong { color: var(--ink); font-weight: 700; }
+
+/* ── Sections ── */
+section { margin-bottom: 56px; }
+.section-anchor { scroll-margin-top: 24px; }
+h2 {
+  font-size: 1.5rem; font-weight: 800; color: var(--ink);
+  margin-bottom: 6px; padding-bottom: 10px;
+  border-bottom: 2px solid var(--border);
+}
+h2 .h2-num {
+  display: inline-block; width: 28px; height: 28px; border-radius: 50%;
+  background: var(--blue); color: #fff;
+  font-size: 0.875rem; font-weight: 800;
+  text-align: center; line-height: 28px; margin-right: 10px;
+}
+h3 { font-size: 1.125rem; font-weight: 700; color: var(--ink); margin: 24px 0 10px; }
+p  { margin-bottom: 12px; color: var(--ink2); }
+ul, ol { padding-left: 20px; margin-bottom: 12px; }
+li { color: var(--ink2); margin-bottom: 6px; line-height: 1.6; }
+
+/* ── Cards ── */
+.card {
+  background: var(--white); border: 1px solid var(--border);
+  border-radius: 10px; padding: 20px 24px; margin-bottom: 16px;
+  box-shadow: rgba(0,0,0,.04) 0 2px 8px;
+}
+.card-title { font-weight: 700; font-size: 1rem; color: var(--ink); margin-bottom: 8px; }
+
+/* ── Feature grid ── */
+.feature-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; margin: 20px 0; }
+.feature-card {
+  background: var(--white); border: 1px solid var(--border);
+  border-radius: 10px; padding: 18px 20px;
+  box-shadow: rgba(0,0,0,.04) 0 2px 8px;
+}
+.feature-icon { font-size: 1.5rem; margin-bottom: 8px; }
+.feature-name { font-weight: 700; font-size: 0.9375rem; margin-bottom: 4px; }
+.feature-desc { font-size: 0.8125rem; color: var(--ink2); line-height: 1.5; }
+
+/* ── Tabs diagram ── */
+.tab-diagram { display: flex; flex-direction: column; gap: 0; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin: 20px 0; }
+.tab-row {
+  display: flex; align-items: stretch;
+  border-bottom: 1px solid var(--border); background: var(--white);
+}
+.tab-row:last-child { border-bottom: none; }
+.tab-row-name {
+  width: 120px; min-width: 120px; padding: 14px 16px;
+  font-weight: 700; font-size: 0.875rem; color: var(--ink);
+  background: var(--fog); border-right: 1px solid var(--border);
+  display: flex; align-items: center;
+}
+.tab-row-desc { padding: 14px 16px; font-size: 0.875rem; color: var(--ink2); line-height: 1.5; flex: 1; }
+.tab-row-badge {
+  padding: 14px 16px; display: flex; align-items: center;
+  font-size: 0.7rem; font-weight: 700;
+}
+
+/* ── Callout boxes ── */
+.callout {
+  display: flex; gap: 14px; padding: 16px 20px;
+  border-radius: 10px; margin: 20px 0; align-items: flex-start;
+}
+.callout-blue   { background: var(--blue-bg);  border: 1px solid #bfdbfe; }
+.callout-green  { background: var(--green-bg); border: 1px solid #bbf7d0; }
+.callout-amber  { background: var(--amber-bg); border: 1px solid #fde68a; }
+.callout-red    { background: var(--red-bg);   border: 1px solid #fecaca; }
+.callout-icon   { font-size: 1.25rem; flex-shrink: 0; line-height: 1.4; }
+.callout-title  { font-weight: 700; font-size: 0.9375rem; margin-bottom: 4px; }
+.callout-body   { font-size: 0.875rem; color: var(--ink2); line-height: 1.6; }
+.callout-blue  .callout-title { color: #1d4ed8; }
+.callout-green .callout-title { color: var(--green); }
+.callout-amber .callout-title { color: #92400e; }
+.callout-red   .callout-title { color: var(--red); }
+
+/* ── Badge inline ── */
+.badge {
+  display: inline-block; border-radius: 9999px; padding: 2px 10px;
+  font-size: 0.72rem; font-weight: 700; vertical-align: middle;
+}
+.badge-blue  { background: var(--blue-bg);  color: var(--blue); }
+.badge-green { background: var(--green-bg); color: var(--green); }
+.badge-amber { background: var(--amber-bg); color: var(--amber); }
+.badge-red   { background: var(--red-bg);   color: var(--red); }
+.badge-gray  { background: #f3f4f6; color: #6b7280; }
+
+/* ── Step list ── */
+.steps { counter-reset: step; list-style: none; padding: 0; margin: 16px 0; }
+.steps li {
+  counter-increment: step;
+  display: flex; gap: 14px; margin-bottom: 16px; align-items: flex-start;
+}
+.steps li::before {
+  content: counter(step);
+  display: flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--blue); color: #fff;
+  font-size: 0.8125rem; font-weight: 800; flex-shrink: 0; margin-top: 2px;
+}
+.steps li .step-body { flex: 1; }
+.steps li .step-title { font-weight: 700; font-size: 0.9375rem; margin-bottom: 3px; color: var(--ink); }
+.steps li .step-desc  { font-size: 0.875rem; color: var(--ink2); line-height: 1.6; }
+
+/* ── Cost table ── */
+table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.875rem; }
+th { background: var(--fog); padding: 10px 14px; text-align: left; font-weight: 700; font-size: 0.8125rem; color: var(--ink2); border-bottom: 2px solid var(--border); }
+td { padding: 10px 14px; border-bottom: 1px solid var(--border); color: var(--ink2); vertical-align: top; }
+tr:last-child td { border-bottom: none; }
+td:first-child { font-weight: 600; color: var(--ink); }
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .sidebar { display: none; }
+  .main { padding: 24px 20px; }
+  .hero { padding: 28px 24px 20px; }
+  .hero h1 { font-size: 1.5rem; }
+}
+@media print {
+  .sidebar { display: none; }
+  .main { max-width: 100%; padding: 0; }
+}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- ── Sidebar ── -->
+  <nav class="sidebar">
+    <div class="sidebar-logo">
+      <h1>🌿 스마트팜<br>AI 플랫폼</h1>
+      <p>경영자 대시보드 매뉴얼 v1.0</p>
+    </div>
+
+    <div class="sidebar-section">시작하기</div>
+    <a href="#overview">개요 및 화면 구성</a>
+    <a href="#layout">화면 레이아웃</a>
+    <a href="#header">상단 바 안내</a>
+
+    <div class="sidebar-section">메뉴 안내</div>
+    <a href="#menu-ai">⭐ AI 추천</a>
+    <a href="#menu-env">🌡 환경 모니터</a>
+    <a href="#menu-harvest">📅 수확예측</a>
+    <a href="#menu-revenue">💰 수익 현황</a>
+    <a href="#menu-costs">📊 비용 분석</a>
+    <a href="#menu-chat">💬 AI 상담</a>
+
+    <div class="sidebar-section">운영 가이드</div>
+    <a href="#alerts">알림 대응 방법</a>
+    <a href="#tiers">농가 자동화 등급</a>
+    <a href="#cost-guide">비용 절감 전략</a>
+    <a href="#faq">자주 묻는 질문</a>
+  </nav>
+
+  <!-- ── Main ── -->
+  <main class="main">
+
+    <!-- Hero -->
+    <div class="hero">
+      <div class="hero-badge">📘 공식 사용 설명서</div>
+      <h1>스마트팜 AI 플랫폼<br>경영자 대시보드</h1>
+      <p>농장 환경 데이터를 실시간으로 모니터링하고, AI가 수익을 극대화하는 조치를 금액으로 제안하는 통합 관리 도구입니다. IoT 센서가 없는 농가도 수동 입력만으로 동일한 AI 추천을 받을 수 있습니다.</p>
+      <div class="hero-meta">
+        <div class="hero-meta-item">버전: <strong>v1.0</strong></div>
+        <div class="hero-meta-item">대상: <strong>농장 경영자</strong></div>
+        <div class="hero-meta-item">접속: <strong>http://localhost:3000</strong></div>
+        <div class="hero-meta-item">최적 환경: <strong>모바일 · 태블릿 · PC</strong></div>
+      </div>
+    </div>
+
+    <!-- 1. 개요 -->
+    <section id="overview" class="section-anchor">
+      <h2><span class="h2-num">1</span>개요 및 주요 기능</h2>
+      <p>이 대시보드는 스마트팜 경영자가 <strong>하루 중 언제 어디서나</strong> 농장 상태를 파악하고, AI가 제안하는 환경 조정 조치를 실행할 수 있도록 설계됐습니다.</p>
+
+      <div class="feature-grid">
+        <div class="feature-card">
+          <div class="feature-icon">⭐</div>
+          <div class="feature-name">AI 수익 추천</div>
+          <div class="feature-desc">온도·습도·CO₂ 등 환경 조정으로 얼마나 더 벌 수 있는지 금액으로 제시 (예: "온도 2°C 올리면 +14만원")</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🌡</div>
+          <div class="feature-name">실시간 환경 모니터</div>
+          <div class="feature-desc">온도·습도·CO₂·EC·일사량·지온을 실시간 표시. IoT 미구축 농가는 수동 입력 가능</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">📅</div>
+          <div class="feature-name">수확 예측</div>
+          <div class="feature-desc">AI가 현재 GDD(적산온도)와 생육 데이터로 예상 수확일·수확량을 D-day로 표시</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">💰</div>
+          <div class="feature-name">수익 현황</div>
+          <div class="feature-desc">KAMIS 실시간 단가 × 예상 수확량 × 면적으로 이번 달 예상 순이익 자동 계산</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">📊</div>
+          <div class="feature-name">비용 분석</div>
+          <div class="feature-desc">전기·용수·난방·인건비·영양제·농약 항목별 월 비용과 절감 인사이트 제공</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">💬</div>
+          <div class="feature-name">AI 상담</div>
+          <div class="feature-desc">농장 데이터를 기반으로 재배 관리, 환경 조정, 수익 향상 방법 등을 자유롭게 질문</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. 레이아웃 -->
+    <section id="layout" class="section-anchor">
+      <h2><span class="h2-num">2</span>화면 레이아웃 (기기별)</h2>
+      <p>대시보드는 사용하는 기기 크기에 따라 레이아웃이 자동으로 바뀝니다.</p>
+
+      <div class="card">
+        <div class="card-title">📱 모바일 (화면 너비 639px 이하)</div>
+        <ul>
+          <li>화면 <strong>하단에 탭 바</strong>가 고정됩니다 (AI추천·환경·수확예측·수익·비용분석·AI상담).</li>
+          <li>상단 바에는 농장명·작물명·알림·수확D-day·이번달수익 pill이 표시됩니다.</li>
+          <li>콘텐츠는 세로 1열 배치입니다.</li>
+          <li>글자 최소 크기 16px — 60대 경영자도 편하게 읽을 수 있습니다.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-title">💻 태블릿 (640px — 1023px)</div>
+        <ul>
+          <li>상단 바 안에 <strong>가로 스크롤 탭 메뉴</strong>가 나타납니다.</li>
+          <li>하단 탭 바는 사라집니다.</li>
+          <li>콘텐츠는 중앙 정렬 단일 열로 표시됩니다.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-title">🖥 PC·데스크탑 (1024px 이상)</div>
+        <ul>
+          <li>화면 <strong>왼쪽에 사이드바</strong>가 고정됩니다 (농장정보 + 네비게이션 + 빠른 현황).</li>
+          <li>상단 탭 메뉴는 사라지고 사이드바에서 메뉴를 선택합니다.</li>
+          <li>콘텐츠 영역은 최대 900px, 넓은 여백으로 가독성이 높습니다.</li>
+          <li>사이드바 하단에 이번달 수익·알림 수·수확 D-day가 항상 표시됩니다.</li>
+        </ul>
+      </div>
+
+      <div class="callout callout-blue">
+        <div class="callout-icon">💡</div>
+        <div>
+          <div class="callout-title">한 URL로 어디서나 접속</div>
+          <div class="callout-body">현장에서는 스마트폰으로, 사무실에서는 PC로, 같은 주소(http://localhost:3000)에 접속하면 화면 크기에 맞는 레이아웃이 자동 적용됩니다.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. 상단 바 -->
+    <section id="header" class="section-anchor">
+      <h2><span class="h2-num">3</span>상단 바 안내</h2>
+      <p>화면 최상단에 항상 표시되는 고정 바입니다.</p>
+
+      <table>
+        <thead><tr><th>항목</th><th>의미</th><th>동작</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>농장명 · 작물명</td>
+            <td>현재 선택된 농장과 재배 작물</td>
+            <td>클릭 없음 (정보 표시용)</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-gray">IoT 미구축</span> 뱃지</td>
+            <td>해당 농장에 IoT 센서가 없음을 표시</td>
+            <td>환경 탭에서 수동 입력 필요</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-red">알림 N</span> pill</td>
+            <td>현재 임계값 초과·이하 알림 건수</td>
+            <td>클릭 시 알림 패널 펼치기/접기</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-blue">수확 D-N</span> pill</td>
+            <td>예상 수확일까지 남은 일수</td>
+            <td>클릭 없음</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-green">NNN만원</span> pill</td>
+            <td>이번 달 예상 순이익 (작물별 계산)</td>
+            <td>클릭 없음</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- 4. AI 추천 -->
+    <section id="menu-ai" class="section-anchor">
+      <h2><span class="h2-num">4</span>메뉴 ① AI 추천</h2>
+      <p>AI가 현재 농장 환경 데이터를 분석해 수익을 가장 높일 수 있는 환경 조정 조치를 순위로 제안합니다.</p>
+
+      <h3>히어로 카드 (1순위 추천)</h3>
+      <div class="card">
+        <div class="card-title">구성 요소</div>
+        <ul>
+          <li><strong>행동 설명</strong> — 예: "내부 온도를 22°C → 24°C로 올리세요"</li>
+          <li><strong>+N만원</strong> — 이 조치로 증가하는 예상 수익</li>
+          <li><strong>신뢰도 바</strong> — AI 예측 신뢰도 (0~100%)</li>
+          <li><strong>[지금 적용] 버튼</strong> — 농가 Tier에 따라 동작이 다릅니다 (아래 참고)</li>
+        </ul>
+      </div>
+
+      <h3>[지금 적용] 버튼 동작 (Tier별)</h3>
+      <table>
+        <thead><tr><th>Tier</th><th>농가 유형</th><th>버튼 클릭 결과</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><span class="badge badge-gray">Tier 1</span> 수동</td>
+            <td>IoT 미구축, 수동 조작</td>
+            <td>체크리스트 화면 출력 (조작 순서 안내)</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-blue">Tier 2</span> 반자동</td>
+            <td>IoT 구축, 반자동 제어</td>
+            <td>승인 확인 모달 → 확인 시 액추에이터 자동 제어</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-green">Tier 2+</span> 자동</td>
+            <td>완전 자동화</td>
+            <td>즉시 실행 + 완료 알림</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout callout-amber">
+        <div class="callout-icon">⚠️</div>
+        <div>
+          <div class="callout-title">환경 데이터 없이는 추천이 나타나지 않습니다</div>
+          <div class="callout-body">IoT 미구축 농가(farm_005)는 <strong>환경 탭 → 수동 입력</strong>을 먼저 완료해야 AI 추천이 나타납니다. 입력값이 저장되면 자동으로 AI 추천 탭으로 이동합니다.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. 환경 모니터 -->
+    <section id="menu-env" class="section-anchor">
+      <h2><span class="h2-num">5</span>메뉴 ② 환경 모니터</h2>
+
+      <h3>IoT 구축 농가</h3>
+      <p>센서 데이터가 실시간으로 표시됩니다. 6가지 환경 지표를 카드로 확인할 수 있습니다.</p>
+      <table>
+        <thead><tr><th>지표명</th><th>단위</th><th>적정 범위 (예시)</th></tr></thead>
+        <tbody>
+          <tr><td>내부 온도</td><td>°C</td><td>작물별 상이 (딸기: 18~22°C)</td></tr>
+          <tr><td>내부 습도</td><td>%</td><td>60~70% (작물별 상이)</td></tr>
+          <tr><td>CO₂ 농도</td><td>ppm</td><td>800~1,200 ppm</td></tr>
+          <tr><td>일사량</td><td>W/m²</td><td>200~800 W/m²</td></tr>
+          <tr><td>EC (전기전도도)</td><td>dS/m</td><td>1.5~2.8 dS/m</td></tr>
+          <tr><td>지온</td><td>°C</td><td>18~22°C</td></tr>
+        </tbody>
+      </table>
+
+      <h3>IoT 미구축 농가 — 수동 입력</h3>
+      <p>직접 측정하거나 육안으로 확인한 값을 입력합니다.</p>
+      <ol class="steps">
+        <li>
+          <div class="step-body">
+            <div class="step-title">환경 탭 이동</div>
+            <div class="step-desc">하단 탭 바(모바일) 또는 사이드바(PC)에서 <strong>환경</strong>을 누릅니다.</div>
+          </div>
+        </li>
+        <li>
+          <div class="step-body">
+            <div class="step-title">값 입력</div>
+            <div class="step-desc">온도·습도·CO₂·일사량·EC·지온 중 알고 있는 항목만 입력합니다 (모든 항목 필수 아님).</div>
+          </div>
+        </li>
+        <li>
+          <div class="step-body">
+            <div class="step-title">저장</div>
+            <div class="step-desc"><strong>[환경값 저장]</strong> 버튼을 누르면 값이 서버에 저장되고 AI 추천 탭으로 자동 이동합니다.</div>
+          </div>
+        </li>
+      </ol>
+
+      <div class="callout callout-blue">
+        <div class="callout-icon">📝</div>
+        <div>
+          <div class="callout-title">입력 범위 안내</div>
+          <div class="callout-body">각 항목마다 유효 범위가 표시됩니다. 범위를 벗어나면 빨간 테두리와 오류 메시지가 나타납니다. 정확한 값을 모를 경우 해당 항목을 빈칸으로 두어도 됩니다.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6. 수확예측 -->
+    <section id="menu-harvest" class="section-anchor">
+      <h2><span class="h2-num">6</span>메뉴 ③ 수확예측</h2>
+      <p>AI 모델(M2·M3)이 현재 생육 데이터를 기반으로 예상 수확일과 수확량을 예측합니다.</p>
+      <table>
+        <thead><tr><th>항목</th><th>설명</th></tr></thead>
+        <tbody>
+          <tr><td>예상 수확일</td><td>가장 가능성 높은 수확 날짜 (D-day)</td></tr>
+          <tr><td>예상 수확량</td><td>kg/m² 단위 예측치 + AI 신뢰도 (%)</td></tr>
+          <tr><td>누적 GDD</td><td>적산온도 (°C·일). 목표 GDD 대비 달성률로 성숙도 판단</td></tr>
+        </tbody>
+      </table>
+      <div class="callout callout-green">
+        <div class="callout-icon">🌱</div>
+        <div>
+          <div class="callout-title">GDD(Growing Degree Days)란?</div>
+          <div class="callout-body">작물이 하루 동안 받은 온도 합계입니다. 예를 들어, 딸기의 목표 GDD가 1,200°C·d이고 현재 842°C·d라면 목표의 70%를 달성한 상태입니다. 온도를 높이면 GDD가 빠르게 쌓여 수확일을 앞당길 수 있습니다.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 7. 수익 현황 -->
+    <section id="menu-revenue" class="section-anchor">
+      <h2><span class="h2-num">7</span>메뉴 ④ 수익 현황</h2>
+      <p>KAMIS(농산물 유통정보시스템) 실시간 도매가와 AI 예측 수확량으로 이번 달 수익을 자동 계산합니다.</p>
+      <table>
+        <thead><tr><th>항목</th><th>설명</th><th>계산식</th></tr></thead>
+        <tbody>
+          <tr><td>KAMIS 단가</td><td>현재 도매 시장 거래가</td><td>— (실시간 데이터)</td></tr>
+          <tr><td>예상 매출</td><td>이번 달 총 판매 금액</td><td>단가 × 예상 수확량 × 면적(m²)</td></tr>
+          <tr><td>예상 비용</td><td>이번 달 총 운영 비용</td><td>비용분석 탭의 월 총 비용</td></tr>
+          <tr><td>예상 순이익</td><td>매출 — 비용</td><td>예상 매출 − 예상 비용</td></tr>
+        </tbody>
+      </table>
+
+      <h3>월 비용 요약 미리보기</h3>
+      <p>수익 탭 하단에 비용분석 요약이 표시됩니다. <strong>상세 보기 →</strong> 링크를 누르면 비용분석 탭으로 이동합니다.</p>
+    </section>
+
+    <!-- 8. 비용분석 -->
+    <section id="menu-costs" class="section-anchor">
+      <h2><span class="h2-num">8</span>메뉴 ⑤ 비용 분석</h2>
+      <p>월 운영 비용을 6개 항목으로 분류해 보여주며, 각 항목의 계산 근거와 절감 방법을 안내합니다.</p>
+
+      <h3>비용 항목</h3>
+      <table>
+        <thead><tr><th>항목</th><th>계산 기준</th><th>단가</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>⚡ 전기료</td>
+            <td>일 사용량(kWh) × 30일 × 단가</td>
+            <td>105원/kWh (농업용 갑종)</td>
+          </tr>
+          <tr>
+            <td>💧 용수비</td>
+            <td>일 사용량(m³) × 30일 × 단가</td>
+            <td>700원/m³ (농업용 평균)</td>
+          </tr>
+          <tr>
+            <td>🔥 난방비</td>
+            <td>일 난방에너지(kWh) × 30일 × 단가</td>
+            <td>85원/kWh (가스 열량 환산)</td>
+          </tr>
+          <tr>
+            <td>👤 인건비</td>
+            <td>일 작업시간 × 30일 × 시급</td>
+            <td>12,000원/시간 (2025 농업 기준)</td>
+          </tr>
+          <tr>
+            <td>🌱 영양제·비료</td>
+            <td>일 비용 × 30일</td>
+            <td>작물·면적별 상이</td>
+          </tr>
+          <tr>
+            <td>🧪 농약·방제</td>
+            <td>일 비용 × 30일</td>
+            <td>작물·면적별 상이</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>항목별 비용 바 차트</h3>
+      <p>비용이 높은 항목부터 내림차순으로 가로 바 차트가 표시됩니다. 각 항목의 <strong>단위 레이블</strong>(예: "192kWh/일 × 30일 × 105원/kWh")을 통해 어떻게 계산됐는지 확인할 수 있습니다.</p>
+
+      <h3>절감 인사이트</h3>
+      <p>세 가지 주요 절감 방법이 자동으로 제안됩니다:</p>
+      <ul>
+        <li><strong>전기 절감</strong> — LED 보광 타이머 최적화로 10% 절약 시 예상 금액</li>
+        <li><strong>용수 절감</strong> — 점적관개 + EC 정밀제어로 15% 절약 시 예상 금액</li>
+        <li><strong>난방 절감</strong> — 보온커튼 야간 운영으로 20% 절약 시 예상 금액</li>
+      </ul>
+
+      <div class="callout callout-green">
+        <div class="callout-icon">💡</div>
+        <div>
+          <div class="callout-title">탄소 배출량 자동 계산</div>
+          <div class="callout-body">전기 사용량 KPI에 탄소 배출량(kg CO₂)이 자동 계산됩니다. 계수: 0.459kg CO₂/kWh (한국 전력 배출계수 2024 기준).</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 9. AI 상담 -->
+    <section id="menu-chat" class="section-anchor">
+      <h2><span class="h2-num">9</span>메뉴 ⑥ AI 상담</h2>
+      <p>현재 농장 데이터(환경·알림·수익·수확예측)를 기반으로 재배 관련 질문에 답변하는 채팅 인터페이스입니다.</p>
+
+      <h3>사용 방법</h3>
+      <ol class="steps">
+        <li>
+          <div class="step-body">
+            <div class="step-title">하단 입력창에 질문 입력</div>
+            <div class="step-desc">자유롭게 입력하거나 화면에 표시된 <strong>제안 칩</strong>을 눌러도 됩니다.</div>
+          </div>
+        </li>
+        <li>
+          <div class="step-body">
+            <div class="step-title">Enter 키 또는 전송 버튼</div>
+            <div class="step-desc">Shift+Enter로 줄바꿈, Enter 단독으로 전송됩니다.</div>
+          </div>
+        </li>
+        <li>
+          <div class="step-body">
+            <div class="step-title">응답 확인 + 후속 질문</div>
+            <div class="step-desc">AI 응답 아래 <strong>후속 질문 칩</strong>이 나타납니다. 클릭하면 바로 전송됩니다.</div>
+          </div>
+        </li>
+      </ol>
+
+      <h3>질문 예시</h3>
+      <div class="feature-grid">
+        <div class="feature-card">
+          <div class="feature-icon">🔔</div>
+          <div class="feature-name">알림 확인</div>
+          <div class="feature-desc">"현재 알림 확인해줘" → 현재 발생 중인 알림과 임계값을 알려줍니다</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">📅</div>
+          <div class="feature-name">수확 일정</div>
+          <div class="feature-desc">"수확일이 언제야?" → 예상 수확일·D-day·GDD 현황을 설명합니다</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">💰</div>
+          <div class="feature-name">수익 분석</div>
+          <div class="feature-desc">"이번 달 수익 얼마야?" → 단가·수확량·비용을 포함한 순이익 계산을 보여줍니다</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🌡</div>
+          <div class="feature-name">환경 관리</div>
+          <div class="feature-desc">"온도 몇 도가 좋아?" → 작물별 최적 온도 범위와 관리 팁을 알려줍니다</div>
+        </div>
+      </div>
+
+      <div class="callout callout-blue">
+        <div class="callout-icon">🤖</div>
+        <div>
+          <div class="callout-title">AI API 연결 준비 중</div>
+          <div class="callout-body">현재는 농장 데이터를 참조하는 규칙 기반 응답을 제공합니다. 향후 GPT-4o 또는 Claude API 연결 시 더 정교한 자연어 답변이 가능합니다. 상단 배너에서 현재 모드를 확인할 수 있습니다.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 10. 알림 -->
+    <section id="alerts" class="section-anchor">
+      <h2><span class="h2-num">10</span>알림 대응 방법</h2>
+      <p>환경 지표가 작물별 임계값을 초과하거나 미달할 경우 상단에 알림이 표시됩니다.</p>
+
+      <h3>알림 심각도</h3>
+      <table>
+        <thead><tr><th>등급</th><th>색상</th><th>의미</th><th>대응 속도</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><span class="badge badge-red">위험</span></td>
+            <td>빨간색</td>
+            <td>즉시 조치가 필요한 심각한 이상 (낙과·병해 위험)</td>
+            <td>즉시 (당일)</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-amber">주의</span></td>
+            <td>노란색</td>
+            <td>방치 시 품질 저하·비용 증가 가능</td>
+            <td>24시간 이내</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-blue">정보</span></td>
+            <td>파란색</td>
+            <td>참고 정보, 즉각 조치 불필요</td>
+            <td>여유 있을 때</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>알림 패널 열기</h3>
+      <p>상단 바의 <span class="badge badge-red">알림 N</span> 버튼을 클릭하면 알림 패널이 펼쳐집니다. 각 알림에는 현재값과 기준값이 함께 표시됩니다.</p>
+
+      <div class="callout callout-red">
+        <div class="callout-icon">🚨</div>
+        <div>
+          <div class="callout-title">위험 알림 발생 시 즉시 확인하세요</div>
+          <div class="callout-body">특히 온도 초과(착과 불량), 습도 초과(보트리티스 곰팡이), EC 이탈(뿌리 장해) 알림은 당일 조치가 수확량에 직접 영향을 줍니다. AI 상담 탭에서 조치 방법을 질문할 수 있습니다.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 11. 농가 등급 -->
+    <section id="tiers" class="section-anchor">
+      <h2><span class="h2-num">11</span>농가 자동화 등급 (Tier)</h2>
+      <p>농가의 IoT·자동화 수준에 따라 AI 추천 적용 방식이 달라집니다.</p>
+
+      <div class="tab-diagram">
+        <div class="tab-row">
+          <div class="tab-row-name"><span class="badge badge-gray">Tier 1</span></div>
+          <div class="tab-row-desc"><strong>수동 농가</strong> — IoT 미구축 또는 수동 제어. 환경값을 직접 측정해 입력. AI 추천 적용 시 체크리스트(순서별 조작 안내) 출력.</div>
+          <div class="tab-row-badge"><span class="badge badge-gray">수동</span></div>
+        </div>
+        <div class="tab-row">
+          <div class="tab-row-name"><span class="badge badge-blue">Tier 2</span></div>
+          <div class="tab-row-desc"><strong>반자동 농가</strong> — IoT 구축, 일부 자동화. [지금 적용] 클릭 → 승인 확인 모달 → 확인 시 액추에이터(난방기·환기팬·CO₂ 발생기 등) 자동 제어.</div>
+          <div class="tab-row-badge"><span class="badge badge-blue">반자동</span></div>
+        </div>
+        <div class="tab-row">
+          <div class="tab-row-name"><span class="badge badge-green">Tier 2+</span></div>
+          <div class="tab-row-desc"><strong>완전 자동 농가</strong> — 모든 환경 장치 자동 제어. 임계값 이탈 감지 즉시 자동 조정. 완료 후 푸시 알림 발송.</div>
+          <div class="tab-row-badge"><span class="badge badge-green">자동</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 12. 비용 절감 전략 -->
+    <section id="cost-guide" class="section-anchor">
+      <h2><span class="h2-num">12</span>비용 절감 전략</h2>
+      <p>비용 분석 탭의 인사이트를 실제 운영에 적용하는 방법입니다.</p>
+
+      <h3>⚡ 전기료 절감 (평균 10~15%)</h3>
+      <ul>
+        <li>LED 보광등 타이머를 일출·일몰에 맞게 자동 설정</li>
+        <li>계절별 일조 시간 변화에 따라 타이머 주기적 재설정</li>
+        <li>환기팬을 온도·습도 연동 자동 제어로 불필요한 가동 줄이기</li>
+        <li>농업용 경부하 요금제(심야 시간대) 활용 — 야간 작업 전환</li>
+      </ul>
+
+      <h3>💧 용수비 절감 (평균 15~20%)</h3>
+      <ul>
+        <li>점적(드립) 관개로 엽면 접촉 없이 뿌리 부위만 공급</li>
+        <li>EC 센서 기반 정밀 관비로 과잉 공급 방지</li>
+        <li>배액 회수 시스템 도입으로 배양액 재사용</li>
+        <li>오전 관비 집중으로 야간 과습 예방</li>
+      </ul>
+
+      <h3>🔥 난방비 절감 (평균 15~25%)</h3>
+      <ul>
+        <li>보온커튼(열차단 다중 피복) 야간 운영</li>
+        <li>주간 최고 온도 도달 전 보온커튼 개방으로 태양열 활용</li>
+        <li>야간 설정온도를 작물 생육 최저 한계온도로 낮추기</li>
+        <li>하우스 틈새 보수로 열손실 최소화</li>
+      </ul>
+
+      <h3>👤 인건비 절감</h3>
+      <ul>
+        <li>수확·선별 작업 동선 최적화 (수확 카트 동선 계획)</li>
+        <li>관비·환기 자동화로 일상 모니터링 시간 단축</li>
+        <li>수확예측 탭의 D-day 활용 → 계절인력 사전 예약으로 고용 비용 절감</li>
+      </ul>
+    </section>
+
+    <!-- 13. FAQ -->
+    <section id="faq" class="section-anchor">
+      <h2><span class="h2-num">13</span>자주 묻는 질문</h2>
+
+      <div class="card">
+        <div class="card-title">Q. 데이터가 '불러오는 중...'에서 멈춥니다</div>
+        <p style="margin-top:8px; color:var(--ink2);">API 서버가 실행 중인지 확인하세요. 터미널에서 <code>bash scripts/start_api.sh 8010</code>을 실행 후 새로고침하세요.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Q. AI 추천이 나타나지 않습니다 (IoT 미구축 농가)</div>
+        <p style="margin-top:8px; color:var(--ink2);">환경 탭으로 이동해 현재 농장 환경값을 수동으로 입력하고 저장하면 AI 추천이 생성됩니다.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Q. 수익 금액이 이상합니다</div>
+        <p style="margin-top:8px; color:var(--ink2);">수익은 <em>예상 수확량 × KAMIS 단가 × 면적 − 월 비용</em>으로 계산됩니다. KAMIS 단가는 시장 변동에 따라 자동 갱신됩니다. 작물별 단가와 면적이 맞는지 관리자에게 확인하세요.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Q. 비용 분석의 단가는 어떻게 정해지나요?</div>
+        <p style="margin-top:8px; color:var(--ink2);">전기 105원/kWh(농업용 갑종 기본), 용수 700원/m³(농업용 지하수 평균), 난방 85원/kWh(LPG·도시가스 열량 환산), 인건비 12,000원/시간(2025 농업 기준)입니다. 실제 단가가 다를 경우 관리자 대시보드에서 수정할 수 있습니다.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Q. AI 상담이 엉뚱한 답변을 합니다</div>
+        <p style="margin-top:8px; color:var(--ink2);">현재 AI 상담은 규칙 기반 응답(stub 모드)으로, 키워드에 따라 미리 작성된 농업 지식을 응답합니다. 향후 GPT-4o·Claude API 연결 시 더 정교한 답변이 가능합니다. 상단 배너에서 모드를 확인하세요.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Q. 하단 탭이 너무 많아 글자가 잘립니다</div>
+        <p style="margin-top:8px; color:var(--ink2);">모바일에서 탭이 6개입니다. 화면이 좁으면 아이콘 아래 글자가 줄임표로 표시될 수 있습니다. 태블릿(640px 이상) 또는 PC에서 접속하면 모든 탭명이 정상 표시됩니다.</p>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer style="margin-top:64px; padding-top:24px; border-top:1px solid var(--border); color:var(--muted); font-size:0.8125rem; line-height:1.7;">
+      <p><strong style="color:var(--ink);">스마트팜 AI 플랫폼</strong> 경영자 대시보드 사용 설명서 v1.0</p>
+      <p>작성일: 2026년 5월 · 기술 문의: 플랫폼 운영팀</p>
+      <p style="margin-top:8px;">
+        관련 문서:
+        <a href="../mockups/dashboard-farmer.html">UI 목업</a> ·
+        <a href="./technical-spec.md">기술 스펙</a> ·
+        <a href="./project-overview.md">프로젝트 개요</a>
+      </p>
+    </footer>
+
+  </main>
+</div>
+</body>
+</html>

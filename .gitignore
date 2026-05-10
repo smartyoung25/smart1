@@ -1,0 +1,55 @@
+# ── Python ───────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+*.so
+.venv/
+venv/
+env/
+.env
+.env.*
+*.log
+
+# ── Node / Frontend ───────────────────────────────────────────────────────────
+node_modules/
+frontend/dist/
+frontend/build/
+.npm/
+
+# ── Data & Models (large files) ───────────────────────────────────────────────
+기초자료/
+*.csv
+*.zip
+*.pkl
+*.joblib
+*.h5
+*.pt
+*.onnx
+mlruns/
+mlartifacts/
+
+# ── DB & Logs ─────────────────────────────────────────────────────────────────
+*.db
+*.sqlite3
+logs/
+*.log
+server_restart.log
+
+# ── IDE & OS ──────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ── Tools ─────────────────────────────────────────────────────────────────────
+.code-review-graph/
+.claude/
+.superpowers/
+.mcp.json

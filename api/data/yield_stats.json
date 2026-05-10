@@ -1,0 +1,122 @@
+{
+  "generated_at": "2026-05-10T10:48:35.786256",
+  "description": "농진청 스마트팜 5년 패널 품목별 kg/m²/작기 수확량 통계 (재배정보 조인)",
+  "by_crop": {
+    "가지": {
+      "avg_kg_m2_season": 37.9,
+      "median_kg_m2_season": 43.53,
+      "std_kg_m2_season": 12.05,
+      "p25_kg_m2_season": 33.8,
+      "p75_kg_m2_season": 44.82,
+      "n_farm_seasons": 3,
+      "years_covered": [
+        2020,
+        2022
+      ]
+    },
+    "국화": {
+      "avg_kg_m2_season": 3.7,
+      "median_kg_m2_season": 1.83,
+      "std_kg_m2_season": 4.11,
+      "p25_kg_m2_season": 0.83,
+      "p75_kg_m2_season": 5.95,
+      "n_farm_seasons": 15,
+      "years_covered": [
+        2019,
+        2020,
+        2021,
+        2022
+      ]
+    },
+    "딸기": {
+      "avg_kg_m2_season": 15.19,
+      "median_kg_m2_season": 12.38,
+      "std_kg_m2_season": 9.56,
+      "p25_kg_m2_season": 8.07,
+      "p75_kg_m2_season": 20.01,
+      "n_farm_seasons": 167,
+      "years_covered": [
+        2018,
+        2019,
+        2020,
+        2021,
+        2022
+      ]
+    },
+    "방울토마토": {
+      "avg_kg_m2_season": 15.06,
+      "median_kg_m2_season": 11.72,
+      "std_kg_m2_season": 11.65,
+      "p25_kg_m2_season": 5.83,
+      "p75_kg_m2_season": 21.74,
+      "n_farm_seasons": 104,
+      "years_covered": [
+        2018,
+        2019,
+        2020,
+        2021,
+        2022
+      ]
+    },
+    "오이": {
+      "avg_kg_m2_season": 18.25,
+      "median_kg_m2_season": 13.82,
+      "std_kg_m2_season": 13.77,
+      "p25_kg_m2_season": 6.42,
+      "p75_kg_m2_season": 25.97,
+      "n_farm_seasons": 60,
+      "years_covered": [
+        2018,
+        2019,
+        2020,
+        2021,
+        2022
+      ]
+    },
+    "완숙토마토": {
+      "avg_kg_m2_season": 21.27,
+      "median_kg_m2_season": 17.61,
+      "std_kg_m2_season": 15.64,
+      "p25_kg_m2_season": 7.78,
+      "p75_kg_m2_season": 33.81,
+      "n_farm_seasons": 62,
+      "years_covered": [
+        2018,
+        2019,
+        2020,
+        2021,
+        2022
+      ]
+    },
+    "참외": {
+      "avg_kg_m2_season": 17.5,
+      "median_kg_m2_season": 14.47,
+      "std_kg_m2_season": 11.67,
+      "p25_kg_m2_season": 7.73,
+      "p75_kg_m2_season": 25.89,
+      "n_farm_seasons": 78,
+      "years_covered": [
+        2018,
+        2019,
+        2020,
+        2021,
+        2022
+      ]
+    },
+    "파프리카": {
+      "avg_kg_m2_season": 30.26,
+      "median_kg_m2_season": 31.04,
+      "std_kg_m2_season": 12.55,
+      "p25_kg_m2_season": 21.94,
+      "p75_kg_m2_season": 40.85,
+      "n_farm_seasons": 38,
+      "years_covered": [
+        2018,
+        2019,
+        2020,
+        2021,
+        2022
+      ]
+    }
+  }
+}

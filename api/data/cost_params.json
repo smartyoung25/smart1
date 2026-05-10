@@ -1,0 +1,91 @@
+{
+  "generated_at": "2026-05-10T10:49:35.139138",
+  "description": "농림수산식품교육문화정보원 농가경영정보(2023) 기반 비용 통계",
+  "grade_prices_krw_kg": {
+    "특상": {
+      "mean_krw_kg": 5076.0,
+      "median_krw_kg": 3500.0,
+      "std_krw_kg": 4527.0,
+      "n": 520
+    },
+    "상": {
+      "mean_krw_kg": 6784.0,
+      "median_krw_kg": 6804.0,
+      "std_krw_kg": 4990.0,
+      "n": 1044
+    },
+    "중": {
+      "mean_krw_kg": 3380.0,
+      "median_krw_kg": 2787.0,
+      "std_krw_kg": 2644.0,
+      "n": 409
+    },
+    "하": {
+      "mean_krw_kg": 2311.0,
+      "median_krw_kg": 2000.0,
+      "std_krw_kg": 1259.0,
+      "n": 260
+    },
+    "전체": {
+      "mean_krw_kg": 9427.0,
+      "median_krw_kg": 7713.0,
+      "std_krw_kg": 7062.0,
+      "n": 3402
+    }
+  },
+  "monthly_costs_by_category": {
+    "electricity": {
+      "avg_monthly_krw": 203123.0,
+      "median_monthly_krw": 98500.0,
+      "std_monthly_krw": 356047.0,
+      "n_farm_seasons": 53
+    },
+    "fertilizer": {
+      "avg_monthly_krw": 472686.0,
+      "median_monthly_krw": 319000.0,
+      "std_monthly_krw": 589974.0,
+      "n_farm_seasons": 54
+    },
+    "other": {
+      "avg_monthly_krw": 597983.0,
+      "median_monthly_krw": 395150.0,
+      "std_monthly_krw": 673618.0,
+      "n_farm_seasons": 52
+    }
+  },
+  "labor_daily_rate": {
+    "avg_daily_krw": 69628.0,
+    "median_daily_krw": 55000.0,
+    "std_daily_krw": 20014.0,
+    "n": 227
+  },
+  "nutrient_monthly": {
+    "avg_monthly_krw": 199508.0,
+    "median_monthly_krw": 56542.0,
+    "n_farm_seasons": 54
+  },
+  "unit_rates_with_pct": {
+    "electricity": {
+      "avg_monthly_krw": 203123.0,
+      "pct_of_total": 15.9
+    },
+    "fertilizer": {
+      "avg_monthly_krw": 472686.0,
+      "pct_of_total": 37.1
+    },
+    "other": {
+      "avg_monthly_krw": 597983.0,
+      "pct_of_total": 46.9
+    }
+  },
+  "reference_rates": {
+    "electricity": {
+      "avg_rate_krw_kwh": 112.0,
+      "source": "KEPCO_2024_농업용갑_참고값"
+    },
+    "water": {
+      "avg_rate_krw_m3": 620.0,
+      "source": "지자체_농업용수_참고값"
+    }
+  }
+}

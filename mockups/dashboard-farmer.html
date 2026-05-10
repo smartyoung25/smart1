@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>스마트팜 대시보드</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════
+   DESIGN TOKENS (Seline Analytics)
+═══════════════════════════════════════ */
+:root {
+  --cloud-white: #ffffff;
+  --canvas-fog:  #fafaf9;
+  --slate-text:  #0c0a09;
+  --ash-gray:    #78716c;
+  --stone-border:#e5e7eb;
+  --steel-gray:  #a8a29e;
+  --blue:        #3ba6f1;
+  --sky-tint:    #c1e1f7;
+  --amber-tint:  #fef3c7;
+  --amber-text:  #92400e;
+
+  --shadow-md:     rgba(0,0,0,.05) 0 4px 16px 0;
+  --shadow-xl:     rgba(17,12,46,.12) 0 12px 45px 0;
+  --shadow-subtle: rgba(0,0,0,.05) 0 1px 2px 0;
+
+  --r-sm:   4px;
+  --r-md:   10px;
+  --r-lg:   16px;
+  --r-full: 9999px;
+
+  --sp-4:  4px;  --sp-8:  8px;  --sp-12: 12px; --sp-16: 16px;
+  --sp-20: 20px; --sp-24: 24px; --sp-32: 32px; --sp-48: 48px;
+
+  --font: 'Inter', ui-sans-serif, system-ui, sans-serif;
+
+  /* Layout */
+  --sidebar-w: 220px;
+  --topbar-h:  56px;
+}
+
+/* ── Reset ── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:var(--canvas-fog);color:var(--slate-text);-webkit-font-smoothing:antialiased}
+button{font-family:var(--font);cursor:pointer}
+svg{flex-shrink:0}
+
+/* ═══════════════════════════════════════
+   APP SHELL
+═══════════════════════════════════════ */
+.app { display:flex; flex-direction:column; min-height:100dvh; }
+
+/* ── TOP BAR ── */
+.topbar {
+  height: var(--topbar-h);
+  background: var(--cloud-white);
+  border-bottom: 1px solid var(--stone-border);
+  box-shadow: var(--shadow-subtle);
+  display: flex;
+  align-items: center;
+  padding: 0 var(--sp-16);
+  gap: var(--sp-12);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+.topbar-logo {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-8);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--slate-text);
+  flex-shrink: 0;
+}
+.live-dot {
+  width: 7px; height: 7px;
+  background: var(--blue);
+  border-radius: 50%;
+  animation: blink 2s ease-in-out infinite;
+}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.topbar-pills {
+  display: flex;
+  gap: var(--sp-8);
+  margin-left: auto;
+  flex-wrap: nowrap;
+}
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-4);
+  padding: 5px 12px;
+  border-radius: var(--r-full);
+  border: 1px solid var(--stone-border);
+  background: var(--canvas-fog);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ash-gray);
+  white-space: nowrap;
+}
+.pill strong { color: var(--slate-text); font-weight: 600; }
+.pill.warn strong { color: var(--amber-text); }
+.pill.accent strong { color: var(--blue); }
+/* Mobile: hide text labels in pills */
+@media(max-width:479px){ .pill-label{ display:none; } }
+
+/* ── BODY = SIDEBAR + MAIN ── */
+.body { display: flex; flex: 1; }
+
+/* ═══════════════════════════════════════
+   SIDEBAR  (desktop ≥ 1024px)
+═══════════════════════════════════════ */
+.sidebar {
+  display: none;
+  width: var(--sidebar-w);
+  background: var(--cloud-white);
+  border-right: 1px solid var(--stone-border);
+  flex-direction: column;
+  position: sticky;
+  top: var(--topbar-h);
+  height: calc(100dvh - var(--topbar-h));
+  overflow-y: auto;
+  flex-shrink: 0;
+  padding: var(--sp-12) 0;
+}
+.sidebar-farm {
+  padding: var(--sp-12) var(--sp-16) var(--sp-16);
+  border-bottom: 1px solid var(--stone-border);
+  margin-bottom: var(--sp-8);
+}
+.sidebar-farm-name { font-size: 14px; font-weight: 600; color: var(--slate-text); }
+.sidebar-farm-sub  { font-size: 12px; color: var(--ash-gray); margin-top: 2px; }
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-12);
+  padding: 11px var(--sp-16);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ash-gray);
+  cursor: pointer;
+  border-left: 3px solid transparent;
+  transition: all .15s;
+  text-decoration: none;
+}
+.sidebar-item:hover { background: var(--canvas-fog); color: var(--slate-text); }
+.sidebar-item.active { color: var(--blue); border-left-color: var(--blue); background: var(--sky-tint); }
+.sidebar-item svg { width:18px; height:18px; }
+
+@media(min-width:1024px){ .sidebar{ display:flex; } }
+
+/* ═══════════════════════════════════════
+   MAIN CONTENT
+═══════════════════════════════════════ */
+.main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── TAB BAR (tablet 640–1023px) ── */
+.tabnav {
+  display: none;
+  background: var(--cloud-white);
+  border-bottom: 1px solid var(--stone-border);
+  overflow-x: auto;
+  scrollbar-width: none;
+  position: sticky;
+  top: var(--topbar-h);
+  z-index: 40;
+}
+.tabnav::-webkit-scrollbar{display:none}
+.tabnav-inner { display: flex; padding: 0 var(--sp-16); min-width: max-content; }
+.tabnav-btn {
+  padding: 12px var(--sp-16);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ash-gray);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color .15s;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-8);
+}
+.tabnav-btn:hover { color: var(--slate-text); }
+.tabnav-btn.active { color: var(--slate-text); border-bottom-color: var(--blue); font-weight: 600; }
+.tabnav-btn svg { width:16px; height:16px; }
+@media(min-width:640px) and (max-width:1023px){ .tabnav{ display:block; } }
+
+/* ── CONTENT AREA ── */
+.content {
+  flex: 1;
+  padding: var(--sp-16);
+  padding-bottom: calc(var(--sp-16) + 64px); /* mobile bottom nav */
+}
+@media(min-width:640px){ .content{ padding: var(--sp-24); padding-bottom: var(--sp-24); } }
+@media(min-width:1024px){ .content{ padding: var(--sp-32); } }
+
+/* ── PANELS ── */
+.panel { display: none; }
+.panel.active { display: contents; }
+
+/* Desktop: all panels visible simultaneously */
+@media(min-width:1024px){
+  .panel { display: contents; }
+  .desktop-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--sp-24);
+    align-items: start;
+  }
+  .desktop-col-left, .desktop-col-right { display: flex; flex-direction: column; gap: var(--sp-16); }
+}
+
+/* ── SECTION TITLE ── */
+.section-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--steel-gray);
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  margin-bottom: var(--sp-12);
+  margin-top: var(--sp-20);
+}
+.section-title:first-child { margin-top: 0; }
+
+/* ═══════════════════════════════════════
+   CARD BASE
+═══════════════════════════════════════ */
+.card {
+  background: var(--cloud-white);
+  border: 1px solid var(--stone-border);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-md);
+  padding: var(--sp-24);
+}
+.card-lg {
+  background: var(--cloud-white);
+  border: 1px solid var(--stone-border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-xl);
+  padding: var(--sp-24);
+  position: relative;
+  overflow: hidden;
+}
+.card-lg::before {
+  content:'';
+  position:absolute;
+  top:0;left:0;right:0;
+  height:3px;
+  background:var(--blue);
+}
+
+/* ═══════════════════════════════════════
+   HERO CARD
+═══════════════════════════════════════ */
+.hero-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-8);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--blue);
+  letter-spacing: .04em;
+  margin-bottom: var(--sp-12);
+}
+.hero-eyebrow-dot{width:6px;height:6px;background:var(--blue);border-radius:50%}
+.hero-action {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--slate-text);
+  line-height: 1.25;
+  margin-bottom: var(--sp-8);
+}
+@media(min-width:640px){ .hero-action{ font-size:26px; } }
+.hero-reason {
+  font-size: 14px;
+  color: var(--ash-gray);
+  line-height: 1.6;
+  margin-bottom: var(--sp-20);
+}
+.hero-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-12);
+}
+.hero-profit-label{ font-size:12px; color:var(--steel-gray); margin-bottom:3px; }
+.hero-profit{ font-size:32px; font-weight:600; color:var(--slate-text); line-height:1; }
+.hero-profit span{ color:var(--blue); }
+.btn-primary {
+  background: var(--blue);
+  color: var(--cloud-white);
+  font-size: 15px;
+  font-weight: 600;
+  padding: 12px 24px;
+  border-radius: var(--r-full);
+  border: none;
+  min-height: 44px;
+  white-space: nowrap;
+  transition: opacity .15s;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-8);
+}
+.btn-primary:hover{ opacity:.88; }
+.btn-ghost {
+  background: transparent;
+  color: var(--ash-gray);
+  font-size: 14px;
+  font-weight: 500;
+  padding: 10px 20px;
+  border-radius: var(--r-full);
+  border: 1px solid var(--stone-border);
+  min-height: 44px;
+  white-space: nowrap;
+  transition: all .15s;
+}
+.btn-ghost:hover{ background:var(--canvas-fog); color:var(--slate-text); }
+
+/* ═══════════════════════════════════════
+   NEXT RECS MINI CARDS
+═══════════════════════════════════════ */
+.mini-recs { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-12); margin-bottom: var(--sp-4); }
+@media(min-width:640px){ .mini-recs{ grid-template-columns:1fr 1fr 1fr; } }
+.mini-rec {
+  background: var(--cloud-white);
+  border: 1px solid var(--stone-border);
+  border-radius: var(--r-md);
+  padding: var(--sp-16);
+  cursor: pointer;
+  box-shadow: var(--shadow-md);
+  transition: box-shadow .15s, transform .15s;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-8);
+}
+.mini-rec:hover{ box-shadow:var(--shadow-xl); transform:translateY(-1px); }
+.mini-rec-rank{ font-size:11px; font-weight:600; color:var(--steel-gray); letter-spacing:.04em; }
+.mini-rec-text{ font-size:13px; font-weight:500; color:var(--slate-text); line-height:1.4; }
+.mini-rec-profit{ font-size:15px; font-weight:600; color:var(--blue); }
+
+/* ═══════════════════════════════════════
+   REC LIST
+═══════════════════════════════════════ */
+.rec-list{ display:flex; flex-direction:column; gap:var(--sp-12); }
+.rec-card{
+  background:var(--cloud-white);
+  border:1px solid var(--stone-border);
+  border-radius:var(--r-md);
+  padding:var(--sp-24);
+  box-shadow:var(--shadow-md);
+}
+.rec-header{ display:flex; align-items:flex-start; gap:var(--sp-12); margin-bottom:var(--sp-16); }
+.rec-num{
+  width:28px;height:28px;border-radius:var(--r-full);
+  background:var(--sky-tint);color:var(--blue);
+  font-size:13px;font-weight:600;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.rec-num.urgent{ background:var(--amber-tint); color:var(--amber-text); }
+.rec-title{ font-size:16px; font-weight:600; color:var(--slate-text); margin-bottom:4px; }
+.rec-desc{ font-size:14px; color:var(--ash-gray); line-height:1.55; }
+.rec-footer{
+  display:flex;align-items:center;justify-content:space-between;
+  padding-top:var(--sp-16);
+  border-top:1px solid var(--stone-border);
+}
+.rec-profit-label{ font-size:11px; color:var(--steel-gray); margin-bottom:3px; }
+.rec-profit{ font-size:20px; font-weight:600; color:var(--blue); }
+
+/* ═══════════════════════════════════════
+   ENV CARDS
+═══════════════════════════════════════ */
+.env-grid{ display:flex; flex-direction:column; gap:var(--sp-12); }
+@media(min-width:480px){ .env-grid{ display:grid; grid-template-columns:1fr 1fr; } }
+@media(min-width:1024px){ .env-grid{ grid-template-columns:1fr 1fr; } }
+@media(min-width:1280px){ .env-grid{ grid-template-columns:1fr 1fr 1fr; } }
+.env-card{
+  background:var(--cloud-white);
+  border:1px solid var(--stone-border);
+  border-radius:var(--r-md);
+  padding:var(--sp-16) var(--sp-20);
+  display:flex; align-items:center; gap:var(--sp-16);
+  box-shadow:var(--shadow-md);
+}
+.env-icon-wrap{
+  width:40px;height:40px;
+  background:var(--canvas-fog);
+  border:1px solid var(--stone-border);
+  border-radius:var(--r-md);
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+.env-icon-wrap svg{ width:20px;height:20px;color:var(--ash-gray); }
+.env-name{ font-size:12px; font-weight:500; color:var(--ash-gray); margin-bottom:3px; }
+.env-val{ font-size:22px; font-weight:600; color:var(--slate-text); }
+.env-val.warn{ color:var(--amber-text); }
+.badge{
+  margin-left:auto;
+  font-size:12px; font-weight:600;
+  padding:4px 12px;
+  border-radius:var(--r-full);
+  white-space:nowrap;
+  flex-shrink:0;
+}
+.badge.ok { background:var(--sky-tint); color:#1e6fa5; }
+.badge.warn{ background:var(--amber-tint); color:var(--amber-text); }
+
+/* ═══════════════════════════════════════
+   HARVEST CARD
+═══════════════════════════════════════ */
+.harvest-center{ text-align:center; padding:var(--sp-8) 0 var(--sp-20); }
+.harvest-label{ font-size:13px; color:var(--ash-gray); margin-bottom:var(--sp-8); }
+.harvest-dday{
+  font-size:52px; font-weight:600; color:var(--blue);
+  letter-spacing:-.025em; line-height:1;
+  margin-bottom:var(--sp-8);
+}
+.harvest-date{ font-size:15px; color:var(--ash-gray); }
+.stat-grid{ display:grid; grid-template-columns:1fr 1fr; gap:var(--sp-12); }
+@media(min-width:640px){ .stat-grid{ grid-template-columns:repeat(4,1fr); } }
+.stat-box{
+  background:var(--canvas-fog);
+  border:1px solid var(--stone-border);
+  border-radius:var(--r-md);
+  padding:var(--sp-16);
+}
+.stat-label{ font-size:11px; font-weight:600; color:var(--steel-gray); letter-spacing:.04em; margin-bottom:5px; }
+.stat-val{ font-size:20px; font-weight:600; color:var(--slate-text); }
+.stat-val.accent{ color:var(--blue); }
+.stat-unit{ font-size:13px; font-weight:400; color:var(--ash-gray); }
+
+/* ═══════════════════════════════════════
+   REVENUE CARD
+═══════════════════════════════════════ */
+.rev-header{ margin-bottom:var(--sp-20); }
+.rev-label{ font-size:13px; color:var(--ash-gray); margin-bottom:var(--sp-8); }
+.rev-amount{ font-size:40px; font-weight:600; color:var(--slate-text); line-height:1.1; margin-bottom:var(--sp-8); }
+.rev-change-pill{
+  display:inline-flex; align-items:center; gap:var(--sp-4);
+  background:var(--sky-tint); color:var(--blue);
+  font-size:13px; font-weight:600;
+  padding:4px 12px; border-radius:var(--r-full);
+}
+.rev-rows{ display:flex; flex-direction:column; gap:var(--sp-8); }
+.rev-row{
+  background:var(--cloud-white);
+  border:1px solid var(--stone-border);
+  border-radius:var(--r-md);
+  padding:14px var(--sp-16);
+  display:flex; justify-content:space-between; align-items:center;
+  box-shadow:var(--shadow-subtle);
+}
+.rev-row-label{ font-size:14px; font-weight:500; color:var(--ash-gray); }
+.rev-row-val{ font-size:16px; font-weight:600; }
+.rev-row-val.plus{ color:var(--blue); }
+.rev-row-val.minus{ color:var(--ash-gray); }
+.rev-row.total-row{
+  background:var(--sky-tint);
+  border-color:var(--blue);
+}
+.rev-row.total-row .rev-row-label{ color:var(--slate-text); font-weight:600; font-size:15px; }
+.rev-row.total-row .rev-row-val{ font-size:18px; color:var(--blue); }
+
+/* ═══════════════════════════════════════
+   BOTTOM NAV (mobile < 640px)
+═══════════════════════════════════════ */
+.bottom-nav{
+  position:fixed; bottom:0; left:0; right:0;
+  background:var(--cloud-white);
+  border-top:1px solid var(--stone-border);
+  display:flex;
+  box-shadow:0 -4px 16px rgba(0,0,0,.08);
+  z-index:50;
+}
+.bottom-nav-item{
+  flex:1;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:10px 4px 10px;
+  font-size:11px; font-weight:500; color:var(--steel-gray);
+  gap:3px;
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+  transition:color .15s;
+  border:none; background:none;
+  min-height:56px;
+}
+.bottom-nav-item svg{ width:22px; height:22px; }
+.bottom-nav-item.active{ color:var(--blue); }
+@media(min-width:640px){ .bottom-nav{ display:none; } }
+
+/* ═══════════════════════════════════════
+   SVG ICON HELPERS
+═══════════════════════════════════════ */
+.icon{ display:inline-flex; align-items:center; justify-content:center; }
+
+/* ── Desktop: override panels to show all ── */
+@media(min-width:1024px){
+  .panel-ai, .panel-env, .panel-harvest, .panel-revenue {
+    display: block !important;
+  }
+  /* tabnav hidden on desktop */
+  .tabnav{ display:none !important; }
+  /* bottom nav already hidden ≥640 */
+}
+</style>
+<script>
+var cur = 'ai';
+function go(name) {
+  cur = name;
+  if(window.innerWidth >= 1024) return; // desktop shows all
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  var el = document.getElementById('p-'+name);
+  if(el) el.classList.add('active');
+  document.querySelectorAll('.tabnav-btn, .bottom-nav-item').forEach(b => {
+    b.classList.toggle('active', b.dataset.tab === name);
+  });
+}
+</script>
+</head>
+<body>
+<div class="app">
+
+<!-- ══ TOP BAR ══ -->
+<header class="topbar">
+  <div class="topbar-logo">
+    <div class="live-dot"></div>
+    이암허브 농장
+  </div>
+  <div class="topbar-pills">
+    <div class="pill warn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      <span class="pill-label">알림</span><strong>2건</strong>
+    </div>
+    <div class="pill accent">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      <span class="pill-label">수확</span><strong>D-12</strong>
+    </div>
+    <div class="pill">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+      <span class="pill-label">수익</span><strong>340만원</strong>
+    </div>
+  </div>
+</header>
+
+<div class="body">
+
+  <!-- ══ SIDEBAR (desktop) ══ -->
+  <aside class="sidebar">
+    <div class="sidebar-farm">
+      <div class="sidebar-farm-name">이암허브 농장</div>
+      <div class="sidebar-farm-sub">딸기 · 2025년 작기</div>
+    </div>
+    <a class="sidebar-item active" onclick="go('ai')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+      AI 추천
+    </a>
+    <a class="sidebar-item" onclick="go('env')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 14.76V3.5a2.5 2.5 0 00-5 0v11.26a4.5 4.5 0 105 0z"/></svg>
+      환경 모니터링
+    </a>
+    <a class="sidebar-item" onclick="go('harvest')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      수확 예측
+    </a>
+    <a class="sidebar-item" onclick="go('revenue')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+      수익 현황
+    </a>
+  </aside>
+
+  <!-- ══ MAIN ══ -->
+  <main class="main">
+
+    <!-- Tablet tab bar -->
+    <nav class="tabnav">
+      <div class="tabnav-inner">
+        <button class="tabnav-btn active" data-tab="ai" onclick="go('ai')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+          AI 추천
+        </button>
+        <button class="tabnav-btn" data-tab="env" onclick="go('env')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 14.76V3.5a2.5 2.5 0 00-5 0v11.26a4.5 4.5 0 105 0z"/></svg>
+          환경
+        </button>
+        <button class="tabnav-btn" data-tab="harvest" onclick="go('harvest')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          수확 예측
+        </button>
+        <button class="tabnav-btn" data-tab="revenue" onclick="go('revenue')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+          수익
+        </button>
+      </div>
+    </nav>
+
+    <!-- Content -->
+    <div class="content">
+
+      <!-- Desktop 2-col grid wrapper -->
+      <div class="desktop-grid">
+      <div class="desktop-col-left">
+
+      <!-- ── HERO (always visible) ── -->
+      <div class="card-lg" style="margin-bottom:var(--sp-12)">
+        <div class="hero-eyebrow">
+          <div class="hero-eyebrow-dot"></div>
+          AI 수익 최적화 — 지금 해야 할 일
+        </div>
+        <div class="hero-action">환기팬 속도를 30% 높이세요</div>
+        <div class="hero-reason">습도가 87%로 권장치(75%)를 넘었습니다. 지금 조치하지 않으면 병해가 생길 수 있어요.</div>
+        <div class="hero-bottom">
+          <div>
+            <div class="hero-profit-label">실행 시 예상 수익 증가</div>
+            <div class="hero-profit"><span>+</span>14만원</div>
+          </div>
+          <button class="btn-primary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+            지금 적용
+          </button>
+        </div>
+      </div>
+
+      <!-- ── MINI RECS ── -->
+      <div class="mini-recs">
+        <div class="mini-rec" onclick="go('ai')">
+          <div class="mini-rec-rank">2순위</div>
+          <div class="mini-rec-text">야간 온도 1°C 올리기</div>
+          <div class="mini-rec-profit">+8만원</div>
+        </div>
+        <div class="mini-rec" onclick="go('ai')">
+          <div class="mini-rec-rank">3순위</div>
+          <div class="mini-rec-text">관수 주기 늘리기</div>
+          <div class="mini-rec-profit">+5만원</div>
+        </div>
+      </div>
+
+      <!-- ── PANEL: AI 추천 ── -->
+      <div class="panel panel-ai active" id="p-ai">
+        <div class="section-title">전체 추천 목록</div>
+        <div class="rec-list">
+          <div class="rec-card">
+            <div class="rec-header">
+              <div class="rec-num urgent">1</div>
+              <div>
+                <div class="rec-title">환기팬 속도 30% 올리기</div>
+                <div class="rec-desc">습도 87% → 목표 75% 이하. 병해 예방과 수익을 동시에 챙길 수 있습니다.</div>
+              </div>
+            </div>
+            <div class="rec-footer">
+              <div><div class="rec-profit-label">예상 수익 증가</div><div class="rec-profit">+14만원</div></div>
+              <button class="btn-primary">지금 적용</button>
+            </div>
+          </div>
+          <div class="rec-card">
+            <div class="rec-header">
+              <div class="rec-num">2</div>
+              <div>
+                <div class="rec-title">야간 온도 1°C 올리기</div>
+                <div class="rec-desc">밤 온도를 조금 높이면 딸기 생육이 빨라집니다.</div>
+              </div>
+            </div>
+            <div class="rec-footer">
+              <div><div class="rec-profit-label">예상 수익 증가</div><div class="rec-profit">+8만원</div></div>
+              <button class="btn-primary">적용하기</button>
+            </div>
+          </div>
+          <div class="rec-card">
+            <div class="rec-header">
+              <div class="rec-num">3</div>
+              <div>
+                <div class="rec-title">물 주는 간격 늘리기</div>
+                <div class="rec-desc">관수 주기 6h → 8h. 에너지 절약과 뿌리 건강에 좋습니다.</div>
+              </div>
+            </div>
+            <div class="rec-footer">
+              <div><div class="rec-profit-label">예상 수익 증가</div><div class="rec-profit">+5만원</div></div>
+              <button class="btn-ghost">적용하기</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      </div><!-- /desktop-col-left -->
+      <div class="desktop-col-right">
+
+      <!-- ── PANEL: 환경 ── -->
+      <div class="panel panel-env" id="p-env">
+        <div class="section-title">실시간 환경</div>
+        <div class="env-grid">
+          <div class="env-card">
+            <div class="env-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 14.76V3.5a2.5 2.5 0 00-5 0v11.26a4.5 4.5 0 105 0z"/></svg></div>
+            <div><div class="env-name">내부 온도</div><div class="env-val">24.3°C</div></div>
+            <div class="badge ok">정상</div>
+          </div>
+          <div class="env-card">
+            <div class="env-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2.69l5.66 5.66a8 8 0 11-11.31 0z"/></svg></div>
+            <div><div class="env-name">내부 습도</div><div class="env-val warn">87%</div></div>
+            <div class="badge warn">높음 !</div>
+          </div>
+          <div class="env-card">
+            <div class="env-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></div>
+            <div><div class="env-name">CO₂ 농도</div><div class="env-val">890ppm</div></div>
+            <div class="badge ok">정상</div>
+          </div>
+          <div class="env-card">
+            <div class="env-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></div>
+            <div><div class="env-name">일사량</div><div class="env-val">236W</div></div>
+            <div class="badge ok">정상</div>
+          </div>
+          <div class="env-card">
+            <div class="env-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+            <div><div class="env-name">토양 온도</div><div class="env-val">21.5°C</div></div>
+            <div class="badge ok">정상</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── PANEL: 수확 예측 ── -->
+      <div class="panel panel-harvest" id="p-harvest">
+        <div class="section-title">수확 예측</div>
+        <div class="card-lg">
+          <div class="harvest-center">
+            <div class="harvest-label">예상 수확까지</div>
+            <div class="harvest-dday">D-12</div>
+            <div class="harvest-date">2026년 5월 21일 수확 예정</div>
+          </div>
+          <div class="stat-grid">
+            <div class="stat-box"><div class="stat-label">예상 수확량</div><div class="stat-val">280<span class="stat-unit">kg</span></div></div>
+            <div class="stat-box"><div class="stat-label">오차 범위</div><div class="stat-val">±15<span class="stat-unit">kg</span></div></div>
+            <div class="stat-box"><div class="stat-label">kg당 단가</div><div class="stat-val">12,500<span class="stat-unit">원</span></div></div>
+            <div class="stat-box"><div class="stat-label">AI 신뢰도</div><div class="stat-val accent">높음</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── PANEL: 수익 ── -->
+      <div class="panel panel-revenue" id="p-revenue">
+        <div class="section-title">수익 현황</div>
+        <div class="card-lg">
+          <div class="rev-header">
+            <div class="rev-label">이번 달 예상 순수익</div>
+            <div class="rev-amount">340만원</div>
+            <div class="rev-change-pill">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
+              지난달보다 44만원 더 많아요
+            </div>
+          </div>
+          <div class="rev-rows">
+            <div class="rev-row"><div class="rev-row-label">예상 판매 수익</div><div class="rev-row-val plus">+480만원</div></div>
+            <div class="rev-row"><div class="rev-row-label">에너지 비용</div><div class="rev-row-val minus">-85만원</div></div>
+            <div class="rev-row"><div class="rev-row-label">자재·농약 비용</div><div class="rev-row-val minus">-55만원</div></div>
+            <div class="rev-row total-row"><div class="rev-row-label">순수익 합계</div><div class="rev-row-val">340만원</div></div>
+          </div>
+        </div>
+      </div>
+
+      </div><!-- /desktop-col-right -->
+      </div><!-- /desktop-grid -->
+
+    </div><!-- /content -->
+  </main>
+</div><!-- /body -->
+
+<!-- ══ BOTTOM NAV (mobile) ══ -->
+<nav class="bottom-nav">
+  <button class="bottom-nav-item active" data-tab="ai" onclick="go('ai')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+    AI 추천
+  </button>
+  <button class="bottom-nav-item" data-tab="env" onclick="go('env')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 14.76V3.5a2.5 2.5 0 00-5 0v11.26a4.5 4.5 0 105 0z"/></svg>
+    환경
+  </button>
+  <button class="bottom-nav-item" data-tab="harvest" onclick="go('harvest')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    수확예측
+  </button>
+  <button class="bottom-nav-item" data-tab="revenue" onclick="go('revenue')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+    수익
+  </button>
+</nav>
+
+</div><!-- /app -->
+</body>
+</html>

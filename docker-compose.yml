@@ -1,0 +1,151 @@
+version: "3.9"
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 스마트팜 AI 플랫폼 — 로컬 개발 + 스테이징용 Docker Compose
+#
+# 서비스 구성:
+#   db        — PostgreSQL 15 + TimescaleDB 2
+#   redis     — Redis 7 (캐시 / Airflow 브로커)
+#   api       — FastAPI (uvicorn)
+#   frontend  — Vite 개발 서버
+#   airflow-* — Airflow 2.9 (웹서버 + 스케줄러 + 워커)
+#   mlflow    — MLflow 트래킹 서버
+# ──────────────────────────────────────────────────────────────────────────────
+
+x-airflow-common: &airflow-common
+  image: apache/airflow:2.9.1
+  environment:
+    AIRFLOW__CORE__EXECUTOR: CeleryExecutor
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://smartfarm:smartfarm@db/airflow
+    AIRFLOW__CELERY__BROKER_URL: redis://redis:6379/0
+    AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://smartfarm:smartfarm@db/airflow
+    AIRFLOW__CORE__FERNET_KEY: ""
+    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "true"
+    DATABASE_URL: postgresql://smartfarm:smartfarm@db/smartfarm
+    MLFLOW_TRACKING_URI: http://mlflow:5000
+  volumes:
+    - ./pipelines/dags:/opt/airflow/dags
+    - ./pipelines:/opt/airflow/pipelines
+    - ./adapters:/opt/airflow/adapters
+    - ./models:/opt/airflow/models
+    - airflow_logs:/opt/airflow/logs
+  depends_on:
+    db:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+
+services:
+
+  # ── PostgreSQL + TimescaleDB ─────────────────────────────────────────────
+  db:
+    image: timescale/timescaledb:latest-pg15
+    environment:
+      POSTGRES_USER:     smartfarm
+      POSTGRES_PASSWORD: smartfarm
+      POSTGRES_DB:       smartfarm
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/schema:/docker-entrypoint-initdb.d   # auto-run on first start
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U smartfarm"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Redis ─────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── FastAPI ───────────────────────────────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://smartfarm:smartfarm@db/smartfarm
+      REDIS_URL:    redis://redis:6379/0
+    volumes:
+      - .:/app
+    depends_on:
+      db:
+        condition: service_healthy
+    command: uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
+
+  # ── Vite 개발 서버 ────────────────────────────────────────────────────────
+  frontend:
+    image: node:20-alpine
+    working_dir: /app
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+    environment:
+      VITE_API_BASE: ""   # proxy to api via vite.config.ts
+    command: sh -c "npm install && npm run dev -- --host"
+
+  # ── MLflow ────────────────────────────────────────────────────────────────
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.12.2
+    ports:
+      - "5000:5000"
+    volumes:
+      - mlflow_artifacts:/mlflow/artifacts
+    environment:
+      MLFLOW_BACKEND_STORE_URI: postgresql://smartfarm:smartfarm@db/smartfarm
+      MLFLOW_DEFAULT_ARTIFACT_ROOT: /mlflow/artifacts
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      mlflow server
+        --backend-store-uri postgresql://smartfarm:smartfarm@db/smartfarm
+        --default-artifact-root /mlflow/artifacts
+        --host 0.0.0.0
+        --port 5000
+
+  # ── Airflow ───────────────────────────────────────────────────────────────
+  airflow-init:
+    <<: *airflow-common
+    command: version
+    environment:
+      _AIRFLOW_DB_MIGRATE: "true"
+      _AIRFLOW_WWW_USER_CREATE: "true"
+      _AIRFLOW_WWW_USER_USERNAME: admin
+      _AIRFLOW_WWW_USER_PASSWORD: admin
+
+  airflow-webserver:
+    <<: *airflow-common
+    ports:
+      - "8080:8080"
+    command: webserver
+    depends_on:
+      - airflow-init
+
+  airflow-scheduler:
+    <<: *airflow-common
+    command: scheduler
+    depends_on:
+      - airflow-init
+
+  airflow-worker:
+    <<: *airflow-common
+    command: celery worker
+    depends_on:
+      - airflow-scheduler
+
+volumes:
+  pgdata:
+  airflow_logs:
+  mlflow_artifacts:
