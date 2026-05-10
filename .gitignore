@@ -13,7 +13,6 @@ venv/
 env/
 .env
 .env.*
-*.log
 
 # ── Node / Frontend ───────────────────────────────────────────────────────────
 node_modules/
@@ -21,10 +20,7 @@ frontend/dist/
 frontend/build/
 .npm/
 
-# ── Data & Models (large files) ───────────────────────────────────────────────
-기초자료/
-*.csv
-*.zip
+# ── ML Artifacts ──────────────────────────────────────────────────────────────
 *.pkl
 *.joblib
 *.h5

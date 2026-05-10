@@ -1,0 +1,11 @@
+﻿#,유형,명칭,용도,주기,신청,비용
+1,OpenAPI,농진청 우수농가 (15108734),5년 패널 + M_BM,5년 일괄,data.go.kr,무료
+2,OpenAPI,농진청 생산형 향상모델 (15125691),외부 검증,5년 일괄,data.go.kr,무료
+3,OpenAPI,KAMIS 단가,M2 단가,일별,kamis.or.kr,무료
+4,OpenAPI,KMA 기상,M9 알림,시간별,data.go.kr,무료
+5,OpenAPI,NCPMS 병해충,M8 위험,주별,ncpms.rda.go.kr,무료
+6,OpenAPI,aT 농산물 등급,M4 등급,일별,data.go.kr,무료
+7,MCP/연동,이암허브 (i-Farm Hub),우수농가 raw data,협력,smartfarmkorea.net,무료
+8,MCP/연동,농정원 (NIA),지역별+경영정보,협력,직접 연락,무료
+9,(향후),Sentinel-2 NDVI,M1 보강,5일별,Copernicus Hub,무료
+10,(향후),토양환경정보 OpenAPI,M_BM 보강,월별,농진청,무료
