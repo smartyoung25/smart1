@@ -597,4 +597,109 @@ Phase 1 전체         ████░░░░░░  55% — 인프라·레이
 
 ---
 
-*보고서 최종 업데이트: 2026-05-10 | 커밋 26d4866 기준*
+---
+
+## 8. Phase 2 작업내역 (STEP 4 ~ STEP 7 + 딸기 모델)
+
+> 작성일: 2026-05-14  
+> 범위: 데이터 연결 레이어 완성 + JWT 보안 + 딸기 소득최적화 ML 파이프라인
+
+---
+
+### STEP 4 — 비용·환경 통계 레이어 실데이터 연결 (완료)
+
+| 파일 | 변경 내용 |
+|------|---------|
+| `engine/profit_optimizer.py` | `_load_cost_rates()` 추가 — `income_survey.json` 기반 작목별 비용 로드, `@lru_cache` 적용 |
+| `engine/what_if_simulator.py` | `get_adjustment_deltas(crop_ko)` / `get_bounds(crop_ko)` — `env_stats.json` P25/P75 기반 경계값 동적 로드 |
+| `api/data/stats_loader.py` | `get_env_yield_sensitivity()`, `estimate_season_revenue()`, `GDD_PARAMS` 동적화 |
+| `models/m3_harvest_timing.py` | `_get_gdd_params(crop_type)` — 작목별 기준온도 동적 로드, `@property` 오용 수정 |
+| `scripts/extract_income_survey.py` | 소득조사표 xlsx 파싱 (5농가 × 4작목), 모두 빈 템플릿 → RDA 통계 폴백 자동화 |
+| `api/data/income_survey.json` | 딸기·방울토마토·완숙토마토·참외 월 경영비 (m2당 원단위, RDA 기준) |
+
+---
+
+### STEP 5 — 딸기 소득최적화 ML 파이프라인 (완료)
+
+**파일**: `scripts/train_strawberry_pipeline.py` (약 1,000행)
+
+#### 데이터 처리 (결측·이상치 100% 처리)
+
+| 처리 단계 | 방법 |
+|---------|------|
+| 이상치 | IQR 1.5× 기준 클리핑 (제거 아님, 모든 행 유지) |
+| 결측치 | 선형보간 → ffill → bfill → 전체평균 순서 |
+| 하드 범위 | 온도 -5~55°C, CO2 0~5000ppm 등 물리적 경계 사전 필터 |
+| 농가ID 정규화 | `'001'→'1'`, `'1.0'→'1'` (연도별 형식 불일치 해결) |
+| 병합 키 | `(farm_id, year, month)` — dtype Int64 통일 후 병합 |
+
+#### 데이터 현황 (2018~2022)
+
+| 구분 | 연도 수 | 총 행 수 |
+|------|--------|--------|
+| 환경 | 5 | 1,410,359행 |
+| 생육 | 5 | 80,654행 |
+| 생산(출하) | 5 | 58,799행 |
+
+#### 피처 엔지니어링
+
+- GDD 누적 (기준온도 6°C, 월 30일 가정)
+- 3개월 이동평균 (온도·CO2·습도)
+- 초장 월간 증분 (생육 성장률)
+- 정식 후 경과 주수 (`weeks_since_planting`)
+- 최종 피처 행렬: (1,979, 48)
+
+#### 모델 성능
+
+| 구분 | R² | MAPE |
+|------|-----|------|
+| 학습 (2018-2021) | **0.981** | 68.2% |
+| 검증 (2022) | 0.020 | 202.8% |
+
+> 과적합 원인: 패널 규모 제한 (농가수 30~42개), XGBoost/LightGBM의 높은 표현력.  
+> 향후 과제: 드롭아웃 등 정규화, 교차검증, 더 많은 lag feature 추가.
+
+#### 소득 최적화 결과 (샘플: 1,000m², 6개월)
+
+| 항목 | 값 |
+|------|-----|
+| 최적 온도 | 14°C |
+| 최적 습도 | 75% |
+| 최적 CO2 | 600 ppm |
+| 6개월 예측 소득 | +148,949,417원 |
+
+#### 출력 파일
+
+| 파일 | 내용 |
+|------|------|
+| `models/artifacts/strawberry_revenue_model.pkl` | XGBoost+LightGBM 앙상블 모델 |
+| `models/artifacts/strawberry_pipeline_meta.json` | 파이프라인 메타 |
+| `docs/strawberry_validation_report.json` | 검증 리포트 |
+
+---
+
+### STEP 7 — JWT 인증 · 레이트리밋 · DB 영속화 (완료)
+
+| 파일 | 내용 |
+|------|------|
+| `api/middleware/__init__.py` | 미들웨어 패키지 초기화 |
+| `api/middleware/auth.py` | ASGI `JWTMiddleware` — HS256, 공개경로 제외, JWT_SECRET_KEY 없으면 dev 모드 자동 비활성 |
+| `api/routers/auth.py` | `POST /api/v1/auth/token` — username/password → JWT 발급 |
+| `api/services/persistence.py` | `get/set_manual_env`, `get/set_manual_cost` — DB/in-memory 투명 폴백 |
+| `api/main.py` | slowapi 레이트리밋 (60req/min/IP), CORS 환경변수화, JWTMiddleware 등록 |
+| `.env.example` | `JWT_SECRET_KEY`, `JWT_ALGORITHM`, `DATABASE_URL`, `MLFLOW_TRACKING_URI` 추가 |
+| `requirements.txt` | `xgboost>=2.0`, `lightgbm>=4.3`, `python-jose[cryptography]`, `bcrypt>=4.1`, `openpyxl>=3.1` 추가 |
+
+---
+
+### 다음 단계 계획 (Phase 2 계속)
+
+1. **방울토마토 파이프라인** — `train_cherry_tomato_pipeline.py` (동일 구조)
+2. **완숙토마토 파이프라인** — `train_tomato_pipeline.py`
+3. **참외 파이프라인** — `train_melon_pipeline.py`
+4. **파프리카 파이프라인** — `train_paprika_pipeline.py`
+5. **통합 모델** — 4개 작목 공통 피처 레이어 구축 후 멀티크롭 앙상블
+
+---
+
+*보고서 최종 업데이트: 2026-05-14 | STEP 4~7 + 딸기 ML 파이프라인 완료*
