@@ -39,7 +39,8 @@ def fetch_new_labels(**context):
     from sqlalchemy import create_engine, text
     import os
 
-    engine = create_engine(os.environ["DATABASE_URL"])
+    db_url = os.environ.get("DATABASE_URL", "postgresql://smartfarm:smartfarm@db/smartfarm")
+    engine = create_engine(db_url)
     with engine.connect() as conn:
         rows = conn.execute(
             text("SELECT id, farm_id, input_type, recorded_at, payload FROM manual_inputs WHERE processed = FALSE")
@@ -62,7 +63,8 @@ def prepare_dataset(**context):
         print("[prepare_dataset] No new labels — skipping")
         return
 
-    engine = create_engine(os.environ["DATABASE_URL"])
+    db_url = os.environ.get("DATABASE_URL", "postgresql://smartfarm:smartfarm@db/smartfarm")
+    engine = create_engine(db_url)
     env_df = pd.read_sql(
         "SELECT * FROM env_measurements WHERE time >= NOW() - INTERVAL '90 days'",
         engine,

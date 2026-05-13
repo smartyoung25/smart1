@@ -195,29 +195,29 @@ def _build_alerts(farm_id: str, env: dict[str, float]) -> list[FarmAlert]:
 # cost_per_m2   : 월 운영비 (원/m²) — 인건비·난방·약제 포함
 #
 _FARM_REVENUE: dict[str, dict] = {
-    "farm_001": {   # 허브(바질·민트) — 고단가, 빠른 주기
-        "kamis_price":  12_000.0,
-        "yield_kg_m2":      0.82,
+    "farm_001": {   # 오이 (동서 오이 농장) — 농진청 5년 패널 기준
+        "kamis_price":   1_845.0,   # 오이 5년 평균 단가 (원/kg)
+        "yield_kg_m2":     18.25,   # 오이 평균 수확량 (kg/m²/작기)
         "cost_per_m2":   1_500.0,
     },
     "farm_002": {   # 방울토마토 — 고수량, 반자동 절감
-        "kamis_price":   4_500.0,
-        "yield_kg_m2":      3.20,
+        "kamis_price":   3_956.0,   # 방울토마토 5년 평균 단가
+        "yield_kg_m2":     15.06,   # 방울토마토 평균 수확량
         "cost_per_m2":   1_800.0,
     },
     "farm_003": {   # 딸기(설향) — 중단가, 노동집약
-        "kamis_price":   8_500.0,
-        "yield_kg_m2":      0.46,
+        "kamis_price":   9_799.0,   # 딸기 5년 평균 단가
+        "yield_kg_m2":     15.19,   # 딸기 평균 수확량
         "cost_per_m2":   2_000.0,
     },
-    "farm_004": {   # 파프리카 — 중단가, 고수량, 반자동
-        "kamis_price":   3_800.0,
-        "yield_kg_m2":      2.52,
+    "farm_004": {   # 완숙토마토 (대원 토마토 농장) — 농진청 5년 패널 기준
+        "kamis_price":   2_758.0,   # 완숙토마토 5년 평균 단가
+        "yield_kg_m2":     21.27,   # 완숙토마토 평균 수확량
         "cost_per_m2":   1_900.0,
     },
     "farm_005": {   # 미등록 — 기본값
         "kamis_price":   3_200.0,
-        "yield_kg_m2":      0.58,
+        "yield_kg_m2":      5.00,
         "cost_per_m2":   1_600.0,
     },
 }
@@ -929,10 +929,19 @@ def _stub_reply(farm_id: str, message: str) -> ChatResponse:
     # ── 수확 관련 ─────────────────────────────────────────────────────────────
     if any(kw in msg_lower for kw in ["수확", "언제", "d-", "예측일", "출하"]):
         referenced.append("harvest")
+        try:
+            hf = get_harvest(farm_id)
+            d_day = (date.fromisoformat(hf.predicted_date) - date.today()).days
+            d_str = hf.predicted_date
+            reply_harvest = (
+                f"{crop} 예상 수확일은 **{d_str} (D-{d_day})** 입니다.\n\n"
+                f"예상 수확량 {hf.predicted_yield_kg_m2:.2f} kg/m² (신뢰도 {hf.confidence*100:.0f}%). "
+                f"내부 온도를 1°C 높이면 수확일이 약 1~2일 앞당겨질 수 있습니다."
+            )
+        except Exception:
+            reply_harvest = f"{crop} 수확 예측 데이터를 불러오는 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요."
         return ChatResponse(
-            reply=f"{crop} 예상 수확일은 **5월 21일 (D-12)** 입니다.\n\n"
-                  f"현재 누적 GDD 842°C·d 로 목표(1,200°C·d)의 70% 달성했습니다. "
-                  f"내부 온도를 1°C 높이면 수확일이 약 1~2일 앞당겨질 수 있습니다.",
+            reply=reply_harvest,
             suggestions=["온도 올리면 수익 얼마나 늘어?", "GDD란 무엇인가요?", "출하 물량 얼마나 준비할까?"],
             referenced_data=["harvest", "environment"],
         )
