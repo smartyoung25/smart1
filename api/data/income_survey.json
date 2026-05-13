@@ -1,0 +1,58 @@
+{
+  "딸기": {
+    "cost_per_m2": {
+      "seed": 800.0,
+      "fertilizer": 180.0,
+      "pesticide": 280.0,
+      "utility": 450.0,
+      "labor": 2800.0,
+      "depreciation": 162.0,
+      "other": 500.0
+    },
+    "n_farms": 0,
+    "source": "rda_reference",
+    "note": "XLSX 모두 빈 템플릿 — RDA 농업경영 통계(2018-2022) 참고값 적용"
+  },
+  "방울토마토": {
+    "cost_per_m2": {
+      "seed": 600.0,
+      "fertilizer": 220.0,
+      "pesticide": 260.0,
+      "utility": 380.0,
+      "labor": 2200.0,
+      "depreciation": 150.0,
+      "other": 400.0
+    },
+    "n_farms": 0,
+    "source": "rda_reference",
+    "note": "XLSX 모두 빈 템플릿 — RDA 농업경영 통계(2018-2022) 참고값 적용"
+  },
+  "완숙토마토": {
+    "cost_per_m2": {
+      "seed": 500.0,
+      "fertilizer": 200.0,
+      "pesticide": 240.0,
+      "utility": 350.0,
+      "labor": 2100.0,
+      "depreciation": 145.0,
+      "other": 400.0
+    },
+    "n_farms": 0,
+    "source": "rda_reference",
+    "note": "XLSX 모두 빈 템플릿 — RDA 농업경영 통계(2018-2022) 참고값 적용"
+  },
+  "참외": {
+    "cost_per_m2": {
+      "seed": 900.0,
+      "fertilizer": 190.0,
+      "pesticide": 300.0,
+      "utility": 320.0,
+      "labor": 2500.0,
+      "depreciation": 155.0,
+      "other": 450.0
+    },
+    "n_farms": 0,
+    "source": "rda_reference",
+    "note": "XLSX 모두 빈 템플릿 — RDA 농업경영 통계(2018-2022) 참고값 적용"
+  }
+}
