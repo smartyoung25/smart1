@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import urllib.parse
 import urllib.request
 from datetime import date, datetime, timedelta, timezone
@@ -17,8 +18,10 @@ from typing import Optional
 
 logger = logging.getLogger(__name__)
 
-# ── 공공데이터포털 서비스키 ─────────────────────────────────────────────────────
-_SERVICE_KEY = "4b29046adc7addec95af1d13878fc4d2c6c26ed3b094ebf5a29a596a54755a96"
+# ── 공공데이터포털 서비스키 (환경변수 KMA_SERVICE_KEY 에서 로드) ─────────────────
+_SERVICE_KEY = os.environ.get("KMA_SERVICE_KEY", "")
+if not _SERVICE_KEY:
+    logger.warning("[kma_service] KMA_SERVICE_KEY 환경변수가 설정되지 않았습니다. ASOS 조회가 비활성화됩니다.")
 _BASE_URL = "https://apis.data.go.kr/1360000/AsosDalyInfoService/getWthrDataList"
 
 # ── 농가 → ASOS 관측소 ID 매핑 ───────────────────────────────────────────────
@@ -47,6 +50,8 @@ def _is_fresh(farm_id: str) -> bool:
 
 def _fetch_asos(station_id: int, obs_date: date) -> Optional[dict]:
     """ASOS API 호출 → item dict 1건 반환 (최신 1일)."""
+    if not _SERVICE_KEY:
+        return None
     date_str = obs_date.strftime("%Y%m%d")
     params = urllib.parse.urlencode({
         "serviceKey": _SERVICE_KEY,

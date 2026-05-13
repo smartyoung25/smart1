@@ -1,9 +1,12 @@
 """Farmer-facing API routes."""
 from __future__ import annotations
+import logging
 from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
+
+logger = logging.getLogger(__name__)
 
 from api.schemas.farmer import (
     FarmAlert,
@@ -349,8 +352,7 @@ def _get_env(farm_id: str) -> dict[str, float]:
                 base.setdefault("solar_rad", round(wx["solar_rad_est"], 1))
     except Exception as exc:
         # ASOS 오류는 무시하고 기존값 유지
-        import logging
-        logging.getLogger(__name__).warning("[_get_env] ASOS 오류 farm=%s: %s", farm_id, exc)
+        logger.error("[_get_env] ASOS 조회 실패 farm=%s: %s", farm_id, exc)
 
     return base
 
