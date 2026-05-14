@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { colors, radius, shadow } from "../design-system/tokens";
 import { HeroRecommendation, MinorRecommendation } from "../components/HeroRecommendation";
 import { AiChat } from "../components/AiChat";
@@ -578,21 +578,34 @@ export function FarmerDashboard({ farmId = "farm_001" }: { farmId?: string }) {
       );
 
       // ── 환경 ─────────────────────────────────────────────────────────────
-      case "environment": return (
-        <div className="col-gap">
-          <StationBanner
-            stationId={meta?.asos_station_id}
-            sido={meta?.sido}
-            sigungu={meta?.sigungu}
-          />
-          <EnvTwoPanel
-            envData={envData}
-            farmId={farmId}
-            manualValues={manualValues}
-            onSaved={handleManualSaved}
-          />
-        </div>
-      );
+      case "environment": {
+        // 현재 실내 환경값 flat dict (슬라이더 초기값용)
+        const indoorFlat: Record<string, number> = {};
+        envData?.indoor?.measurements?.forEach(pt => {
+          indoorFlat[pt.canonical_name] = pt.value;
+        });
+        // IoT 없는 농가는 저장된 manualValues 사용
+        const currentEnvFlat = Object.keys(indoorFlat).length > 0
+          ? indoorFlat
+          : (manualValues ?? {});
+
+        return (
+          <div className="col-gap">
+            <StationBanner
+              stationId={meta?.asos_station_id}
+              sido={meta?.sido}
+              sigungu={meta?.sigungu}
+            />
+            <EnvTwoPanel
+              envData={envData}
+              farmId={farmId}
+              manualValues={manualValues}
+              onSaved={handleManualSaved}
+            />
+            <WhatIfPanel farmId={farmId} currentEnv={currentEnvFlat} />
+          </div>
+        );
+      }
 
       // ── 수확예측 ─────────────────────────────────────────────────────────
       case "harvest": return (
@@ -1212,6 +1225,198 @@ export function FarmerDashboard({ farmId = "farm_001" }: { farmId?: string }) {
         input[type=number]::-webkit-outer-spin-button { opacity: 1; }
         @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
       `}</style>
+    </div>
+  );
+}
+
+// ── What-if 시뮬레이터 ────────────────────────────────────────────────────────
+
+interface WhatIfResult {
+  baseline_revenue_krw: number;
+  whatif_revenue_krw: number;
+  delta_krw: number;
+  delta_pct: number;
+  confidence: number;
+  model_used: string;
+}
+
+const WHATIF_FIELDS = [
+  { key: "temp_internal", label: "내부 온도",  unit: "°C",   min: 5,   max: 40,   step: 0.5 },
+  { key: "humidity_int",  label: "내부 습도",  unit: "%",    min: 30,  max: 95,   step: 1   },
+  { key: "co2_ppm",       label: "CO₂ 농도",  unit: "ppm",  min: 400, max: 1800, step: 50  },
+  { key: "solar_rad",     label: "일사량",     unit: "W/m²", min: 0,   max: 800,  step: 10  },
+  { key: "ec_dsm",        label: "EC (양액)",  unit: "dS/m", min: 0.5, max: 4.5,  step: 0.1 },
+] as const;
+
+function WhatIfPanel({ farmId, currentEnv }: {
+  farmId: string;
+  currentEnv: Record<string, number>;
+}) {
+  // 슬라이더 초기값 = 현재 환경값 (없으면 중앙값)
+  const initVals = () => {
+    const v: Record<string, number> = {};
+    WHATIF_FIELDS.forEach(f => {
+      v[f.key] = currentEnv[f.key] ?? (f.min + f.max) / 2;
+    });
+    return v;
+  };
+
+  const [vals, setVals]       = useState<Record<string, number>>(initVals);
+  const [result, setResult]   = useState<WhatIfResult | null>(null);
+  const [loading, setLoading] = useState(false);
+  const timerRef              = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // 현재 환경값 변경 시 슬라이더 리셋
+  useEffect(() => { setVals(initVals()); }, [farmId]);  // eslint-disable-line
+
+  function handleSlider(key: string, val: number) {
+    const next = { ...vals, [key]: val };
+    setVals(next);
+
+    // 300ms 디바운스
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(async () => {
+      setLoading(true);
+      try {
+        const res = await fetch(`/api/farms/${farmId}/whatif`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(next),
+        });
+        if (res.ok) setResult(await res.json());
+      } catch { /* ignore */ }
+      finally { setLoading(false); }
+    }, 300);
+  }
+
+  function handleReset() {
+    const reset = initVals();
+    setVals(reset);
+    setResult(null);
+  }
+
+  const deltaColor = !result ? colors.inkMuted
+    : result.delta_krw > 0  ? colors.successGreen
+    : result.delta_krw < 0  ? colors.dangerRed
+    : colors.inkMuted;
+
+  const deltaSign = result && result.delta_krw > 0 ? "+" : "";
+
+  return (
+    <div className="card">
+      {/* 헤더 */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+        <div>
+          <h2 className="section-title">What-if 시뮬레이터</h2>
+          <p className="muted-sm" style={{ marginTop: 3 }}>
+            슬라이더를 조절하면 ML 모델이 수익 변화를 예측합니다
+          </p>
+        </div>
+        <button onClick={handleReset} style={{
+          fontSize: "0.78rem", padding: "5px 12px", borderRadius: "9999px",
+          border: `1.5px solid ${colors.stoneBorder}`, background: "#fff",
+          color: colors.inkMuted, cursor: "pointer", whiteSpace: "nowrap",
+        }}>현재값으로 초기화</button>
+      </div>
+
+      {/* 슬라이더 목록 */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 18, marginBottom: 20 }}>
+        {WHATIF_FIELDS.map(f => {
+          const cur  = currentEnv[f.key];
+          const val  = vals[f.key];
+          const changed = cur != null && Math.abs(val - cur) > 0.01;
+
+          return (
+            <div key={f.key}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                <span style={{ fontSize: "0.82rem", fontWeight: 600, color: colors.inkPrimary }}>
+                  {f.label}
+                  {changed && cur != null && (
+                    <span style={{ fontSize: "0.72rem", color: colors.warningAmber, marginLeft: 8 }}>
+                      기준 {cur.toFixed(f.step < 1 ? 1 : 0)}{f.unit}
+                    </span>
+                  )}
+                </span>
+                <span style={{
+                  fontSize: "0.9rem", fontWeight: 700,
+                  color: changed ? colors.chartwellBlue : colors.inkPrimary,
+                  minWidth: 72, textAlign: "right",
+                }}>
+                  {val.toFixed(f.step < 1 ? 1 : 0)} {f.unit}
+                </span>
+              </div>
+
+              {/* 커스텀 슬라이더 트랙 */}
+              <div style={{ position: "relative" }}>
+                <input
+                  type="range"
+                  min={f.min} max={f.max} step={f.step}
+                  value={val}
+                  onChange={e => handleSlider(f.key, Number(e.target.value))}
+                  style={{ width: "100%", accentColor: colors.chartwellBlue, cursor: "pointer" }}
+                />
+                {/* 현재값 마커 */}
+                {cur != null && (
+                  <div style={{
+                    position: "absolute", top: "50%", transform: "translate(-50%, -50%)",
+                    left: `${((cur - f.min) / (f.max - f.min)) * 100}%`,
+                    width: 2, height: 12,
+                    background: colors.inkMuted, opacity: 0.4,
+                    pointerEvents: "none",
+                  }} />
+                )}
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.65rem", color: colors.inkMuted, marginTop: 2 }}>
+                <span>{f.min}{f.unit}</span>
+                <span>{f.max}{f.unit}</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* 결과 패널 */}
+      <div style={{
+        borderRadius: 12, padding: "18px 20px",
+        background: result
+          ? result.delta_krw > 0 ? "#f0fdf4" : result.delta_krw < 0 ? "#fff1f2" : colors.canvasFog
+          : colors.canvasFog,
+        border: `1.5px solid ${result
+          ? result.delta_krw > 0 ? "#86efac" : result.delta_krw < 0 ? "#fca5a5" : colors.stoneBorder
+          : colors.stoneBorder}`,
+        transition: "background 300ms, border-color 300ms",
+      }}>
+        {loading ? (
+          <p style={{ textAlign: "center", color: colors.inkMuted, fontSize: "0.85rem" }}>계산 중…</p>
+        ) : result ? (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+            <div>
+              <p style={{ fontSize: "0.78rem", color: colors.inkMuted, marginBottom: 4 }}>예상 수익 변화</p>
+              <p style={{ fontSize: "2rem", fontWeight: 800, color: deltaColor, lineHeight: 1 }}>
+                {deltaSign}{Math.round(result.delta_krw / 10000).toLocaleString()}만원
+              </p>
+              <p style={{ fontSize: "0.78rem", color: deltaColor, marginTop: 4 }}>
+                {deltaSign}{result.delta_pct.toFixed(1)}% · {result.model_used === "ml_model" ? "ML 예측" : "통계 추정"}
+              </p>
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <p style={{ fontSize: "0.72rem", color: colors.inkMuted }}>현재 예측</p>
+              <p style={{ fontSize: "1rem", fontWeight: 700, color: colors.inkPrimary }}>
+                {Math.round(result.baseline_revenue_krw / 10000).toLocaleString()}만원
+              </p>
+              <p style={{ fontSize: "0.72rem", color: colors.inkMuted, marginTop: 6 }}>변경 후 예측</p>
+              <p style={{ fontSize: "1rem", fontWeight: 700, color: deltaColor }}>
+                {Math.round(result.whatif_revenue_krw / 10000).toLocaleString()}만원
+              </p>
+            </div>
+          </div>
+        ) : (
+          <p style={{ textAlign: "center", color: colors.inkMuted, fontSize: "0.85rem" }}>
+            슬라이더를 조절하면 수익 변화를 예측합니다
+          </p>
+        )}
+      </div>
     </div>
   );
 }

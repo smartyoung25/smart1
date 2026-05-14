@@ -186,6 +186,26 @@ class ManualEnvResponse(BaseModel):
 # AI 상담 (Chat)
 # ---------------------------------------------------------------------------
 
+class WhatIfInput(BaseModel):
+    """POST /api/farms/{farm_id}/whatif — 가상 환경값으로 수익 예측"""
+    temp_internal: Optional[float] = Field(None, ge=0,   le=50)
+    humidity_int:  Optional[float] = Field(None, ge=20,  le=100)
+    co2_ppm:       Optional[float] = Field(None, ge=300, le=2000)
+    solar_rad:     Optional[float] = Field(None, ge=0,   le=1200)
+    ec_dsm:        Optional[float] = Field(None, ge=0.5, le=5.0)
+    soil_temp:     Optional[float] = Field(None, ge=5,   le=35)
+
+
+class WhatIfResult(BaseModel):
+    """POST /whatif 응답"""
+    baseline_revenue_krw: float      # 현재 환경 기준 예측 매출
+    whatif_revenue_krw: float        # 가상 환경 기준 예측 매출
+    delta_krw: float                 # 차이 (양수=증가)
+    delta_pct: float                 # 증감률 (%)
+    confidence: float                # 모델 신뢰도 0–1
+    model_used: str                  # "ml_model" | "stats_fallback"
+
+
 class ChatMessage(BaseModel):
     """단일 대화 메시지"""
     role: str          # "user" | "assistant"

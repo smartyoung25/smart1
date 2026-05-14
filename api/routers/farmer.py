@@ -28,6 +28,8 @@ from api.schemas.farmer import (
     ManualCostResponse,
     ManualEnvInput,
     ManualEnvResponse,
+    WhatIfInput,
+    WhatIfResult,
     ChatRequest,
     ChatResponse,
 )
@@ -740,6 +742,77 @@ def get_revenue(farm_id: str):
         predicted_revenue_krw=round(revenue, 0),
         predicted_cost_krw=round(cost, 0),
         predicted_profit_krw=round(revenue - cost, 0),
+    )
+
+
+# ---------------------------------------------------------------------------
+# POST /whatif  — 가상 환경값으로 수익 변화 시뮬레이션
+# ---------------------------------------------------------------------------
+
+def _env_to_feat(env: dict, crop_ko: str) -> dict:
+    """환경 dict → ML 피처 dict 변환 (모델 입력 형식)."""
+    temp = float(env.get("temp_internal", 20.0))
+    return {
+        "temp_internal_mean": temp,
+        "humidity_int_mean":  float(env.get("humidity_int", 70.0)),
+        "co2_ppm_mean":       float(env.get("co2_ppm", 800.0)),
+        "solar_rad_mean":     float(env.get("solar_rad", 100.0)),
+        "soil_temp_mean":     float(env.get("soil_temp", 18.0)),
+        "gdd_monthly":        max(0.0, temp - 10.0) * 30.0,
+    }
+
+
+@router.post("/whatif", response_model=WhatIfResult)
+def whatif(farm_id: str, body: WhatIfInput):
+    """가상 환경값으로 매출 변화 예측.
+
+    슬라이더로 조절한 값을 body로 받아 ML 모델로 현재 대비 수익 델타를 반환.
+    ML 모델이 없으면 온도 기반 단순 추정으로 폴백.
+    """
+    import datetime as _dt
+    meta   = _require_farm(farm_id)
+    crop   = meta.get("crop", "딸기")
+    area   = meta["area_m2"]
+    month  = _dt.date.today().month
+
+    # 현재 환경값 (베이스라인)
+    current_env = _get_env(farm_id)
+    # 기본값 채우기 (IoT 미구축 시 빈 dict 방지)
+    base_env = {**_FARM_ENV.get(farm_id, _FARM_ENV["farm_001"]), **current_env}
+
+    # 가상 환경값: 현재값 위에 body 값 덮어쓰기
+    hypo_env = {**base_env, **body.model_dump(exclude_none=True)}
+
+    price = get_price_krw_kg(crop)
+
+    def _predict(env: dict) -> tuple[float, str]:
+        """env dict → (월 매출 원, 모델 출처)"""
+        feat     = _env_to_feat(env, crop)
+        ml_rev   = predict_revenue_per_m2(crop, feat, month=month)
+        if ml_rev is not None and ml_rev > 0:
+            return ml_rev * area, "ml_model"
+        # 폴백: 온도 기반 단순 추정
+        from api.data.stats_loader import get_yield_kg_m2
+        yield_m2 = get_yield_kg_m2(crop)
+        temp_bonus = max(0.0, (env.get("temp_internal", 20.0) - 20.0) * 0.01)
+        return (yield_m2 + temp_bonus) * price * area, "stats_fallback"
+
+    baseline_rev, src  = _predict(base_env)
+    whatif_rev,   _    = _predict(hypo_env)
+    delta              = whatif_rev - baseline_rev
+    delta_pct          = (delta / baseline_rev * 100) if baseline_rev else 0.0
+
+    logger.info(
+        "[whatif] farm=%s crop=%s base=%.0f whatif=%.0f delta=%.0f",
+        farm_id, crop, baseline_rev, whatif_rev, delta,
+    )
+    return WhatIfResult(
+        baseline_revenue_krw=round(baseline_rev),
+        whatif_revenue_krw=round(whatif_rev),
+        delta_krw=round(delta),
+        delta_pct=round(delta_pct, 2),
+        confidence=0.75 if src == "ml_model" else 0.5,
+        model_used=src,
     )
 
 
