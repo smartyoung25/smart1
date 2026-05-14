@@ -402,6 +402,35 @@ def build_stage2_matrix(
         )
         logger.info("  재배메타 적용: %d/%d행 (품종/온실/정식월)", n_meta, len(df))
 
+    # ── 농가별 target encoding (시계열 안전: 과거 데이터만 사용) ─────────────────
+    # 시계열 정렬 후 expanding window로 현재 행 이전 데이터만 참조 → 유출 없음
+    df = df.sort_values(["farm_id", "year", "month"]).reset_index(drop=True)
+    global_mean = df["yield_per_m2"].astype(float).mean()
+    global_std  = df["yield_per_m2"].astype(float).std()
+
+    # 농가별 과거 평균 수확량 (shift(1): 현재 값 제외)
+    df["farm_yield_hist_mean"] = (
+        df.groupby("farm_id")["yield_per_m2"]
+        .transform(lambda x: x.astype(float).expanding().mean().shift(1))
+        .fillna(global_mean)
+    )
+    # 농가별 과거 표준편차 → 변동계수(일관성 지표)
+    df["farm_yield_hist_cv"] = (
+        df.groupby("farm_id")["yield_per_m2"]
+        .transform(lambda x: x.astype(float).expanding().std().shift(1))
+        .fillna(global_std)
+    ) / (df["farm_yield_hist_mean"] + 1e-9)
+
+    # 농가별 관측 횟수 (학습 안정성 피처)
+    df["farm_obs_count"] = (
+        df.groupby("farm_id")["yield_per_m2"]
+        .transform(lambda x: x.expanding().count().shift(1).fillna(0))
+    )
+
+    n_enc = int((df["farm_obs_count"] > 0).sum())
+    logger.info("  farm target encoding: %d/%d행 적용 (global_mean=%.3f)",
+                n_enc, len(df), global_mean)
+
     logger.info("  Stage2 행렬: %s", df.shape)
     return df
 
@@ -446,6 +475,21 @@ def train_stage2(df: pd.DataFrame, config: CropConfig) -> dict:
     feature_cols = [c for c in df.columns if c not in exclude
                     and df[c].dtype in [np.float64, np.int64, "Int64", float, int]]
 
+    # 추론용 farm encoding 테이블 (전체 학습 데이터 기반 — 추론 시 과거값으로 사용)
+    valid_mask = df[target].astype(float) > 0
+    _farm_stats = (
+        df[valid_mask].groupby("farm_id")[target]
+        .agg(mean="mean", std="std", count="count")
+    )
+    _global_mean = float(df[valid_mask][target].mean())
+    _global_std  = float(df[valid_mask][target].std())
+    farm_encoding = {
+        "per_farm": _farm_stats["mean"].to_dict(),
+        "per_farm_cv": (_farm_stats["std"] / (_farm_stats["mean"] + 1e-9)).to_dict(),
+        "global_mean": _global_mean,
+        "global_cv":   _global_std / (_global_mean + 1e-9),
+    }
+
     # 타겟 유효 행 (yield > 0)
     mask = df[target].astype(float) > 0
     X_raw = df.loc[mask, feature_cols]
@@ -477,6 +521,7 @@ def train_stage2(df: pd.DataFrame, config: CropConfig) -> dict:
             "log_transform": True,
             "cv_r2_mean": round(r2, 3), "cv_r2_std": 0.0,
             "mape": round(mape, 1), "n_train": n_samples,
+            "farm_encoding": farm_encoding,
         }
 
     try:
@@ -562,6 +607,7 @@ def train_stage2(df: pd.DataFrame, config: CropConfig) -> dict:
             "n_train": n_samples,
             "all_feature_cols": feature_cols,
             "shap_top_n": top_n,
+            "farm_encoding": farm_encoding,
         }
 
     except ImportError:
@@ -585,6 +631,7 @@ def train_stage2(df: pd.DataFrame, config: CropConfig) -> dict:
             "cv_r2_std":   round(float(np.std(cv_r2)),  3),
             "mape":        round(float(np.mean(cv_mape)), 1),
             "n_train": n_samples,
+            "farm_encoding": farm_encoding,
         }
 
 
@@ -652,7 +699,7 @@ def run_crop(crop_ko: str) -> dict | None:
     meta_path = art_dir / "stage2_meta.json"
 
     save_keys = {"model", "imputer", "scaler", "feature_cols", "log_transform",
-                 "best_n_estimators"}
+                 "best_n_estimators", "farm_encoding"}
     bundle = {k: v for k, v in result.items() if k in save_keys}
     with open(pkl_path, "wb") as f:
         pickle.dump(bundle, f)
