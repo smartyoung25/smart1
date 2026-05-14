@@ -67,6 +67,11 @@ interface CostBreakdown {
   electricity_kwh_month: number; water_m3_month: number;
   has_manual_input: boolean; manual_input: ManualCostInput | null;
 }
+interface HarvestForecast {
+  predicted_date: string;        // "YYYY-MM-DD"
+  predicted_yield_kg_m2: number;
+  confidence: number;            // 0–1
+}
 
 // ── Fetch helper ──────────────────────────────────────────────────────────────
 
@@ -474,6 +479,7 @@ export function FarmerDashboard({ farmId = "farm_001" }: { farmId?: string }) {
   const [envData, setEnvData] = useState<EnvData | null>(null);
   const [revenue, setRevenue] = useState<Revenue | null>(null);
   const [costs,   setCosts]   = useState<CostBreakdown | null>(null);
+  const [harvest, setHarvest] = useState<HarvestForecast | null>(null);
   const [loading, setLoading] = useState(true);
   const [manualValues, setManualValues] = useState<Record<string, number> | null>(null);
   const [showCostInput,    setShowCostInput]    = useState(false);
@@ -513,6 +519,8 @@ export function FarmerDashboard({ farmId = "farm_001" }: { farmId?: string }) {
       .then(r => setRevenue(r)).catch(console.error);
     fetchJson<CostBreakdown>(`/api/farms/${farmId}/costs`)
       .then(r => setCosts(r)).catch(console.error);
+    fetchJson<HarvestForecast>(`/api/farms/${farmId}/harvest`)
+      .then(r => setHarvest(r)).catch(console.error);
   }, [farmId]);
 
   useEffect(() => { refreshData(); }, [refreshData]);
@@ -588,22 +596,7 @@ export function FarmerDashboard({ farmId = "farm_001" }: { farmId?: string }) {
 
       // ── 수확예측 ─────────────────────────────────────────────────────────
       case "harvest": return (
-        <div className="card">
-          <h2 className="section-title">수확 예측</h2>
-          <div className="kpi-grid">
-            {[
-              { label: "예상 수확일", value: "5월 21일", sub: "D-12" },
-              { label: "예상 수확량", value: "0.58 kg/m²", sub: "신뢰도 71%" },
-              { label: "누적 GDD",    value: "842 °C·d",   sub: "목표 1,200°C·d" },
-            ].map(({ label, value, sub }) => (
-              <div key={label} className="kpi-cell">
-                <p className="kpi-label">{label}</p>
-                <p className="kpi-value">{value}</p>
-                <p className="kpi-sub">{sub}</p>
-              </div>
-            ))}
-          </div>
-        </div>
+        <HarvestTab harvest={harvest} meta={meta} />
       );
 
       // ── 수익 ─────────────────────────────────────────────────────────────
@@ -1219,6 +1212,122 @@ export function FarmerDashboard({ farmId = "farm_001" }: { farmId?: string }) {
         input[type=number]::-webkit-outer-spin-button { opacity: 1; }
         @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
       `}</style>
+    </div>
+  );
+}
+
+// ── 수확 예측 탭 ──────────────────────────────────────────────────────────────
+
+function HarvestTab({ harvest, meta }: {
+  harvest: HarvestForecast | null;
+  meta: FarmMeta | null;
+}) {
+  if (!harvest) {
+    return (
+      <div className="card" style={{ textAlign: "center", padding: "40px", color: colors.inkMuted }}>
+        수확 예측 데이터를 불러오는 중입니다…
+      </div>
+    );
+  }
+
+  // D-day 계산
+  const today     = new Date();
+  today.setHours(0, 0, 0, 0);
+  const harvestDt = new Date(harvest.predicted_date);
+  const dDay      = Math.round((harvestDt.getTime() - today.getTime()) / 86_400_000);
+
+  // 날짜 표기 (M월 D일)
+  const dateLabel = harvestDt.toLocaleDateString("ko-KR", { month: "long", day: "numeric" });
+
+  // 총 출하 예상량 (면적 × 수확량/m²)
+  const totalKg  = meta?.area_m2 != null
+    ? (harvest.predicted_yield_kg_m2 * meta.area_m2).toFixed(0)
+    : null;
+
+  const confPct = Math.round(harvest.confidence * 100);
+
+  // 신뢰도 색상
+  const confColor = confPct >= 75 ? colors.successGreen
+    : confPct >= 55 ? colors.warningAmber
+    : colors.dangerRed;
+
+  return (
+    <div className="col-gap">
+      {/* KPI 카드 */}
+      <div className="card">
+        <div className="row-gap8 mb16">
+          <h2 className="section-title">수확 예측</h2>
+          {meta?.crop && <span className="muted-sm">— {meta.crop}</span>}
+        </div>
+        <div className="kpi-grid">
+          {/* 예상 수확일 */}
+          <div className="kpi-cell">
+            <p className="kpi-label">예상 수확일</p>
+            <p className="kpi-value">{dateLabel}</p>
+            <p className="kpi-sub" style={{ color: dDay <= 7 ? colors.dangerRed : colors.inkMuted }}>
+              D-{dDay}
+            </p>
+          </div>
+
+          {/* 예상 수확량 (단위면적) */}
+          <div className="kpi-cell">
+            <p className="kpi-label">예상 수확량</p>
+            <p className="kpi-value">{harvest.predicted_yield_kg_m2.toFixed(2)} kg/m²</p>
+            <p className="kpi-sub">신뢰도 {confPct}%</p>
+          </div>
+
+          {/* 총 출하 예상량 */}
+          {totalKg != null && (
+            <div className="kpi-cell">
+              <p className="kpi-label">총 출하 예상량</p>
+              <p className="kpi-value">{Number(totalKg).toLocaleString()} kg</p>
+              <p className="kpi-sub">{meta?.area_m2?.toLocaleString()}m² 기준</p>
+            </div>
+          )}
+
+          {/* 신뢰도 */}
+          <div className="kpi-cell">
+            <p className="kpi-label">예측 신뢰도</p>
+            <p className="kpi-value" style={{ color: confColor }}>{confPct}%</p>
+            <p className="kpi-sub">GDD 기반 추정</p>
+          </div>
+        </div>
+      </div>
+
+      {/* D-day 진행 바 */}
+      <div className="card">
+        <h2 className="section-title mb16">수확까지 남은 일수</h2>
+        <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+          <span style={{ fontSize: "2.5rem", fontWeight: 800, color: dDay <= 7 ? colors.dangerRed : colors.chartwellBlue, minWidth: 64 }}>
+            D-{dDay}
+          </span>
+          <div style={{ flex: 1 }}>
+            <div style={{ height: 10, background: colors.canvasFog, borderRadius: 5, overflow: "hidden" }}>
+              {/* 진행률: 총 수확 주기를 60일로 가정, 남은 일이 적을수록 채워짐 */}
+              <div style={{
+                height: "100%", borderRadius: 5,
+                width: `${Math.max(4, Math.min(100, Math.round((1 - dDay / 60) * 100)))}%`,
+                background: dDay <= 7 ? colors.dangerRed : colors.chartwellBlue,
+                transition: "width 600ms ease",
+              }} />
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
+              <span className="muted-xs">오늘</span>
+              <span className="muted-xs">수확 예정 {dateLabel}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 안내 메시지 */}
+      <div style={{
+        background: colors.chartwellBlueBg, borderRadius: 10,
+        padding: "14px 18px", fontSize: "0.82rem",
+        color: colors.chartwellBlue, lineHeight: 1.6,
+      }}>
+        💡 내부 온도를 1°C 높이면 수확일이 약 1~2일 앞당겨질 수 있습니다.
+        정밀 예측은 <strong>AI 추천</strong> 탭에서 확인하세요.
+      </div>
     </div>
   );
 }
