@@ -459,6 +459,7 @@ def get_recommendations(farm_id: str):
         current_env=current_env,
         horizon_days=30,
         area_m2=meta["area_m2"],
+        crop_ko=meta.get("crop", "딸기"),
     )
     items = [
         RecommendationItem(

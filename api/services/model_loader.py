@@ -21,6 +21,30 @@ logger = logging.getLogger(__name__)
 ROOT          = Path(__file__).parent.parent.parent
 ARTIFACTS_DIR = ROOT / "models" / "artifacts"
 
+# 작목명 별칭 → 표준 작목명 정규화 (품종명 포함 표기 대응)
+# "딸기(설향)", "딸기(금실)" 등 → "딸기"
+_CROP_ALIAS: dict[str, str] = {
+    "딸기(설향)": "딸기",
+    "딸기(금실)": "딸기",
+    "딸기(매향)": "딸기",
+    "방울토마토(대추형)": "방울토마토",
+    "완숙토마토(일반)": "완숙토마토",
+    "미등록": "딸기",   # 기본값 폴백
+}
+
+
+def normalize_crop(crop_ko: str) -> str:
+    """품종명 포함 작목명을 표준 작목명으로 정규화.
+
+    예) "딸기(설향)" → "딸기",  "방울토마토" → "방울토마토" (변경 없음)
+    """
+    if crop_ko in _CROP_ALIAS:
+        return _CROP_ALIAS[crop_ko]
+    # 괄호 앞 텍스트만 추출 (e.g. "딸기(설향)" → "딸기")
+    base = crop_ko.split("(")[0].strip()
+    return base if base else crop_ko
+
+
 # 한국어 품목명 → 영문 파일명 매핑
 CROP_EN: dict[str, str] = {
     "딸기":       "strawberry",
@@ -53,11 +77,14 @@ except ImportError:
 def load_model(crop_ko: str) -> Optional[dict]:
     """작목별 pkl 모델 로드 (lru_cache — 프로세스 당 1회).
 
+    crop_ko는 normalize_crop()으로 정규화 후 전달 권장.
+
     Returns:
         model_info dict if available, None otherwise.
     """
     if not _ML_AVAILABLE:
         return None
+    crop_ko = normalize_crop(crop_ko)
     crop_en = CROP_EN.get(crop_ko)
     if not crop_en:
         return None
@@ -104,13 +131,14 @@ def predict_revenue_per_m2(
     """환경 변수 dict로 월 m² 당 예측 매출 반환.
 
     Args:
-        crop_ko:  한국어 품목명
+        crop_ko:  한국어 품목명 (품종명 포함 가능 — 자동 정규화)
         env_dict: 환경 변수 (temp_internal_mean, humidity_int_mean, co2_ppm_mean, ...)
         month:    예측 월 (1~12)
 
     Returns:
         float (원/m²/월) if model available, None otherwise.
     """
+    crop_ko    = normalize_crop(crop_ko)
     model_info = load_model(crop_ko)
     if model_info is None:
         return None
@@ -133,6 +161,7 @@ def predict_season_revenue(
     Returns:
         총 매출 (원) if model available, None otherwise.
     """
+    crop_ko    = normalize_crop(crop_ko)
     model_info = load_model(crop_ko)
     if model_info is None:
         return None
@@ -164,6 +193,7 @@ def _get_season_start(crop_ko: str) -> int:
 
 def get_model_meta(crop_ko: str) -> dict:
     """로드된 모델 메타정보 반환 (type, train_r2, feature_count 등)."""
+    crop_ko    = normalize_crop(crop_ko)
     model_info = load_model(crop_ko)
     if model_info is None:
         return {"crop": crop_ko, "status": "no_model"}

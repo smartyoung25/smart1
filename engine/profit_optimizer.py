@@ -152,8 +152,10 @@ def optimize(
         # 학습된 ML 모델 사용 (있을 경우)
         try:
             from api.services.model_loader import predict_revenue_per_m2 as _ml_pred
+            from api.services.model_loader import normalize_crop as _norm_crop
             import datetime as _dt
-            _cur_month = _dt.date.today().month
+            _cur_month  = _dt.date.today().month
+            _crop_norm  = _norm_crop(crop_ko)   # "딸기(설향)" → "딸기"
 
             def yield_predict_fn(env: dict) -> tuple[float, float]:
                 # env_dict → ML 예측 (원/m²/월)
@@ -165,14 +167,14 @@ def optimize(
                     "soil_temp_mean":      env.get("soil_temp", 18.0),
                     "gdd_monthly":         max(0, env.get("temp_internal", 20.0) - 10.0) * 30.0,
                 }
-                rev_pm2 = _ml_pred(crop_ko, env_feat, month=_cur_month)
+                rev_pm2 = _ml_pred(_crop_norm, env_feat, month=_cur_month)
                 if rev_pm2 is not None and rev_pm2 > 0:
                     # 매출/m² → 수확량/m² 환산 (단가 기반)
                     _PRICE_PER_KG = {
                         "딸기": 9_799, "방울토마토": 3_956, "완숙토마토": 2_758,
                         "참외": 3_142, "파프리카": 4_000, "오이": 1_845,
                     }
-                    price_kg = _PRICE_PER_KG.get(crop_ko, 3_000)
+                    price_kg = _PRICE_PER_KG.get(_crop_norm, 3_000)
                     yield_est = rev_pm2 / price_kg if price_kg > 0 else baseline_yield_kg_m2
                     return max(0.0, yield_est), 0.75
                 # ML 예측 불가 시 온도 기반 단순 스텁
