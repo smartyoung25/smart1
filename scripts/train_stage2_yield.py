@@ -435,6 +435,106 @@ def build_stage2_matrix(
     return df
 
 
+# ── 연간(시즌) 집계 행렬 ─────────────────────────────────────────────────────
+
+def build_stage2_matrix_annual(
+    env_monthly: pd.DataFrame,
+    growth_monthly: pd.DataFrame,
+    prod_monthly: pd.DataFrame,
+    config: CropConfig,
+    cultiv_meta: Optional[dict] = None,
+) -> pd.DataFrame:
+    """월별 데이터를 연간(작기) 단위로 집계 → 출하 타이밍 노이즈 제거.
+
+    타겟: farm_id + year 단위 연간 총수확량 / 면적 = yield_per_m2_annual
+    피처: 연간 환경 평균/분산, 생육 평균/분산, 재배메타, farm target encoding
+    """
+    if prod_monthly.empty:
+        return pd.DataFrame()
+
+    key_annual = ["farm_id", "year"]
+
+    # ① 생산: 연간 총 수확량
+    prod_ann = (
+        prod_monthly.groupby(key_annual)
+        .agg(
+            yield_kg=("yield_kg", "sum"),
+            area_m2=("area_m2", "first"),
+            n_harvest_months=("yield_kg", lambda x: (x > 0).sum()),
+        )
+        .reset_index()
+    )
+    prod_ann["yield_per_m2"] = (
+        prod_ann["yield_kg"] / prod_ann["area_m2"].replace(0, config.area_default_m2)
+    ).clip(lower=0)
+    prod_ann["yield_per_m2"] = clip_iqr(prod_ann["yield_per_m2"])
+
+    # ② 환경: 연간 평균 + 분산 + 계절 편차
+    if not env_monthly.empty:
+        env_vars = [c for c in env_monthly.columns if c not in ["farm_id", "year", "month"]]
+        agg_dict: dict = {}
+        for col in env_vars:
+            agg_dict[f"{col}_mean"] = (col, "mean")
+            agg_dict[f"{col}_std"]  = (col, "std")
+        env_ann = env_monthly.groupby(key_annual).agg(**agg_dict).reset_index()
+        env_ann = _norm_keys(env_ann)
+        prod_ann = prod_ann.merge(env_ann, on=key_annual, how="left")
+
+    # ③ 생육: 연간 평균 + 분산
+    if not growth_monthly.empty:
+        g_vars = [c for c in growth_monthly.columns
+                  if c not in ["farm_id", "year", "month"]
+                  and growth_monthly[c].dtype in [np.float64, np.int64, float, int]]
+        agg_dict = {}
+        for col in g_vars:
+            agg_dict[f"{col}_mean"] = (col, "mean")
+            agg_dict[f"{col}_std"]  = (col, "std")
+        grw_ann = growth_monthly.groupby(key_annual).agg(**agg_dict).reset_index()
+        grw_ann = _norm_keys(grw_ann)
+        prod_ann = prod_ann.merge(grw_ann, on=key_annual, how="left")
+
+    # ④ 계절 피처 (GDD 연간 누적)
+    if "temp_internal_mean" in prod_ann.columns:
+        prod_ann["gdd_annual"] = (
+            prod_ann["temp_internal_mean"] - config.t_base
+        ).clip(lower=0) * 365
+
+    # ⑤ 재배메타 (연간 키: year_farm_id)
+    if cultiv_meta:
+        _GREENHOUSE_MAP = {"유리": 1, "플라스틱": 2, "비닐": 3}
+        def _meta_get_ann(row, field, default=0):
+            ykey = f"{int(row['year'])}_{row['farm_id']}"
+            val = cultiv_meta.get(ykey, cultiv_meta.get(row["farm_id"], {})).get(field)
+            return val if val is not None else default
+        prod_ann["variety_code"]    = prod_ann.apply(lambda r: hash(_meta_get_ann(r,"variety","")) % 100, axis=1)
+        prod_ann["greenhouse_code"] = prod_ann.apply(lambda r: _GREENHOUSE_MAP.get(_meta_get_ann(r,"greenhouse_type",""), 0), axis=1)
+        prod_ann["plant_month"]     = prod_ann.apply(lambda r: _meta_get_ann(r,"plant_month",0), axis=1)
+
+    # ⑥ Farm target encoding (시계열 안전)
+    prod_ann = prod_ann.sort_values(key_annual).reset_index(drop=True)
+    global_mean = prod_ann["yield_per_m2"].astype(float).mean()
+    global_std  = prod_ann["yield_per_m2"].astype(float).std()
+
+    prod_ann["farm_yield_hist_mean"] = (
+        prod_ann.groupby("farm_id")["yield_per_m2"]
+        .transform(lambda x: x.astype(float).expanding().mean().shift(1))
+        .fillna(global_mean)
+    )
+    prod_ann["farm_yield_hist_cv"] = (
+        prod_ann.groupby("farm_id")["yield_per_m2"]
+        .transform(lambda x: x.astype(float).expanding().std().shift(1))
+        .fillna(global_std)
+    ) / (prod_ann["farm_yield_hist_mean"] + 1e-9)
+    prod_ann["farm_obs_count"] = (
+        prod_ann.groupby("farm_id")["yield_per_m2"]
+        .transform(lambda x: x.expanding().count().shift(1).fillna(0))
+    )
+
+    logger.info("  Stage2 연간 행렬: %s (연평균 yield=%.3f kg/m²)",
+                prod_ann.shape, prod_ann["yield_per_m2"].mean())
+    return prod_ann
+
+
 # ── SHAP 피처 선택 ────────────────────────────────────────────────────────────
 
 def select_top_features(model, X: np.ndarray, feature_names: list[str],
@@ -680,14 +780,34 @@ def run_crop(crop_ko: str) -> dict | None:
     cultiv_meta = load_cultiv_meta(crop_ko)
     logger.info("  재배메타: %d농가", len(cultiv_meta))
 
-    logger.info("[4] Stage2 행렬 구성")
-    df = build_stage2_matrix(env_m, growth_m, prod_m, config, cultiv_meta=cultiv_meta)
-    if df.empty:
-        return None
+    logger.info("[4a] Stage2 행렬 구성 — 월별 모드")
+    df_monthly = build_stage2_matrix(env_m, growth_m, prod_m, config, cultiv_meta=cultiv_meta)
 
-    logger.info("[5] 모델 학습 (TimeSeriesSplit + early stopping)")
-    result = train_stage2(df, config)
-    if not result:
+    logger.info("[4b] Stage2 행렬 구성 — 연간(작기) 모드")
+    df_annual  = build_stage2_matrix_annual(env_m, growth_m, prod_m, config, cultiv_meta=cultiv_meta)
+
+    # 두 모드 중 MAPE가 낮은 모델 선택
+    result_monthly = train_stage2(df_monthly, config) if not df_monthly.empty else None
+    result_annual  = train_stage2(df_annual,  config) if not df_annual.empty  else None
+
+    if result_monthly and result_annual:
+        m_mape = result_monthly.get("mape", 999.0)
+        a_mape = result_annual.get("mape",  999.0)
+        if a_mape < m_mape:
+            result = result_annual
+            agg_mode = "annual"
+            logger.info("[5] 연간 모드 선택 (annual MAPE=%.1f%% < monthly MAPE=%.1f%%)",
+                        a_mape, m_mape)
+        else:
+            result = result_monthly
+            agg_mode = "monthly"
+            logger.info("[5] 월별 모드 선택 (monthly MAPE=%.1f%% ≤ annual MAPE=%.1f%%)",
+                        m_mape, a_mape)
+    elif result_annual:
+        result = result_annual; agg_mode = "annual"
+    elif result_monthly:
+        result = result_monthly; agg_mode = "monthly"
+    else:
         return None
 
     logger.info("[6] 배포 게이트 검사")
@@ -718,6 +838,7 @@ def run_crop(crop_ko: str) -> dict | None:
         "cv_mape_mean": result.get("cv_mape_mean"),
         "mape": result.get("mape"),
         "gate_passed": gate_passed,
+        "agg_mode": agg_mode,
         "harvest_lag": config.harvest_lag,
         "area_default_m2": default_area,
         "area_from_registry_count": len(area_map),  # 레거시 호환
