@@ -1,7 +1,7 @@
 {
-  "crop_ko": "완숙토마토",
+  "_source": "4stage",
   "crop_en": "tomato",
-  "pipeline": "4stage",
+  "crop_ko": "완숙토마토",
   "stage1": {
     "crop_ko": "완숙토마토",
     "crop_en": "tomato",
@@ -36,15 +36,17 @@
     "feature_count": 15,
     "n_train": 1284,
     "log_transform": true,
-    "best_n_estimators": 50,
-    "cv_r2_mean": 0.09,
-    "cv_r2_std": 0.066,
-    "cv_mape_mean": 268.7,
-    "mape": 151.8,
+    "best_n_estimators": 70,
+    "cv_r2_mean": 0.038,
+    "cv_r2_std": 0.038,
+    "cv_mape_mean": 285.0,
+    "mape": 149.3,
     "gate_passed": false,
     "harvest_lag": 1,
     "area_default_m2": 1400.0,
-    "area_from_registry_count": 193
+    "area_from_registry_count": 60,
+    "area_from_csv_count": 60,
+    "cultiv_meta_count": 60
   },
   "stage3": {
     "crop_ko": "완숙토마토",
@@ -62,5 +64,6 @@
     "gate_passed": false,
     "n_train": 785,
     "stage": 3
-  }
+  },
+  "stage4": {}
 }

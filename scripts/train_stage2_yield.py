@@ -83,23 +83,110 @@ def impute_series(s: pd.Series) -> pd.Series:
 
 # ── 면적 로드 ─────────────────────────────────────────────────────────────────
 
+def _load_cultiv_csv(year: int) -> pd.DataFrame:
+    """재배정보_YYYY.CSV 로드 (ZIP 내부)."""
+    zp = DATA_DIR / f"스마트팜_{year}.zip"
+    if not zp.exists():
+        return pd.DataFrame()
+    with zipfile.ZipFile(zp) as zf:
+        for info in zf.infolist():
+            try:
+                raw = zf.read(info.filename)
+                df = pd.read_csv(io.BytesIO(raw), encoding="euc-kr", low_memory=False)
+                # 재배정보 CSV 판별: 정식일 + 품목 컬럼 존재
+                if "정식일" in df.columns and "품목" in df.columns:
+                    return df
+            except Exception:
+                pass
+    return pd.DataFrame()
+
+
 def load_area_map(crop_ko: str) -> dict[str, float]:
-    """farm_registry.json에서 작목별 농가면적 맵 {farm_id: area_m2}."""
+    """재배정보 CSV(식부면적)에서 농가면적 맵 {farm_id: area_m2} 구성.
+
+    우선순위:
+      1. 재배정보_YYYY.CSV의 식부면적 (생산CSV 농가명과 동일 키)
+      2. farm_registry.json의 plant_area_m2
+      3. 빈 dict (→ AREA_DEFAULTS 기본값 사용)
+    """
+    result: dict[str, float] = {}
+
+    # ① 재배정보 CSV — 연도별로 파싱, farm_id+area 집계
+    area_records: list[tuple[str, float]] = []
+    for year in YEARS:
+        df = _load_cultiv_csv(year)
+        if df.empty:
+            continue
+        dc = df[df["품목"].astype(str).str.strip() == crop_ko].copy() if "품목" in df.columns else df
+        if dc.empty:
+            continue
+        farm_col = next((c for c in ["농가명", "농가ID"] if c in dc.columns), None)
+        area_col = next((c for c in ["식부면적", "총면적"] if c in dc.columns), None)
+        if farm_col and area_col:
+            for _, row in dc.iterrows():
+                fid = _norm_farm_id(str(row[farm_col]))
+                try:
+                    area = float(row[area_col])
+                    if area > 0:
+                        area_records.append((fid, area))
+                except (ValueError, TypeError):
+                    pass
+
+    if area_records:
+        # 동일 farm_id에 여러 연도 값 → 중앙값 사용
+        from collections import defaultdict
+        fid_areas: dict[str, list[float]] = defaultdict(list)
+        for fid, area in area_records:
+            fid_areas[fid].append(area)
+        for fid, areas in fid_areas.items():
+            result[fid] = float(np.median(areas))
+        logger.info("  면적 맵(재배정보 CSV): %d농가 (작목=%s)", len(result), crop_ko)
+        return result
+
+    # ② farm_registry.json 폴백
     reg_path = ROOT / "api" / "data" / "farm_registry.json"
-    if not reg_path.exists():
-        return {}
-    registry = json.loads(reg_path.read_text(encoding="utf-8"))
-    result = {}
-    # farm_registry.json 구조: {"farms": {"farm_id": {...}}, ...}
-    farms_dict = registry.get("farms", registry)  # "farms" 하위 없으면 최상위 사용
-    for farm_id, info in farms_dict.items():
-        if isinstance(info, dict) and info.get("crop") == crop_ko:
-            # 실제 필드명: plant_area_m2 또는 total_area_m2
-            area = info.get("plant_area_m2", info.get("total_area_m2", info.get("area_m2", 0)))
-            if area > 0:
-                result[_norm_farm_id(farm_id)] = float(area)
-    logger.info("  면적 맵: %d농가 (작목=%s)", len(result), crop_ko)
+    if reg_path.exists():
+        registry = json.loads(reg_path.read_text(encoding="utf-8"))
+        farms_dict = registry.get("farms", registry)
+        for farm_id, info in farms_dict.items():
+            if isinstance(info, dict) and info.get("crop") == crop_ko:
+                area = info.get("plant_area_m2", info.get("total_area_m2", info.get("area_m2", 0)))
+                if area > 0:
+                    result[_norm_farm_id(farm_id)] = float(area)
+        if result:
+            logger.info("  면적 맵(registry 폴백): %d농가 (작목=%s)", len(result), crop_ko)
+
     return result
+
+
+def load_cultiv_meta(crop_ko: str) -> dict[str, dict]:
+    """재배정보 CSV에서 품종·온실유형·재배일수 메타 {farm_id: {...}} 구성."""
+    meta: dict[str, dict] = {}
+    for year in YEARS:
+        df = _load_cultiv_csv(year)
+        if df.empty:
+            continue
+        dc = df[df["품목"].astype(str).str.strip() == crop_ko].copy() if "품목" in df.columns else df
+        if dc.empty:
+            continue
+        farm_col = next((c for c in ["농가명", "농가ID"] if c in dc.columns), None)
+        if not farm_col:
+            continue
+        for _, row in dc.iterrows():
+            fid = _norm_farm_id(str(row[farm_col]))
+            entry = meta.setdefault(fid, {})
+            if "품종" in dc.columns and pd.notna(row.get("품종")):
+                entry["variety"] = str(row["품종"]).strip()
+            if "온실종류" in dc.columns and pd.notna(row.get("온실종류")):
+                entry["greenhouse_type"] = str(row["온실종류"]).strip()
+            if "정식일" in dc.columns:
+                try:
+                    plant_dt = pd.to_datetime(row["정식일"], errors="coerce")
+                    if pd.notna(plant_dt):
+                        entry["plant_month"] = int(plant_dt.month)
+                except Exception:
+                    pass
+    return meta
 
 
 # ── 데이터 로드 ────────────────────────────────────────────────────────────────
@@ -238,8 +325,9 @@ def build_stage2_matrix(
     growth_monthly: pd.DataFrame,
     prod_monthly: pd.DataFrame,
     config: CropConfig,
+    cultiv_meta: Optional[dict] = None,
 ) -> pd.DataFrame:
-    """생육[t] + 환경[t] → 수확량[t+harvest_lag] 매핑."""
+    """생육[t] + 환경[t] + 재배메타 → 수확량[t+harvest_lag] 매핑."""
     if prod_monthly.empty:
         logger.warning("  수확량 데이터 없음")
         return pd.DataFrame()
@@ -283,6 +371,22 @@ def build_stage2_matrix(
         df["gdd_monthly"] = (df["temp_internal"] - config.t_base).clip(lower=0) * 30
     df["month_sin"] = np.sin(2 * np.pi * df["month"].astype(float) / 12)
     df["month_cos"] = np.cos(2 * np.pi * df["month"].astype(float) / 12)
+
+    # 재배정보 메타 피처 (품종, 온실유형, 정식월)
+    if cultiv_meta:
+        df["variety_code"] = df["farm_id"].map(
+            lambda fid: hash(cultiv_meta.get(fid, {}).get("variety", "")) % 100
+        ).fillna(0).astype(int)
+        _GREENHOUSE_MAP = {"유리": 1, "플라스틱": 2, "비닐": 3}
+        df["greenhouse_code"] = df["farm_id"].map(
+            lambda fid: _GREENHOUSE_MAP.get(
+                cultiv_meta.get(fid, {}).get("greenhouse_type", ""), 0)
+        ).fillna(0).astype(int)
+        df["plant_month"] = df["farm_id"].map(
+            lambda fid: cultiv_meta.get(fid, {}).get("plant_month", 0)
+        ).fillna(0).astype(int)
+        n_meta = sum(1 for fid in df["farm_id"] if fid in cultiv_meta)
+        logger.info("  재배메타 적용: %d/%d행 (품종/온실/정식월)", n_meta, len(df))
 
     logger.info("  Stage2 행렬: %s", df.shape)
     return df
@@ -511,8 +615,12 @@ def run_crop(crop_ko: str) -> dict | None:
         logger.error("  수확량 데이터 없음 — 스킵")
         return None
 
+    logger.info("[3b] 재배정보 메타 로드 (품종·온실유형·정식월)")
+    cultiv_meta = load_cultiv_meta(crop_ko)
+    logger.info("  재배메타: %d농가", len(cultiv_meta))
+
     logger.info("[4] Stage2 행렬 구성")
-    df = build_stage2_matrix(env_m, growth_m, prod_m, config)
+    df = build_stage2_matrix(env_m, growth_m, prod_m, config, cultiv_meta=cultiv_meta)
     if df.empty:
         return None
 
@@ -551,7 +659,9 @@ def run_crop(crop_ko: str) -> dict | None:
         "gate_passed": gate_passed,
         "harvest_lag": config.harvest_lag,
         "area_default_m2": default_area,
-        "area_from_registry_count": len(area_map),
+        "area_from_registry_count": len(area_map),  # 레거시 호환
+        "area_from_csv_count": len(area_map),        # 재배정보 CSV 기반
+        "cultiv_meta_count": len(cultiv_meta),
     }
     meta_path.write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
 

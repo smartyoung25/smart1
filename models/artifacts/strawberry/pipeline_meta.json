@@ -1,7 +1,7 @@
 {
-  "crop_ko": "딸기",
+  "_source": "4stage",
   "crop_en": "strawberry",
-  "pipeline": "4stage",
+  "crop_ko": "딸기",
   "stage1": {
     "crop_ko": "딸기",
     "crop_en": "strawberry",
@@ -31,14 +31,16 @@
     "n_train": 1421,
     "log_transform": true,
     "best_n_estimators": 50,
-    "cv_r2_mean": 0.077,
-    "cv_r2_std": 0.124,
-    "cv_mape_mean": 399.0,
-    "mape": 278.6,
+    "cv_r2_mean": 0.047,
+    "cv_r2_std": 0.092,
+    "cv_mape_mean": 519.5,
+    "mape": 362.6,
     "gate_passed": false,
     "harvest_lag": 1,
     "area_default_m2": 1200.0,
-    "area_from_registry_count": 179
+    "area_from_registry_count": 61,
+    "area_from_csv_count": 61,
+    "cultiv_meta_count": 61
   },
   "stage3": {
     "crop_ko": "딸기",
@@ -56,5 +58,6 @@
     "gate_passed": false,
     "n_train": 1233,
     "stage": 3
-  }
+  },
+  "stage4": {}
 }

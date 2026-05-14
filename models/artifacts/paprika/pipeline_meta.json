@@ -1,7 +1,7 @@
 {
-  "crop_ko": "파프리카",
+  "_source": "4stage",
   "crop_en": "paprika",
-  "pipeline": "4stage",
+  "crop_ko": "파프리카",
   "stage1": {
     "crop_ko": "파프리카",
     "crop_en": "paprika",
@@ -35,14 +35,16 @@
     "n_train": 854,
     "log_transform": true,
     "best_n_estimators": 50,
-    "cv_r2_mean": -0.13,
-    "cv_r2_std": 0.163,
-    "cv_mape_mean": 280.1,
-    "mape": 169.6,
+    "cv_r2_mean": -0.165,
+    "cv_r2_std": 0.191,
+    "cv_mape_mean": 217.2,
+    "mape": 163.0,
     "gate_passed": false,
     "harvest_lag": 2,
     "area_default_m2": 2500.0,
-    "area_from_registry_count": 89
+    "area_from_registry_count": 33,
+    "area_from_csv_count": 33,
+    "cultiv_meta_count": 33
   },
   "stage3": {
     "crop_ko": "파프리카",
@@ -60,5 +62,6 @@
     "gate_passed": false,
     "n_train": 552,
     "stage": 3
-  }
+  },
+  "stage4": {}
 }

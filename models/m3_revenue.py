@@ -40,6 +40,7 @@ class M3RevenueModel:
         self._price_median: dict[str, float] = {}  # crop_ko → 원/kg
         self._price_p25:    dict[str, float] = {}
         self._price_p75:    dict[str, float] = {}
+        self._price_monthly: dict[str, dict] = {}  # crop_ko → {month_str: stats}
         self._ridge: Optional[object]        = None
         self._ridge_feature_names: list[str] = []
         self._loaded = False
@@ -77,14 +78,26 @@ class M3RevenueModel:
                 self._price_p25[crop_ko]    = float(d.get("p25_krw_kg",    self._price_median[crop_ko] * 0.7))
                 self._price_p75[crop_ko]    = float(d.get("p75_krw_kg",    self._price_median[crop_ko] * 1.3))
 
-        logger.info("[M3] 가격 통계 로드: %d작목", len(self._price_median))
+        # monthly_trend 로드 (있으면)
+        self._price_monthly = stats.get("monthly_trend", {})
 
-    def get_price(self, crop_ko: str, percentile: str = "median") -> float:
-        """작목별 단가 조회."""
+        logger.info("[M3] 가격 통계 로드: %d작목, 월별분해=%s",
+                    len(self._price_median), bool(self._price_monthly))
+
+    def get_price(self, crop_ko: str, percentile: str = "median",
+                  month: Optional[int] = None) -> float:
+        """작목별 단가 조회. month 지정 시 월별 단가 우선 사용."""
         defaults = {
             "딸기": 9000.0, "방울토마토": 3800.0, "완숙토마토": 2700.0,
             "참외": 5000.0, "파프리카": 6500.0,
         }
+        # 월별 단가 (monthly_trend) 우선 사용 — median만 제공
+        if month is not None and percentile == "median":
+            monthly = self._price_monthly.get(crop_ko, {})
+            m_stats = monthly.get(str(month), {})
+            if m_stats.get("median_krw_kg", 0) > 0:
+                return float(m_stats["median_krw_kg"])
+
         if percentile == "p25":
             return self._price_p25.get(crop_ko, defaults.get(crop_ko, 5000.0) * 0.7)
         elif percentile == "p75":
@@ -110,7 +123,8 @@ class M3RevenueModel:
         if not self._loaded:
             self.load()
 
-        price_med = self.get_price(crop_ko, "median")
+        # 월별 단가 우선(monthly_trend), 없으면 전체 중앙값
+        price_med = self.get_price(crop_ko, "median", month=month)
         price_p25 = self.get_price(crop_ko, "p25")
         price_p75 = self.get_price(crop_ko, "p75")
 
