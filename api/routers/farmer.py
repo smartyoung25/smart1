@@ -43,6 +43,8 @@ from api.data.stats_loader import (
     get_water_rate,
     estimate_harvest_days,
 )
+from api.services import persistence
+from api.services.model_loader import predict_revenue_per_m2, get_model_meta
 
 router = APIRouter(prefix="/api/farms/{farm_id}", tags=["farmer"])
 
@@ -188,39 +190,14 @@ def _build_alerts(farm_id: str, env: dict[str, float]) -> list[FarmAlert]:
     return alerts
 
 
-# ── 농가별 수익 파라미터 (작물·면적·KAMIS 단가·수확량·비용 반영) ───────────────
+# ── 수익 파라미터 출처 ──────────────────────────────────────────────────────────
+# 단가(kamis_price)   : api/data/stats_loader.get_price_krw_kg()   — KAMIS 5년 패널
+# 수확량(yield_kg_m2) : api/data/stats_loader.get_yield_kg_m2()    — 농진청 패널
+# ML 예측 매출        : api/services/model_loader.predict_revenue_per_m2()
+#                       → models/artifacts/{crop}_revenue_model.pkl (XGB+LGB 앙상블)
+# 비용                : _compute_costs() 함수로 _RESOURCE_COSTS 기반 상세 계산
 #
-# kamis_price   : KAMIS 2026년 5월 평균 도매가 (원/kg)
-# yield_kg_m2   : 1회 수확 주기 평균 수확량 (kg/m²)
-# cost_per_m2   : 월 운영비 (원/m²) — 인건비·난방·약제 포함
-#
-_FARM_REVENUE: dict[str, dict] = {
-    "farm_001": {   # 오이 (동서 오이 농장) — 농진청 5년 패널 기준
-        "kamis_price":   1_845.0,   # 오이 5년 평균 단가 (원/kg)
-        "yield_kg_m2":     18.25,   # 오이 평균 수확량 (kg/m²/작기)
-        "cost_per_m2":   1_500.0,
-    },
-    "farm_002": {   # 방울토마토 — 고수량, 반자동 절감
-        "kamis_price":   3_956.0,   # 방울토마토 5년 평균 단가
-        "yield_kg_m2":     15.06,   # 방울토마토 평균 수확량
-        "cost_per_m2":   1_800.0,
-    },
-    "farm_003": {   # 딸기(설향) — 중단가, 노동집약
-        "kamis_price":   9_799.0,   # 딸기 5년 평균 단가
-        "yield_kg_m2":     15.19,   # 딸기 평균 수확량
-        "cost_per_m2":   2_000.0,
-    },
-    "farm_004": {   # 완숙토마토 (대원 토마토 농장) — 농진청 5년 패널 기준
-        "kamis_price":   2_758.0,   # 완숙토마토 5년 평균 단가
-        "yield_kg_m2":     21.27,   # 완숙토마토 평균 수확량
-        "cost_per_m2":   1_900.0,
-    },
-    "farm_005": {   # 미등록 — 기본값
-        "kamis_price":   3_200.0,
-        "yield_kg_m2":      5.00,
-        "cost_per_m2":   1_600.0,
-    },
-}
+# NOTE: 이전 버전의 _FARM_REVENUE 인메모리 dict는 stats_loader + model_loader 로 대체됨
 
 # ---------------------------------------------------------------------------
 # 농가별 자원 소비 데이터 (일별 기준, 월 30일 적용)
@@ -292,12 +269,8 @@ _RESOURCE_COSTS: dict[str, dict] = {
     },
 }
 
-# IoT 미구축 농가의 수동 입력값 저장소 (메모리; 실 서비스에서는 DB로 교체)
-_MANUAL_ENV: dict[str, dict[str, float]] = {}
-
-# 농가별 실제 비용 입력값 저장소 (메모리)
-# 키: farm_id, 값: ManualCostInput 의 dict 형태
-_MANUAL_COSTS: dict[str, dict] = {}
+# 수동 입력값은 persistence 서비스를 통해 DB(또는 in-memory 폴백)에 저장
+# _MANUAL_ENV / _MANUAL_COSTS 인메모리 dict 제거 → persistence.get/set_manual_env/cost 사용
 
 
 def _require_farm(farm_id: str) -> dict[str, Any]:
@@ -323,7 +296,7 @@ def _get_env(farm_id: str) -> dict[str, float]:
 
     if not meta["iot_available"]:
         # IoT 없음: 수동 입력 있으면 사용, 없으면 빈 dict
-        base = _MANUAL_ENV.get(farm_id, {})
+        base = persistence.get_manual_env(farm_id)
     else:
         base = dict(_FARM_ENV[farm_id])
 
@@ -550,14 +523,15 @@ def submit_manual_env(farm_id: str, body: ManualEnvInput):
     if not incoming:
         raise HTTPException(status_code=422, detail="최소 하나 이상의 환경값을 입력해야 합니다.")
 
-    if farm_id not in _MANUAL_ENV:
-        _MANUAL_ENV[farm_id] = {}
-    _MANUAL_ENV[farm_id].update(incoming)
+    # 기존 값 병합 후 저장 (부분 업데이트 지원)
+    existing = persistence.get_manual_env(farm_id)
+    merged = {**existing, **incoming}
+    persistence.set_manual_env(farm_id, merged)
 
     return ManualEnvResponse(
         status="saved",
         message_ko=f"{len(incoming)}개 환경값이 저장되었습니다. AI 추천이 업데이트됩니다.",
-        stored_fields=list(_MANUAL_ENV[farm_id].keys()),
+        stored_fields=list(merged.keys()),
     )
 
 
@@ -580,7 +554,7 @@ def get_environment(farm_id: str):
         indoor_quality = "FINETUNED"
         indoor_edit    = False
     else:
-        indoor_raw     = dict(_MANUAL_ENV.get(farm_id, {}))
+        indoor_raw     = persistence.get_manual_env(farm_id)
         indoor_source  = "manual_input" if indoor_raw else "none"
         indoor_label   = "실내 환경 (수동 입력)"
         indoor_quality = "MANUAL_INPUT"
@@ -718,10 +692,41 @@ def get_revenue(farm_id: str):
     crop     = meta.get("crop", "딸기")
     area     = meta["area_m2"]
 
-    # 실데이터 단가·수확량 (stats_loader — 농진청 5년 패널 기반)
+    # 실데이터 단가 (stats_loader — KAMIS 5년 패널 기반)
     price    = get_price_krw_kg(crop)
-    yield_m2 = get_yield_kg_m2(crop)
-    revenue  = yield_m2 * price * area
+
+    # ── ML 모델 예측 (없으면 통계 기반 폴백) ──────────────────────────────────
+    env      = _get_env(farm_id)
+    import datetime as _dt
+    _cur_month = _dt.date.today().month
+    env_feat = {
+        "temp_internal_mean":  float(env.get("temp_internal", 20.0)),
+        "humidity_int_mean":   float(env.get("humidity_int",  70.0)),
+        "co2_ppm_mean":        float(env.get("co2_ppm",      800.0)),
+        "solar_rad_mean":      float(env.get("solar_rad",    100.0)),
+        "soil_temp_mean":      float(env.get("soil_temp",     18.0)),
+        "gdd_monthly":         max(0.0, float(env.get("temp_internal", 20.0)) - 10.0) * 30.0,
+    }
+    ml_rev_pm2 = predict_revenue_per_m2(crop, env_feat, month=_cur_month)
+    model_meta = get_model_meta(crop)
+
+    if ml_rev_pm2 is not None and ml_rev_pm2 > 0:
+        # ML 예측값: 원/m²/월 → 월간 매출
+        revenue      = ml_rev_pm2 * area
+        revenue_src  = "ml_model"
+        logger.info(
+            "[get_revenue] farm=%s crop=%s ML예측 %.0f원/m² × %.0fm² = %.0f원",
+            farm_id, crop, ml_rev_pm2, area, revenue,
+        )
+    else:
+        # 통계 폴백: 수확량 × 단가 × 면적
+        yield_m2 = get_yield_kg_m2(crop)
+        revenue  = yield_m2 * price * area
+        revenue_src = "stats_fallback"
+        logger.info(
+            "[get_revenue] farm=%s crop=%s 통계폴백 yield=%.2f kg/m² → %.0f원",
+            farm_id, crop, yield_m2, revenue,
+        )
 
     # 비용: _compute_costs 상세 항목 합산 (실단가 반영)
     cb   = _compute_costs(farm_id)
@@ -748,7 +753,7 @@ def _compute_costs(farm_id: str) -> CostBreakdownResponse:
     없으면 _RESOURCE_COSTS 기본값 사용.
     """
     rc  = _RESOURCE_COSTS[farm_id]
-    mc  = _MANUAL_COSTS.get(farm_id, {})
+    mc  = persistence.get_manual_cost(farm_id)
     meta = _FARM_META[farm_id]
     DAYS = 30
 
@@ -869,7 +874,7 @@ def post_costs_manual(farm_id: str, body: ManualCostInput):
     if not stored:
         raise HTTPException(status_code=422, detail="입력된 값이 없습니다.")
 
-    _MANUAL_COSTS[farm_id] = stored
+    persistence.set_manual_cost(farm_id, stored)
     return ManualCostResponse(
         status="ok",
         message_ko=f"실제 비용이 저장됐습니다. ({len(stored)}개 항목)",
@@ -881,7 +886,7 @@ def post_costs_manual(farm_id: str, body: ManualCostInput):
 def delete_costs_manual(farm_id: str):
     """실제 입력값 삭제 → 기본 추정값으로 복원."""
     _require_farm(farm_id)
-    _MANUAL_COSTS.pop(farm_id, None)
+    persistence.set_manual_cost(farm_id, {})   # 빈 dict 저장 → 기본값으로 복원
     return {"status": "ok", "message_ko": "실제 비용 입력값이 삭제되어 기본값으로 복원됩니다."}
 
 
@@ -901,11 +906,15 @@ def _stub_reply(farm_id: str, message: str) -> ChatResponse:
     meta   = _FARM_META.get(farm_id, {})
     env    = _get_env(farm_id) or {}
     alerts = _build_alerts(farm_id, env) if env else []
-    rev    = _FARM_REVENUE.get(farm_id, {})
     crop   = meta.get("crop", "작물")
     area   = meta.get("area_m2", 0)
 
     referenced: list[str] = []
+
+    # ── 수익 파라미터: stats_loader 실데이터 사용 ────────────────────────────────
+    _price_live    = get_price_krw_kg(crop)
+    _yield_live    = get_yield_kg_m2(crop)
+    _cost_live_pm2 = _compute_costs(farm_id).cost_per_m2
 
     # ── 알림 관련 ────────────────────────────────────────────────────────────
     if any(kw in msg_lower for kw in ["알림", "경고", "위험", "주의", "이상"]):
@@ -949,9 +958,9 @@ def _stub_reply(farm_id: str, message: str) -> ChatResponse:
     # ── 수익·가격 관련 ────────────────────────────────────────────────────────
     if any(kw in msg_lower for kw in ["수익", "매출", "가격", "kamis", "단가", "이익", "돈"]):
         referenced.append("revenue")
-        price    = rev.get("kamis_price", 0)
-        y_kg     = rev.get("yield_kg_m2", 0)
-        cost     = rev.get("cost_per_m2", 0)
+        price    = _price_live
+        y_kg     = _yield_live
+        cost     = _cost_live_pm2
         profit   = round((y_kg * price - cost) * area / 10000)
         return ChatResponse(
             reply=f"이번 달 {crop} 예상 순이익은 **{profit:,}만원** 입니다.\n\n"
