@@ -602,7 +602,13 @@ def train_stage2(df: pd.DataFrame, config: CropConfig) -> dict:
     X = imputer.fit_transform(X_raw)
     y = y_raw.values
 
-    n_splits = 3 if n_samples < 200 else 4
+    # 소샘플에서 fold 수를 줄여 첫 fold 훈련 크기 확보
+    if n_samples < 100:
+        n_splits = 2
+    elif n_samples < 300:
+        n_splits = 3
+    else:
+        n_splits = 4
 
     # 샘플 부족 → Ridge 폴백
     if n_samples < config.min_train_samples:
@@ -627,6 +633,30 @@ def train_stage2(df: pd.DataFrame, config: CropConfig) -> dict:
     try:
         import xgboost as xgb
 
+        # 샘플 크기에 따른 하이퍼파라미터 자동 조정
+        # 연간 모드(소샘플)에서 early stopping이 0~1 트리에서 조기 종료하는 문제 방지
+        if n_samples < 250:
+            # 소샘플: 더 빠른 수렴, 덜 복잡한 트리
+            xgb_lr    = 0.15
+            xgb_depth = 3
+            xgb_mcw   = 2
+            xgb_es    = 15
+            xgb_sub   = 0.9
+        elif n_samples < 600:
+            xgb_lr    = 0.1
+            xgb_depth = 3
+            xgb_mcw   = 3
+            xgb_es    = 25
+            xgb_sub   = 0.85
+        else:
+            xgb_lr    = 0.05
+            xgb_depth = 4
+            xgb_mcw   = 5
+            xgb_es    = 50
+            xgb_sub   = 0.8
+        logger.info("  XGB 파라미터: lr=%.2f depth=%d mcw=%d es=%d (n=%d)",
+                    xgb_lr, xgb_depth, xgb_mcw, xgb_es, n_samples)
+
         tscv = TimeSeriesSplit(n_splits=n_splits)
         cv_r2, cv_mape, best_iters = [], [], []
 
@@ -635,11 +665,11 @@ def train_stage2(df: pd.DataFrame, config: CropConfig) -> dict:
             y_tr, y_val = np.log1p(y[tr_idx]), np.log1p(y[val_idx])
 
             fold_m = xgb.XGBRegressor(
-                n_estimators=1000,
-                early_stopping_rounds=50,
-                learning_rate=0.05, max_depth=4,
-                subsample=0.8, colsample_bytree=0.8,
-                min_child_weight=5, random_state=42, verbosity=0,
+                n_estimators=500,
+                early_stopping_rounds=xgb_es,
+                learning_rate=xgb_lr, max_depth=xgb_depth,
+                subsample=xgb_sub, colsample_bytree=0.8,
+                min_child_weight=xgb_mcw, random_state=42, verbosity=0,
             )
             fold_m.fit(X_tr, y_tr,
                        eval_set=[(X_val, y_val)],
@@ -661,17 +691,17 @@ def train_stage2(df: pd.DataFrame, config: CropConfig) -> dict:
         logger.info("  CV R²=%.3f  MAPE=%.1f%%  best_n=%d",
                     cv_r2_mean, cv_mape_mean, best_n)
 
-        # 전체 데이터로 최종 학습 (best_n으로 고정)
+        # 전체 데이터로 최종 학습 (best_n + 동일 파라미터)
         final_model = xgb.XGBRegressor(
             n_estimators=best_n,
-            learning_rate=0.05, max_depth=4,
-            subsample=0.8, colsample_bytree=0.8,
-            min_child_weight=5, random_state=42, verbosity=0,
+            learning_rate=xgb_lr, max_depth=xgb_depth,
+            subsample=xgb_sub, colsample_bytree=0.8,
+            min_child_weight=xgb_mcw, random_state=42, verbosity=0,
         )
         final_model.fit(X, np.log1p(y))
 
         # SHAP 피처 선택
-        top_n = 10 if n_samples < 300 else 15
+        top_n = 8 if n_samples < 150 else (10 if n_samples < 300 else 15)
         selected_features = select_top_features(final_model, X, feature_cols, top_n)
 
         # SHAP 선택 피처로 재학습
@@ -681,9 +711,9 @@ def train_stage2(df: pd.DataFrame, config: CropConfig) -> dict:
         imp_sel  = SimpleImputer(strategy="median").fit(X_raw[selected_features])
 
         final_sel = xgb.XGBRegressor(
-            n_estimators=best_n, learning_rate=0.05, max_depth=4,
-            subsample=0.8, colsample_bytree=0.8,
-            min_child_weight=5, random_state=42, verbosity=0,
+            n_estimators=best_n, learning_rate=xgb_lr, max_depth=xgb_depth,
+            subsample=xgb_sub, colsample_bytree=0.8,
+            min_child_weight=xgb_mcw, random_state=42, verbosity=0,
         )
         final_sel.fit(X_sel, np.log1p(y))
 
