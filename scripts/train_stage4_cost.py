@@ -52,14 +52,19 @@ def load_farm_registry() -> dict:
 
 def compute_area_median(registry: dict, crop_ko: str) -> float:
     """farm_registry에서 작목별 면적 중앙값 계산."""
+    # farm_registry.json 구조: {"farms": {"farm_id": {...}}, ...}
+    farms_dict = registry.get("farms", registry)
     farms = [
-        f for f in registry.values()
+        f for f in farms_dict.values()
         if isinstance(f, dict) and f.get("crop") == crop_ko
-        and f.get("area_m2", 0) > 0
+        and f.get("plant_area_m2", f.get("total_area_m2", f.get("area_m2", 0))) > 0
     ]
     if not farms:
         return AREA_DEFAULTS.get(crop_ko, 1200.0)
-    areas = sorted(f["area_m2"] for f in farms)
+    areas = sorted(
+        f.get("plant_area_m2", f.get("total_area_m2", f.get("area_m2", 0)))
+        for f in farms
+    )
     n = len(areas)
     median = areas[n // 2] if n % 2 == 1 else (areas[n // 2 - 1] + areas[n // 2]) / 2
     logger.info("  %s: 면적 중앙값 %.0fm² (n=%d농가)", crop_ko, median, n)

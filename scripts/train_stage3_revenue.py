@@ -88,9 +88,13 @@ def load_production_with_revenue(crop_ko: str) -> pd.DataFrame:
     reg_path = ROOT / "api" / "data" / "farm_registry.json"
     if reg_path.exists():
         reg = json.loads(reg_path.read_text(encoding="utf-8"))
-        for fid, info in reg.items():
-            if isinstance(info, dict) and info.get("crop") == crop_ko and info.get("area_m2", 0) > 0:
-                area_map[_norm_farm_id(fid)] = float(info["area_m2"])
+        # farm_registry.json 구조: {"farms": {"farm_id": {...}}, ...}
+        farms_dict = reg.get("farms", reg)
+        for fid, info in farms_dict.items():
+            if isinstance(info, dict) and info.get("crop") == crop_ko:
+                area = info.get("plant_area_m2", info.get("total_area_m2", info.get("area_m2", 0)))
+                if area > 0:
+                    area_map[_norm_farm_id(fid)] = float(area)
 
     default_area = AREA_DEFAULTS.get(crop_ko, 1200.0)
     all_frames = []

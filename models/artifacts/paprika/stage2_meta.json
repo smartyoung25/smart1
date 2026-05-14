@@ -14,5 +14,5 @@
   "gate_passed": false,
   "harvest_lag": 2,
   "area_default_m2": 2500.0,
-  "area_from_registry_count": 0
+  "area_from_registry_count": 89
 }

@@ -90,9 +90,12 @@ def load_area_map(crop_ko: str) -> dict[str, float]:
         return {}
     registry = json.loads(reg_path.read_text(encoding="utf-8"))
     result = {}
-    for farm_id, info in registry.items():
+    # farm_registry.json 구조: {"farms": {"farm_id": {...}}, ...}
+    farms_dict = registry.get("farms", registry)  # "farms" 하위 없으면 최상위 사용
+    for farm_id, info in farms_dict.items():
         if isinstance(info, dict) and info.get("crop") == crop_ko:
-            area = info.get("area_m2", 0)
+            # 실제 필드명: plant_area_m2 또는 total_area_m2
+            area = info.get("plant_area_m2", info.get("total_area_m2", info.get("area_m2", 0)))
             if area > 0:
                 result[_norm_farm_id(farm_id)] = float(area)
     logger.info("  면적 맵: %d농가 (작목=%s)", len(result), crop_ko)
