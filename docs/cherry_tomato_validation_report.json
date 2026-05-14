@@ -1,0 +1,89 @@
+{
+  "crop": "방울토마토",
+  "crop_en": "cherry_tomato",
+  "pipeline_version": "1.0",
+  "data_years": [
+    2018,
+    2019,
+    2020,
+    2021,
+    2022
+  ],
+  "test_year": 2022,
+  "n_train": 826,
+  "n_test": 185,
+  "target": "revenue_per_m2",
+  "model_type": "xgb_lgb_ensemble",
+  "feature_count": 24,
+  "train_metrics": {
+    "r2": 0.9981,
+    "mape": 24.05
+  },
+  "test_metrics": {
+    "n_test": 128,
+    "r2": -0.151,
+    "mape_pct": 697.57,
+    "rmse": 239.15,
+    "y_true_sample": [
+      134.39733333333334,
+      373.577625,
+      300.66161666666665,
+      143.2962,
+      54.275216666666665
+    ],
+    "y_pred_sample": [
+      463.0,
+      528.0,
+      314.0,
+      198.0,
+      152.0
+    ]
+  },
+  "optimization_sample": {
+    "temp_internal": 18.0,
+    "humidity_int": 75.0,
+    "co2_ppm": 600.0,
+    "revenue_per_m2": 178.0,
+    "monthly_revenue": 177750.0,
+    "monthly_cost": 842000.0,
+    "monthly_income": -664250.0,
+    "total_income_6m": -3985498.0
+  },
+  "top5_env_combinations": [
+    {
+      "temp": 18.0,
+      "humid": 75.0,
+      "co2": 600.0,
+      "rev_per_m2": 178.0,
+      "income_total": -3985498.0
+    },
+    {
+      "temp": 18.0,
+      "humid": 80.0,
+      "co2": 600.0,
+      "rev_per_m2": 177.0,
+      "income_total": -3988539.0
+    },
+    {
+      "temp": 18.0,
+      "humid": 55.0,
+      "co2": 600.0,
+      "rev_per_m2": 177.0,
+      "income_total": -3990870.0
+    },
+    {
+      "temp": 18.0,
+      "humid": 60.0,
+      "co2": 600.0,
+      "rev_per_m2": 177.0,
+      "income_total": -3990870.0
+    },
+    {
+      "temp": 18.0,
+      "humid": 65.0,
+      "co2": 600.0,
+      "rev_per_m2": 177.0,
+      "income_total": -3991268.0
+    }
+  ]
+}

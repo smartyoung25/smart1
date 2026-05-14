@@ -1,0 +1,83 @@
+{
+  "version": "1.0",
+  "description": "다작목 소득최적화 통합 메타 보고서",
+  "crops_trained": [
+    "방울토마토",
+    "완숙토마토",
+    "참외",
+    "파프리카",
+    "딸기"
+  ],
+  "income_ranking": [
+    {
+      "crop": "딸기",
+      "crop_en": "strawberry",
+      "optimal_temp": 14.0,
+      "optimal_humid": 75.0,
+      "optimal_co2": 600.0,
+      "revenue_per_m2": 25859.0,
+      "monthly_cost": 1034400.0,
+      "monthly_income": 24824903.0,
+      "total_income_6m": 148949417.0,
+      "train_r2": 0.9811,
+      "test_r2": 0.0202
+    },
+    {
+      "crop": "완숙토마토",
+      "crop_en": "tomato",
+      "optimal_temp": 22.0,
+      "optimal_humid": 70.0,
+      "optimal_co2": 600.0,
+      "revenue_per_m2": 605.0,
+      "monthly_cost": 787000.0,
+      "monthly_income": -181874.0,
+      "total_income_6m": -1091244.0,
+      "train_r2": 0.9959,
+      "test_r2": -0.0036
+    },
+    {
+      "crop": "방울토마토",
+      "crop_en": "cherry_tomato",
+      "optimal_temp": 18.0,
+      "optimal_humid": 75.0,
+      "optimal_co2": 600.0,
+      "revenue_per_m2": 178.0,
+      "monthly_cost": 842000.0,
+      "monthly_income": -664250.0,
+      "total_income_6m": -3985498.0,
+      "train_r2": 0.9981,
+      "test_r2": -0.151
+    },
+    {
+      "crop": "참외",
+      "crop_en": "melon",
+      "optimal_temp": 22.0,
+      "optimal_humid": 65.0,
+      "optimal_co2": 1000.0,
+      "revenue_per_m2": 288.0,
+      "monthly_cost": 963000.0,
+      "monthly_income": -675243.0,
+      "total_income_6m": -4051457.0,
+      "train_r2": 0.9991,
+      "test_r2": 0.2219
+    },
+    {
+      "crop": "파프리카",
+      "crop_en": "paprika",
+      "optimal_temp": 26.0,
+      "optimal_humid": 80.0,
+      "optimal_co2": 800.0,
+      "revenue_per_m2": 183.0,
+      "monthly_cost": 1034400.0,
+      "monthly_income": -851372.0,
+      "total_income_6m": -5108233.0,
+      "train_r2": 0.9919,
+      "test_r2": -1.1789
+    }
+  ],
+  "notes": [
+    "통합 모델은 작목별 독립 모델 예측값을 집계한 것",
+    "각 작목 모델 pkl 파일로 독립 예측 가능",
+    "향후: 크로스-작목 앙상블, 작목 전환 비용 반영 계획"
+  ]
+}
