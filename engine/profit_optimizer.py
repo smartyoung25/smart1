@@ -149,44 +149,70 @@ def optimize(
         baseline_yield_kg_m2: current expected yield without any change
     """
     if yield_predict_fn is None:
-        # 학습된 ML 모델 사용 (있을 경우)
+        import datetime as _dt
+        _cur_month = _dt.date.today().month
+
+        # ① 4-Stage FourStagePipeline 우선 시도
         try:
-            from api.services.model_loader import predict_revenue_per_m2 as _ml_pred
+            from models.pipeline_assembler import get_pipeline as _get_pipeline
             from api.services.model_loader import normalize_crop as _norm_crop
-            import datetime as _dt
-            _cur_month  = _dt.date.today().month
-            _crop_norm  = _norm_crop(crop_ko)   # "딸기(설향)" → "딸기"
+            _crop_norm = _norm_crop(crop_ko)
+            _pipeline  = _get_pipeline(_crop_norm)
 
             def yield_predict_fn(env: dict) -> tuple[float, float]:
-                # env_dict → ML 예측 (원/m²/월)
-                env_feat = {
-                    "temp_internal_mean":  env.get("temp_internal", 20.0),
-                    "humidity_int_mean":   env.get("humidity_int", 70.0),
-                    "co2_ppm_mean":        env.get("co2_ppm", 800.0),
-                    "solar_rad_mean":      env.get("solar_rad", 100.0),
-                    "soil_temp_mean":      env.get("soil_temp", 18.0),
-                    "gdd_monthly":         max(0, env.get("temp_internal", 20.0) - 10.0) * 30.0,
+                env_current = {
+                    "temp_internal_mean": env.get("temp_internal", 20.0),
+                    "humidity_int_mean":  env.get("humidity_int", 70.0),
+                    "co2_ppm_mean":       env.get("co2_ppm", 800.0),
+                    "solar_rad_mean":     env.get("solar_rad", 100.0),
+                    "soil_temp_mean":     env.get("soil_temp", 18.0),
+                    "gdd_monthly":        max(0, env.get("temp_internal", 20.0) - 10.0) * 30.0,
                 }
-                rev_pm2 = _ml_pred(_crop_norm, env_feat, month=_cur_month)
-                if rev_pm2 is not None and rev_pm2 > 0:
-                    # 매출/m² → 수확량/m² 환산 (단가 기반)
-                    _PRICE_PER_KG = {
-                        "딸기": 9_799, "방울토마토": 3_956, "완숙토마토": 2_758,
-                        "참외": 3_142, "파프리카": 4_000, "오이": 1_845,
-                    }
-                    price_kg = _PRICE_PER_KG.get(_crop_norm, 3_000)
-                    yield_est = rev_pm2 / price_kg if price_kg > 0 else baseline_yield_kg_m2
-                    return max(0.0, yield_est), 0.75
-                # ML 예측 불가 시 온도 기반 단순 스텁
-                temp = env.get("temp_internal", 22.0)
-                bonus = max(0.0, 0.008 * (temp - 20.0))
-                return baseline_yield_kg_m2 + bonus, 0.45
+                try:
+                    result = _pipeline.predict(
+                        env_current=env_current,
+                        month=_cur_month,
+                        area_m2=area_m2,
+                        temp_external=env.get("temp_external", 5.0),
+                    )
+                    return max(0.0, result.yield_kg_m2), result.confidence
+                except Exception:
+                    temp = env.get("temp_internal", 22.0)
+                    return baseline_yield_kg_m2 + max(0.0, 0.008 * (temp - 20.0)), 0.45
 
         except Exception:
-            def yield_predict_fn(env: dict) -> tuple[float, float]:
-                temp = env.get("temp_internal", 22.0)
-                bonus = max(0.0, 0.01 * (temp - 20.0))
-                return baseline_yield_kg_m2 + bonus, 0.6
+            # ② 레거시 model_loader 시도
+            try:
+                from api.services.model_loader import predict_revenue_per_m2 as _ml_pred
+                from api.services.model_loader import normalize_crop as _norm_crop
+                _crop_norm = _norm_crop(crop_ko)
+
+                def yield_predict_fn(env: dict) -> tuple[float, float]:
+                    env_feat = {
+                        "temp_internal_mean":  env.get("temp_internal", 20.0),
+                        "humidity_int_mean":   env.get("humidity_int", 70.0),
+                        "co2_ppm_mean":        env.get("co2_ppm", 800.0),
+                        "solar_rad_mean":      env.get("solar_rad", 100.0),
+                        "soil_temp_mean":      env.get("soil_temp", 18.0),
+                        "gdd_monthly":         max(0, env.get("temp_internal", 20.0) - 10.0) * 30.0,
+                    }
+                    rev_pm2 = _ml_pred(_crop_norm, env_feat, month=_cur_month)
+                    if rev_pm2 is not None and rev_pm2 > 0:
+                        _PRICE_PER_KG = {
+                            "딸기": 9_799, "방울토마토": 3_956, "완숙토마토": 2_758,
+                            "참외": 3_142, "파프리카": 4_000, "오이": 1_845,
+                        }
+                        price_kg = _PRICE_PER_KG.get(_crop_norm, 3_000)
+                        return max(0.0, rev_pm2 / price_kg), 0.75
+                    temp = env.get("temp_internal", 22.0)
+                    return baseline_yield_kg_m2 + max(0.0, 0.008 * (temp - 20.0)), 0.45
+
+            except Exception:
+                # ③ 최종 폴백 — 온도 기반 단순 스텁
+                def yield_predict_fn(env: dict) -> tuple[float, float]:
+                    temp = env.get("temp_internal", 22.0)
+                    bonus = max(0.0, 0.01 * (temp - 20.0))
+                    return baseline_yield_kg_m2 + bonus, 0.6
 
     if price_forecast_fn is None:
         # stats_loader의 실데이터 단가 사용

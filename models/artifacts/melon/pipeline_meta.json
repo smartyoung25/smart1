@@ -37,7 +37,7 @@
     "gate_passed": false,
     "harvest_lag": 1,
     "area_default_m2": 3800.0,
-    "area_from_registry_count": 0
+    "area_from_registry_count": 26
   },
   "stage3": {
     "crop_ko": "참외",

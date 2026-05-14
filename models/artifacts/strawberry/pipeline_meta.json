@@ -38,7 +38,7 @@
     "gate_passed": false,
     "harvest_lag": 1,
     "area_default_m2": 1200.0,
-    "area_from_registry_count": 0
+    "area_from_registry_count": 179
   },
   "stage3": {
     "crop_ko": "딸기",

@@ -42,7 +42,7 @@
     "gate_passed": false,
     "harvest_lag": 1,
     "area_default_m2": 1600.0,
-    "area_from_registry_count": 0
+    "area_from_registry_count": 137
   },
   "stage3": {
     "crop_ko": "방울토마토",

@@ -16,11 +16,12 @@ class AdminOverview(BaseModel):
 
 
 class CropModelInfo(BaseModel):
-    """작목별 ML 모델 상세 정보"""
+    """작목별 ML 모델 상세 정보 (4-Stage 파이프라인 기반)"""
     crop_ko: str
     crop_en: str
     status: str                      # "loaded" | "no_model"
-    model_type: Optional[str] = None # "xgb_lgb_ensemble" | "ridge_fallback"
+    model_type: Optional[str] = None # "4stage" | "xgb_lgb_ensemble" | "ridge_fallback"
+    # 레거시 단일 모델 메트릭 (하위 호환)
     train_r2: Optional[float] = None
     train_mape: Optional[float] = None
     test_r2: Optional[float] = None
@@ -28,6 +29,18 @@ class CropModelInfo(BaseModel):
     feature_count: Optional[int] = None
     n_train: Optional[int] = None
     n_test: Optional[int] = None
+    # 4-Stage 파이프라인 메트릭
+    stage1_cv_r2: Optional[float] = None      # 환경→생육 CV R²
+    stage1_gate: Optional[bool] = None        # Stage1 게이트 통과 여부
+    stage2_mape: Optional[float] = None       # 생육→수확량 MAPE %
+    stage2_cv_r2: Optional[float] = None      # Stage2 CV R²
+    stage2_gate: Optional[bool] = None        # Stage2 게이트 통과 여부
+    stage2_n_train: Optional[int] = None      # Stage2 학습 샘플 수
+    stage2_area_from_registry: Optional[int] = None  # 실측 면적 적용 농가 수
+    stage3_mape: Optional[float] = None       # 수확량→매출 MAPE %
+    stage3_gate: Optional[bool] = None        # Stage3 게이트 통과 여부
+    price_median_krw_kg: Optional[float] = None  # Stage3 사용 단가
+    # 최적화 파라미터
     opt_temp: Optional[float] = None   # 최적 온도
     opt_humid: Optional[float] = None  # 최적 습도
     opt_co2: Optional[float] = None    # 최적 CO₂

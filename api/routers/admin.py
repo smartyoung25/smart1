@@ -54,15 +54,30 @@ def _now() -> datetime:
 
 
 def _load_all_meta() -> dict[str, dict]:
-    """artifacts/*.json 파일을 작목명 키로 로드."""
+    """artifacts 메타 로드 — 4-Stage(신규) 우선, 없으면 레거시 단일 파일 사용."""
     result: dict[str, dict] = {}
-    for crop_ko, fname in _CROP_META_FILES.items():
-        p = ARTIFACTS_DIR / fname
-        if p.exists():
+    for crop_ko, crop_en in _CROP_EN.items():
+        if crop_en == "cucumber":
+            continue
+        # 신규: artifacts/{crop_en}/pipeline_meta.json
+        new_path = ARTIFACTS_DIR / crop_en / "pipeline_meta.json"
+        if new_path.exists():
             try:
-                result[crop_ko] = json.loads(p.read_text(encoding="utf-8"))
+                result[crop_ko] = json.loads(new_path.read_text(encoding="utf-8"))
+                result[crop_ko]["_source"] = "4stage"
+                continue
             except Exception as e:
-                logger.warning("[admin] %s 로드 실패: %s", fname, e)
+                logger.warning("[admin] %s 4stage 메타 로드 실패: %s", crop_ko, e)
+        # 레거시: artifacts/{crop_en}_pipeline_meta.json
+        legacy_fname = _CROP_META_FILES.get(crop_ko)
+        if legacy_fname:
+            p = ARTIFACTS_DIR / legacy_fname
+            if p.exists():
+                try:
+                    result[crop_ko] = json.loads(p.read_text(encoding="utf-8"))
+                    result[crop_ko]["_source"] = "legacy"
+                except Exception as e:
+                    logger.warning("[admin] %s 레거시 메타 로드 실패: %s", legacy_fname, e)
     return result
 
 
@@ -158,34 +173,76 @@ def get_crop_models():
     crops: list[CropModelInfo] = []
 
     for crop_ko, crop_en in _CROP_EN.items():
+        if crop_en == "cucumber":
+            continue
         meta = all_meta.get(crop_ko)
         if meta is None:
             crops.append(CropModelInfo(crop_ko=crop_ko, crop_en=crop_en, status="no_model"))
             continue
 
-        tr  = meta.get("train_metrics", {})
-        te  = meta.get("test_metrics",  {})
-        opt = meta.get("optimization_sample", {})
-        top = meta.get("top5_env_combinations", [])
-        best = top[0] if top else {}
+        source = meta.get("_source", "legacy")
 
-        crops.append(CropModelInfo(
-            crop_ko=crop_ko,
-            crop_en=crop_en,
-            status="loaded",
-            model_type=meta.get("model_type"),
-            train_r2=round(tr.get("r2", 0), 3),
-            train_mape=round(tr.get("mape", 0), 1),
-            test_r2=round(te.get("r2", 0), 3) if te.get("r2") is not None else None,
-            test_mape=round(te.get("mape_pct", 0), 1) if te.get("mape_pct") is not None else None,
-            feature_count=meta.get("feature_count"),
-            n_train=meta.get("n_train"),
-            n_test=te.get("n_test"),
-            opt_temp=best.get("temp"),
-            opt_humid=best.get("humid"),
-            opt_co2=best.get("co2"),
-            income_6m_krw=opt.get("total_income_6m"),
-        ))
+        if source == "4stage":
+            # ── 4-Stage 파이프라인 메타 ──────────────────────────
+            s1 = meta.get("stage1", {})
+            s2 = meta.get("stage2", {})
+            s3 = meta.get("stage3", {})
+            opt = meta.get("optimization_sample", {})
+            top = meta.get("top5_env_combinations", [])
+            best = top[0] if top else {}
+            crops.append(CropModelInfo(
+                crop_ko=crop_ko,
+                crop_en=crop_en,
+                status="loaded",
+                model_type="4stage",
+                # Stage1
+                stage1_cv_r2=round(s1.get("cv_r2_mean", 0), 3),
+                stage1_gate=s1.get("gate_passed"),
+                # Stage2
+                stage2_mape=round(s2.get("mape", 0), 1),
+                stage2_cv_r2=round(s2.get("cv_r2_mean", 0), 3),
+                stage2_gate=s2.get("gate_passed"),
+                stage2_n_train=s2.get("n_train"),
+                stage2_area_from_registry=s2.get("area_from_registry_count"),
+                # Stage3
+                stage3_mape=round(s3.get("mape", 0), 1),
+                stage3_gate=s3.get("gate_passed"),
+                price_median_krw_kg=s3.get("price_median"),
+                # 레거시 호환: Stage2를 수확량 대표 메트릭으로
+                train_mape=round(s2.get("mape", 0), 1),
+                train_r2=round(s2.get("cv_r2_mean", 0), 3),
+                feature_count=s2.get("feature_count"),
+                n_train=s2.get("n_train"),
+                # 최적화
+                opt_temp=best.get("temp"),
+                opt_humid=best.get("humid"),
+                opt_co2=best.get("co2"),
+                income_6m_krw=opt.get("total_income_6m"),
+            ))
+        else:
+            # ── 레거시 단일 앙상블 메타 ──────────────────────────
+            tr  = meta.get("train_metrics", {})
+            te  = meta.get("test_metrics",  {})
+            opt = meta.get("optimization_sample", {})
+            top = meta.get("top5_env_combinations", [])
+            best = top[0] if top else {}
+            crops.append(CropModelInfo(
+                crop_ko=crop_ko,
+                crop_en=crop_en,
+                status="loaded",
+                model_type=meta.get("model_type"),
+                train_r2=round(tr.get("r2", 0), 3),
+                train_mape=round(tr.get("mape", 0), 1),
+                test_r2=round(te.get("r2", 0), 3) if te.get("r2") is not None else None,
+                test_mape=round(te.get("mape_pct", 0), 1) if te.get("mape_pct") is not None else None,
+                feature_count=meta.get("feature_count"),
+                n_train=meta.get("n_train"),
+                n_test=te.get("n_test"),
+                opt_temp=best.get("temp"),
+                opt_humid=best.get("humid"),
+                opt_co2=best.get("co2"),
+                income_6m_krw=opt.get("total_income_6m"),
+            ))
 
     return CropModelsResponse(crops=crops, updated_at=_now())
 
