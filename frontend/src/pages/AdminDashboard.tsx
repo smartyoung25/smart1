@@ -1,46 +1,73 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { colors, radius, shadow } from "../design-system/tokens";
 
-// ---- Stub data ------------------------------------------------------------
+// ── Types ──────────────────────────────────────────────────────────────────────
 
-const STUB_KPI = {
-  connected_farms: 5,
-  avg_model_r2: 0.71,
-  data_completeness_pct: 88.5,
-  income_improvement_pct: 14.2,
-};
+interface Overview {
+  connected_farms: number;
+  iot_farms: number;
+  avg_model_r2: number;
+  models_loaded: number;
+  data_completeness_pct: number;
+  income_improvement_pct: number;
+}
 
-const STUB_MODELS = [
-  { module_id: "M1", metric_name: "R²",    metric_value: 0.73, threshold: 0.62, passed: true,  last_trained: "2026-05-09" },
-  { module_id: "M2", metric_name: "MAPE",  metric_value: 18.4, threshold: 25.0, passed: true,  last_trained: "2026-05-09" },
-  { module_id: "M3", metric_name: "일 오차", metric_value: 3.2, threshold: 5.0,  passed: true,  last_trained: "2026-05-08" },
-  { module_id: "M4", metric_name: "오차%", metric_value: 16.1, threshold: 20.0, passed: true,  last_trained: "2026-05-08" },
-  { module_id: "M5", metric_name: "F1",    metric_value: 0.85, threshold: 0.88, passed: false, last_trained: "2026-05-07" },
-];
+interface CropModel {
+  crop_ko: string;
+  crop_en: string;
+  status: "loaded" | "no_model";
+  model_type: string | null;
+  train_r2: number | null;
+  train_mape: number | null;
+  test_r2: number | null;
+  test_mape: number | null;
+  feature_count: number | null;
+  n_train: number | null;
+  n_test: number | null;
+  opt_temp: number | null;
+  opt_humid: number | null;
+  opt_co2: number | null;
+  income_6m_krw: number | null;
+}
 
-const STUB_SOURCES = [
-  { source_id: "iot_sensor",  label_ko: "IoT 센서",     connected: true,  completeness_pct: 94 },
-  { source_id: "rda_api",     label_ko: "농진청 API",   connected: true,  completeness_pct: 80 },
-  { source_id: "kamis",       label_ko: "KAMIS 가격",   connected: true,  completeness_pct: 100 },
-  { source_id: "wur_dataset", label_ko: "WUR 데이터셋", connected: false, completeness_pct: 0 },
-  { source_id: "manual",      label_ko: "수동 입력",    connected: true,  completeness_pct: 60 },
-];
+interface DataSource {
+  source_id: string;
+  label_ko: string;
+  connected: boolean;
+  completeness_pct: number;
+}
 
-const STUB_REGISTRY = [
-  { canonical_name: "temp_internal", display_name_ko: "내부 온도", unit: "°C",    impute: "locf", sources: ["iot_sensor","rda_api","wur_dataset"] },
-  { canonical_name: "ec_dsm",        display_name_ko: "EC",        unit: "dS/m",  impute: "knn",  sources: ["iot_sensor(×0.1)","wur_dataset"] },
-  { canonical_name: "co2_ppm",       display_name_ko: "CO₂ 농도", unit: "ppm",   impute: "knn",  sources: ["iot_sensor","wur_dataset"] },
-  { canonical_name: "humidity_int",  display_name_ko: "내부 습도", unit: "%",     impute: "locf", sources: ["iot_sensor","rda_api"] },
-  { canonical_name: "yield_kg_m2",   display_name_ko: "수확량",    unit: "kg/m²", impute: "none", sources: ["rda_api","wur_dataset","manual"] },
-  { canonical_name: "kamis_price",   display_name_ko: "KAMIS 단가",unit: "원/kg", impute: "locf", sources: ["kamis"] },
-];
+interface VariableRow {
+  canonical_name: string;
+  display_name_ko: string;
+  unit: string;
+  impute_strategy: string;
+  sources: { source_id: string; source_field: string; transform_expr?: string }[];
+}
 
-const STUB_RUNS = [
-  { run_id: "run_001", trigger: "scheduled", started_at: "2026-05-09 06:00", duration: "5분 12초", status: "success",  r2_before: 0.70, r2_after: 0.73, deployed: true },
-  { run_id: "run_002", trigger: "manual",    started_at: "2026-05-09 11:30", duration: "—",        status: "running",  r2_before: null, r2_after: null, deployed: null },
-];
+interface PipelineRun {
+  run_id: string;
+  trigger: string;
+  status: string;
+  metrics_after: {
+    train_r2: number | null;
+    train_mape: number | null;
+    test_r2: number | null;
+    n_train: number | null;
+    n_test: number | null;
+  } | null;
+  deployed: boolean | null;
+}
 
-// ---- Component ------------------------------------------------------------
+// ── Fetch helper ──────────────────────────────────────────────────────────────
+
+async function fetchJson<T>(url: string): Promise<T> {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`${url} → ${res.status}`);
+  return res.json() as Promise<T>;
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
 
 type Section = "overview" | "models" | "sources" | "registry" | "pipeline";
 
@@ -52,143 +79,295 @@ const NAV_ITEMS: { key: Section; label: string }[] = [
   { key: "pipeline",  label: "학습 파이프라인" },
 ];
 
+// R² 신호등 색상
+function r2Color(v: number | null): string {
+  if (v === null) return colors.inkMuted;
+  if (v >= 0.90) return colors.successGreen;
+  if (v >= 0.70) return colors.warningAmber;
+  return colors.dangerRed;
+}
+
+// 배지 스타일
+function badge(ok: boolean) {
+  return {
+    display: "inline-block", padding: "3px 10px", borderRadius: radius.badge,
+    fontSize: "0.72rem", fontWeight: 700,
+    background: ok ? colors.successBg : colors.dangerBg,
+    color:      ok ? colors.successGreen : colors.dangerRed,
+  } as React.CSSProperties;
+}
+
 export function AdminDashboard() {
-  const [section, setSection] = useState<Section>("overview");
+  const [section,    setSection]    = useState<Section>("overview");
+  const [overview,   setOverview]   = useState<Overview | null>(null);
+  const [cropModels, setCropModels] = useState<CropModel[]>([]);
+  const [sources,    setSources]    = useState<DataSource[]>([]);
+  const [registry,   setRegistry]   = useState<VariableRow[]>([]);
+  const [runs,       setRuns]       = useState<PipelineRun[]>([]);
   const [triggering, setTriggering] = useState(false);
-  const [triggered, setTriggered] = useState(false);
+  const [triggered,  setTriggered]  = useState(false);
+  const [err,        setErr]        = useState<string | null>(null);
+
+  useEffect(() => {
+    Promise.all([
+      fetchJson<Overview>("/api/admin/overview"),
+      fetchJson<{ crops: CropModel[] }>("/api/admin/models/crops"),
+      fetchJson<{ sources: DataSource[] }>("/api/admin/data-sources"),
+      fetchJson<{ variables: VariableRow[] }>("/api/admin/variable-registry"),
+      fetchJson<{ runs: PipelineRun[] }>("/api/admin/pipeline/runs"),
+    ]).then(([ov, cm, sr, vr, pr]) => {
+      setOverview(ov);
+      setCropModels(cm.crops);
+      setSources(sr.sources);
+      setRegistry(vr.variables);
+      setRuns(pr.runs);
+    }).catch(e => setErr(String(e)));
+  }, []);
 
   async function handleTrigger() {
     setTriggering(true);
-    await fetch("/api/admin/pipeline/trigger", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ reason: "manual" }) });
-    setTriggering(false);
-    setTriggered(true);
+    try {
+      await fetch("/api/admin/pipeline/trigger", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: "manual" }),
+      });
+      setTriggered(true);
+    } finally { setTriggering(false); }
   }
 
-  return (
-    <div style={{ display: "flex", minHeight: "100vh", fontFamily: "'Inter', sans-serif", background: colors.canvasFog, WebkitFontSmoothing: "antialiased" }}>
+  // ── Shared styles ────────────────────────────────────────────────────────────
 
-      {/* ── Sidebar ── */}
+  const card: React.CSSProperties = {
+    background: colors.cloudWhite, borderRadius: radius.card,
+    boxShadow: shadow.card, border: `1px solid ${colors.stoneBorder}`,
+  };
+  const th: React.CSSProperties = {
+    padding: "12px 16px", textAlign: "left",
+    fontSize: "0.72rem", fontWeight: 700,
+    color: colors.inkSecondary, letterSpacing: "0.04em", textTransform: "uppercase",
+  };
+  const td: React.CSSProperties = { padding: "13px 16px", fontSize: "0.875rem" };
+
+  // ── Render ───────────────────────────────────────────────────────────────────
+
+  return (
+    <div style={{ display: "flex", minHeight: "100vh", fontFamily: "'Inter', sans-serif", background: colors.canvasFog, WebkitFontSmoothing: "antialiased" as any }}>
+
+      {/* Sidebar */}
       <aside style={{
-        width: "220px", flexShrink: 0,
-        background: colors.cloudWhite,
+        width: 220, flexShrink: 0, background: colors.cloudWhite,
         borderRight: `1px solid ${colors.stoneBorder}`,
         display: "flex", flexDirection: "column",
         position: "sticky", top: 0, height: "100vh",
       }}>
         <div style={{ padding: "20px 16px 16px", borderBottom: `1px solid ${colors.stoneBorder}` }}>
-          <p style={{ fontSize: "0.7rem", fontWeight: 600, color: colors.inkMuted, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: "4px" }}>플랫폼 관리</p>
+          <p style={{ fontSize: "0.7rem", fontWeight: 600, color: colors.inkMuted, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>플랫폼 관리</p>
           <p style={{ fontSize: "1rem", fontWeight: 800, color: colors.inkPrimary }}>Smart Farm</p>
         </div>
-        <nav style={{ padding: "8px" }}>
+        <nav style={{ padding: 8 }}>
           {NAV_ITEMS.map(({ key, label }) => (
-            <button
-              key={key}
-              onClick={() => setSection(key)}
-              style={{
-                display: "block", width: "100%", textAlign: "left",
-                padding: "10px 12px", marginBottom: "2px",
-                borderRadius: "8px", border: "none",
-                background: section === key ? colors.chartwellBlueBg : "none",
-                color: section === key ? colors.chartwellBlue : colors.inkSecondary,
-                fontWeight: section === key ? 700 : 500,
-                fontSize: "0.9375rem", cursor: "pointer",
-                transition: "background 150ms, color 150ms",
-              }}
-            >
-              {label}
-            </button>
+            <button key={key} onClick={() => setSection(key)} style={{
+              display: "block", width: "100%", textAlign: "left",
+              padding: "10px 12px", marginBottom: 2,
+              borderRadius: 8, border: "none",
+              background: section === key ? colors.chartwellBlueBg : "none",
+              color: section === key ? colors.chartwellBlue : colors.inkSecondary,
+              fontWeight: section === key ? 700 : 500,
+              fontSize: "0.9375rem", cursor: "pointer",
+              transition: "background 150ms, color 150ms",
+            }}>{label}</button>
           ))}
         </nav>
+
+        {/* 농가 현황 미니 패널 */}
+        {overview && (
+          <div style={{ marginTop: "auto", padding: "12px", borderTop: `1px solid ${colors.stoneBorder}` }}>
+            <div style={{ fontSize: "0.72rem", color: colors.inkMuted, marginBottom: 6 }}>연결 현황</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8rem" }}>
+                <span style={{ color: colors.inkSecondary }}>전체 농가</span>
+                <span style={{ fontWeight: 700, color: colors.inkPrimary }}>{overview.connected_farms}개</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8rem" }}>
+                <span style={{ color: colors.inkSecondary }}>IoT 구축</span>
+                <span style={{ fontWeight: 700, color: colors.successGreen }}>{overview.iot_farms}개</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8rem" }}>
+                <span style={{ color: colors.inkSecondary }}>모델 로드</span>
+                <span style={{ fontWeight: 700, color: colors.chartwellBlue }}>{overview.models_loaded}개</span>
+              </div>
+            </div>
+          </div>
+        )}
       </aside>
 
-      {/* ── Main ── */}
-      <main style={{ flex: 1, padding: "24px", overflow: "auto" }}>
-        <h1 style={{ fontSize: "1.25rem", fontWeight: 800, color: colors.inkPrimary, marginBottom: "20px" }}>
+      {/* Main */}
+      <main style={{ flex: 1, padding: 24, overflow: "auto" }}>
+        <h1 style={{ fontSize: "1.25rem", fontWeight: 800, color: colors.inkPrimary, marginBottom: 20 }}>
           {NAV_ITEMS.find(n => n.key === section)?.label}
         </h1>
 
-        {/* OVERVIEW */}
+        {err && (
+          <div style={{ background: colors.dangerBg, border: `1px solid ${colors.dangerRed}`, borderRadius: 8, padding: "12px 16px", marginBottom: 16, color: colors.dangerRed, fontSize: "0.85rem" }}>
+            API 오류: {err}
+          </div>
+        )}
+
+        {/* ── OVERVIEW ─────────────────────────────────────────────────── */}
         {section === "overview" && (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "16px" }}>
-            {[
-              { label: "연결 농가",       value: `${STUB_KPI.connected_farms}개`,       color: colors.chartwellBlue },
-              { label: "평균 R²",         value: STUB_KPI.avg_model_r2.toFixed(2),      color: colors.successGreen },
-              { label: "데이터 완전성",   value: `${STUB_KPI.data_completeness_pct}%`,  color: colors.warningAmber },
-              { label: "소득 향상률",     value: `+${STUB_KPI.income_improvement_pct}%`,color: colors.successGreen },
-            ].map(({ label, value, color }) => (
-              <div key={label} style={{ background: colors.cloudWhite, borderRadius: radius.card, boxShadow: shadow.card, border: `1px solid ${colors.stoneBorder}`, padding: "20px" }}>
-                <p style={{ fontSize: "0.875rem", color: colors.inkSecondary, marginBottom: "8px" }}>{label}</p>
-                <p style={{ fontSize: "1.875rem", fontWeight: 800, color }}>{value}</p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 16 }}>
+              {overview ? [
+                { label: "연결 농가",     value: `${overview.connected_farms}개`,               color: colors.chartwellBlue },
+                { label: "IoT 구축",      value: `${overview.iot_farms}개`,                     color: colors.successGreen  },
+                { label: "평균 훈련 R²", value: overview.avg_model_r2.toFixed(3),              color: r2Color(overview.avg_model_r2) },
+                { label: "로드된 모델",   value: `${overview.models_loaded}개`,                 color: colors.chartwellBlue },
+                { label: "데이터 완전성", value: `${overview.data_completeness_pct}%`,          color: colors.warningAmber  },
+                { label: "소득 향상률",   value: `+${overview.income_improvement_pct.toFixed(1)}%`, color: colors.successGreen },
+              ].map(({ label, value, color }) => (
+                <div key={label} style={{ ...card, padding: 20 }}>
+                  <p style={{ fontSize: "0.82rem", color: colors.inkSecondary, marginBottom: 8 }}>{label}</p>
+                  <p style={{ fontSize: "1.75rem", fontWeight: 800, color }}>{value}</p>
+                </div>
+              )) : (
+                <div style={{ gridColumn: "1/-1", textAlign: "center", padding: 40, color: colors.inkMuted }}>불러오는 중…</div>
+              )}
+            </div>
+
+            {/* 작목별 모델 요약 미니 테이블 */}
+            {cropModels.length > 0 && (
+              <div style={{ ...card, overflow: "hidden" }}>
+                <div style={{ padding: "16px 20px", borderBottom: `1px solid ${colors.stoneBorder}` }}>
+                  <span style={{ fontWeight: 700, color: colors.inkPrimary }}>작목별 모델 요약</span>
+                </div>
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <thead>
+                    <tr style={{ background: colors.canvasFog, borderBottom: `1px solid ${colors.stoneBorder}` }}>
+                      {["작목", "상태", "훈련 R²", "훈련 MAPE", "학습 데이터"].map(h => (
+                        <th key={h} style={th}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {cropModels.map((m, i) => (
+                      <tr key={m.crop_ko} style={{ borderBottom: i < cropModels.length - 1 ? `1px solid ${colors.stoneBorder}` : "none" }}>
+                        <td style={{ ...td, fontWeight: 700, color: colors.inkPrimary }}>{m.crop_ko}</td>
+                        <td style={td}>
+                          <span style={badge(m.status === "loaded")}>{m.status === "loaded" ? "로드됨" : "없음"}</span>
+                        </td>
+                        <td style={{ ...td, fontWeight: 700, color: r2Color(m.train_r2) }}>
+                          {m.train_r2 != null ? m.train_r2.toFixed(3) : "—"}
+                        </td>
+                        <td style={{ ...td, color: colors.inkSecondary }}>
+                          {m.train_mape != null ? `${m.train_mape.toFixed(1)}%` : "—"}
+                        </td>
+                        <td style={{ ...td, color: colors.inkMuted }}>
+                          {m.n_train != null ? `${m.n_train.toLocaleString()}행` : "—"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── AI 모델 (작목별 상세) ─────────────────────────────────────── */}
+        {section === "models" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            {cropModels.length === 0
+              ? <div style={{ textAlign: "center", padding: 40, color: colors.inkMuted }}>불러오는 중…</div>
+              : cropModels.map(m => (
+              <div key={m.crop_ko} style={{ ...card, overflow: "hidden" }}>
+                {/* 헤더 */}
+                <div style={{
+                  padding: "14px 20px", borderBottom: `1px solid ${colors.stoneBorder}`,
+                  display: "flex", alignItems: "center", justifyContent: "space-between",
+                }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <span style={{ fontWeight: 800, fontSize: "1rem", color: colors.inkPrimary }}>{m.crop_ko}</span>
+                    <span style={{ fontSize: "0.72rem", color: colors.inkMuted, fontFamily: "monospace" }}>{m.crop_en}</span>
+                    <span style={badge(m.status === "loaded")}>{m.status === "loaded" ? "로드됨" : "모델 없음"}</span>
+                    {m.model_type && (
+                      <span style={{ fontSize: "0.72rem", background: colors.chartwellBlueBg, color: colors.chartwellBlue, borderRadius: radius.badge, padding: "2px 8px", fontWeight: 600 }}>
+                        {m.model_type === "xgb_lgb_ensemble" ? "XGB+LGB" : m.model_type}
+                      </span>
+                    )}
+                  </div>
+                  {m.feature_count != null && (
+                    <span style={{ fontSize: "0.78rem", color: colors.inkMuted }}>피처 {m.feature_count}개</span>
+                  )}
+                </div>
+
+                {m.status === "loaded" && (
+                  <div style={{ padding: "16px 20px", display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 12 }}>
+                    {[
+                      { label: "훈련 R²",   value: m.train_r2?.toFixed(3),   color: r2Color(m.train_r2) },
+                      { label: "훈련 MAPE", value: m.train_mape != null ? `${m.train_mape.toFixed(1)}%` : null, color: colors.inkPrimary },
+                      { label: "검증 R²",   value: m.test_r2?.toFixed(3),    color: r2Color(m.test_r2) },
+                      { label: "검증 MAPE", value: m.test_mape != null ? `${m.test_mape.toFixed(1)}%` : null, color: colors.inkPrimary },
+                      { label: "학습 행수", value: m.n_train?.toLocaleString(), color: colors.inkPrimary },
+                      { label: "검증 행수", value: m.n_test?.toLocaleString(),  color: colors.inkPrimary },
+                    ].map(({ label, value, color }) => (
+                      <div key={label} style={{ background: colors.canvasFog, borderRadius: 8, padding: "10px 12px" }}>
+                        <p style={{ fontSize: "0.72rem", color: colors.inkMuted, marginBottom: 4 }}>{label}</p>
+                        <p style={{ fontSize: "1rem", fontWeight: 800, color }}>{value ?? "—"}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* 최적 환경 조합 */}
+                {m.status === "loaded" && m.opt_temp != null && (
+                  <div style={{
+                    margin: "0 20px 16px", padding: "12px 14px",
+                    background: "#f0fdf4", borderRadius: 8,
+                    border: "1px solid #86efac",
+                    fontSize: "0.82rem", color: colors.inkSecondary,
+                    display: "flex", flexWrap: "wrap", gap: "0 24px",
+                  }}>
+                    <span>🌡️ 최적 온도 <strong style={{ color: colors.inkPrimary }}>{m.opt_temp}°C</strong></span>
+                    <span>💧 최적 습도 <strong style={{ color: colors.inkPrimary }}>{m.opt_humid}%</strong></span>
+                    <span>🌿 최적 CO₂ <strong style={{ color: colors.inkPrimary }}>{m.opt_co2} ppm</strong></span>
+                    {m.income_6m_krw != null && (
+                      <span>💰 6개월 예측 소득 <strong style={{ color: colors.successGreen }}>{Math.round(m.income_6m_krw / 10000).toLocaleString()}만원</strong></span>
+                    )}
+                  </div>
+                )}
               </div>
             ))}
           </div>
         )}
 
-        {/* MODELS */}
-        {section === "models" && (
-          <div style={{ background: colors.cloudWhite, borderRadius: radius.card, boxShadow: shadow.card, border: `1px solid ${colors.stoneBorder}`, overflow: "hidden" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead>
-                <tr style={{ background: colors.canvasFog, borderBottom: `1px solid ${colors.stoneBorder}` }}>
-                  {["모듈", "지표", "현재값", "기준값", "상태", "학습일"].map(h => (
-                    <th key={h} style={{ padding: "12px 16px", textAlign: "left", fontSize: "0.75rem", fontWeight: 700, color: colors.inkSecondary, letterSpacing: "0.04em", textTransform: "uppercase" }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {STUB_MODELS.map((m, i) => (
-                  <tr key={m.module_id} style={{ borderBottom: i < STUB_MODELS.length - 1 ? `1px solid ${colors.stoneBorder}` : "none" }}>
-                    <td style={{ padding: "14px 16px", fontWeight: 700, color: colors.inkPrimary }}>{m.module_id}</td>
-                    <td style={{ padding: "14px 16px", color: colors.inkSecondary }}>{m.metric_name}</td>
-                    <td style={{ padding: "14px 16px", fontWeight: 700, color: m.passed ? colors.successGreen : colors.dangerRed }}>{m.metric_value}</td>
-                    <td style={{ padding: "14px 16px", color: colors.inkMuted }}>{m.threshold}</td>
-                    <td style={{ padding: "14px 16px" }}>
-                      <span style={{
-                        display: "inline-block", padding: "3px 10px", borderRadius: radius.badge,
-                        fontSize: "0.75rem", fontWeight: 700,
-                        background: m.passed ? colors.successBg : colors.dangerBg,
-                        color: m.passed ? colors.successGreen : colors.dangerRed,
-                      }}>
-                        {m.passed ? "통과" : "미통과"}
-                      </span>
-                    </td>
-                    <td style={{ padding: "14px 16px", color: colors.inkMuted, fontSize: "0.875rem" }}>{m.last_trained}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {/* DATA SOURCES */}
+        {/* ── 데이터 소스 ───────────────────────────────────────────────── */}
         {section === "sources" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-            {STUB_SOURCES.map(s => (
-              <div key={s.source_id} style={{ background: colors.cloudWhite, borderRadius: radius.card, boxShadow: shadow.card, border: `1px solid ${colors.stoneBorder}`, padding: "16px 20px" }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {sources.length === 0
+              ? <div style={{ textAlign: "center", padding: 40, color: colors.inkMuted }}>불러오는 중…</div>
+              : sources.map(s => (
+              <div key={s.source_id} style={{ ...card, padding: "16px 20px" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <span style={{
-                      width: "8px", height: "8px", borderRadius: "50%",
+                      width: 8, height: 8, borderRadius: "50%",
                       background: s.connected ? colors.successGreen : colors.inkMuted,
                       display: "inline-block", flexShrink: 0,
                     }} />
                     <span style={{ fontWeight: 700, fontSize: "1rem", color: colors.inkPrimary }}>{s.label_ko}</span>
                     <span style={{ fontSize: "0.75rem", color: s.connected ? colors.successGreen : colors.inkMuted }}>
-                      {s.connected ? "연결됨" : "연결 안됨"}
+                      {s.connected ? "연결됨" : "미연결"}
                     </span>
                   </div>
                   <span style={{ fontSize: "0.875rem", fontWeight: 700, color: s.completeness_pct >= 80 ? colors.successGreen : colors.warningAmber }}>
                     {s.completeness_pct}%
                   </span>
                 </div>
-                {/* Progress bar */}
-                <div style={{ height: "6px", background: colors.canvasFog, borderRadius: "9999px", overflow: "hidden" }}>
+                <div style={{ height: 6, background: colors.canvasFog, borderRadius: 9999, overflow: "hidden" }}>
                   <div style={{
-                    height: "100%",
+                    height: "100%", borderRadius: 9999, transition: "width 600ms",
                     width: `${s.completeness_pct}%`,
                     background: s.completeness_pct >= 80 ? colors.successGreen : colors.warningAmber,
-                    borderRadius: "9999px",
-                    transition: "width 600ms",
                   }} />
                 </div>
               </div>
@@ -196,30 +375,41 @@ export function AdminDashboard() {
           </div>
         )}
 
-        {/* VARIABLE REGISTRY */}
+        {/* ── 변수 레지스트리 ───────────────────────────────────────────── */}
         {section === "registry" && (
-          <div style={{ background: colors.cloudWhite, borderRadius: radius.card, boxShadow: shadow.card, border: `1px solid ${colors.stoneBorder}`, overflow: "hidden" }}>
+          <div style={{ ...card, overflow: "hidden" }}>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr style={{ background: colors.canvasFog, borderBottom: `1px solid ${colors.stoneBorder}` }}>
                   {["정규명", "표시명", "단위", "결측처리", "연결 소스"].map(h => (
-                    <th key={h} style={{ padding: "12px 16px", textAlign: "left", fontSize: "0.75rem", fontWeight: 700, color: colors.inkSecondary, letterSpacing: "0.04em", textTransform: "uppercase" }}>{h}</th>
+                    <th key={h} style={th}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {STUB_REGISTRY.map((v, i) => (
-                  <tr key={v.canonical_name} style={{ borderBottom: i < STUB_REGISTRY.length - 1 ? `1px solid ${colors.stoneBorder}` : "none" }}>
-                    <td style={{ padding: "12px 16px", fontFamily: "monospace", fontSize: "0.875rem", color: colors.chartwellBlue }}>{v.canonical_name}</td>
-                    <td style={{ padding: "12px 16px", color: colors.inkPrimary }}>{v.display_name_ko}</td>
-                    <td style={{ padding: "12px 16px", color: colors.inkMuted, fontFamily: "monospace" }}>{v.unit}</td>
-                    <td style={{ padding: "12px 16px" }}>
-                      <span style={{ background: colors.canvasFog, borderRadius: "4px", padding: "2px 8px", fontSize: "0.75rem", fontFamily: "monospace", color: colors.inkSecondary }}>{v.impute}</span>
+                {registry.length === 0
+                  ? <tr><td colSpan={5} style={{ padding: 40, textAlign: "center", color: colors.inkMuted }}>불러오는 중…</td></tr>
+                  : registry.map((v, i) => (
+                  <tr key={v.canonical_name} style={{ borderBottom: i < registry.length - 1 ? `1px solid ${colors.stoneBorder}` : "none" }}>
+                    <td style={{ ...td, fontFamily: "monospace", color: colors.chartwellBlue }}>{v.canonical_name}</td>
+                    <td style={{ ...td, color: colors.inkPrimary, fontWeight: 500 }}>{v.display_name_ko}</td>
+                    <td style={{ ...td, fontFamily: "monospace", color: colors.inkMuted }}>{v.unit}</td>
+                    <td style={td}>
+                      <span style={{ background: colors.canvasFog, borderRadius: 4, padding: "2px 8px", fontSize: "0.75rem", fontFamily: "monospace", color: colors.inkSecondary }}>
+                        {v.impute_strategy}
+                      </span>
                     </td>
-                    <td style={{ padding: "12px 16px" }}>
-                      <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                    <td style={td}>
+                      <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
                         {v.sources.map(src => (
-                          <span key={src} style={{ background: colors.chartwellBlueBg, color: colors.chartwellBlue, borderRadius: radius.badge, padding: "2px 8px", fontSize: "0.7rem", fontWeight: 600 }}>{src}</span>
+                          <span key={src.source_id + src.source_field} style={{
+                            background: colors.chartwellBlueBg, color: colors.chartwellBlue,
+                            borderRadius: radius.badge, padding: "2px 8px",
+                            fontSize: "0.7rem", fontWeight: 600,
+                          }}>
+                            {src.source_id}
+                            {src.transform_expr && <span style={{ opacity: 0.7, marginLeft: 3 }}>({src.transform_expr})</span>}
+                          </span>
                         ))}
                       </div>
                     </td>
@@ -230,61 +420,68 @@ export function AdminDashboard() {
           </div>
         )}
 
-        {/* PIPELINE */}
+        {/* ── 학습 파이프라인 ───────────────────────────────────────────── */}
         {section === "pipeline" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <div style={{ display: "flex", justifyContent: "flex-end" }}>
-              <button
-                onClick={handleTrigger}
-                disabled={triggering || triggered}
-                style={{
-                  background: triggered ? colors.successGreen : colors.chartwellBlue,
-                  color: colors.cloudWhite, border: "none",
-                  borderRadius: radius.button, padding: "10px 24px",
-                  fontSize: "0.9375rem", fontWeight: 700, cursor: triggering || triggered ? "not-allowed" : "pointer",
-                  minHeight: "44px", transition: "background 200ms",
-                }}
-              >
-                {triggered ? "✓ 대기 중" : triggering ? "처리 중..." : "수동 재학습 트리거"}
+              <button onClick={handleTrigger} disabled={triggering || triggered} style={{
+                background: triggered ? colors.successGreen : colors.chartwellBlue,
+                color: colors.cloudWhite, border: "none",
+                borderRadius: radius.button, padding: "10px 24px",
+                fontSize: "0.9375rem", fontWeight: 700,
+                cursor: triggering || triggered ? "not-allowed" : "pointer",
+                minHeight: 44, transition: "background 200ms",
+              }}>
+                {triggered ? "✓ 대기 중" : triggering ? "처리 중…" : "수동 재학습 트리거"}
               </button>
             </div>
-            <div style={{ background: colors.cloudWhite, borderRadius: radius.card, boxShadow: shadow.card, border: `1px solid ${colors.stoneBorder}`, overflow: "hidden" }}>
+
+            <div style={{ ...card, overflow: "hidden" }}>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
                   <tr style={{ background: colors.canvasFog, borderBottom: `1px solid ${colors.stoneBorder}` }}>
-                    {["실행 ID", "트리거", "시작 시각", "소요시간", "상태", "R² 변화", "배포"].map(h => (
-                      <th key={h} style={{ padding: "12px 16px", textAlign: "left", fontSize: "0.75rem", fontWeight: 700, color: colors.inkSecondary, letterSpacing: "0.04em", textTransform: "uppercase" }}>{h}</th>
+                    {["실행 ID", "트리거", "상태", "훈련 R²", "검증 R²", "학습행", "검증행", "배포"].map(h => (
+                      <th key={h} style={th}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {STUB_RUNS.map((r, i) => (
-                    <tr key={r.run_id} style={{ borderBottom: i < STUB_RUNS.length - 1 ? `1px solid ${colors.stoneBorder}` : "none" }}>
-                      <td style={{ padding: "14px 16px", fontFamily: "monospace", fontSize: "0.875rem", color: colors.inkMuted }}>{r.run_id}</td>
-                      <td style={{ padding: "14px 16px", color: colors.inkSecondary }}>{r.trigger === "scheduled" ? "자동" : "수동"}</td>
-                      <td style={{ padding: "14px 16px", color: colors.inkSecondary, fontSize: "0.875rem" }}>{r.started_at}</td>
-                      <td style={{ padding: "14px 16px", color: colors.inkSecondary }}>{r.duration}</td>
-                      <td style={{ padding: "14px 16px" }}>
-                        <span style={{
-                          display: "inline-block", padding: "3px 10px", borderRadius: radius.badge,
-                          fontSize: "0.75rem", fontWeight: 700,
-                          background: r.status === "success" ? colors.successBg : r.status === "running" ? colors.chartwellBlueBg : colors.dangerBg,
-                          color: r.status === "success" ? colors.successGreen : r.status === "running" ? colors.chartwellBlue : colors.dangerRed,
-                        }}>
-                          {r.status === "success" ? "완료" : r.status === "running" ? "실행 중" : "실패"}
-                        </span>
-                      </td>
-                      <td style={{ padding: "14px 16px", color: r.r2_after != null && r.r2_before != null && r.r2_after > r.r2_before ? colors.successGreen : colors.inkMuted }}>
-                        {r.r2_before != null ? `${r.r2_before} → ${r.r2_after}` : "—"}
-                      </td>
-                      <td style={{ padding: "14px 16px" }}>
-                        {r.deployed === null ? <span style={{ color: colors.inkMuted }}>—</span>
-                          : r.deployed
-                            ? <span style={{ color: colors.successGreen, fontWeight: 700 }}>배포됨</span>
-                            : <span style={{ color: colors.dangerRed }}>미배포</span>}
-                      </td>
-                    </tr>
-                  ))}
+                  {runs.length === 0
+                    ? <tr><td colSpan={8} style={{ padding: 40, textAlign: "center", color: colors.inkMuted }}>불러오는 중…</td></tr>
+                    : runs.map((r, i) => {
+                      const m = r.metrics_after;
+                      return (
+                        <tr key={r.run_id} style={{ borderBottom: i < runs.length - 1 ? `1px solid ${colors.stoneBorder}` : "none" }}>
+                          <td style={{ ...td, fontFamily: "monospace", fontSize: "0.8rem", color: colors.inkMuted }}>{r.run_id}</td>
+                          <td style={{ ...td, color: colors.inkSecondary }}>
+                            {r.trigger === "scheduled" ? "자동" : r.trigger === "scripted" ? "스크립트" : "수동"}
+                          </td>
+                          <td style={td}>
+                            <span style={badge(r.status === "success")}>
+                              {r.status === "success" ? "완료" : r.status === "running" ? "실행 중" : "실패"}
+                            </span>
+                          </td>
+                          <td style={{ ...td, fontWeight: 700, color: r2Color(m?.train_r2 ?? null) }}>
+                            {m?.train_r2 != null ? m.train_r2.toFixed(3) : "—"}
+                          </td>
+                          <td style={{ ...td, fontWeight: 700, color: r2Color(m?.test_r2 ?? null) }}>
+                            {m?.test_r2 != null ? m.test_r2.toFixed(3) : "—"}
+                          </td>
+                          <td style={{ ...td, color: colors.inkMuted }}>
+                            {m?.n_train != null ? m.n_train.toLocaleString() : "—"}
+                          </td>
+                          <td style={{ ...td, color: colors.inkMuted }}>
+                            {m?.n_test != null ? m.n_test.toLocaleString() : "—"}
+                          </td>
+                          <td style={td}>
+                            {r.deployed === null ? <span style={{ color: colors.inkMuted }}>—</span>
+                              : r.deployed
+                                ? <span style={{ color: colors.successGreen, fontWeight: 700 }}>배포됨</span>
+                                : <span style={{ color: colors.dangerRed }}>미배포</span>}
+                          </td>
+                        </tr>
+                      );
+                    })}
                 </tbody>
               </table>
             </div>

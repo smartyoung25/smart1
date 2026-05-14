@@ -7,9 +7,36 @@ from pydantic import BaseModel
 class AdminOverview(BaseModel):
     """GET /api/admin/overview"""
     connected_farms: int
+    iot_farms: int                   # IoT 구축 농가 수
     avg_model_r2: float
+    models_loaded: int               # pkl 로드 성공 모델 수
     data_completeness_pct: float
     income_improvement_pct: float
+    updated_at: datetime
+
+
+class CropModelInfo(BaseModel):
+    """작목별 ML 모델 상세 정보"""
+    crop_ko: str
+    crop_en: str
+    status: str                      # "loaded" | "no_model"
+    model_type: Optional[str] = None # "xgb_lgb_ensemble" | "ridge_fallback"
+    train_r2: Optional[float] = None
+    train_mape: Optional[float] = None
+    test_r2: Optional[float] = None
+    test_mape: Optional[float] = None
+    feature_count: Optional[int] = None
+    n_train: Optional[int] = None
+    n_test: Optional[int] = None
+    opt_temp: Optional[float] = None   # 최적 온도
+    opt_humid: Optional[float] = None  # 최적 습도
+    opt_co2: Optional[float] = None    # 최적 CO₂
+    income_6m_krw: Optional[float] = None  # 최적 환경 6개월 소득
+
+
+class CropModelsResponse(BaseModel):
+    """GET /api/admin/models/crops"""
+    crops: list[CropModelInfo]
     updated_at: datetime
 
 
