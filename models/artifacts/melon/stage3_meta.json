@@ -1,0 +1,17 @@
+{
+  "crop_ko": "참외",
+  "crop_en": "melon",
+  "feature_names": [
+    "log_yield",
+    "log_price_median",
+    "month"
+  ],
+  "price_median": 2800.0,
+  "price_p25": 1700.0,
+  "price_p75": 4240.0,
+  "cv_mape_mean": 43.4,
+  "mape": 49.7,
+  "gate_passed": false,
+  "n_train": 510,
+  "stage": 3
+}

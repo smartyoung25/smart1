@@ -1,0 +1,17 @@
+{
+  "crop_ko": "방울토마토",
+  "crop_en": "cherry_tomato",
+  "feature_names": [
+    "log_yield",
+    "log_price_median",
+    "month"
+  ],
+  "price_median": 3641.0,
+  "price_p25": 2621.0,
+  "price_p75": 4750.0,
+  "cv_mape_mean": 61.5,
+  "mape": 59.6,
+  "gate_passed": false,
+  "n_train": 492,
+  "stage": 3
+}

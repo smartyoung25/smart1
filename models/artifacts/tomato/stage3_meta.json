@@ -1,0 +1,17 @@
+{
+  "crop_ko": "완숙토마토",
+  "crop_en": "tomato",
+  "feature_names": [
+    "log_yield",
+    "log_price_median",
+    "month"
+  ],
+  "price_median": 2560.0,
+  "price_p25": 1800.0,
+  "price_p75": 3400.0,
+  "cv_mape_mean": 100.6,
+  "mape": 91.7,
+  "gate_passed": false,
+  "n_train": 785,
+  "stage": 3
+}

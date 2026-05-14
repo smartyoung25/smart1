@@ -1,0 +1,18 @@
+{
+  "crop_ko": "방울토마토",
+  "crop_en": "cherry_tomato",
+  "stage": 2,
+  "model_type": "xgb",
+  "feature_count": 15,
+  "n_train": 582,
+  "log_transform": true,
+  "best_n_estimators": 64,
+  "cv_r2_mean": 0.071,
+  "cv_r2_std": 0.249,
+  "cv_mape_mean": 304.2,
+  "mape": 166.2,
+  "gate_passed": false,
+  "harvest_lag": 1,
+  "area_default_m2": 1600.0,
+  "area_from_registry_count": 0
+}

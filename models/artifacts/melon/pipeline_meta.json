@@ -1,0 +1,59 @@
+{
+  "crop_ko": "참외",
+  "crop_en": "melon",
+  "pipeline": "4stage",
+  "stage1": {
+    "crop_ko": "참외",
+    "crop_en": "melon",
+    "stage": 1,
+    "model_type": "xgb_multioutput",
+    "feature_count": 18,
+    "target_cols": [
+      "growth_초장",
+      "growth_줄기굵기",
+      "growth_엽장",
+      "growth_엽폭"
+    ],
+    "n_train": 596,
+    "cv_r2_mean": 0.167,
+    "cv_r2_std": 0.135,
+    "cv_r2_min": -0.015,
+    "gate_passed": false,
+    "env_to_growth_lag": 1
+  },
+  "stage2": {
+    "crop_ko": "참외",
+    "crop_en": "melon",
+    "stage": 2,
+    "model_type": "xgb",
+    "feature_count": 14,
+    "n_train": 510,
+    "log_transform": true,
+    "best_n_estimators": 62,
+    "cv_r2_mean": 0.219,
+    "cv_r2_std": 0.099,
+    "cv_mape_mean": 150.3,
+    "mape": 110.3,
+    "gate_passed": false,
+    "harvest_lag": 1,
+    "area_default_m2": 3800.0,
+    "area_from_registry_count": 0
+  },
+  "stage3": {
+    "crop_ko": "참외",
+    "crop_en": "melon",
+    "feature_names": [
+      "log_yield",
+      "log_price_median",
+      "month"
+    ],
+    "price_median": 2800.0,
+    "price_p25": 1700.0,
+    "price_p75": 4240.0,
+    "cv_mape_mean": 43.4,
+    "mape": 49.7,
+    "gate_passed": false,
+    "n_train": 510,
+    "stage": 3
+  }
+}

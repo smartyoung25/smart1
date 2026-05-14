@@ -1,0 +1,18 @@
+{
+  "crop_ko": "참외",
+  "crop_en": "melon",
+  "stage": 2,
+  "model_type": "xgb",
+  "feature_count": 14,
+  "n_train": 510,
+  "log_transform": true,
+  "best_n_estimators": 62,
+  "cv_r2_mean": 0.219,
+  "cv_r2_std": 0.099,
+  "cv_mape_mean": 150.3,
+  "mape": 110.3,
+  "gate_passed": false,
+  "harvest_lag": 1,
+  "area_default_m2": 3800.0,
+  "area_from_registry_count": 0
+}

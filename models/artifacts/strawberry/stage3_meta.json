@@ -1,0 +1,17 @@
+{
+  "crop_ko": "딸기",
+  "crop_en": "strawberry",
+  "feature_names": [
+    "log_yield",
+    "log_price_median",
+    "month"
+  ],
+  "price_median": 9000.0,
+  "price_p25": 5541.0,
+  "price_p75": 12700.0,
+  "cv_mape_mean": 69.9,
+  "mape": 84.6,
+  "gate_passed": false,
+  "n_train": 1233,
+  "stage": 3
+}

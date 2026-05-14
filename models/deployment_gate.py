@@ -22,11 +22,25 @@ logger = logging.getLogger(__name__)
 # ── 기준값 ──────────────────────────────────────────────────────────────────
 
 GATES: dict[str, dict] = {
+    # 기존 단일 모델 게이트 (하위호환 유지)
     "M1": {"metric": "r2",        "threshold": 0.62, "op": "gte",  "display": "R² ≥ 0.62"},
     "M2": {"metric": "mape",      "threshold": 25.0, "op": "lte",  "display": "MAPE ≤ 25%"},
     "M3": {"metric": "day_error", "threshold": 5.0,  "op": "lte",  "display": "±5일"},
     "M4": {"metric": "error_pct", "threshold": 20.0, "op": "lte",  "display": "오차 ≤ 20%"},
     "M5": {"metric": "f1",        "threshold": 0.88, "op": "gte",  "display": "F1 ≥ 0.88"},
+    # 4-Stage 파이프라인 게이트
+    "STAGE1_CV_R2":      {"metric": "cv_r2_mean",  "threshold": 0.55, "op": "gte",
+                          "display": "생육예측 CV R² ≥ 0.55"},
+    "STAGE1_NO_NEG":     {"metric": "cv_r2_min",   "threshold": -0.2, "op": "gte",
+                          "display": "생육예측 최악 fold R² ≥ -0.2"},
+    "STAGE2_MAPE":       {"metric": "mape",         "threshold": 25.0, "op": "lte",
+                          "display": "수확량 MAPE ≤ 25%"},
+    "STAGE2_R2":         {"metric": "r2",           "threshold": 0.30, "op": "gte",
+                          "display": "수확량 CV R² ≥ 0.30"},
+    "STAGE3_MAPE":       {"metric": "mape",         "threshold": 20.0, "op": "lte",
+                          "display": "매출 MAPE ≤ 20%"},
+    "STAGE4_COST_VALID": {"metric": "cost_ratio",   "threshold": 0.5,  "op": "lte",
+                          "display": "비용/매출 ≤ 50%"},
 }
 
 
