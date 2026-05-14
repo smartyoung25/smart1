@@ -31,16 +31,16 @@
     "n_train": 1421,
     "log_transform": true,
     "best_n_estimators": 50,
-    "cv_r2_mean": 0.047,
-    "cv_r2_std": 0.092,
-    "cv_mape_mean": 519.5,
-    "mape": 362.6,
+    "cv_r2_mean": 0.053,
+    "cv_r2_std": 0.107,
+    "cv_mape_mean": 462.9,
+    "mape": 285.5,
     "gate_passed": false,
     "harvest_lag": 1,
     "area_default_m2": 1200.0,
-    "area_from_registry_count": 61,
-    "area_from_csv_count": 61,
-    "cultiv_meta_count": 61
+    "area_from_registry_count": 156,
+    "area_from_csv_count": 156,
+    "cultiv_meta_count": 156
   },
   "stage3": {
     "crop_ko": "딸기",

@@ -6,15 +6,15 @@
   "feature_count": 15,
   "n_train": 582,
   "log_transform": true,
-  "best_n_estimators": 62,
-  "cv_r2_mean": 0.062,
-  "cv_r2_std": 0.22,
-  "cv_mape_mean": 382.1,
-  "mape": 217.7,
+  "best_n_estimators": 82,
+  "cv_r2_mean": 0.102,
+  "cv_r2_std": 0.229,
+  "cv_mape_mean": 398.8,
+  "mape": 177.9,
   "gate_passed": false,
   "harvest_lag": 1,
   "area_default_m2": 1600.0,
-  "area_from_registry_count": 37,
-  "area_from_csv_count": 37,
-  "cultiv_meta_count": 37
+  "area_from_registry_count": 87,
+  "area_from_csv_count": 87,
+  "cultiv_meta_count": 87
 }

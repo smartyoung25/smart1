@@ -102,8 +102,9 @@ def _load_cultiv_csv(year: int) -> pd.DataFrame:
 
 
 def load_area_map(crop_ko: str) -> dict[str, float]:
-    """재배정보 CSV(식부면적)에서 농가면적 맵 {farm_id: area_m2} 구성.
+    """재배정보 CSV(식부면적)에서 농가면적 맵 구성.
 
+    키 형식: "{year}_{farm_id}"  ← 연도별로 농가번호가 재사용되므로 복합키 필수
     우선순위:
       1. 재배정보_YYYY.CSV의 식부면적 (생산CSV 농가명과 동일 키)
       2. farm_registry.json의 plant_area_m2
@@ -111,8 +112,8 @@ def load_area_map(crop_ko: str) -> dict[str, float]:
     """
     result: dict[str, float] = {}
 
-    # ① 재배정보 CSV — 연도별로 파싱, farm_id+area 집계
-    area_records: list[tuple[str, float]] = []
+    # ① 재배정보 CSV — 연도+farm_id 복합키로 저장 (연도별 농가번호 중복 방지)
+    csv_count = 0
     for year in YEARS:
         df = _load_cultiv_csv(year)
         if df.empty:
@@ -128,19 +129,14 @@ def load_area_map(crop_ko: str) -> dict[str, float]:
                 try:
                     area = float(row[area_col])
                     if area > 0:
-                        area_records.append((fid, area))
+                        key = f"{year}_{fid}"
+                        result[key] = area
+                        csv_count += 1
                 except (ValueError, TypeError):
                     pass
 
-    if area_records:
-        # 동일 farm_id에 여러 연도 값 → 중앙값 사용
-        from collections import defaultdict
-        fid_areas: dict[str, list[float]] = defaultdict(list)
-        for fid, area in area_records:
-            fid_areas[fid].append(area)
-        for fid, areas in fid_areas.items():
-            result[fid] = float(np.median(areas))
-        logger.info("  면적 맵(재배정보 CSV): %d농가 (작목=%s)", len(result), crop_ko)
+    if result:
+        logger.info("  면적 맵(재배정보 CSV): %d연도-농가 쌍 (작목=%s)", csv_count, crop_ko)
         return result
 
     # ② farm_registry.json 폴백
@@ -160,7 +156,7 @@ def load_area_map(crop_ko: str) -> dict[str, float]:
 
 
 def load_cultiv_meta(crop_ko: str) -> dict[str, dict]:
-    """재배정보 CSV에서 품종·온실유형·재배일수 메타 {farm_id: {...}} 구성."""
+    """재배정보 CSV에서 품종·온실유형·재배일수 메타 {year_farm_id: {...}} 구성."""
     meta: dict[str, dict] = {}
     for year in YEARS:
         df = _load_cultiv_csv(year)
@@ -174,7 +170,8 @@ def load_cultiv_meta(crop_ko: str) -> dict[str, dict]:
             continue
         for _, row in dc.iterrows():
             fid = _norm_farm_id(str(row[farm_col]))
-            entry = meta.setdefault(fid, {})
+            key = f"{year}_{fid}"   # 연도+농가 복합키
+            entry = meta.setdefault(key, {})
             if "품종" in dc.columns and pd.notna(row.get("품종")):
                 entry["variety"] = str(row["품종"]).strip()
             if "온실종류" in dc.columns and pd.notna(row.get("온실종류")):
@@ -310,7 +307,17 @@ def load_production_monthly(crop_ko: str, area_map: dict[str, float],
 
     prod = _norm_keys(pd.concat(all_frames, ignore_index=True))
     # 면적 적용 → yield_per_m2
-    prod["area_m2"] = prod["farm_id"].map(area_map).fillna(default_area)
+    # area_map 키: "{year}_{farm_id}" 복합키 우선, 없으면 단순 farm_id (registry 폴백용)
+    year_key = prod["year"].astype(str) + "_" + prod["farm_id"].astype(str)
+    prod["area_m2"] = year_key.map(area_map)
+    # 복합키 미매칭 시 단순 farm_id 폴백 (registry 경로)
+    missing = prod["area_m2"].isna()
+    if missing.any():
+        prod.loc[missing, "area_m2"] = prod.loc[missing, "farm_id"].map(area_map)
+    prod["area_m2"] = prod["area_m2"].fillna(default_area)
+    n_matched = int((~(year_key.map(area_map).isna())).sum())
+    logger.info("  면적 매칭: %d/%d행 (실측), 나머지 기본값=%.0fm²",
+                n_matched, len(prod), default_area)
     prod["yield_per_m2"] = prod["yield_kg"] / prod["area_m2"].replace(0, default_area)
     prod["yield_per_m2"] = clip_iqr(prod["yield_per_m2"].clip(lower=0))
     logger.info("  수확량 월집계: %d행 (yield_per_m2 중앙값=%.3f kg/m²)",
@@ -372,20 +379,27 @@ def build_stage2_matrix(
     df["month_sin"] = np.sin(2 * np.pi * df["month"].astype(float) / 12)
     df["month_cos"] = np.cos(2 * np.pi * df["month"].astype(float) / 12)
 
-    # 재배정보 메타 피처 (품종, 온실유형, 정식월)
+    # 재배정보 메타 피처 (품종, 온실유형, 정식월) — year_farm_id 복합키 조회
     if cultiv_meta:
-        df["variety_code"] = df["farm_id"].map(
-            lambda fid: hash(cultiv_meta.get(fid, {}).get("variety", "")) % 100
-        ).fillna(0).astype(int)
         _GREENHOUSE_MAP = {"유리": 1, "플라스틱": 2, "비닐": 3}
-        df["greenhouse_code"] = df["farm_id"].map(
-            lambda fid: _GREENHOUSE_MAP.get(
-                cultiv_meta.get(fid, {}).get("greenhouse_type", ""), 0)
-        ).fillna(0).astype(int)
-        df["plant_month"] = df["farm_id"].map(
-            lambda fid: cultiv_meta.get(fid, {}).get("plant_month", 0)
-        ).fillna(0).astype(int)
-        n_meta = sum(1 for fid in df["farm_id"] if fid in cultiv_meta)
+        def _meta_get(row, field, default=0):
+            ykey = f"{int(row['year'])}_{row['farm_id']}"
+            val = cultiv_meta.get(ykey, cultiv_meta.get(row["farm_id"], {})).get(field)
+            return val if val is not None else default
+
+        df["variety_code"] = df.apply(
+            lambda r: hash(_meta_get(r, "variety", "")) % 100, axis=1
+        ).astype(int)
+        df["greenhouse_code"] = df.apply(
+            lambda r: _GREENHOUSE_MAP.get(_meta_get(r, "greenhouse_type", ""), 0), axis=1
+        ).astype(int)
+        df["plant_month"] = df.apply(
+            lambda r: _meta_get(r, "plant_month", 0), axis=1
+        ).astype(int)
+        n_meta = sum(
+            1 for _, r in df.iterrows()
+            if f"{int(r['year'])}_{r['farm_id']}" in cultiv_meta
+        )
         logger.info("  재배메타 적용: %d/%d행 (품종/온실/정식월)", n_meta, len(df))
 
     logger.info("  Stage2 행렬: %s", df.shape)
