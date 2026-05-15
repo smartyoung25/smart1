@@ -162,6 +162,18 @@ def _predict_4stage(bundle: dict, env_dict: dict, crop_ko: str) -> float:
     yield_per_m2 = float(np.expm1(raw)) if s2.get("log_transform") else raw
     yield_per_m2 = max(0.0, yield_per_m2)
 
+    # Quantile 구간 (P10/P90) — 모델 있을 때만
+    yield_lower = yield_upper = None
+    try:
+        if "model_q10" in s2 and s2["model_q10"] is not None:
+            raw_q10 = float(s2["model_q10"].predict(X_imp)[0])
+            yield_lower = max(0.0, float(np.expm1(raw_q10)))
+        if "model_q90" in s2 and s2["model_q90"] is not None:
+            raw_q90 = float(s2["model_q90"].predict(X_imp)[0])
+            yield_upper = max(0.0, float(np.expm1(raw_q90)))
+    except Exception:
+        pass
+
     # ── Stage 3: yield × price → revenue_per_m2 ────────────────────────────
     from api.data.stats_loader import get_price_krw_kg
     price_med = float(s3.get("price_median", get_price_krw_kg(crop_ko)))
@@ -339,6 +351,69 @@ def predict_season_revenue(
     except Exception as e:
         logger.warning("[model_loader] 구형 작기 예측 오류 crop=%s: %s", crop_ko, e)
         return None
+
+
+def predict_yield_bounds(
+    crop_ko: str,
+    env_dict: dict,
+) -> dict:
+    """수확량 점 예측 + P10/P90 불확실성 구간 반환.
+
+    Returns:
+        {
+            "yield_per_m2":  float,   # 중앙 예측 (kg/m²)
+            "yield_lower":   float,   # P10 구간 (kg/m²), None if not available
+            "yield_upper":   float,   # P90 구간 (kg/m²), None if not available
+            "has_bounds":    bool,
+        }
+    """
+    crop_ko = normalize_crop(crop_ko)
+    bundle  = load_4stage_model(crop_ko)
+    result  = {"yield_per_m2": None, "yield_lower": None, "yield_upper": None,
+               "has_bounds": False}
+
+    if bundle is None or not _ML_AVAILABLE:
+        return result
+
+    s2 = bundle["stage2"]
+    feat_cols = s2.get("feature_cols", [])
+    env_map = {
+        "temp_internal_mean": env_dict.get("temp_internal_mean", env_dict.get("temp_internal")),
+        "humidity_int_mean":  env_dict.get("humidity_int_mean",  env_dict.get("humidity_int")),
+        "co2_ppm_mean":       env_dict.get("co2_ppm_mean",       env_dict.get("co2_ppm")),
+        "solar_rad_mean":     env_dict.get("solar_rad_mean",     env_dict.get("solar_rad")),
+        "soil_temp_mean":     env_dict.get("soil_temp_mean",     env_dict.get("soil_temp")),
+    }
+    row   = {col: env_map.get(col, float("nan")) for col in feat_cols}
+    X_df  = pd.DataFrame([row], columns=feat_cols)
+    X_imp = s2["imputer"].transform(X_df)
+    if "scaler" in s2:
+        X_imp = s2["scaler"].transform(X_imp)
+
+    try:
+        model_type = s2.get("type", "xgb")
+        if model_type == "xgb_lgb_ensemble" and "model_lgb" in s2:
+            raw = 0.5 * float(s2["model"].predict(X_imp)[0]) + \
+                  0.5 * float(s2["model_lgb"].predict(X_imp)[0])
+        elif model_type == "lgb" and "model_lgb" in s2:
+            raw = float(s2["model_lgb"].predict(X_imp)[0])
+        else:
+            raw = float(s2["model"].predict(X_imp)[0])
+        yield_pt = max(0.0, float(np.expm1(raw)) if s2.get("log_transform") else raw)
+        result["yield_per_m2"] = round(yield_pt, 4)
+
+        if s2.get("model_q10") is not None:
+            result["yield_lower"] = round(max(0.0, float(np.expm1(
+                s2["model_q10"].predict(X_imp)[0]))), 4)
+        if s2.get("model_q90") is not None:
+            result["yield_upper"] = round(max(0.0, float(np.expm1(
+                s2["model_q90"].predict(X_imp)[0]))), 4)
+        result["has_bounds"] = (result["yield_lower"] is not None and
+                                result["yield_upper"] is not None)
+    except Exception as e:
+        logger.warning("[model_loader] predict_yield_bounds 오류 %s: %s", crop_ko, e)
+
+    return result
 
 
 def _get_season_start(crop_ko: str) -> int:

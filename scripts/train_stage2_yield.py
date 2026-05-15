@@ -939,10 +939,29 @@ def train_stage2(df: pd.DataFrame, config: CropConfig) -> dict:
             )
             _lgb_sel.fit(X_sel, np.log1p(y))
 
+            # Quantile 모델 (XGB 기준 — 앙상블/LGB 경로도 XGB로 quantile 계산)
+            _q_models_ens: dict = {}
+            try:
+                for _qa, _qname in [(0.10, "q10"), (0.90, "q90")]:
+                    _qm = xgb.XGBRegressor(
+                        objective="reg:quantileerror", quantile_alpha=_qa,
+                        n_estimators=best_n, learning_rate=xgb_lr,
+                        max_depth=xgb_depth, subsample=xgb_sub,
+                        colsample_bytree=0.8, min_child_weight=xgb_mcw,
+                        random_state=42, verbosity=0,
+                    )
+                    _qm.fit(X_sel, np.log1p(y))
+                    _q_models_ens[_qname] = _qm
+                logger.info("  Quantile 모델 P10/P90 학습 완료 (%s)", _best_tree_type)
+            except Exception as _eq2:
+                logger.info("  Quantile 모델 생략(%s)", _eq2)
+
             return {
                 "type": _best_tree_type,
                 "model": _xgb_sel,       # XGB 모델 (앙상블 시 model_lgb와 함께 사용)
                 "model_lgb": _lgb_sel,   # LGB 모델 (single LGB 모드에서도 저장)
+                "model_q10": _q_models_ens.get("q10"),
+                "model_q90": _q_models_ens.get("q90"),
                 "imputer": imp_sel,
                 "feature_cols": selected_features,
                 "log_transform": True,
@@ -1006,6 +1025,25 @@ def train_stage2(df: pd.DataFrame, config: CropConfig) -> dict:
         )
         final_sel.fit(X_sel, np.log1p(y))
 
+        # ── Quantile 예측 구간 모델 (P10 / P90) ─────────────────────────────
+        # reg:quantileerror = XGBoost 2.0+ 분위수 회귀
+        _q_models: dict = {}
+        try:
+            for _qa, _qname in [(0.10, "q10"), (0.90, "q90")]:
+                _qm = xgb.XGBRegressor(
+                    objective="reg:quantileerror",
+                    quantile_alpha=_qa,
+                    n_estimators=best_n, learning_rate=xgb_lr,
+                    max_depth=xgb_depth, subsample=xgb_sub,
+                    colsample_bytree=0.8, min_child_weight=xgb_mcw,
+                    random_state=42, verbosity=0,
+                )
+                _qm.fit(X_sel, np.log1p(y))
+                _q_models[_qname] = _qm
+            logger.info("  Quantile 모델 P10/P90 학습 완료")
+        except Exception as _eq:
+            logger.info("  Quantile 모델 생략(%s) — XGBoost 버전 미지원", _eq)
+
         # 최종 검증
         y_pred_final = np.expm1(final_sel.predict(X_sel))
         final_r2   = float(r2_score(y, y_pred_final))
@@ -1014,6 +1052,8 @@ def train_stage2(df: pd.DataFrame, config: CropConfig) -> dict:
         return {
             "type": "xgb",
             "model": final_sel,
+            "model_q10": _q_models.get("q10"),
+            "model_q90": _q_models.get("q90"),
             "imputer": imp_sel,
             "feature_cols": selected_features,
             "log_transform": True,
@@ -1137,7 +1177,8 @@ def run_crop(crop_ko: str) -> dict | None:
     pkl_path = art_dir / "stage2_yield.pkl"
     meta_path = art_dir / "stage2_meta.json"
 
-    save_keys = {"model", "model_lgb", "imputer", "scaler", "feature_cols",
+    save_keys = {"model", "model_lgb", "model_q10", "model_q90",
+                 "imputer", "scaler", "feature_cols",
                  "log_transform", "best_n_estimators", "lgb_best_n", "farm_encoding"}
     bundle = {k: v for k, v in result.items() if k in save_keys}
     with open(pkl_path, "wb") as f:
