@@ -3,7 +3,7 @@
   "crop_en": "tomato",
   "stage": 2,
   "model_type": "lgb",
-  "feature_count": 15,
+  "feature_count": 11,
   "n_train": 177,
   "log_transform": true,
   "best_n_estimators": 50,

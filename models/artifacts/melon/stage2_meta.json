@@ -3,7 +3,7 @@
   "crop_en": "melon",
   "stage": 2,
   "model_type": "xgb_lgb_ensemble",
-  "feature_count": 13,
+  "feature_count": 9,
   "n_train": 84,
   "log_transform": true,
   "best_n_estimators": 50,

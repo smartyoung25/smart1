@@ -3,7 +3,7 @@
   "crop_en": "strawberry",
   "stage": 2,
   "model_type": "xgb_lgb_ensemble",
-  "feature_count": 15,
+  "feature_count": 12,
   "n_train": 205,
   "log_transform": true,
   "best_n_estimators": 50,

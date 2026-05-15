@@ -3,7 +3,7 @@
   "crop_en": "paprika",
   "stage": 2,
   "model_type": "xgb_lgb_ensemble",
-  "feature_count": 13,
+  "feature_count": 10,
   "n_train": 112,
   "log_transform": true,
   "best_n_estimators": 50,
