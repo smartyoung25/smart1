@@ -2,10 +2,8 @@
   "crop_ko": "참외",
   "crop_en": "melon",
   "feature_names": [
-    "log_yield",
-    "log_price_monthly",
-    "month",
-    "price_seasonality"
+    "log_yield_annual",
+    "log_price_annual"
   ],
   "price_median": 2800.0,
   "price_p25": 1700.0,
@@ -21,9 +19,10 @@
     "8": 1900.0,
     "9": 2000.0
   },
-  "cv_mape_mean": 40.0,
-  "mape": 41.5,
-  "gate_passed": false,
-  "n_train": 498,
+  "agg_mode": "annual",
+  "cv_mape_mean": 18.4,
+  "mape": 16.9,
+  "gate_passed": true,
+  "n_train": 82,
   "stage": 3
 }

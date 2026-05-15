@@ -224,56 +224,110 @@ def train_stage3(crop_ko: str) -> dict | None:
             "gate_passed": gate_passed, "n_train": n,
         }
 
-    # TimeSeriesSplit
-    prod_sorted = prod.sort_values(["year", "month"])
-    # 월별 가격 피처 (연간 단일값 대신 월별 계절 가격 사용)
-    monthly_prices_s = prod_sorted["month"].astype(float).map(_get_monthly_price)
-    # 가격 계절성 지수 (월별/연간 비율)
-    price_seasonality_s = monthly_prices_s / (price_med + 1e-9)
+    def _fit_ridge(df_sorted: pd.DataFrame, agg_mode: str) -> dict:
+        """주어진 데이터프레임으로 Ridge 학습 후 결과 반환."""
+        if agg_mode == "monthly":
+            prices_s = df_sorted["month"].astype(float).map(_get_monthly_price)
+            seas_s   = prices_s / (price_med + 1e-9)
+            X_arr = np.column_stack([
+                np.log1p(df_sorted["yield_per_m2"].values),
+                np.log1p(prices_s.values),
+                df_sorted["month"].astype(float).values,
+                seas_s.values,
+            ])
+            feat_names = ["log_yield", "log_price_monthly", "month", "price_seasonality"]
+        else:  # annual
+            # 연간 집계: (farm_id, year) 기준 총 revenue, yield 합산
+            annual = (
+                df_sorted.groupby(["farm_id", "year"])
+                .agg(yield_kg=("yield_kg", "sum"),
+                     revenue_krw=("revenue_krw", "sum"),
+                     area_m2=("area_m2", "first"))
+                .reset_index()
+            )
+            annual["yield_per_m2"]   = annual["yield_kg"] / annual["area_m2"].replace(0, 1200.0)
+            annual["revenue_per_m2"] = annual["revenue_krw"] / annual["area_m2"].replace(0, 1200.0)
+            # 이상치 제거
+            mask = (annual["yield_per_m2"] > 0) & (annual["revenue_per_m2"] > 0)
+            annual = annual[mask].copy()
+            if len(annual) < 5:
+                return {}
+            # 연간 유효 단가
+            annual["price_annual"] = (annual["revenue_krw"] /
+                                      annual["yield_kg"].replace(0, np.nan)).fillna(price_med)
+            q1 = annual["price_annual"].quantile(0.01)
+            q3 = annual["price_annual"].quantile(0.99)
+            annual = annual[(annual["price_annual"] >= max(100.0, q1)) &
+                            (annual["price_annual"] <= q3)].copy()
+            annual = annual.sort_values("year").reset_index(drop=True)
+            # 연간 평균 가격 피처 (price_stats 중앙값 사용 — 유출 방지)
+            X_arr = np.column_stack([
+                np.log1p(annual["yield_per_m2"].values),
+                np.full(len(annual), np.log1p(price_med)),
+            ])
+            feat_names = ["log_yield_annual", "log_price_annual"]
+            df_sorted = annual  # 이후 y_s 계산용
 
-    X_s = np.column_stack([
-        np.log1p(prod_sorted["yield_per_m2"].values),
-        np.log1p(monthly_prices_s.values),       # 월별 가격 (핵심 개선)
-        prod_sorted["month"].astype(float).values,
-        price_seasonality_s.values,              # 계절성 지수
-    ])
-    y_s = np.log1p(prod_sorted["revenue_per_m2"].values)
-    n_feats = X_s.shape[1]
+        y_arr = np.log1p(df_sorted["revenue_per_m2"].values)
+        n_arr = len(X_arr)
+        n_splits = 2 if n_arr < 60 else (3 if n_arr < 120 else 4)
+        tscv = TimeSeriesSplit(n_splits=n_splits)
+        cv_mape_list = []
+        for tr_idx, val_idx in tscv.split(X_arr):
+            m = Ridge(alpha=1.0)
+            m.fit(X_arr[tr_idx], y_arr[tr_idx])
+            y_pred = np.expm1(m.predict(X_arr[val_idx]))
+            y_true = np.expm1(y_arr[val_idx])
+            cv_mape_list.append(float(mean_absolute_percentage_error(y_true, y_pred) * 100))
+        cv_mape_mean = float(np.mean(cv_mape_list))
+        logger.info("  [%s] CV MAPE=%.1f%% (n=%d, splits=%d)",
+                    agg_mode, cv_mape_mean, n_arr, n_splits)
+        ridge = Ridge(alpha=1.0)
+        ridge.fit(X_arr, y_arr)
+        final_mape = float(mean_absolute_percentage_error(
+            np.expm1(y_arr), np.expm1(ridge.predict(X_arr))) * 100)
+        return {
+            "ridge": ridge, "feature_names": feat_names[:X_arr.shape[1]],
+            "cv_mape_mean": round(cv_mape_mean, 1), "mape": round(final_mape, 1),
+            "n_train": n_arr, "agg_mode": agg_mode,
+        }
 
-    n_splits = 3 if n < 100 else 4
-    tscv = TimeSeriesSplit(n_splits=n_splits)
-    cv_mape = []
-    for tr_idx, val_idx in tscv.split(X_s):
-        m = Ridge(alpha=1.0)
-        m.fit(X_s[tr_idx], y_s[tr_idx])
-        y_pred = np.expm1(m.predict(X_s[val_idx]))
-        y_true = np.expm1(y_s[val_idx])
-        cv_mape.append(float(mean_absolute_percentage_error(y_true, y_pred) * 100))
+    # 월별 / 연간 두 모드 비교
+    prod_sorted = prod.sort_values(["farm_id", "year", "month"]).reset_index(drop=True)
+    res_monthly = _fit_ridge(prod_sorted, "monthly")
+    res_annual  = _fit_ridge(prod_sorted, "annual")
 
-    cv_mape_mean = float(np.mean(cv_mape))
-    logger.info("  CV MAPE=%.1f%%  (n_splits=%d)", cv_mape_mean, n_splits)
+    if res_monthly and res_annual:
+        if res_annual["mape"] < res_monthly["mape"]:
+            best = res_annual
+            logger.info("  연간 모드 선택 (annual %.1f%% < monthly %.1f%%)",
+                        res_annual["mape"], res_monthly["mape"])
+        else:
+            best = res_monthly
+            logger.info("  월별 모드 선택 (monthly %.1f%% ≤ annual %.1f%%)",
+                        res_monthly["mape"], res_annual["mape"])
+    elif res_annual:
+        best = res_annual
+    elif res_monthly:
+        best = res_monthly
+    else:
+        logger.error("  모든 모드 학습 실패")
+        return None
 
-    # 전체 학습
-    ridge = Ridge(alpha=1.0)
-    ridge.fit(X_s, y_s)
-    y_pred_all = np.expm1(ridge.predict(X_s))
-    final_mape = float(mean_absolute_percentage_error(
-        np.expm1(y_s), y_pred_all) * 100)
+    gate_passed = best["cv_mape_mean"] <= 20.0
+    logger.info("  최종 MAPE=%.1f%%  게이트=%s", best["mape"],
+                "✅ PASS" if gate_passed else "❌ FAIL")
 
-    gate_passed = cv_mape_mean <= 20.0
-    logger.info("  최종 MAPE=%.1f%%  게이트=%s",
-                final_mape, "✅ PASS" if gate_passed else "❌ FAIL")
-
-    feat_names = ["log_yield", "log_price_monthly", "month", "price_seasonality"]
     return {
         "crop_ko": crop_ko, "crop_en": config.crop_en,
-        "ridge": ridge,
-        "feature_names": feat_names[:n_feats],
+        "ridge": best["ridge"],
+        "feature_names": best["feature_names"],
         "price_median": price_med, "price_p25": price_p25, "price_p75": price_p75,
         "monthly_price_map": monthly_price_map,
-        "cv_mape_mean": round(cv_mape_mean, 1),
-        "mape": round(final_mape, 1),
-        "gate_passed": gate_passed, "n_train": n,
+        "agg_mode": best["agg_mode"],
+        "cv_mape_mean": best["cv_mape_mean"],
+        "mape": best["mape"],
+        "gate_passed": gate_passed, "n_train": best["n_train"],
     }
 
 

@@ -2,10 +2,8 @@
   "crop_ko": "파프리카",
   "crop_en": "paprika",
   "feature_names": [
-    "log_yield",
-    "log_price_monthly",
-    "month",
-    "price_seasonality"
+    "log_yield_annual",
+    "log_price_annual"
   ],
   "price_median": 3276.0,
   "price_p25": 2400.0,
@@ -24,9 +22,10 @@
     "11": 2500.0,
     "12": 2870.0
   },
-  "cv_mape_mean": 42.7,
-  "mape": 38.9,
-  "gate_passed": false,
-  "n_train": 540,
+  "agg_mode": "annual",
+  "cv_mape_mean": 19.3,
+  "mape": 18.7,
+  "gate_passed": true,
+  "n_train": 68,
   "stage": 3
 }

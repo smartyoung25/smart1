@@ -1,7 +1,4 @@
 {
-  "_source": "4stage",
-  "crop_en": "strawberry",
-  "crop_ko": "딸기",
   "stage1": {
     "crop_ko": "딸기",
     "crop_en": "strawberry",
@@ -46,31 +43,14 @@
   "stage3": {
     "crop_ko": "딸기",
     "crop_en": "strawberry",
-    "feature_names": [
-      "log_yield",
-      "log_price_monthly",
-      "month",
-      "price_seasonality"
-    ],
     "price_median": 9000.0,
     "price_p25": 5541.0,
     "price_p75": 12700.0,
-    "monthly_price_map": {
-      "1": 11500.0,
-      "2": 8809.0,
-      "3": 7341.0,
-      "4": 6518.0,
-      "5": 6130.0,
-      "6": 6000.0,
-      "10": 23000.0,
-      "11": 15000.0,
-      "12": 12663.0
-    },
-    "cv_mape_mean": 59.4,
-    "mape": 66.2,
+    "agg_mode": "annual",
+    "cv_mape_mean": 24.2,
+    "mape": 22.6,
     "gate_passed": false,
-    "n_train": 1207,
+    "n_train": 175,
     "stage": 3
-  },
-  "stage4": {}
+  }
 }
