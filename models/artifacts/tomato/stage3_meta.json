@@ -23,8 +23,8 @@
     "12": 2411.0
   },
   "agg_mode": "annual",
-  "cv_mape_mean": 31.0,
-  "mape": 26.6,
+  "cv_mape_mean": 31.7,
+  "mape": 26.0,
   "gate_passed": false,
   "n_train": 98,
   "stage": 3

@@ -303,15 +303,25 @@ def train_stage3(crop_ko: str) -> dict | None:
             annual = annual.merge(farm_year_nhm, on=["farm_id", "year"], how="left")
             nhm_vals = annual["n_harvest_months"].fillna(annual["n_harvest_months"].median()).values
 
-            # ── 피처셋 A: 2 features (기본)
+            # 연도별 시장 중앙 단가 (개별 농가 효과 제거 → 시장 신호만 포착)
+            # 전체 데이터로 계산: 생산 시점에는 시장가격(KAMIS 등)이 관측 가능하므로 leakage 아님
+            annual["year_price_median"] = (
+                annual.groupby("year")["price_annual"].transform("median")
+            )
+            year_price_vals = np.log1p(annual["year_price_median"].values)
+            logger.info("  연도별 단가(중앙값) 범위: %.0f~%.0f원/kg",
+                        annual["year_price_median"].min(),
+                        annual["year_price_median"].max())
+
+            # ── 피처셋 A: 2 features (기본 — yield + 연도별 단가)
             X_2 = np.column_stack([
                 np.log1p(annual["yield_per_m2"].values),
-                np.full(len(annual), np.log1p(price_med)),
+                year_price_vals,
             ])
             # ── 피처셋 B: 4 features (추세 포함)
             X_4 = np.column_stack([
                 np.log1p(annual["yield_per_m2"].values),
-                np.full(len(annual), np.log1p(price_med)),
+                year_price_vals,
                 year_norm,
                 np.log1p(nhm_vals.clip(min=1)),
             ])
