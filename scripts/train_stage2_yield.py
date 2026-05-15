@@ -547,6 +547,11 @@ def build_stage2_matrix_annual(
     # ⑥ 면적 피처 (규모 효과: 대규모 농장은 집약도↑ or ↓)
     prod_ann["log_area_m2"] = np.log1p(prod_ann["area_m2"].astype(float))
 
+    # ⑥-b 연도 트렌드 (스마트팜 기술 개선 + 데이터 수집 완성도 변화)
+    _year_min, _year_max = int(prod_ann["year"].min()), int(prod_ann["year"].max())
+    _year_range = max(_year_max - _year_min, 1)
+    prod_ann["year_norm"] = (prod_ann["year"].astype(int) - _year_min) / _year_range
+
     # ⑦ Farm target encoding (시계열 안전 — expanding mean with shift)
     prod_ann = prod_ann.sort_values(key_annual).reset_index(drop=True)
     global_mean = prod_ann["yield_per_m2"].astype(float).mean()
@@ -1000,6 +1005,7 @@ def train_stage2(df: pd.DataFrame, config: CropConfig) -> dict:
             "variety_yield_mean",   # 품종 효과
             "variety_rank",         # 품종 순위
             "log_area_m2",          # 규모 효과
+            "year_norm",            # 연도 트렌드 (기술 개선)
         ]
         always_in = [f for f in _ALWAYS_INCLUDE if f in feature_cols]
         # SHAP 선택 피처 + always_include 합집합
@@ -1195,6 +1201,7 @@ def run_crop(crop_ko: str) -> dict | None:
         "best_n_estimators": result.get("best_n_estimators"),
         "lgb_best_n": result.get("lgb_best_n"),
         "has_lgb": result.get("model_lgb") is not None,
+        "has_quantile": result.get("model_q10") is not None,
         "cv_r2_mean":  result.get("cv_r2_mean"),
         "cv_r2_std":   result.get("cv_r2_std"),
         "cv_mape_mean": result.get("cv_mape_mean"),

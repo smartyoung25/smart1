@@ -222,6 +222,11 @@ def build_stage1_matrix(
     df["month_sin"] = np.sin(2 * np.pi * df["month"].astype(float) / 12)
     df["month_cos"] = np.cos(2 * np.pi * df["month"].astype(float) / 12)
 
+    # 연도 트렌드 (2018~2022 → 0~1): 스마트팜 기술·관리 수준 개선 포착
+    _ymin, _ymax = int(df["year"].min()), int(df["year"].max())
+    _yrange = max(_ymax - _ymin, 1)
+    df["year_norm"] = (df["year"].astype(int) - _ymin) / _yrange
+
     logger.info("  Stage1 행렬: %s", df.shape)
     return df
 
@@ -330,6 +335,35 @@ def train_stage1(df: pd.DataFrame, config: CropConfig) -> dict:
         logger.info("  XGB CV R²=%.3f ± %.3f (min=%.3f)",
                     cv_r2_mean, cv_r2_std, cv_r2_min)
 
+        # ── LightGBM CV 비교 ──────────────────────────────────────────────────
+        lgb1_cv_r2_mean, lgb1_cv_r2_min = -999.0, -999.0
+        _lgb1_available = False
+        try:
+            import lightgbm as _lgb1
+            _lgb1_available = True
+            _num_leaves1 = min(31, max(7, 2 ** xgb_depth - 1))
+            _lgb1_scores = []
+            for _tr1, _vl1 in tscv.split(X):
+                _lgb1_m = MultiOutputRegressor(_lgb1.LGBMRegressor(
+                    n_estimators=xgb_n * 3, learning_rate=xgb_lr,
+                    max_depth=xgb_depth, num_leaves=_num_leaves1,
+                    min_child_samples=max(2, xgb_mcw),
+                    subsample=0.8, colsample_bytree=0.8,
+                    random_state=42, verbosity=-1, n_jobs=1,
+                ))
+                _lgb1_m.fit(X[_tr1], Y_arr[_tr1])
+                _lgb1_scores.append(float(r2_score(
+                    Y_arr[_vl1], _lgb1_m.predict(X[_vl1]),
+                    multioutput="uniform_average")))
+            lgb1_cv_r2_mean = float(np.mean(_lgb1_scores))
+            lgb1_cv_r2_min  = float(np.min(_lgb1_scores))
+            logger.info("  LGB  CV R²=%.3f ± %.3f (min=%.3f)",
+                        lgb1_cv_r2_mean, float(np.std(_lgb1_scores)), lgb1_cv_r2_min)
+        except ImportError:
+            logger.info("  LightGBM 없음 — XGB 단독 사용")
+        except Exception as _elgb1:
+            logger.warning("  LGB 오류(%s) — XGB 단독 사용", _elgb1)
+
         # ── Ridge CV 비교 (과적합 없음 — 안정적 베이스라인) ─────────────────────
         _scaler_r1 = _SS()
         X_sc1 = _scaler_r1.fit_transform(X)
@@ -349,16 +383,27 @@ def train_stage1(df: pd.DataFrame, config: CropConfig) -> dict:
         logger.info("  Ridge CV R²=%.3f  min=%.3f (best alpha=%.1f)",
                     best_r1_cv_r2, best_r1_cv_min, best_r1_alpha)
 
+        # ── 최우수 트리 모델 결정 (XGB vs LGB — 평균 R² 기준) ──────────────────
+        _best_s1_type = "xgb"
+        _best_s1_r2   = cv_r2_mean
+        _best_s1_min  = cv_r2_min
+        if _lgb1_available and lgb1_cv_r2_mean > cv_r2_mean:
+            _best_s1_type = "lgb"
+            _best_s1_r2   = lgb1_cv_r2_mean
+            _best_s1_min  = lgb1_cv_r2_min
+        logger.info("  트리 최우수: %s (CV R²=%.3f min=%.3f)", _best_s1_type, _best_s1_r2, _best_s1_min)
+
         # Ridge 선택 기준:
-        #   (A) 평균 R²가 비슷하거나 나을 때 (XGB - 0.02 이내)
-        #   (B) 또는 Ridge min-fold R²가 XGB min-fold R²보다 0.05 이상 나을 때
+        #   (A) 평균 R²가 비슷하거나 나을 때 (최우수 트리 - 0.02 이내)
+        #   (B) 또는 Ridge min-fold R²가 최우수 트리 min-fold R²보다 0.05 이상 나을 때
         #       → NO_NEG gate(-0.2) 달성을 위해 폴드 안정성 우선
-        _ridge_wins_mean = best_r1_cv_r2 >= cv_r2_mean - 0.02
-        _ridge_wins_min  = best_r1_cv_min >= cv_r2_min + 0.05
+        _ridge_wins_mean = best_r1_cv_r2 >= _best_s1_r2 - 0.02
+        _ridge_wins_min  = best_r1_cv_min >= _best_s1_min + 0.05
         if _ridge_wins_mean or _ridge_wins_min:
             _reason = "평균 R²" if _ridge_wins_mean else "min-fold 안정성"
-            logger.info("  → Ridge 선택 (%s: R²=%.3f min=%.3f vs XGB R²=%.3f min=%.3f)",
-                        _reason, best_r1_cv_r2, best_r1_cv_min, cv_r2_mean, cv_r2_min)
+            logger.info("  → Ridge 선택 (%s: R²=%.3f min=%.3f vs %s R²=%.3f min=%.3f)",
+                        _reason, best_r1_cv_r2, best_r1_cv_min,
+                        _best_s1_type, _best_s1_r2, _best_s1_min)
             final_ridge1 = MultiOutputRegressor(Ridge(alpha=best_r1_alpha))
             final_ridge1.fit(X_sc1, Y_arr)
             return {
@@ -371,7 +416,28 @@ def train_stage1(df: pd.DataFrame, config: CropConfig) -> dict:
                 "n_train": n_samples,
             }
 
-        # XGB가 Ridge보다 확실히 낫을 때만 XGB 사용
+        # LGB 선택 경로
+        if _best_s1_type == "lgb":
+            logger.info("  → LGB 선택 (CV R²=%.3f > XGB=%.3f)", lgb1_cv_r2_mean, cv_r2_mean)
+            final_lgb1 = MultiOutputRegressor(_lgb1.LGBMRegressor(
+                n_estimators=xgb_n * 3, learning_rate=xgb_lr,
+                max_depth=xgb_depth, num_leaves=_num_leaves1,
+                min_child_samples=max(2, xgb_mcw),
+                subsample=0.8, colsample_bytree=0.8,
+                random_state=42, verbosity=-1, n_jobs=1,
+            ))
+            final_lgb1.fit(X, Y_arr)
+            return {
+                "type": "lgb_multioutput",
+                "model": final_lgb1, "imputer": imputer,
+                "feature_cols": feature_cols, "target_cols": target_cols,
+                "cv_r2_mean": round(lgb1_cv_r2_mean, 3),
+                "cv_r2_std":  round(float(np.std(_lgb1_scores)), 3),
+                "cv_r2_min":  round(lgb1_cv_r2_min, 3),
+                "n_train": n_samples,
+            }
+
+        # XGB가 최우수일 때
         logger.info("  → XGB 선택 (mean R²=%.3f, min R²=%.3f vs Ridge %.3f/%.3f)",
                     cv_r2_mean, cv_r2_min, best_r1_cv_r2, best_r1_cv_min)
 
