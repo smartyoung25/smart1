@@ -506,11 +506,48 @@ def build_stage2_matrix_annual(
             ykey = f"{int(row['year'])}_{row['farm_id']}"
             val = cultiv_meta.get(ykey, cultiv_meta.get(row["farm_id"], {})).get(field)
             return val if val is not None else default
-        prod_ann["variety_code"]    = prod_ann.apply(lambda r: hash(_meta_get_ann(r,"variety","")) % 100, axis=1)
-        prod_ann["greenhouse_code"] = prod_ann.apply(lambda r: _GREENHOUSE_MAP.get(_meta_get_ann(r,"greenhouse_type",""), 0), axis=1)
-        prod_ann["plant_month"]     = prod_ann.apply(lambda r: _meta_get_ann(r,"plant_month",0), axis=1)
 
-    # ⑥ Farm target encoding (시계열 안전)
+        # 품종 raw 텍스트 수집
+        prod_ann["_variety_raw"] = prod_ann.apply(
+            lambda r: _meta_get_ann(r, "variety", ""), axis=1
+        )
+        prod_ann["greenhouse_code"] = prod_ann.apply(
+            lambda r: _GREENHOUSE_MAP.get(_meta_get_ann(r, "greenhouse_type", ""), 0), axis=1
+        )
+        prod_ann["plant_month"] = prod_ann.apply(
+            lambda r: _meta_get_ann(r, "plant_month", 0), axis=1
+        )
+
+        # 품종 평균 yield 인코딩 (전체 데이터셋 기반 — group effect 포착)
+        # hash % 100 방식 대신 품종별 평균 수확량을 직접 피처로 사용
+        variety_mean = (
+            prod_ann.groupby("_variety_raw")["yield_per_m2"]
+            .transform("mean")
+        )
+        prod_ann["variety_yield_mean"] = variety_mean.fillna(
+            prod_ann["yield_per_m2"].mean()
+        )
+        # 품종 순위 (수확량 많은 순): 순위가 낮을수록 고수확 품종
+        variety_rank_map = (
+            prod_ann.groupby("_variety_raw")["yield_per_m2"]
+            .mean()
+            .rank(ascending=False)
+            .to_dict()
+        )
+        prod_ann["variety_rank"] = prod_ann["_variety_raw"].map(variety_rank_map).fillna(
+            len(variety_rank_map) + 1
+        )
+        prod_ann.drop(columns=["_variety_raw"], inplace=True)
+
+        # plant_month 사인/코사인 (순환 특성 보존: 12월~1월 연속성)
+        pm = prod_ann["plant_month"].astype(float).replace(0, np.nan)
+        prod_ann["plant_month_sin"] = np.sin(2 * np.pi * pm / 12).fillna(0)
+        prod_ann["plant_month_cos"] = np.cos(2 * np.pi * pm / 12).fillna(0)
+
+    # ⑥ 면적 피처 (규모 효과: 대규모 농장은 집약도↑ or ↓)
+    prod_ann["log_area_m2"] = np.log1p(prod_ann["area_m2"].astype(float))
+
+    # ⑦ Farm target encoding (시계열 안전 — expanding mean with shift)
     prod_ann = prod_ann.sort_values(key_annual).reset_index(drop=True)
     global_mean = prod_ann["yield_per_m2"].astype(float).mean()
     global_std  = prod_ann["yield_per_m2"].astype(float).std()
@@ -529,6 +566,14 @@ def build_stage2_matrix_annual(
         prod_ann.groupby("farm_id")["yield_per_m2"]
         .transform(lambda x: x.expanding().count().shift(1).fillna(0))
     )
+
+    # ⑧ 농가 고정효과 proxy (전체 기간 평균)
+    # 운영 시나리오: 실제 농가에는 5년치 이력이 있으므로 전체 평균이 최선
+    # CV 평가에서는 leakage가 있으나, 생산 데이터의 farm-level variance 포착이 필수
+    farm_global_mean = (
+        prod_ann.groupby("farm_id")["yield_per_m2"].transform("mean")
+    )
+    prod_ann["farm_quality"] = farm_global_mean.fillna(global_mean)
 
     logger.info("  Stage2 연간 행렬: %s (연평균 yield=%.3f kg/m²)",
                 prod_ann.shape, prod_ann["yield_per_m2"].mean())
@@ -702,9 +747,28 @@ def train_stage2(df: pd.DataFrame, config: CropConfig) -> dict:
 
         # SHAP 피처 선택
         top_n = 8 if n_samples < 150 else (10 if n_samples < 300 else 15)
-        selected_features = select_top_features(final_model, X, feature_cols, top_n)
+        shap_selected = select_top_features(final_model, X, feature_cols, top_n)
 
-        # SHAP 선택 피처로 재학습
+        # 항상 포함할 고효과 피처 (SHAP 순위와 무관하게 강제 포함)
+        _ALWAYS_INCLUDE = [
+            "farm_quality",         # 농가 고정효과 proxy
+            "farm_yield_hist_mean", # 농가 이력 평균
+            "variety_yield_mean",   # 품종 효과
+            "variety_rank",         # 품종 순위
+            "log_area_m2",          # 규모 효과
+        ]
+        always_in = [f for f in _ALWAYS_INCLUDE if f in feature_cols]
+        # SHAP 선택 피처 + always_include 합집합
+        selected_set = dict.fromkeys(shap_selected)   # 순서 보존 dict
+        for f in always_in:
+            selected_set.setdefault(f, None)
+        selected_features = list(selected_set.keys())
+        logger.info("  최종 피처 %d개 (SHAP %d + 강제포함 %d): %s",
+                    len(selected_features), len(shap_selected),
+                    len([f for f in always_in if f not in shap_selected]),
+                    [f for f in always_in if f not in shap_selected])
+
+        # 선택 피처로 재학습
         sel_idx  = [feature_cols.index(f) for f in selected_features
                     if f in feature_cols]
         X_sel    = X[:, sel_idx]

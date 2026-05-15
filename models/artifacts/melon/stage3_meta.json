@@ -3,7 +3,9 @@
   "crop_en": "melon",
   "feature_names": [
     "log_yield_annual",
-    "log_price_annual"
+    "log_price_annual",
+    "year_trend",
+    "log_n_harvest_months"
   ],
   "price_median": 2800.0,
   "price_p25": 1700.0,
@@ -20,8 +22,8 @@
     "9": 2000.0
   },
   "agg_mode": "annual",
-  "cv_mape_mean": 18.4,
-  "mape": 16.9,
+  "cv_mape_mean": 17.2,
+  "mape": 15.4,
   "gate_passed": true,
   "n_train": 82,
   "stage": 3

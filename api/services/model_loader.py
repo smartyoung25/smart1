@@ -149,17 +149,31 @@ def _predict_4stage(bundle: dict, env_dict: dict, crop_ko: str) -> float:
     yield_per_m2 = max(0.0, yield_per_m2)
 
     # ── Stage 3: yield × price → revenue_per_m2 ────────────────────────────
-    # 가격: price_stats.json 중앙값 (data leakage 방지 — 실제 판매가 사용 금지)
     from api.data.stats_loader import get_price_krw_kg
     price_med = float(s3.get("price_median", get_price_krw_kg(crop_ko)))
 
     ridge = s3.get("ridge")
     if ridge is not None:
-        feat_names = s3.get("feature_names", [])
-        # stage3 연간 모드: ["log_yield_annual", "log_price_annual"]
-        X3 = np.array([[np.log1p(yield_per_m2), np.log1p(price_med)]])
-        n_feats = getattr(ridge, "n_features_in_", X3.shape[1])
-        revenue_annual = float(np.expm1(ridge.predict(X3[:, :n_feats])[0]))
+        feat_names = s3.get("feature_names", ["log_yield_annual", "log_price_annual"])
+        n_feats    = getattr(ridge, "n_features_in_", len(feat_names))
+
+        # 피처 이름 기반으로 벡터 구성 (2-feature or 4-feature 자동 대응)
+        feat_vec = []
+        for fn in feat_names[:n_feats]:
+            if fn == "log_yield_annual":
+                feat_vec.append(float(np.log1p(yield_per_m2)))
+            elif fn == "log_price_annual":
+                feat_vec.append(float(np.log1p(price_med)))
+            elif fn == "year_trend":
+                feat_vec.append(1.0)   # 최신(2022) 기준 → trend 최대값
+            elif fn == "log_n_harvest_months":
+                nhm = _SEASON_MONTHS.get(normalize_crop(crop_ko), 8)
+                feat_vec.append(float(np.log1p(nhm)))
+            else:
+                feat_vec.append(0.0)
+
+        X3 = np.array([feat_vec])
+        revenue_annual = float(np.expm1(ridge.predict(X3)[0]))
     else:
         revenue_annual = yield_per_m2 * price_med
 

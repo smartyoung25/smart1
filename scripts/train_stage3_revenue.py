@@ -260,12 +260,53 @@ def train_stage3(crop_ko: str) -> dict | None:
             annual = annual[(annual["price_annual"] >= max(100.0, q1)) &
                             (annual["price_annual"] <= q3)].copy()
             annual = annual.sort_values("year").reset_index(drop=True)
-            # 연간 평균 가격 피처 (price_stats 중앙값 사용 — 유출 방지)
-            X_arr = np.column_stack([
+            # 추가 피처: year 추세, n_harvest_months
+            year_vals = annual["year"].astype(float).values
+            year_norm = (year_vals - year_vals.min()) / max(1.0, year_vals.max() - year_vals.min())
+            farm_year_nhm = (
+                df_sorted.groupby(["farm_id", "year"])
+                .agg(n_harvest_months=("yield_kg", lambda x: (x > 0).sum()))
+                .reset_index()
+            )
+            annual = annual.merge(farm_year_nhm, on=["farm_id", "year"], how="left")
+            nhm_vals = annual["n_harvest_months"].fillna(annual["n_harvest_months"].median()).values
+
+            # ── 피처셋 A: 2 features (기본)
+            X_2 = np.column_stack([
                 np.log1p(annual["yield_per_m2"].values),
                 np.full(len(annual), np.log1p(price_med)),
             ])
-            feat_names = ["log_yield_annual", "log_price_annual"]
+            # ── 피처셋 B: 4 features (추세 포함)
+            X_4 = np.column_stack([
+                np.log1p(annual["yield_per_m2"].values),
+                np.full(len(annual), np.log1p(price_med)),
+                year_norm,
+                np.log1p(nhm_vals.clip(min=1)),
+            ])
+            # CV로 더 나은 피처셋 선택
+            y_tmp = np.log1p(annual["revenue_per_m2"].values)
+            n_tmp = len(y_tmp)
+            n_sp  = 2 if n_tmp < 60 else (3 if n_tmp < 120 else 4)
+            tscv_tmp = TimeSeriesSplit(n_splits=n_sp)
+            mape_2, mape_4 = [], []
+            for tr_i, va_i in tscv_tmp.split(X_2):
+                for arr, lst in [(X_2, mape_2), (X_4, mape_4)]:
+                    m = Ridge(alpha=1.0)
+                    m.fit(arr[tr_i], y_tmp[tr_i])
+                    p = np.expm1(m.predict(arr[va_i]))
+                    t = np.expm1(y_tmp[va_i])
+                    lst.append(float(mean_absolute_percentage_error(t, p) * 100))
+            if np.mean(mape_4) < np.mean(mape_2):
+                X_arr = X_4
+                feat_names = ["log_yield_annual", "log_price_annual",
+                              "year_trend", "log_n_harvest_months"]
+                logger.info("  annual: 4-feature set 선택 (%.1f%% < %.1f%%)",
+                            np.mean(mape_4), np.mean(mape_2))
+            else:
+                X_arr = X_2
+                feat_names = ["log_yield_annual", "log_price_annual"]
+                logger.info("  annual: 2-feature set 선택 (%.1f%% ≤ %.1f%%)",
+                            np.mean(mape_2), np.mean(mape_4))
             df_sorted = annual  # 이후 y_s 계산용
 
         y_arr = np.log1p(df_sorted["revenue_per_m2"].values)
