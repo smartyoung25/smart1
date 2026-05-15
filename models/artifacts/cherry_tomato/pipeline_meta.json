@@ -1,4 +1,7 @@
 {
+  "crop_ko": "방울토마토",
+  "crop_en": "cherry_tomato",
+  "pipeline": "4stage",
   "stage1": {
     "crop_ko": "방울토마토",
     "crop_en": "cherry_tomato",
@@ -47,14 +50,32 @@
   "stage3": {
     "crop_ko": "방울토마토",
     "crop_en": "cherry_tomato",
+    "feature_names": [
+      "log_yield_annual",
+      "log_price_annual"
+    ],
     "price_median": 3641.0,
     "price_p25": 2621.0,
     "price_p75": 4750.0,
+    "monthly_price_map": {
+      "1": 4000.0,
+      "2": 4000.0,
+      "3": 4766.0,
+      "4": 4000.0,
+      "5": 2962.0,
+      "6": 2660.0,
+      "7": 2400.0,
+      "8": 2989.0,
+      "9": 4600.0,
+      "10": 4541.0,
+      "11": 3444.0,
+      "12": 3598.0
+    },
     "agg_mode": "annual",
-    "cv_mape_mean": 33.3,
-    "mape": 26.9,
-    "gate_passed": false,
-    "n_train": 88,
+    "cv_mape_mean": 19.7,
+    "mape": 20.1,
+    "gate_passed": true,
+    "n_train": 78,
     "stage": 3
   }
 }

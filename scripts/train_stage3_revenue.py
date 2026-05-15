@@ -255,10 +255,42 @@ def train_stage3(crop_ko: str) -> dict | None:
             # 연간 유효 단가
             annual["price_annual"] = (annual["revenue_krw"] /
                                       annual["yield_kg"].replace(0, np.nan)).fillna(price_med)
-            q1 = annual["price_annual"].quantile(0.01)
-            q3 = annual["price_annual"].quantile(0.99)
-            annual = annual[(annual["price_annual"] >= max(100.0, q1)) &
-                            (annual["price_annual"] <= q3)].copy()
+            # 가격 이상치 필터
+            p_q1 = annual["price_annual"].quantile(0.01)
+            p_q3 = annual["price_annual"].quantile(0.99)
+            annual = annual[(annual["price_annual"] >= max(100.0, p_q1)) &
+                            (annual["price_annual"] <= p_q3)].copy()
+            # yield 극단값 필터 — 3단계 적응 필터 (CV×샘플 수 기반)
+            # · cv >= 1.0 AND n >= 80 → p5-p95 (방울토마토·완숙토마토: 고분산)
+            # · cv >= 0.7 AND n >= 80 → p10-p90 (딸기·참외: 중간 분산, 완만 필터)
+            # · 그 외            → 최솟값(0.5) 필터만 (파프리카: 소표본 or 저분산)
+            yield_cv = (annual["yield_per_m2"].std() /
+                        (annual["yield_per_m2"].mean() + 1e-9))
+            n_before_filter = len(annual)
+            if yield_cv >= 1.0 and n_before_filter >= 80:
+                y_q1 = annual["yield_per_m2"].quantile(0.05)
+                y_q3 = annual["yield_per_m2"].quantile(0.95)
+                annual = annual[
+                    (annual["yield_per_m2"] >= max(0.5, y_q1)) &
+                    (annual["yield_per_m2"] <= y_q3)
+                ].copy()
+                logger.info("  yield filter(p5-p95) 적용: cv=%.2f n=%d→%d",
+                            yield_cv, n_before_filter, len(annual))
+            elif yield_cv >= 0.7 and n_before_filter >= 80:
+                y_q1 = annual["yield_per_m2"].quantile(0.10)
+                y_q3 = annual["yield_per_m2"].quantile(0.90)
+                annual = annual[
+                    (annual["yield_per_m2"] >= max(0.5, y_q1)) &
+                    (annual["yield_per_m2"] <= y_q3)
+                ].copy()
+                logger.info("  yield filter(p10-p90) 적용: cv=%.2f n=%d→%d",
+                            yield_cv, n_before_filter, len(annual))
+            else:
+                annual = annual[annual["yield_per_m2"] >= 0.5].copy()
+                logger.info("  yield filter 스킵(cv=%.2f, n=%d): 최솟값 필터만 적용",
+                            yield_cv, n_before_filter)
+            if len(annual) < 5:
+                return {}
             annual = annual.sort_values("year").reset_index(drop=True)
             # 추가 피처: year 추세, n_harvest_months
             year_vals = annual["year"].astype(float).values
@@ -313,17 +345,28 @@ def train_stage3(crop_ko: str) -> dict | None:
         n_arr = len(X_arr)
         n_splits = 2 if n_arr < 60 else (3 if n_arr < 120 else 4)
         tscv = TimeSeriesSplit(n_splits=n_splits)
-        cv_mape_list = []
-        for tr_idx, val_idx in tscv.split(X_arr):
-            m = Ridge(alpha=1.0)
-            m.fit(X_arr[tr_idx], y_arr[tr_idx])
-            y_pred = np.expm1(m.predict(X_arr[val_idx]))
-            y_true = np.expm1(y_arr[val_idx])
-            cv_mape_list.append(float(mean_absolute_percentage_error(y_true, y_pred) * 100))
-        cv_mape_mean = float(np.mean(cv_mape_list))
-        logger.info("  [%s] CV MAPE=%.1f%% (n=%d, splits=%d)",
-                    agg_mode, cv_mape_mean, n_arr, n_splits)
-        ridge = Ridge(alpha=1.0)
+
+        # Alpha 그리드서치 — CV MAPE 최소화하는 alpha 선택
+        _ALPHAS = [0.01, 0.05, 0.1, 0.5, 1.0, 5.0, 10.0, 50.0]
+        best_alpha = 1.0
+        best_cv_mape = float("inf")
+        for a in _ALPHAS:
+            fold_mapes = []
+            for tr_idx, val_idx in tscv.split(X_arr):
+                m = Ridge(alpha=a)
+                m.fit(X_arr[tr_idx], y_arr[tr_idx])
+                y_pred = np.expm1(m.predict(X_arr[val_idx]))
+                y_true = np.expm1(y_arr[val_idx])
+                fold_mapes.append(float(mean_absolute_percentage_error(y_true, y_pred) * 100))
+            a_mape = float(np.mean(fold_mapes))
+            if a_mape < best_cv_mape:
+                best_cv_mape = a_mape
+                best_alpha = a
+
+        cv_mape_mean = best_cv_mape
+        logger.info("  [%s] best_alpha=%.3f  CV MAPE=%.1f%% (n=%d, splits=%d)",
+                    agg_mode, best_alpha, cv_mape_mean, n_arr, n_splits)
+        ridge = Ridge(alpha=best_alpha)
         ridge.fit(X_arr, y_arr)
         final_mape = float(mean_absolute_percentage_error(
             np.expm1(y_arr), np.expm1(ridge.predict(X_arr))) * 100)

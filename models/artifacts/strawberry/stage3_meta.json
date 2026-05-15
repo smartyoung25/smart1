@@ -22,9 +22,9 @@
     "12": 12663.0
   },
   "agg_mode": "annual",
-  "cv_mape_mean": 22.4,
-  "mape": 19.2,
+  "cv_mape_mean": 20.5,
+  "mape": 18.1,
   "gate_passed": false,
-  "n_train": 175,
+  "n_train": 139,
   "stage": 3
 }
