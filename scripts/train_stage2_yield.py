@@ -584,6 +584,7 @@ def build_stage2_matrix_annual(
 
 def select_top_features(model, X: np.ndarray, feature_names: list[str],
                          top_n: int = 15) -> list[str]:
+    """피처 선택: SHAP → 컬럼 순 폴백."""
     try:
         import shap
         explainer = shap.TreeExplainer(model)
@@ -594,7 +595,7 @@ def select_top_features(model, X: np.ndarray, feature_names: list[str],
         logger.info("  SHAP 선택 피처 (top %d): %s", top_n, selected[:5])
         return selected
     except Exception as e:
-        logger.warning("  SHAP 실패(%s) — 전체 피처 사용", e)
+        logger.warning("  SHAP 실패(%s) — 컬럼 순 top-%d 사용", e, top_n)
         return feature_names[:top_n]
 
 
@@ -745,7 +746,7 @@ def train_stage2(df: pd.DataFrame, config: CropConfig) -> dict:
         )
         final_model.fit(X, np.log1p(y))
 
-        # SHAP 피처 선택
+        # SHAP 피처 선택 (폴백: 컬럼 순 top-N)
         top_n = 8 if n_samples < 150 else (10 if n_samples < 300 else 15)
         shap_selected = select_top_features(final_model, X, feature_cols, top_n)
 
