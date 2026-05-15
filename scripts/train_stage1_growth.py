@@ -334,7 +334,7 @@ def train_stage1(df: pd.DataFrame, config: CropConfig) -> dict:
         _scaler_r1 = _SS()
         X_sc1 = _scaler_r1.fit_transform(X)
         _r1_alphas = [0.1, 1.0, 10.0, 100.0]
-        best_r1_alpha, best_r1_cv_r2 = 10.0, -999.0
+        best_r1_alpha, best_r1_cv_r2, best_r1_cv_min = 10.0, -999.0, -999.0
         for _a in _r1_alphas:
             _fr2s = []
             for _tr, _vl in tscv.split(X_sc1):
@@ -342,15 +342,23 @@ def train_stage1(df: pd.DataFrame, config: CropConfig) -> dict:
                 _rm.fit(X_sc1[_tr], Y_arr[_tr])
                 _yp = _rm.predict(X_sc1[_vl])
                 _fr2s.append(float(r2_score(Y_arr[_vl], _yp, multioutput="uniform_average")))
-            _ar2 = float(np.mean(_fr2s))
+            _ar2  = float(np.mean(_fr2s))
+            _amin = float(np.min(_fr2s))
             if _ar2 > best_r1_cv_r2:
-                best_r1_cv_r2, best_r1_alpha = _ar2, _a
-        logger.info("  Ridge CV R²=%.3f (best alpha=%.1f)", best_r1_cv_r2, best_r1_alpha)
+                best_r1_cv_r2, best_r1_alpha, best_r1_cv_min = _ar2, _a, _amin
+        logger.info("  Ridge CV R²=%.3f  min=%.3f (best alpha=%.1f)",
+                    best_r1_cv_r2, best_r1_cv_min, best_r1_alpha)
 
-        # Ridge가 더 낫거나 비슷하면 Ridge 사용 (소샘플에서 Ridge 일반화 우수)
-        if best_r1_cv_r2 >= cv_r2_mean - 0.02:
-            logger.info("  → Ridge 선택 (R²=%.3f vs XGB R²=%.3f, 안정성 우선)",
-                        best_r1_cv_r2, cv_r2_mean)
+        # Ridge 선택 기준:
+        #   (A) 평균 R²가 비슷하거나 나을 때 (XGB - 0.02 이내)
+        #   (B) 또는 Ridge min-fold R²가 XGB min-fold R²보다 0.05 이상 나을 때
+        #       → NO_NEG gate(-0.2) 달성을 위해 폴드 안정성 우선
+        _ridge_wins_mean = best_r1_cv_r2 >= cv_r2_mean - 0.02
+        _ridge_wins_min  = best_r1_cv_min >= cv_r2_min + 0.05
+        if _ridge_wins_mean or _ridge_wins_min:
+            _reason = "평균 R²" if _ridge_wins_mean else "min-fold 안정성"
+            logger.info("  → Ridge 선택 (%s: R²=%.3f min=%.3f vs XGB R²=%.3f min=%.3f)",
+                        _reason, best_r1_cv_r2, best_r1_cv_min, cv_r2_mean, cv_r2_min)
             final_ridge1 = MultiOutputRegressor(Ridge(alpha=best_r1_alpha))
             final_ridge1.fit(X_sc1, Y_arr)
             return {
@@ -359,13 +367,13 @@ def train_stage1(df: pd.DataFrame, config: CropConfig) -> dict:
                 "feature_cols": feature_cols, "target_cols": target_cols,
                 "cv_r2_mean": round(best_r1_cv_r2, 3),
                 "cv_r2_std":  0.0,
-                "cv_r2_min":  round(best_r1_cv_r2, 3),
+                "cv_r2_min":  round(best_r1_cv_min, 3),
                 "n_train": n_samples,
             }
 
         # XGB가 Ridge보다 확실히 낫을 때만 XGB 사용
-        logger.info("  → XGB 선택 (R²=%.3f > Ridge R²=%.3f + 0.02)",
-                    cv_r2_mean, best_r1_cv_r2)
+        logger.info("  → XGB 선택 (mean R²=%.3f, min R²=%.3f vs Ridge %.3f/%.3f)",
+                    cv_r2_mean, cv_r2_min, best_r1_cv_r2, best_r1_cv_min)
 
         # 전체 데이터로 최종 학습
         final_model = MultiOutputRegressor(
