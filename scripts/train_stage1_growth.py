@@ -288,13 +288,24 @@ def train_stage1(df: pd.DataFrame, config: CropConfig) -> dict:
             "n_train": n_samples,
         }
 
-    # XGBoost TimeSeriesSplit
+    # XGBoost TimeSeriesSplit — 과적합 방지: 샘플 수에 따른 하이퍼파라미터 조정
     try:
         import xgboost as xgb
         from sklearn.multioutput import MultiOutputRegressor
+        from sklearn.preprocessing import StandardScaler as _SS
+
+        # 소샘플에서 300 트리 → 과적합 (CV R² 음수). 샘플 수에 맞게 조정
+        if n_samples < 400:
+            xgb_n, xgb_depth, xgb_mcw, xgb_lr = 50,  3, 10, 0.15
+        elif n_samples < 800:
+            xgb_n, xgb_depth, xgb_mcw, xgb_lr = 80,  3, 8,  0.10
+        else:
+            xgb_n, xgb_depth, xgb_mcw, xgb_lr = 100, 4, 5,  0.08
+        logger.info("  XGB 파라미터: n=%d depth=%d mcw=%d lr=%.2f (n_samples=%d)",
+                    xgb_n, xgb_depth, xgb_mcw, xgb_lr, n_samples)
 
         tscv = TimeSeriesSplit(n_splits=n_splits)
-        fold_scores = []
+        fold_scores_xgb = []
 
         for fold, (tr_idx, val_idx) in enumerate(tscv.split(X)):
             X_tr, X_val = X[tr_idx], X[val_idx]
@@ -302,29 +313,66 @@ def train_stage1(df: pd.DataFrame, config: CropConfig) -> dict:
 
             fold_model = MultiOutputRegressor(
                 xgb.XGBRegressor(
-                    n_estimators=300, max_depth=4, learning_rate=0.05,
-                    subsample=0.8, colsample_bytree=0.8,
-                    min_child_weight=5, random_state=42, verbosity=0,
+                    n_estimators=xgb_n, max_depth=xgb_depth,
+                    learning_rate=xgb_lr, subsample=0.8, colsample_bytree=0.8,
+                    min_child_weight=xgb_mcw, random_state=42, verbosity=0,
                 )
             )
             fold_model.fit(X_tr, Y_tr)
             y_pred_val = fold_model.predict(X_val)
             score = float(r2_score(Y_val, y_pred_val, multioutput="uniform_average"))
-            fold_scores.append(score)
-            logger.info("  Fold %d R²=%.3f", fold + 1, score)
+            fold_scores_xgb.append(score)
+            logger.info("  Fold %d XGB R²=%.3f", fold + 1, score)
 
-        cv_r2_mean = float(np.mean(fold_scores))
-        cv_r2_std  = float(np.std(fold_scores))
-        cv_r2_min  = float(np.min(fold_scores))
-        logger.info("  CV R²=%.3f ± %.3f (min=%.3f)",
+        cv_r2_mean = float(np.mean(fold_scores_xgb))
+        cv_r2_std  = float(np.std(fold_scores_xgb))
+        cv_r2_min  = float(np.min(fold_scores_xgb))
+        logger.info("  XGB CV R²=%.3f ± %.3f (min=%.3f)",
                     cv_r2_mean, cv_r2_std, cv_r2_min)
+
+        # ── Ridge CV 비교 (과적합 없음 — 안정적 베이스라인) ─────────────────────
+        _scaler_r1 = _SS()
+        X_sc1 = _scaler_r1.fit_transform(X)
+        _r1_alphas = [0.1, 1.0, 10.0, 100.0]
+        best_r1_alpha, best_r1_cv_r2 = 10.0, -999.0
+        for _a in _r1_alphas:
+            _fr2s = []
+            for _tr, _vl in tscv.split(X_sc1):
+                _rm = MultiOutputRegressor(Ridge(alpha=_a))
+                _rm.fit(X_sc1[_tr], Y_arr[_tr])
+                _yp = _rm.predict(X_sc1[_vl])
+                _fr2s.append(float(r2_score(Y_arr[_vl], _yp, multioutput="uniform_average")))
+            _ar2 = float(np.mean(_fr2s))
+            if _ar2 > best_r1_cv_r2:
+                best_r1_cv_r2, best_r1_alpha = _ar2, _a
+        logger.info("  Ridge CV R²=%.3f (best alpha=%.1f)", best_r1_cv_r2, best_r1_alpha)
+
+        # Ridge가 더 낫거나 비슷하면 Ridge 사용 (소샘플에서 Ridge 일반화 우수)
+        if best_r1_cv_r2 >= cv_r2_mean - 0.02:
+            logger.info("  → Ridge 선택 (R²=%.3f vs XGB R²=%.3f, 안정성 우선)",
+                        best_r1_cv_r2, cv_r2_mean)
+            final_ridge1 = MultiOutputRegressor(Ridge(alpha=best_r1_alpha))
+            final_ridge1.fit(X_sc1, Y_arr)
+            return {
+                "type": "ridge_stage1",
+                "model": final_ridge1, "imputer": imputer, "scaler": _scaler_r1,
+                "feature_cols": feature_cols, "target_cols": target_cols,
+                "cv_r2_mean": round(best_r1_cv_r2, 3),
+                "cv_r2_std":  0.0,
+                "cv_r2_min":  round(best_r1_cv_r2, 3),
+                "n_train": n_samples,
+            }
+
+        # XGB가 Ridge보다 확실히 낫을 때만 XGB 사용
+        logger.info("  → XGB 선택 (R²=%.3f > Ridge R²=%.3f + 0.02)",
+                    cv_r2_mean, best_r1_cv_r2)
 
         # 전체 데이터로 최종 학습
         final_model = MultiOutputRegressor(
             xgb.XGBRegressor(
-                n_estimators=300, max_depth=4, learning_rate=0.05,
-                subsample=0.8, colsample_bytree=0.8,
-                min_child_weight=5, random_state=42, verbosity=0,
+                n_estimators=xgb_n, max_depth=xgb_depth,
+                learning_rate=xgb_lr, subsample=0.8, colsample_bytree=0.8,
+                min_child_weight=xgb_mcw, random_state=42, verbosity=0,
             )
         )
         final_model.fit(X, Y_arr)

@@ -2,7 +2,7 @@
   "crop_ko": "완숙토마토",
   "crop_en": "tomato",
   "stage": 1,
-  "model_type": "xgb_multioutput",
+  "model_type": "ridge_stage1",
   "feature_count": 32,
   "target_cols": [
     "growth_초장",
@@ -18,9 +18,9 @@
     "growth_착과군"
   ],
   "n_train": 1721,
-  "cv_r2_mean": -0.078,
-  "cv_r2_std": 0.222,
-  "cv_r2_min": -0.457,
+  "cv_r2_mean": -0.041,
+  "cv_r2_std": 0.0,
+  "cv_r2_min": -0.041,
   "gate_passed": false,
   "env_to_growth_lag": 2
 }

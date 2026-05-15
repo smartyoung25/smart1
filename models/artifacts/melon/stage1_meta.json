@@ -2,7 +2,7 @@
   "crop_ko": "참외",
   "crop_en": "melon",
   "stage": 1,
-  "model_type": "xgb_multioutput",
+  "model_type": "ridge_stage1",
   "feature_count": 18,
   "target_cols": [
     "growth_초장",
@@ -11,9 +11,9 @@
     "growth_엽폭"
   ],
   "n_train": 596,
-  "cv_r2_mean": 0.167,
-  "cv_r2_std": 0.135,
-  "cv_r2_min": -0.015,
+  "cv_r2_mean": 0.216,
+  "cv_r2_std": 0.0,
+  "cv_r2_min": 0.216,
   "gate_passed": false,
   "env_to_growth_lag": 1
 }

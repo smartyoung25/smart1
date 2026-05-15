@@ -2,7 +2,7 @@
   "crop_ko": "방울토마토",
   "crop_en": "cherry_tomato",
   "stage": 1,
-  "model_type": "xgb_multioutput",
+  "model_type": "ridge_stage1",
   "feature_count": 32,
   "target_cols": [
     "growth_초장",
@@ -16,9 +16,9 @@
     "growth_화방별착과수"
   ],
   "n_train": 1005,
-  "cv_r2_mean": -0.237,
-  "cv_r2_std": 0.248,
-  "cv_r2_min": -0.639,
+  "cv_r2_mean": -0.169,
+  "cv_r2_std": 0.0,
+  "cv_r2_min": -0.169,
   "gate_passed": false,
   "env_to_growth_lag": 2
 }

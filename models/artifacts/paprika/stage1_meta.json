@@ -16,9 +16,9 @@
     "growth_착과마디"
   ],
   "n_train": 1144,
-  "cv_r2_mean": -0.035,
-  "cv_r2_std": 0.185,
-  "cv_r2_min": -0.3,
+  "cv_r2_mean": -0.027,
+  "cv_r2_std": 0.174,
+  "cv_r2_min": -0.272,
   "gate_passed": false,
   "env_to_growth_lag": 2
 }
