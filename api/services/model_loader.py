@@ -176,7 +176,19 @@ def _predict_4stage(bundle: dict, env_dict: dict, crop_ko: str) -> float:
 
     # ── Stage 3: yield × price → revenue_per_m2 ────────────────────────────
     from api.data.stats_loader import get_price_krw_kg
-    price_med = float(s3.get("price_median", get_price_krw_kg(crop_ko)))
+    # Prophet 가격 예측 우선 — 없으면 price_stats.json 중앙값 폴백
+    _price_med_static = float(s3.get("price_median", get_price_krw_kg(crop_ko)))
+    try:
+        from models.m4_revenue import M4RevenueModel
+        _prophet_model = M4RevenueModel.load_for_crop(crop_ko)
+        if _prophet_model._prophet is not None:
+            _ph_mean, _, _ = _prophet_model.forecast_price(horizon_days=30)
+            price_med = _ph_mean
+            logger.debug("[4stage] Prophet 가격 사용: %s = %.0f원/kg", crop_ko, price_med)
+        else:
+            price_med = _price_med_static
+    except Exception:
+        price_med = _price_med_static
 
     ridge = s3.get("ridge")
     if ridge is not None:

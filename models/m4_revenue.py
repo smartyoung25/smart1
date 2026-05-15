@@ -44,11 +44,54 @@ class RevenuePrediction:
     price_upper: float
 
 
+CROP_EN = {
+    "딸기":       "strawberry",
+    "방울토마토": "cherry_tomato",
+    "완숙토마토": "tomato",
+    "참외":       "melon",
+    "파프리카":   "paprika",
+}
+
+_PROPHET_CACHE: dict[str, "M4RevenueModel"] = {}
+
+
 class M4RevenueModel:
 
     def __init__(self, cost_params: Optional[dict] = None):
         self._prophet = None
+        self._crop_ko: Optional[str] = None
         self._cost = cost_params or dict(DEFAULT_COST_PARAMS)
+
+    @classmethod
+    def load_for_crop(cls, crop_ko: str) -> "M4RevenueModel":
+        """작목별 Prophet 모델 로드 (캐시 적용).
+
+        price_prophet.pkl이 없으면 stub 반환 (기존 동작 유지).
+        """
+        if crop_ko in _PROPHET_CACHE:
+            return _PROPHET_CACHE[crop_ko]
+
+        crop_en = CROP_EN.get(crop_ko)
+        if crop_en:
+            art_dir = MODEL_PATH.parent / crop_en
+            pkl_path = art_dir / "price_prophet.pkl"
+        else:
+            pkl_path = Path("__nonexistent__")
+
+        inst = cls()
+        inst._crop_ko = crop_ko
+        if pkl_path.exists():
+            import pickle
+            with open(pkl_path, "rb") as f:
+                bundle = pickle.load(f)
+            inst._prophet = bundle.get("prophet")
+            logger.info("[M4] Prophet 로드: %s (n=%s MAPE=%s%%)",
+                        crop_ko, bundle.get("n_train"), bundle.get("train_mape"))
+        else:
+            logger.debug("[M4] Prophet 없음(%s) — stub 사용", crop_ko)
+
+        _PROPHET_CACHE[crop_ko] = inst
+        return inst
 
     def load(self, path: Path = MODEL_PATH) -> "M4RevenueModel":
         if path.exists():
@@ -65,12 +108,15 @@ class M4RevenueModel:
     def forecast_price(self, horizon_days: int = 30) -> tuple[float, float, float]:
         """Return (mean_price, lower_80, upper_80) in ₩/kg."""
         if self._prophet is not None:
-            future = self._prophet.make_future_dataframe(periods=horizon_days)
-            fc = self._prophet.predict(future).tail(horizon_days)
-            mean_price  = float(fc["yhat"].mean())
-            lower_price = float(fc["yhat_lower"].mean())
-            upper_price = float(fc["yhat_upper"].mean())
-            return mean_price, lower_price, upper_price
+            try:
+                future = self._prophet.make_future_dataframe(periods=horizon_days)
+                fc = self._prophet.predict(future).tail(horizon_days)
+                mean_price  = max(100.0, float(fc["yhat"].mean()))
+                lower_price = max(100.0, float(fc["yhat_lower"].mean()))
+                upper_price = max(100.0, float(fc["yhat_upper"].mean()))
+                return mean_price, lower_price, upper_price
+            except Exception as e:
+                logger.warning("[M4] Prophet 예측 실패(%s) — stub 사용", e)
 
         # Stub: simple seasonal adjustment around 3,000 ₩/kg
         month = date.today().month
@@ -78,6 +124,10 @@ class M4RevenueModel:
                     6: 2400, 7: 2500, 8: 2700, 9: 3000, 10: 3200, 11: 3500, 12: 3700}
         mean = float(seasonal.get(month, 3000))
         return mean, mean * 0.85, mean * 1.15
+
+    def predict_next_month_price(self) -> tuple[float, float, float]:
+        """다음 달 단가 예측 (원/kg). horizon=45일로 다음 달 중순 포착."""
+        return self.forecast_price(horizon_days=45)
 
     def predict(
         self,

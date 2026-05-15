@@ -3,7 +3,7 @@
   "crop_en": "paprika",
   "stage": 1,
   "model_type": "ridge_stage1",
-  "feature_count": 32,
+  "feature_count": 33,
   "target_cols": [
     "growth_초장",
     "growth_생장길이",
@@ -16,9 +16,9 @@
     "growth_착과마디"
   ],
   "n_train": 1144,
-  "cv_r2_mean": -0.051,
+  "cv_r2_mean": -0.056,
   "cv_r2_std": 0.0,
-  "cv_r2_min": -0.175,
+  "cv_r2_min": -0.176,
   "gate_passed": false,
   "env_to_growth_lag": 2
 }

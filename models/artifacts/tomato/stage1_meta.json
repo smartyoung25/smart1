@@ -3,7 +3,7 @@
   "crop_en": "tomato",
   "stage": 1,
   "model_type": "ridge_stage1",
-  "feature_count": 32,
+  "feature_count": 33,
   "target_cols": [
     "growth_초장",
     "growth_생장길이",
@@ -18,9 +18,9 @@
     "growth_착과군"
   ],
   "n_train": 1721,
-  "cv_r2_mean": -0.041,
+  "cv_r2_mean": -0.025,
   "cv_r2_std": 0.0,
-  "cv_r2_min": -0.285,
+  "cv_r2_min": -0.251,
   "gate_passed": false,
   "env_to_growth_lag": 2
 }
