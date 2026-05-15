@@ -737,6 +737,73 @@ def train_stage2(df: pd.DataFrame, config: CropConfig) -> dict:
         logger.info("  CV R²=%.3f  MAPE=%.1f%%  best_n=%d",
                     cv_r2_mean, cv_mape_mean, best_n)
 
+        # ── Ridge CV 비교: XGB early stopping이 너무 이른 경우(소샘플) Ridge가 더 안정적 ──
+        from sklearn.preprocessing import StandardScaler as _StdScaler
+        _scaler_r = _StdScaler()
+        X_sc_r = _scaler_r.fit_transform(X)
+        _ridge_alphas = [0.1, 1.0, 10.0, 100.0]
+        best_r_alpha, best_r_cv_r2, best_r_cv_mape = 10.0, -999.0, 999.0
+
+        for _alpha in _ridge_alphas:
+            _fold_r2s, _fold_mapes = [], []
+            for _tr, _vl in tscv.split(X_sc_r):
+                _rm = Ridge(alpha=_alpha)
+                _rm.fit(X_sc_r[_tr], np.log1p(y[_tr]))
+                _yp = np.expm1(_rm.predict(X_sc_r[_vl]))
+                _yt = y[_vl]
+                _fold_r2s.append(float(r2_score(_yt, _yp)))
+                _fold_mapes.append(_mape(_yt, _yp))
+            _a_r2   = float(np.mean(_fold_r2s))
+            _a_mape = float(np.mean(_fold_mapes))
+            logger.info("    Ridge alpha=%.1f  CV R²=%.3f  MAPE=%.1f%%",
+                        _alpha, _a_r2, _a_mape)
+            if _a_r2 > best_r_cv_r2:
+                best_r_cv_r2, best_r_cv_mape, best_r_alpha = _a_r2, _a_mape, _alpha
+
+        logger.info("  Ridge 최적: alpha=%.1f  CV R²=%.3f  MAPE=%.1f%%",
+                    best_r_alpha, best_r_cv_r2, best_r_cv_mape)
+
+        # Ridge 선택 기준:
+        #   (1) CV R² 개선 필수
+        #   (2) CV MAPE는 XGB 대비 최대 15% 이내 악화 허용
+        #       → 극단적 MAPE 회귀(방울토마토처럼 272% vs 212%) 방지
+        _mape_tolerance = cv_mape_mean * 1.15
+        _ridge_wins = best_r_cv_r2 > cv_r2_mean and best_r_cv_mape <= _mape_tolerance
+        logger.info("  Ridge 선택 여부: R²↑=%s  MAPE 허용(%.1f%%≤%.1f%%)=%s",
+                    best_r_cv_r2 > cv_r2_mean,
+                    best_r_cv_mape, _mape_tolerance,
+                    best_r_cv_mape <= _mape_tolerance)
+
+        if _ridge_wins:
+            logger.info("  → Ridge 모델 선택 (CV R²=%.3f > XGB CV R²=%.3f, MAPE OK)",
+                        best_r_cv_r2, cv_r2_mean)
+            _final_ridge = Ridge(alpha=best_r_alpha)
+            _final_ridge.fit(X_sc_r, np.log1p(y))
+            _yp_all = np.expm1(_final_ridge.predict(X_sc_r))
+            _tr_r2  = float(r2_score(y, _yp_all))
+            _tr_mape = _mape(y, _yp_all)
+            logger.info("  Ridge 훈련 R²=%.3f  MAPE=%.1f%%", _tr_r2, _tr_mape)
+            return {
+                "type": "ridge_cv_winner",
+                "model": _final_ridge,
+                "imputer": imputer,
+                "scaler": _scaler_r,
+                "feature_cols": feature_cols,
+                "log_transform": True,
+                "cv_r2_mean":   round(best_r_cv_r2,   3),
+                "cv_r2_std":    0.0,
+                "cv_mape_mean": round(best_r_cv_mape,  1),
+                "final_r2":     round(_tr_r2,  3),
+                "mape":         round(_tr_mape, 1),
+                "n_train": n_samples,
+                "all_feature_cols": feature_cols,
+                "shap_top_n": 0,
+                "farm_encoding": farm_encoding,
+            }
+        else:
+            logger.info("  → XGB 모델 유지 (Ridge 미충족: R²=%.3f MAPE=%.1f%%)",
+                        best_r_cv_r2, best_r_cv_mape)
+
         # 전체 데이터로 최종 학습 (best_n + 동일 파라미터)
         final_model = xgb.XGBRegressor(
             n_estimators=best_n,
