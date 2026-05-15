@@ -795,9 +795,9 @@ def train_stage2(df: pd.DataFrame, config: CropConfig) -> dict:
 
         # 모델 후보 중 최우수 CV R² 선택 (XGB / LGB / 앙상블)
         _candidates = {
-            "xgb":      (cv_r2_mean,  cv_mape_mean),
-            "lgb":      (lgb_cv_r2_mean, lgb_cv_mape_mean),
-            "ensemble": (ens_cv_r2_mean, ens_cv_mape_mean),
+            "xgb":              (cv_r2_mean,      cv_mape_mean),
+            "lgb":              (lgb_cv_r2_mean,  lgb_cv_mape_mean),
+            "xgb_lgb_ensemble": (ens_cv_r2_mean,  ens_cv_mape_mean),
         }
         _best_tree_type = max(_candidates, key=lambda k: _candidates[k][0])
         _best_tree_r2, _best_tree_mape = _candidates[_best_tree_type]
@@ -829,12 +829,6 @@ def train_stage2(df: pd.DataFrame, config: CropConfig) -> dict:
 
         # ── 최우수 모델 선택: XGB / LGB / 앙상블 / Ridge ─────────────────────
         # 기준: CV R² 최대화, MAPE는 현재 최우수 트리 대비 15% 이내 악화 허용
-        _all_candidates = {
-            "xgb":            (cv_r2_mean,      cv_mape_mean),
-            "lgb":            (lgb_cv_r2_mean,  lgb_cv_mape_mean),
-            "xgb_lgb_ensemble": (ens_cv_r2_mean,  ens_cv_mape_mean),
-            "ridge_cv_winner": (best_r_cv_r2,   best_r_cv_mape),
-        }
         _ref_r2   = _best_tree_r2    # 최우수 트리 CV R²를 기준으로 Ridge 비교
         _ref_mape = _best_tree_mape
         _mape_tolerance = _ref_mape * 1.15
