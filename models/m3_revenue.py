@@ -134,12 +134,16 @@ class M3RevenueModel:
         # Ridge 보정 (있으면)
         if self._ridge is not None:
             try:
+                price_seasonality = price_med / (self.get_price(crop_ko, "median") + 1e-9)
                 X_feat = np.array([[
                     np.log1p(max(0, yield_kg_m2)),
-                    np.log1p(price_med),
+                    np.log1p(price_med),       # 월별 가격
                     float(month),
+                    price_seasonality,         # 계절성 지수
                 ]])
-                rev_corrected = float(np.expm1(self._ridge.predict(X_feat)[0]))
+                # 피처 수가 Ridge 학습 당시와 다를 수 있음 → 안전하게 맞춤
+                n_ridge_feats = getattr(self._ridge, "n_features_in_", X_feat.shape[1])
+                rev_corrected = float(np.expm1(self._ridge.predict(X_feat[:, :n_ridge_feats])[0]))
                 revenue = max(0.0, rev_corrected)
             except Exception as e:
                 logger.warning("[M3] Ridge 예측 실패(%s) — 기본 곱셈 사용", e)

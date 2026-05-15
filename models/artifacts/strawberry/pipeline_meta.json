@@ -48,16 +48,28 @@
     "crop_en": "strawberry",
     "feature_names": [
       "log_yield",
-      "log_price_median",
-      "month"
+      "log_price_monthly",
+      "month",
+      "price_seasonality"
     ],
     "price_median": 9000.0,
     "price_p25": 5541.0,
     "price_p75": 12700.0,
-    "cv_mape_mean": 69.9,
-    "mape": 84.6,
+    "monthly_price_map": {
+      "1": 11500.0,
+      "2": 8809.0,
+      "3": 7341.0,
+      "4": 6518.0,
+      "5": 6130.0,
+      "6": 6000.0,
+      "10": 23000.0,
+      "11": 15000.0,
+      "12": 12663.0
+    },
+    "cv_mape_mean": 59.4,
+    "mape": 66.2,
     "gate_passed": false,
-    "n_train": 1233,
+    "n_train": 1207,
     "stage": 3
   },
   "stage4": {}
