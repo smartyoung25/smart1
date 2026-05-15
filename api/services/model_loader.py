@@ -1,15 +1,17 @@
-"""ML 모델 로더 — 작목별 학습된 pkl 모델 로드 및 예측 인터페이스.
+"""ML 모델 로더 — 4-Stage 파이프라인 우선, 구형 pkl 폴백.
 
-학습 파일: scripts/train_strawberry_pipeline.py, scripts/train_multi_crop_pipeline.py
-결과물:    models/artifacts/{crop_en}_revenue_model.pkl
+로드 우선순위:
+  1. 신형 4-stage: models/artifacts/{crop_en}/stage2_yield.pkl + stage3_revenue_coef.pkl
+  2. 구형 앙상블:  models/artifacts/{crop_en}_revenue_model.pkl
+  3. 없으면 None → 호출측에서 stats_fallback
 
-패턴:
-  - @lru_cache로 프로세스 당 1회만 로드
-  - pkl 없으면 None 반환 → 호출측에서 통계 폴백
-  - numpy/pandas import 실패 시 전체 모듈 graceful 비활성화
+예측 흐름 (4-stage):
+  env_dict → Stage2(XGBoost) → yield_per_m2/연간 → Stage3(Ridge) → revenue_per_m2/연간
+  → /12 or /작기개월수 → monthly revenue_per_m2
 """
 from __future__ import annotations
 
+import json
 import logging
 import pickle
 from functools import lru_cache
@@ -22,28 +24,14 @@ ROOT          = Path(__file__).parent.parent.parent
 ARTIFACTS_DIR = ROOT / "models" / "artifacts"
 
 # 작목명 별칭 → 표준 작목명 정규화 (품종명 포함 표기 대응)
-# "딸기(설향)", "딸기(금실)" 등 → "딸기"
 _CROP_ALIAS: dict[str, str] = {
-    "딸기(설향)": "딸기",
-    "딸기(금실)": "딸기",
-    "딸기(매향)": "딸기",
+    "딸기(설향)":      "딸기",
+    "딸기(금실)":      "딸기",
+    "딸기(매향)":      "딸기",
     "방울토마토(대추형)": "방울토마토",
-    "완숙토마토(일반)": "완숙토마토",
-    "미등록": "딸기",   # 기본값 폴백
+    "완숙토마토(일반)":  "완숙토마토",
+    "미등록":          "딸기",   # 기본값 폴백
 }
-
-
-def normalize_crop(crop_ko: str) -> str:
-    """품종명 포함 작목명을 표준 작목명으로 정규화.
-
-    예) "딸기(설향)" → "딸기",  "방울토마토" → "방울토마토" (변경 없음)
-    """
-    if crop_ko in _CROP_ALIAS:
-        return _CROP_ALIAS[crop_ko]
-    # 괄호 앞 텍스트만 추출 (e.g. "딸기(설향)" → "딸기")
-    base = crop_ko.split("(")[0].strip()
-    return base if base else crop_ko
-
 
 # 한국어 품목명 → 영문 파일명 매핑
 CROP_EN: dict[str, str] = {
@@ -53,6 +41,16 @@ CROP_EN: dict[str, str] = {
     "참외":       "melon",
     "파프리카":   "paprika",
     "오이":       "cucumber",    # 미학습 — None 반환
+}
+
+# 작목별 작기 개월 수 (연간 yield → 월간 환산)
+_SEASON_MONTHS: dict[str, int] = {
+    "딸기":       6,
+    "방울토마토": 8,
+    "완숙토마토": 8,
+    "참외":       4,
+    "파프리카":  10,
+    "오이":       8,
 }
 
 # farm_id → 품목 매핑 (farmer.py _FARM_META와 동기화)
@@ -73,14 +71,120 @@ except ImportError:
     logger.warning("[model_loader] numpy/pandas 없음 — ML 예측 비활성화")
 
 
-@lru_cache(maxsize=None)
-def load_model(crop_ko: str) -> Optional[dict]:
-    """작목별 pkl 모델 로드 (lru_cache — 프로세스 당 1회).
+def normalize_crop(crop_ko: str) -> str:
+    """품종명 포함 작목명을 표준 작목명으로 정규화."""
+    if crop_ko in _CROP_ALIAS:
+        return _CROP_ALIAS[crop_ko]
+    base = crop_ko.split("(")[0].strip()
+    return base if base else crop_ko
 
-    crop_ko는 normalize_crop()으로 정규화 후 전달 권장.
+
+# ---------------------------------------------------------------------------
+# 4-Stage 모델 로드
+# ---------------------------------------------------------------------------
+
+@lru_cache(maxsize=None)
+def load_4stage_model(crop_ko: str) -> Optional[dict]:
+    """신형 4-stage 아티팩트 로드 (stage2_yield + stage3_revenue_coef).
 
     Returns:
-        model_info dict if available, None otherwise.
+        {"stage2": dict, "stage3": dict, "meta": dict, "crop_en": str} or None
+    """
+    if not _ML_AVAILABLE:
+        return None
+    crop_ko = normalize_crop(crop_ko)
+    crop_en = CROP_EN.get(crop_ko)
+    if not crop_en:
+        return None
+
+    s2_path   = ARTIFACTS_DIR / crop_en / "stage2_yield.pkl"
+    s3_path   = ARTIFACTS_DIR / crop_en / "stage3_revenue_coef.pkl"
+    meta_path = ARTIFACTS_DIR / crop_en / "pipeline_meta.json"
+
+    if not (s2_path.exists() and s3_path.exists()):
+        return None
+
+    try:
+        s2 = pickle.loads(s2_path.read_bytes())
+        s3 = pickle.loads(s3_path.read_bytes())
+        meta = json.loads(meta_path.read_text(encoding="utf-8")) if meta_path.exists() else {}
+        logger.info("[model_loader] 4-stage 로드: %s (s2 feats=%d)",
+                    crop_ko, len(s2.get("feature_cols", [])))
+        return {"stage2": s2, "stage3": s3, "meta": meta, "crop_en": crop_en}
+    except Exception as e:
+        logger.error("[model_loader] 4-stage 로드 실패 %s: %s", crop_ko, e)
+        return None
+
+
+def _predict_4stage(bundle: dict, env_dict: dict, crop_ko: str) -> float:
+    """4-stage 모델로 연간 revenue_per_m2 예측 후 월간 환산 반환.
+
+    Stage2: 환경 피처 → yield_per_m2 (연간 kg/m²)
+    Stage3: yield_per_m2 × price → revenue_per_m2 (연간 원/m²)
+    반환:   revenue_per_m2 / 작기개월수  → 월간 원/m²
+    """
+    s2 = bundle["stage2"]
+    s3 = bundle["stage3"]
+
+    # ── Stage 2: env → yield_per_m2 ────────────────────────────────────────
+    feat_cols = s2.get("feature_cols", [])
+
+    # API 환경값을 Stage2 피처 형식으로 변환
+    # *_std, n_harvest_months 등 누락 피처는 imputer가 훈련 중앙값으로 채움
+    env_map = {
+        "temp_internal_mean": env_dict.get("temp_internal_mean",  env_dict.get("temp_internal",  None)),
+        "humidity_int_mean":  env_dict.get("humidity_int_mean",   env_dict.get("humidity_int",   None)),
+        "co2_ppm_mean":       env_dict.get("co2_ppm_mean",        env_dict.get("co2_ppm",        None)),
+        "solar_rad_mean":     env_dict.get("solar_rad_mean",      env_dict.get("solar_rad",      None)),
+        "soil_temp_mean":     env_dict.get("soil_temp_mean",      env_dict.get("soil_temp",      None)),
+        "gdd_monthly":        env_dict.get("gdd_monthly",         None),
+    }
+    # DataFrame 구성 — 누락 컬럼은 NaN (imputer가 중앙값으로 대체)
+    row = {col: env_map.get(col, float("nan")) for col in feat_cols}
+    X_df  = pd.DataFrame([row], columns=feat_cols)
+    X_imp = s2["imputer"].transform(X_df)
+
+    raw = float(s2["model"].predict(X_imp)[0])
+    yield_per_m2 = float(np.expm1(raw)) if s2.get("log_transform") else raw
+    yield_per_m2 = max(0.0, yield_per_m2)
+
+    # ── Stage 3: yield × price → revenue_per_m2 ────────────────────────────
+    # 가격: price_stats.json 중앙값 (data leakage 방지 — 실제 판매가 사용 금지)
+    from api.data.stats_loader import get_price_krw_kg
+    price_med = float(s3.get("price_median", get_price_krw_kg(crop_ko)))
+
+    ridge = s3.get("ridge")
+    if ridge is not None:
+        feat_names = s3.get("feature_names", [])
+        # stage3 연간 모드: ["log_yield_annual", "log_price_annual"]
+        X3 = np.array([[np.log1p(yield_per_m2), np.log1p(price_med)]])
+        n_feats = getattr(ridge, "n_features_in_", X3.shape[1])
+        revenue_annual = float(np.expm1(ridge.predict(X3[:, :n_feats])[0]))
+    else:
+        revenue_annual = yield_per_m2 * price_med
+
+    revenue_annual = max(0.0, revenue_annual)
+
+    # 월간 환산: 연간 revenue ÷ 작기 개월 수
+    season_months = _SEASON_MONTHS.get(normalize_crop(crop_ko), 8)
+    revenue_monthly = revenue_annual / season_months
+
+    logger.debug(
+        "[4stage] %s yield=%.3f kg/m² revenue_annual=%.0f→monthly=%.0f 원/m²",
+        crop_ko, yield_per_m2, revenue_annual, revenue_monthly,
+    )
+    return revenue_monthly
+
+
+# ---------------------------------------------------------------------------
+# 구형 앙상블 모델 로드 (폴백)
+# ---------------------------------------------------------------------------
+
+@lru_cache(maxsize=None)
+def load_model(crop_ko: str) -> Optional[dict]:
+    """구형 {crop_en}_revenue_model.pkl 로드 (4-stage 없는 경우 폴백).
+
+    crop_ko는 normalize_crop()으로 정규화 후 전달 권장.
     """
     if not _ML_AVAILABLE:
         return None
@@ -90,25 +194,23 @@ def load_model(crop_ko: str) -> Optional[dict]:
         return None
     pkl_path = ARTIFACTS_DIR / f"{crop_en}_revenue_model.pkl"
     if not pkl_path.exists():
-        logger.warning("[model_loader] 모델 없음: %s", pkl_path.name)
         return None
     try:
         with open(pkl_path, "rb") as f:
             model_info = pickle.load(f)
-        logger.info("[model_loader] %s 모델 로드 완료 (%s)",
-                    crop_ko, pkl_path.name)
+        logger.info("[model_loader] 구형 모델 로드: %s", pkl_path.name)
         return model_info
     except Exception as e:
-        logger.error("[model_loader] 로드 실패 %s: %s", pkl_path.name, e)
+        logger.error("[model_loader] 구형 모델 로드 실패 %s: %s", pkl_path.name, e)
         return None
 
 
 def _predict_from_model(model_info: dict, env_dict: dict, month: int) -> float:
-    """모델 정보 dict로 단일 예측값 반환."""
+    """구형 모델 dict로 단일 예측값 반환."""
     feat_cols = model_info["feature_cols"]
-    row = {**env_dict, "month": month}
+    row  = {**env_dict, "month": month}
     X_df = pd.DataFrame([row]).reindex(columns=feat_cols)
-    X = model_info["imputer"].transform(X_df)
+    X    = model_info["imputer"].transform(X_df)
 
     if model_info.get("type") == "ridge_fallback":
         if "scaler" in model_info:
@@ -123,6 +225,10 @@ def _predict_from_model(model_info: dict, env_dict: dict, month: int) -> float:
     return float(np.mean(preds)) if preds else 0.0
 
 
+# ---------------------------------------------------------------------------
+# 공개 인터페이스
+# ---------------------------------------------------------------------------
+
 def predict_revenue_per_m2(
     crop_ko: str,
     env_dict: dict,
@@ -130,24 +236,42 @@ def predict_revenue_per_m2(
 ) -> Optional[float]:
     """환경 변수 dict로 월 m² 당 예측 매출 반환.
 
+    로드 우선순위:
+      1. 신형 4-stage (stage2_yield + stage3_revenue_coef)
+      2. 구형 앙상블 pkl
+      3. None → 호출측 stats_fallback
+
     Args:
         crop_ko:  한국어 품목명 (품종명 포함 가능 — 자동 정규화)
-        env_dict: 환경 변수 (temp_internal_mean, humidity_int_mean, co2_ppm_mean, ...)
-        month:    예측 월 (1~12)
+        env_dict: 환경 변수 dict
+                  temp_internal(_mean), humidity_int(_mean), co2_ppm(_mean),
+                  solar_rad(_mean), soil_temp(_mean), gdd_monthly
+        month:    예측 월 (1~12) — 구형 모델 전용, 4-stage는 무시
 
     Returns:
         float (원/m²/월) if model available, None otherwise.
     """
-    crop_ko    = normalize_crop(crop_ko)
+    crop_ko = normalize_crop(crop_ko)
+
+    # ① 신형 4-stage 우선
+    bundle = load_4stage_model(crop_ko)
+    if bundle is not None:
+        try:
+            val = _predict_4stage(bundle, env_dict, crop_ko)
+            return max(0.0, val)
+        except Exception as e:
+            logger.warning("[model_loader] 4-stage 예측 오류 crop=%s: %s", crop_ko, e)
+
+    # ② 구형 앙상블 폴백
     model_info = load_model(crop_ko)
-    if model_info is None:
-        return None
-    try:
-        val = _predict_from_model(model_info, env_dict, month)
-        return max(0.0, val)   # 음수 방지
-    except Exception as e:
-        logger.warning("[model_loader] 예측 오류 crop=%s: %s", crop_ko, e)
-        return None
+    if model_info is not None:
+        try:
+            val = _predict_from_model(model_info, env_dict, month)
+            return max(0.0, val)
+        except Exception as e:
+            logger.warning("[model_loader] 구형 모델 예측 오류 crop=%s: %s", crop_ko, e)
+
+    return None
 
 
 def predict_season_revenue(
@@ -161,13 +285,23 @@ def predict_season_revenue(
     Returns:
         총 매출 (원) if model available, None otherwise.
     """
-    crop_ko    = normalize_crop(crop_ko)
+    crop_ko = normalize_crop(crop_ko)
+
+    # 4-stage: 연간 revenue × area
+    bundle = load_4stage_model(crop_ko)
+    if bundle is not None:
+        try:
+            monthly_rev = _predict_4stage(bundle, env_dict, crop_ko)
+            return max(0.0, monthly_rev * area_m2 * season_months)
+        except Exception as e:
+            logger.warning("[model_loader] 4-stage 작기 예측 오류 crop=%s: %s", crop_ko, e)
+
+    # 구형: 월별 루프
     model_info = load_model(crop_ko)
     if model_info is None:
         return None
     try:
         total = 0.0
-        # 딸기 작기: 11~4월 (6개월), 방울토마토: 3~10월 (8개월)
         start_month = _get_season_start(crop_ko)
         for i in range(season_months):
             m = (start_month + i - 1) % 12 + 1
@@ -175,15 +309,15 @@ def predict_season_revenue(
             total += max(0.0, rev_pm2) * area_m2
         return total
     except Exception as e:
-        logger.warning("[model_loader] 작기 예측 오류 crop=%s: %s", crop_ko, e)
+        logger.warning("[model_loader] 구형 작기 예측 오류 crop=%s: %s", crop_ko, e)
         return None
 
 
 def _get_season_start(crop_ko: str) -> int:
     """작목별 작기 시작 월."""
     return {
-        "딸기":       11,  # 11월 정식
-        "방울토마토":  3,  # 3월 시작
+        "딸기":       11,
+        "방울토마토":  3,
         "완숙토마토":  3,
         "참외":        4,
         "파프리카":    9,
@@ -192,15 +326,44 @@ def _get_season_start(crop_ko: str) -> int:
 
 
 def get_model_meta(crop_ko: str) -> dict:
-    """로드된 모델 메타정보 반환 (type, train_r2, feature_count 등)."""
-    crop_ko    = normalize_crop(crop_ko)
+    """로드된 모델 메타정보 반환.
+
+    4-stage 있으면 stage2/3 메타, 없으면 구형 모델 메타 반환.
+    """
+    crop_ko = normalize_crop(crop_ko)
+
+    # 4-stage 우선
+    bundle = load_4stage_model(crop_ko)
+    if bundle is not None:
+        meta    = bundle.get("meta", {})
+        s2_meta = meta.get("stage2", {})
+        s3_meta = meta.get("stage3", {})
+        return {
+            "crop":           crop_ko,
+            "status":         "loaded",
+            "model_type":     "4stage",
+            "train_r2":       s2_meta.get("cv_r2_mean"),
+            "train_mape":     s2_meta.get("mape"),
+            "feature_count":  s2_meta.get("feature_count"),
+            "n_train":        s2_meta.get("n_train"),
+            "stage2_mape":    s2_meta.get("mape"),
+            "stage2_cv_r2":   s2_meta.get("cv_r2_mean"),
+            "stage2_gate":    s2_meta.get("gate_passed", False),
+            "stage2_n_train": s2_meta.get("n_train"),
+            "stage2_area_from_registry": s2_meta.get("area_from_registry_count", 0),
+            "stage3_mape":    s3_meta.get("mape"),
+            "stage3_gate":    s3_meta.get("gate_passed", False),
+            "price_median_krw_kg": bundle["stage3"].get("price_median"),
+        }
+
+    # 구형 폴백
     model_info = load_model(crop_ko)
     if model_info is None:
         return {"crop": crop_ko, "status": "no_model"}
     return {
         "crop":          crop_ko,
         "status":        "loaded",
-        "model_type":    model_info.get("type", "unknown"),
+        "model_type":    model_info.get("type", "legacy_ensemble"),
         "train_r2":      model_info.get("train_r2"),
         "train_mape":    model_info.get("train_mape"),
         "feature_count": len(model_info.get("feature_cols", [])),

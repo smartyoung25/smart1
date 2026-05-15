@@ -826,9 +826,10 @@ def _compute_costs(farm_id: str) -> CostBreakdownResponse:
     _MANUAL_COSTS[farm_id] 에 실제값이 있으면 해당 항목 우선 사용,
     없으면 _RESOURCE_COSTS 기본값 사용.
     """
-    rc  = _RESOURCE_COSTS[farm_id]
-    mc  = persistence.get_manual_cost(farm_id)
-    meta = _FARM_META[farm_id]
+    # farm_id가 _RESOURCE_COSTS에 없으면 가장 유사한 기본값(farm_001) 사용
+    rc   = _RESOURCE_COSTS.get(farm_id, _RESOURCE_COSTS["farm_001"])
+    mc   = persistence.get_manual_cost(farm_id)
+    meta = _FARM_META.get(farm_id, _FARM_META["farm_001"])
     DAYS = 30
 
     def _v(key_manual: str, default: float) -> tuple[float, bool]:
