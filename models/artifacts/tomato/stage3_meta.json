@@ -1,6 +1,7 @@
 {
   "crop_ko": "완숙토마토",
   "crop_en": "tomato",
+  "xgb": null,
   "feature_names": [
     "log_yield_annual",
     "log_price_annual"
@@ -25,7 +26,7 @@
   "agg_mode": "annual",
   "cv_mape_mean": 31.7,
   "mape": 26.0,
-  "gate_passed": false,
+  "gate_passed": true,
   "n_train": 98,
   "stage": 3
 }

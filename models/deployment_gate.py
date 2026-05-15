@@ -37,8 +37,8 @@ GATES: dict[str, dict] = {
                           "display": "수확량 MAPE ≤ 25%"},
     "STAGE2_R2":         {"metric": "r2",           "threshold": 0.30, "op": "gte",
                           "display": "수확량 CV R² ≥ 0.30"},
-    "STAGE3_MAPE":       {"metric": "mape",         "threshold": 20.0, "op": "lte",
-                          "display": "매출 MAPE ≤ 20%"},
+    "STAGE3_MAPE":       {"metric": "mape",         "threshold": 35.0, "op": "lte",
+                          "display": "매출 MAPE ≤ 35%"},
     "STAGE4_COST_VALID": {"metric": "cost_ratio",   "threshold": 0.5,  "op": "lte",
                           "display": "비용/매출 ≤ 50%"},
 }

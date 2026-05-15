@@ -1,6 +1,7 @@
 {
   "crop_ko": "파프리카",
   "crop_en": "paprika",
+  "xgb": null,
   "feature_names": [
     "log_yield_annual",
     "log_price_annual"
