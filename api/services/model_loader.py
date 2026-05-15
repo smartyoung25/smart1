@@ -144,11 +144,21 @@ def _predict_4stage(bundle: dict, env_dict: dict, crop_ko: str) -> float:
     X_df  = pd.DataFrame([row], columns=feat_cols)
     X_imp = s2["imputer"].transform(X_df)
 
-    # ridge_cv_winner 또는 ridge_fallback 타입은 StandardScaler 전처리 필요
+    # ridge_cv_winner / ridge_fallback: StandardScaler 전처리 필요
     if "scaler" in s2:
         X_imp = s2["scaler"].transform(X_imp)
 
-    raw = float(s2["model"].predict(X_imp)[0])
+    model_type = s2.get("type", "xgb")
+    if model_type == "xgb_lgb_ensemble" and "model_lgb" in s2:
+        # XGB + LGB 앙상블 (0.5 : 0.5 평균)
+        raw_xgb = float(s2["model"].predict(X_imp)[0])
+        raw_lgb = float(s2["model_lgb"].predict(X_imp)[0])
+        raw = 0.5 * raw_xgb + 0.5 * raw_lgb
+    elif model_type == "lgb" and "model_lgb" in s2:
+        raw = float(s2["model_lgb"].predict(X_imp)[0])
+    else:
+        raw = float(s2["model"].predict(X_imp)[0])
+
     yield_per_m2 = float(np.expm1(raw)) if s2.get("log_transform") else raw
     yield_per_m2 = max(0.0, yield_per_m2)
 

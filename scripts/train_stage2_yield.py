@@ -705,6 +705,7 @@ def train_stage2(df: pd.DataFrame, config: CropConfig) -> dict:
 
         tscv = TimeSeriesSplit(n_splits=n_splits)
         cv_r2, cv_mape, best_iters = [], [], []
+        xgb_val_preds: list[tuple] = []  # (y_true_v, y_xgb_pred) per fold — 앙상블용
 
         for fold, (tr_idx, val_idx) in enumerate(tscv.split(X)):
             X_tr, X_val = X[tr_idx], X[val_idx]
@@ -723,19 +724,84 @@ def train_stage2(df: pd.DataFrame, config: CropConfig) -> dict:
 
             y_pred_v = np.expm1(fold_m.predict(X_val))
             y_true_v = np.expm1(y_val)
+            xgb_val_preds.append((y_true_v, y_pred_v))   # 앙상블 계산용 저장
             r2   = float(r2_score(y_true_v, y_pred_v))
             mape = _mape(y_true_v, y_pred_v)
             cv_r2.append(r2)
             cv_mape.append(mape)
             best_iters.append(fold_m.best_iteration)
-            logger.info("  Fold %d R²=%.3f MAPE=%.1f%% (n_trees=%d)",
+            logger.info("  Fold %d XGB R²=%.3f MAPE=%.1f%% (n_trees=%d)",
                         fold + 1, r2, mape, fold_m.best_iteration)
 
         cv_r2_mean  = float(np.mean(cv_r2))
         cv_mape_mean = float(np.mean(cv_mape))
         best_n = max(50, int(np.median(best_iters)))
-        logger.info("  CV R²=%.3f  MAPE=%.1f%%  best_n=%d",
+        logger.info("  XGB CV R²=%.3f  MAPE=%.1f%%  best_n=%d",
                     cv_r2_mean, cv_mape_mean, best_n)
+
+        # ── LightGBM CV + 앙상블 CV ────────────────────────────────────────────
+        lgb_cv_r2_mean, lgb_cv_mape_mean, lgb_best_n = -999.0, 999.0, 50
+        ens_cv_r2_mean, ens_cv_mape_mean = -999.0, 999.0
+        _lgb_available = False
+        try:
+            import lightgbm as _lgb
+            _lgb_available = True
+
+            _lgb_cv_r2, _lgb_cv_mape, _lgb_best_iters = [], [], []
+            _ens_cv_r2, _ens_cv_mape = [], []
+            _num_leaves = min(31, max(7, 2 ** xgb_depth - 1))
+
+            for _fold2, (_tr2, _vl2) in enumerate(tscv.split(X)):
+                _lgb_m = _lgb.LGBMRegressor(
+                    n_estimators=500, learning_rate=xgb_lr,
+                    max_depth=xgb_depth, num_leaves=_num_leaves,
+                    min_child_samples=max(2, xgb_mcw),
+                    subsample=xgb_sub, colsample_bytree=0.8,
+                    random_state=42, verbosity=-1, n_jobs=1,
+                )
+                _lgb_m.fit(
+                    X[_tr2], np.log1p(y[_tr2]),
+                    eval_set=[(X[_vl2], np.log1p(y[_vl2]))],
+                    callbacks=[
+                        _lgb.early_stopping(xgb_es, verbose=False),
+                        _lgb.log_evaluation(-1),
+                    ],
+                )
+                _y_lgb = np.expm1(_lgb_m.predict(X[_vl2]))
+                _y_tv, _y_xgb = xgb_val_preds[_fold2]
+                _y_ens = 0.5 * _y_xgb + 0.5 * _y_lgb
+
+                _r2_lgb = float(r2_score(_y_tv, _y_lgb))
+                _r2_ens = float(r2_score(_y_tv, _y_ens))
+                _lgb_cv_r2.append(_r2_lgb)
+                _lgb_cv_mape.append(_mape(_y_tv, _y_lgb))
+                _ens_cv_r2.append(_r2_ens)
+                _ens_cv_mape.append(_mape(_y_tv, _y_ens))
+                _lgb_best_iters.append(_lgb_m.best_iteration_ or xgb_es)
+
+            lgb_cv_r2_mean  = float(np.mean(_lgb_cv_r2))
+            lgb_cv_mape_mean = float(np.mean(_lgb_cv_mape))
+            ens_cv_r2_mean  = float(np.mean(_ens_cv_r2))
+            ens_cv_mape_mean = float(np.mean(_ens_cv_mape))
+            lgb_best_n = max(30, int(np.median(_lgb_best_iters)))
+            logger.info("  LGB  CV R²=%.3f  MAPE=%.1f%%  best_n=%d",
+                        lgb_cv_r2_mean, lgb_cv_mape_mean, lgb_best_n)
+            logger.info("  ENS  CV R²=%.3f  MAPE=%.1f%%",
+                        ens_cv_r2_mean, ens_cv_mape_mean)
+        except ImportError:
+            logger.info("  LightGBM 없음 — XGB 단독 사용")
+        except Exception as _e_lgb:
+            logger.warning("  LGB 학습 오류(%s) — XGB 단독 사용", _e_lgb)
+
+        # 모델 후보 중 최우수 CV R² 선택 (XGB / LGB / 앙상블)
+        _candidates = {
+            "xgb":      (cv_r2_mean,  cv_mape_mean),
+            "lgb":      (lgb_cv_r2_mean, lgb_cv_mape_mean),
+            "ensemble": (ens_cv_r2_mean, ens_cv_mape_mean),
+        }
+        _best_tree_type = max(_candidates, key=lambda k: _candidates[k][0])
+        _best_tree_r2, _best_tree_mape = _candidates[_best_tree_type]
+        logger.info("  트리 모델 최우수: %s (CV R²=%.3f)", _best_tree_type, _best_tree_r2)
 
         # ── Ridge CV 비교: XGB early stopping이 너무 이른 경우(소샘플) Ridge가 더 안정적 ──
         from sklearn.preprocessing import StandardScaler as _StdScaler
@@ -755,28 +821,36 @@ def train_stage2(df: pd.DataFrame, config: CropConfig) -> dict:
                 _fold_mapes.append(_mape(_yt, _yp))
             _a_r2   = float(np.mean(_fold_r2s))
             _a_mape = float(np.mean(_fold_mapes))
-            logger.info("    Ridge alpha=%.1f  CV R²=%.3f  MAPE=%.1f%%",
-                        _alpha, _a_r2, _a_mape)
             if _a_r2 > best_r_cv_r2:
                 best_r_cv_r2, best_r_cv_mape, best_r_alpha = _a_r2, _a_mape, _alpha
 
         logger.info("  Ridge 최적: alpha=%.1f  CV R²=%.3f  MAPE=%.1f%%",
                     best_r_alpha, best_r_cv_r2, best_r_cv_mape)
 
-        # Ridge 선택 기준:
-        #   (1) CV R² 개선 필수
-        #   (2) CV MAPE는 XGB 대비 최대 15% 이내 악화 허용
-        #       → 극단적 MAPE 회귀(방울토마토처럼 272% vs 212%) 방지
-        _mape_tolerance = cv_mape_mean * 1.15
-        _ridge_wins = best_r_cv_r2 > cv_r2_mean and best_r_cv_mape <= _mape_tolerance
-        logger.info("  Ridge 선택 여부: R²↑=%s  MAPE 허용(%.1f%%≤%.1f%%)=%s",
-                    best_r_cv_r2 > cv_r2_mean,
-                    best_r_cv_mape, _mape_tolerance,
-                    best_r_cv_mape <= _mape_tolerance)
+        # ── 최우수 모델 선택: XGB / LGB / 앙상블 / Ridge ─────────────────────
+        # 기준: CV R² 최대화, MAPE는 현재 최우수 트리 대비 15% 이내 악화 허용
+        _all_candidates = {
+            "xgb":            (cv_r2_mean,      cv_mape_mean),
+            "lgb":            (lgb_cv_r2_mean,  lgb_cv_mape_mean),
+            "xgb_lgb_ensemble": (ens_cv_r2_mean,  ens_cv_mape_mean),
+            "ridge_cv_winner": (best_r_cv_r2,   best_r_cv_mape),
+        }
+        _ref_r2   = _best_tree_r2    # 최우수 트리 CV R²를 기준으로 Ridge 비교
+        _ref_mape = _best_tree_mape
+        _mape_tolerance = _ref_mape * 1.15
 
-        if _ridge_wins:
-            logger.info("  → Ridge 모델 선택 (CV R²=%.3f > XGB CV R²=%.3f, MAPE OK)",
-                        best_r_cv_r2, cv_r2_mean)
+        # Ridge는 트리보다 CV R²가 높아야 AND MAPE 허용 범위 내여야 선택
+        _ridge_eligible = (
+            best_r_cv_r2 > _ref_r2
+            and best_r_cv_mape <= _mape_tolerance
+        )
+        logger.info("  Ridge 선택 여부: R²↑=%s (%.3f>%.3f)  MAPE 허용(%.1f%%≤%.1f%%)=%s",
+                    best_r_cv_r2 > _ref_r2, best_r_cv_r2, _ref_r2,
+                    best_r_cv_mape, _mape_tolerance, best_r_cv_mape <= _mape_tolerance)
+
+        if _ridge_eligible:
+            logger.info("  → Ridge 모델 선택 (CV R²=%.3f > 트리 %.3f, MAPE OK)",
+                        best_r_cv_r2, _ref_r2)
             _final_ridge = Ridge(alpha=best_r_alpha)
             _final_ridge.fit(X_sc_r, np.log1p(y))
             _yp_all = np.expm1(_final_ridge.predict(X_sc_r))
@@ -800,9 +874,98 @@ def train_stage2(df: pd.DataFrame, config: CropConfig) -> dict:
                 "shap_top_n": 0,
                 "farm_encoding": farm_encoding,
             }
-        else:
-            logger.info("  → XGB 모델 유지 (Ridge 미충족: R²=%.3f MAPE=%.1f%%)",
-                        best_r_cv_r2, best_r_cv_mape)
+
+        # ── LGB 단독 또는 앙상블이 XGB보다 나은 경우 → 즉시 반환 ─────────────
+        if _lgb_available and _best_tree_type in ("lgb", "xgb_lgb_ensemble"):
+            logger.info("  → %s 선택 (CV R²=%.3f > XGB=%.3f)",
+                        _best_tree_type, _best_tree_r2, cv_r2_mean)
+
+            # 최종 전체 데이터 학습
+            _xgb_final = xgb.XGBRegressor(
+                n_estimators=best_n, learning_rate=xgb_lr, max_depth=xgb_depth,
+                subsample=xgb_sub, colsample_bytree=0.8,
+                min_child_weight=xgb_mcw, random_state=42, verbosity=0,
+            )
+            _xgb_final.fit(X, np.log1p(y))
+
+            _lgb_final = _lgb.LGBMRegressor(
+                n_estimators=lgb_best_n, learning_rate=xgb_lr,
+                max_depth=xgb_depth, num_leaves=_num_leaves,
+                min_child_samples=max(2, xgb_mcw),
+                subsample=xgb_sub, colsample_bytree=0.8,
+                random_state=42, verbosity=-1, n_jobs=1,
+            )
+            _lgb_final.fit(X, np.log1p(y))
+
+            if _best_tree_type == "lgb":
+                _yp_all = np.expm1(_lgb_final.predict(X))
+                _sel_r2   = lgb_cv_r2_mean
+                _sel_mape = lgb_cv_mape_mean
+            else:  # ensemble
+                _yp_all = 0.5 * np.expm1(_xgb_final.predict(X)) + \
+                          0.5 * np.expm1(_lgb_final.predict(X))
+                _sel_r2   = ens_cv_r2_mean
+                _sel_mape = ens_cv_mape_mean
+
+            _tr_r2   = float(r2_score(y, _yp_all))
+            _tr_mape = _mape(y, _yp_all)
+            logger.info("  %s 훈련 R²=%.3f  MAPE=%.1f%%", _best_tree_type, _tr_r2, _tr_mape)
+
+            # SHAP 피처 선택은 XGB 모델 기준 (LGB SHAP도 유사)
+            top_n = 8 if n_samples < 150 else (10 if n_samples < 300 else 15)
+            shap_selected = select_top_features(_xgb_final, X, feature_cols, top_n)
+            _ALWAYS_INCLUDE = [
+                "farm_quality", "farm_yield_hist_mean",
+                "variety_yield_mean", "variety_rank", "log_area_m2",
+            ]
+            always_in = [f for f in _ALWAYS_INCLUDE if f in feature_cols]
+            selected_set = dict.fromkeys(shap_selected)
+            for f in always_in:
+                selected_set.setdefault(f, None)
+            selected_features = list(selected_set.keys())
+
+            sel_idx = [feature_cols.index(f) for f in selected_features if f in feature_cols]
+            X_sel   = X[:, sel_idx]
+            imp_sel = SimpleImputer(strategy="median").fit(X_raw[selected_features])
+
+            # 피처 선택 후 최종 재학습
+            _xgb_sel = xgb.XGBRegressor(
+                n_estimators=best_n, learning_rate=xgb_lr, max_depth=xgb_depth,
+                subsample=xgb_sub, colsample_bytree=0.8,
+                min_child_weight=xgb_mcw, random_state=42, verbosity=0,
+            )
+            _xgb_sel.fit(X_sel, np.log1p(y))
+
+            _lgb_sel = _lgb.LGBMRegressor(
+                n_estimators=lgb_best_n, learning_rate=xgb_lr,
+                max_depth=xgb_depth, num_leaves=_num_leaves,
+                min_child_samples=max(2, xgb_mcw),
+                subsample=xgb_sub, colsample_bytree=0.8,
+                random_state=42, verbosity=-1, n_jobs=1,
+            )
+            _lgb_sel.fit(X_sel, np.log1p(y))
+
+            return {
+                "type": _best_tree_type,
+                "model": _xgb_sel,       # XGB 모델 (앙상블 시 model_lgb와 함께 사용)
+                "model_lgb": _lgb_sel,   # LGB 모델 (single LGB 모드에서도 저장)
+                "imputer": imp_sel,
+                "feature_cols": selected_features,
+                "log_transform": True,
+                "best_n_estimators": best_n,
+                "lgb_best_n": lgb_best_n,
+                "cv_r2_mean":   round(_sel_r2,   3),
+                "cv_r2_std":    0.0,
+                "cv_mape_mean": round(_sel_mape,  1),
+                "final_r2":     round(_tr_r2,  3),
+                "mape":         round(_tr_mape, 1),
+                "n_train": n_samples,
+                "all_feature_cols": feature_cols,
+                "shap_top_n": top_n,
+                "farm_encoding": farm_encoding,
+            }
+
+        logger.info("  → XGB 단독 선택 (CV R²=%.3f 최우수)", cv_r2_mean)
 
         # 전체 데이터로 최종 학습 (best_n + 동일 파라미터)
         final_model = xgb.XGBRegressor(
@@ -980,8 +1143,8 @@ def run_crop(crop_ko: str) -> dict | None:
     pkl_path = art_dir / "stage2_yield.pkl"
     meta_path = art_dir / "stage2_meta.json"
 
-    save_keys = {"model", "imputer", "scaler", "feature_cols", "log_transform",
-                 "best_n_estimators", "farm_encoding"}
+    save_keys = {"model", "model_lgb", "imputer", "scaler", "feature_cols",
+                 "log_transform", "best_n_estimators", "lgb_best_n", "farm_encoding"}
     bundle = {k: v for k, v in result.items() if k in save_keys}
     with open(pkl_path, "wb") as f:
         pickle.dump(bundle, f)
@@ -995,6 +1158,8 @@ def run_crop(crop_ko: str) -> dict | None:
         "n_train": result.get("n_train"),
         "log_transform": result.get("log_transform", True),
         "best_n_estimators": result.get("best_n_estimators"),
+        "lgb_best_n": result.get("lgb_best_n"),
+        "has_lgb": result.get("model_lgb") is not None,
         "cv_r2_mean":  result.get("cv_r2_mean"),
         "cv_r2_std":   result.get("cv_r2_std"),
         "cv_mape_mean": result.get("cv_mape_mean"),
