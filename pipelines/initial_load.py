@@ -292,23 +292,59 @@ def load_historical_zips(engine, farm_id: str = EEAM_FARM_ID) -> int:
         logger.info("No historical ZIP files found under %s", DATA_DIR)
         return 0
 
+    # ZIP 내 파일 유형별 작목 매핑
+    _CROP_KW: list[tuple[str, str]] = [
+        ("딸기", "딸기"), ("방울토마토", "방울토마토"), ("완숙토마토", "완숙토마토"),
+        ("참외", "참외"), ("파프리카", "파프리카"), ("오이", "오이"),
+    ]
+    _CROP_FARM: dict[str, str] = {
+        "딸기": "farm_001", "방울토마토": "farm_002", "완숙토마토": "farm_003",
+        "참외": "farm_004", "파프리카": "farm_005", "오이": "farm_001",
+    }
+
     for zip_path in zip_files:
         logger.info("Processing ZIP: %s", zip_path)
         with zipfile.ZipFile(zip_path, "r") as zf:
-            for name in zf.namelist():
-                if not name.lower().endswith(".csv"):
+            for raw_name in zf.namelist():
+                if not raw_name.lower().endswith(".csv"):
                     continue
-                chunk_count = 0
+                # ZIP 내 파일명을 cp949로 디코딩
                 try:
-                    with zf.open(name) as f:
-                        for chunk in pd.read_csv(f, encoding="cp949", chunksize=5000):
-                            result = adapt_dataframe(chunk, farm_id=farm_id)
-                            chunk_count += _insert_records(engine, result.records)
-                except Exception as exc:
-                    logger.warning("Could not read %s in %s: %s", name, zip_path, exc)
+                    name = raw_name.encode("cp437").decode("cp949")
+                except Exception:
+                    name = raw_name
+
+                base = name.split("/")[-1].lower()
+                chunk_count = 0
+
+                # 출하량 데이터 — env_measurements와 관련 없으므로 건너뜀
+                if "출하" in name or "소득" in name or "판매" in name:
                     continue
+
+                try:
+                    if "환경" in name:
+                        # 환경 센서 데이터 → env_measurements
+                        with zf.open(raw_name) as f:
+                            for chunk in pd.read_csv(f, encoding="cp949", chunksize=5000):
+                                result = adapt_dataframe(chunk, farm_id=farm_id)
+                                chunk_count += _insert_records(engine, result.records)
+                    elif "생육" in name:
+                        # 생육 데이터 → growth_measurements
+                        crop = next((c for kw, c in _CROP_KW if kw in name), "딸기")
+                        fid = _CROP_FARM.get(crop, farm_id)
+                        with zf.open(raw_name) as f:
+                            df = pd.read_csv(f, encoding="cp949")
+                        rows = _parse_growth_csv(df, crop, fid, source_id="rda_zip")
+                        chunk_count = _insert_growth_records(engine, rows)
+                    else:
+                        continue  # 알 수 없는 파일 건너뜀
+                except Exception as exc:
+                    logger.warning("Could not process %s: %s", name, exc)
+                    continue
+
                 total += chunk_count
-                logger.info("  %s: inserted %d records", name, chunk_count)
+                if chunk_count > 0:
+                    logger.info("  %s: inserted %d records", base, chunk_count)
     logger.info("Historical ZIPs total: %d records", total)
     return total
 
