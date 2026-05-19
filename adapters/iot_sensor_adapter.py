@@ -80,6 +80,11 @@ def adapt_dataframe(df, farm_id: str, time_col: str = "측정일시") -> Adapter
         farm_id:  farm identifier
         time_col: name of the timestamp column (auto-detected if not in df)
     """
+    import re as _re
+    # Strip unit bracket annotations from column names: 온도_외부[celsius[℃]] → 온도_외부
+    df = df.copy()
+    df.columns = [_re.sub(r'\[.*$', '', c).strip() for c in df.columns]
+
     # Auto-detect time column if provided name not in df
     if time_col not in df.columns:
         _TIME_PATTERNS = [
@@ -101,16 +106,45 @@ def adapt_dataframe(df, farm_id: str, time_col: str = "측정일시") -> Adapter
                     time_col = col
                     break
     combined = AdapterResult()
-    for _, row in df.iterrows():
-        raw_time = row.get(time_col)
-        try:
-            time = datetime.fromisoformat(str(raw_time))
-        except (ValueError, TypeError):
-            combined.errors.append(f"[{SOURCE_ID}] unparseable timestamp '{raw_time}' — row skipped")
+    import pandas as _pd
+    import math as _math
+
+    # Vectorized timestamp parsing (much faster than iterrows fromisoformat)
+    raw_times = df[time_col].astype(str)
+    parsed_times = _pd.to_datetime(raw_times, errors="coerce", infer_datetime_format=True)
+
+    sensor_cols = [c for c in _FIELD_MAP if c in df.columns]
+
+    for idx, (_, row) in enumerate(df.iterrows()):
+        t = parsed_times.iloc[idx]
+        if _pd.isna(t):
+            combined.errors.append(f"[{SOURCE_ID}] unparseable timestamp '{raw_times.iloc[idx]}' — row skipped")
             continue
-        row_result = adapt_row(row.to_dict(), farm_id, time)
-        combined.records.extend(row_result.records)
-        combined.errors.extend(row_result.errors)
+        time_dt = t.to_pydatetime()
+        for src_field in sensor_cols:
+            canonical, transform = _FIELD_MAP[src_field]
+            raw = row.get(src_field)
+            if raw is None or str(raw).strip() in ("", "-", "NA", "N/A"):
+                continue
+            value = safe_float(raw)
+            if value is None:
+                combined.errors.append(f"[{SOURCE_ID}] {src_field}='{raw}' is not numeric — skipped")
+                continue
+            if transform is not None:
+                value = transform(value)
+            if not validate_range(canonical, value):
+                combined.errors.append(
+                    f"[{SOURCE_ID}] {canonical}={value} out of valid range — skipped"
+                )
+                continue
+            combined.records.append(NormalizedRecord(
+                time=time_dt,
+                farm_id=farm_id,
+                canonical_name=canonical,
+                value=value,
+                source_id=SOURCE_ID,
+                quality_tag=QUALITY_TAG,
+            ))
     if combined.errors:
         logger.warning("[iot_sensor_adapter] %d warnings during adapt", len(combined.errors))
     return combined

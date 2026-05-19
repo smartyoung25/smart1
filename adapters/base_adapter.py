@@ -53,6 +53,9 @@ VALID_RANGES: dict[str, tuple[Optional[float], Optional[float]]] = {
 
 
 def validate_range(canonical_name: str, value: float) -> bool:
+    import math
+    if math.isnan(value) or math.isinf(value):
+        return False
     bounds = VALID_RANGES.get(canonical_name)
     if bounds is None:
         return True

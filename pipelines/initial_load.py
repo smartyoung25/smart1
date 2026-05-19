@@ -323,11 +323,13 @@ def load_historical_zips(engine, farm_id: str = EEAM_FARM_ID) -> int:
 
                 try:
                     if "환경" in name:
-                        # 환경 센서 데이터 → env_measurements
-                        with zf.open(raw_name) as f:
-                            for chunk in pd.read_csv(f, encoding="cp949", chunksize=5000):
-                                result = adapt_dataframe(chunk, farm_id=farm_id)
-                                chunk_count += _insert_records(engine, result.records)
+                        # 환경 센서 데이터 → env_measurements (BytesIO for chunked read)
+                        import io as _io
+                        raw = zf.read(raw_name)
+                        buf = _io.BytesIO(raw)
+                        for chunk in pd.read_csv(buf, encoding="cp949", chunksize=2000, low_memory=False):
+                            result = adapt_dataframe(chunk, farm_id=farm_id)
+                            chunk_count += _insert_records(engine, result.records)
                     elif "생육" in name:
                         # 생육 데이터 → growth_measurements
                         crop = next((c for kw, c in _CROP_KW if kw in name), "딸기")
@@ -376,16 +378,17 @@ def load_multi_crop_data(engine) -> int:
             if crop_keyword in str(csv_path):
                 farm_id = fid
                 break
+        raw_bytes = csv_path.read_bytes()
+        enc = "utf-8-sig" if raw_bytes[:3] == b"\xef\xbb\xbf" else "cp949"
         try:
-            df = pd.read_csv(csv_path, encoding="cp949")
+            df = pd.read_csv(csv_path, encoding=enc, low_memory=False)
         except Exception as exc:
             logger.warning("Could not read %s: %s", csv_path, exc)
             continue
-        time_col = next((c for c in df.columns if any(k in c for k in ["측정일시", "측정시각", "일시", "시각"])), "측정일시")
-        result = adapt_dataframe(df, farm_id=farm_id, time_col=time_col)
+        result = adapt_dataframe(df, farm_id=farm_id)
         count = _insert_records(engine, result.records)
         total += count
-        logger.info("%s → farm %s: inserted %d records", csv_path.name, farm_id, count)
+        logger.info("%s -> farm %s: inserted %d records", csv_path.name, farm_id, count)
     logger.info("Multi-crop data total: %d records", total)
     return total
 
