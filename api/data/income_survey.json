@@ -1,58 +1,68 @@
 {
   "딸기": {
     "cost_per_m2": {
-      "seed": 800.0,
-      "fertilizer": 180.0,
-      "pesticide": 280.0,
-      "utility": 450.0,
-      "labor": 2800.0,
-      "depreciation": 162.0,
-      "other": 500.0
+      "utility": 28820.9,
+      "hired_labor": 85116.0,
+      "seed": 22250.0,
+      "pesticide": 4615.6,
+      "other": 45108.5
     },
-    "n_farms": 0,
-    "source": "rda_reference",
-    "note": "XLSX 모두 빈 템플릿 — RDA 농업경영 통계(2018-2022) 참고값 적용"
+    "daily_wage_krw": null,
+    "avg_area_m2": 1000,
+    "n_farms": 5,
+    "source": "xlsx_이암허브"
   },
   "방울토마토": {
     "cost_per_m2": {
-      "seed": 600.0,
-      "fertilizer": 220.0,
-      "pesticide": 260.0,
-      "utility": 380.0,
-      "labor": 2200.0,
-      "depreciation": 150.0,
-      "other": 400.0
+      "utility": 45412.5,
+      "hired_labor": 70248.2,
+      "seed": 18048.0,
+      "pesticide": 7715.7,
+      "other": 32199.3
     },
-    "n_farms": 0,
-    "source": "rda_reference",
-    "note": "XLSX 모두 빈 템플릿 — RDA 농업경영 통계(2018-2022) 참고값 적용"
+    "daily_wage_krw": null,
+    "avg_area_m2": 1000,
+    "n_farms": 5,
+    "source": "xlsx_이암허브"
   },
   "완숙토마토": {
     "cost_per_m2": {
-      "seed": 500.0,
-      "fertilizer": 200.0,
-      "pesticide": 240.0,
-      "utility": 350.0,
-      "labor": 2100.0,
-      "depreciation": 145.0,
-      "other": 400.0
+      "utility": 49405.9,
+      "hired_labor": 48966.5,
+      "seed": 8008.0,
+      "pesticide": 2505.3,
+      "other": 34626.2
     },
-    "n_farms": 0,
-    "source": "rda_reference",
-    "note": "XLSX 모두 빈 템플릿 — RDA 농업경영 통계(2018-2022) 참고값 적용"
+    "daily_wage_krw": null,
+    "avg_area_m2": 1000,
+    "n_farms": 5,
+    "source": "xlsx_이암허브"
   },
   "참외": {
     "cost_per_m2": {
-      "seed": 900.0,
-      "fertilizer": 190.0,
-      "pesticide": 300.0,
-      "utility": 320.0,
-      "labor": 2500.0,
-      "depreciation": 155.0,
-      "other": 450.0
+      "utility": 2292.0,
+      "hired_labor": 31782.0,
+      "seed": 4048.8,
+      "pesticide": 11392.8,
+      "other": 20940.1
     },
-    "n_farms": 0,
-    "source": "rda_reference",
-    "note": "XLSX 모두 빈 템플릿 — RDA 농업경영 통계(2018-2022) 참고값 적용"
+    "daily_wage_krw": null,
+    "avg_area_m2": 1000,
+    "n_farms": 5,
+    "source": "xlsx_이암허브"
+  },
+  "파프리카": {
+    "cost_per_m2": {
+      "utility": 7500.0,
+      "fertilizer": 1200.0,
+      "pesticide": 550.0,
+      "seed": 600.0,
+      "labor": 10500.0,
+      "depreciation": 3500.0,
+      "total_mgmt": 26000.0
+    },
+    "revenue_per_m2": 38000.0,
+    "income_per_m2": 12000.0,
+    "source": "RDA 스마트팜 경영비 통계 2020-2022"
   }
 }

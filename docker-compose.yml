@@ -1,153 +1,294 @@
 version: "3.9"
 
-# ──────────────────────────────────────────────────────────────────────────────
-# 스마트팜 AI 플랫폼 — 로컬 개발 + 스테이징용 Docker Compose
+# Smart Farm AI Platform — docker-compose
 #
-# 서비스 구성:
-#   db        — PostgreSQL 15 + TimescaleDB 2
-#   redis     — Redis 7 (캐시 / Airflow 브로커)
-#   api       — FastAPI (uvicorn)
-#   frontend  — Vite 개발 서버
-#   airflow-* — Airflow 2.9 (웹서버 + 스케줄러 + 워커)
-#   mlflow    — MLflow 트래킹 서버
-# ──────────────────────────────────────────────────────────────────────────────
+# Services:
+#   nginx     — 리버스 프록시 + 대시보드 정적 파일 서빙 (port 80/443)
+#   certbot   — Let's Encrypt 인증서 발급/갱신 (HTTPS 사용 시)
+#   api       — FastAPI + uvicorn (내부 port 8000)
+#   pipeline  — ETL + retrain cron scheduler
+#
+# 빠른 시작 (HTTP):
+#   cp .env.example .env && vim .env
+#   docker compose up -d
+#
+# HTTPS 활성화:
+#   bash deploy/setup_https.sh yourdomain.com your@email.com
 
-x-airflow-common: &airflow-common
-  image: apache/airflow:2.9.1
+x-common-env: &common-env
+  env_file: .env
   environment:
-    AIRFLOW__CORE__EXECUTOR: CeleryExecutor
-    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER:-smartfarm}:${POSTGRES_PASSWORD}@db/airflow
-    AIRFLOW__CELERY__BROKER_URL: redis://redis:6379/0
-    AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://${POSTGRES_USER:-smartfarm}:${POSTGRES_PASSWORD}@db/airflow
-    AIRFLOW__CORE__FERNET_KEY: "${AIRFLOW_FERNET_KEY}"
-    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "true"
-    DATABASE_URL: postgresql://${POSTGRES_USER:-smartfarm}:${POSTGRES_PASSWORD}@db/smartfarm
-    MLFLOW_TRACKING_URI: http://mlflow:5000
-  volumes:
-    - ./pipelines/dags:/opt/airflow/dags
-    - ./pipelines:/opt/airflow/pipelines
-    - ./adapters:/opt/airflow/adapters
-    - ./models:/opt/airflow/models
-    - airflow_logs:/opt/airflow/logs
-  depends_on:
-    db:
-      condition: service_healthy
-    redis:
-      condition: service_healthy
+    PYTHONUNBUFFERED: "1"
+    PYTHONDONTWRITEBYTECODE: "1"
+
+volumes:
+  model_artifacts:
+  pipeline_state:
+  app_logs:
+  certbot_www:
+  certbot_certs:
+  mosquitto_data:
+  mosquitto_log:
+  pg_data:
+  redis_data:
 
 services:
 
-  # ── PostgreSQL + TimescaleDB ─────────────────────────────────────────────
+  # ── TimescaleDB (PostgreSQL 15 + TimescaleDB 2.x) ────────────────────────────
   db:
     image: timescale/timescaledb:latest-pg15
+    container_name: smart-farm-db
     environment:
-      POSTGRES_USER:     ${POSTGRES_USER:-smartfarm}
+      POSTGRES_USER: smartfarm
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB:       ${POSTGRES_DB:-smartfarm}
+      POSTGRES_DB: smartfarm
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./db/schema/variable_registry.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
     ports:
       - "5432:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-      - ./db/schema:/docker-entrypoint-initdb.d   # auto-run on first start
+    restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U smartfarm"]
+      test: ["CMD-SHELL", "pg_isready -U smartfarm -d smartfarm"]
       interval: 10s
       timeout: 5s
       retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "3"
 
-  # ── Redis ─────────────────────────────────────────────────────────────────
+  # ── Redis (Airflow celery broker + 캐시) ──────────────────────────────────────
   redis:
     image: redis:7-alpine
+    container_name: smart-farm-redis
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
     ports:
       - "6379:6379"
+    restart: unless-stopped
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
-      timeout: 5s
-      retries: 5
+      timeout: 3s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "2"
 
-  # ── FastAPI ───────────────────────────────────────────────────────────────
+  # ── nginx (리버스 프록시 + 대시보드) ────────────────────────────────────────
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: smart-farm-nginx
+    ports:
+      - "${NGINX_PORT:-80}:80"
+      - "${NGINX_SSL_PORT:-443}:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./dashboard:/usr/share/nginx/html:ro
+      - certbot_www:/var/www/certbot:ro
+      - certbot_certs:/etc/letsencrypt:ro
+      # Self-signed 사용 시: ./nginx/certs:/etc/nginx/certs:ro
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/nginx-health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "3"
+
+  # ── Certbot (Let's Encrypt 인증서 자동 갱신) ─────────────────────────────────
+  # HTTPS 사용 시에만 활성화: docker compose up -d certbot
+  certbot:
+    image: certbot/certbot:latest
+    container_name: smart-farm-certbot
+    volumes:
+      - certbot_www:/var/www/certbot
+      - certbot_certs:/etc/letsencrypt
+    # 12시간마다 갱신 시도 (Let's Encrypt 권장)
+    entrypoint: >
+      sh -c "trap exit TERM;
+             while :; do
+               certbot renew --webroot -w /var/www/certbot --quiet;
+               sleep 12h & wait $${!};
+             done"
+    restart: unless-stopped
+    profiles:
+      - https
+
+  # ── Mosquitto MQTT 브로커 ────────────────────────────────────────────────────
+  mqtt:
+    image: eclipse-mosquitto:2.0
+    container_name: smart-farm-mqtt
+    ports:
+      - "${MQTT_PORT:-1883}:1883"       # MQTT
+      - "${MQTT_WS_PORT:-9001}:9001"    # MQTT over WebSocket
+    volumes:
+      - ./mosquitto/config:/mosquitto/config:ro
+      - mosquitto_data:/mosquitto/data
+      - mosquitto_log:/mosquitto/log
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mosquitto_pub", "-h", "localhost", "-t", "health", "-m", "ping", "-q", "0"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "2"
+
+  # ── MQTT 구독자 (센서 데이터 → ETL CSV) ──────────────────────────────────────
+  mqtt-subscriber:
+    build:
+      context: .
+      dockerfile: Dockerfile.pipeline
+    image: smart-farm-pipeline:latest
+    container_name: smart-farm-mqtt-sub
+    <<: *common-env
+    environment:
+      MQTT_BROKER_HOST: mqtt
+      MQTT_BROKER_PORT: "1883"
+    command: ["python", "-m", "pipeline.mqtt_subscriber"]
+    volumes:
+      - ./api/data:/app/api/data:ro
+      - ${ETL_DATA_DIR:-./etl_data}:/app/etl_data
+      - app_logs:/app/logs
+    depends_on:
+      mqtt:
+        condition: service_healthy
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ── API (FastAPI + uvicorn) ──────────────────────────────────────────────────
   api:
     build:
       context: .
-      dockerfile: Dockerfile.api
-    ports:
-      - "8000:8000"
-    environment:
-      DATABASE_URL:    postgresql://${POSTGRES_USER:-smartfarm}:${POSTGRES_PASSWORD}@db/${POSTGRES_DB:-smartfarm}
-      REDIS_URL:       redis://redis:6379/0
-      KMA_SERVICE_KEY: ${KMA_SERVICE_KEY}
-      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000}
+      dockerfile: Dockerfile
+      target: runner
+    image: smart-farm-api:latest
+    container_name: smart-farm-api
+    <<: *common-env
+    expose:
+      - "8000"
     volumes:
-      - .:/app
+      - model_artifacts:/app/models/artifacts
+      - ./api/data:/app/api/data:ro
+      - ./engine/data:/app/engine/data:ro
+      - app_logs:/app/logs
     depends_on:
       db:
         condition: service_healthy
-    command: uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
 
-  # ── Vite 개발 서버 ────────────────────────────────────────────────────────
-  frontend:
-    image: node:20-alpine
-    working_dir: /app
-    ports:
-      - "3000:3000"
+  # ── Pipeline (ETL + retrain cron) ────────────────────────────────────────────
+  pipeline:
+    build:
+      context: .
+      dockerfile: Dockerfile.pipeline
+    image: smart-farm-pipeline:latest
+    container_name: smart-farm-pipeline
+    <<: *common-env
     volumes:
-      - ./frontend:/app
-    environment:
-      VITE_API_BASE: ""   # proxy to api via vite.config.ts
-    command: sh -c "npm install && npm run dev -- --host"
-
-  # ── MLflow ────────────────────────────────────────────────────────────────
-  mlflow:
-    image: ghcr.io/mlflow/mlflow:v2.12.2
-    ports:
-      - "5000:5000"
-    volumes:
-      - mlflow_artifacts:/mlflow/artifacts
-    environment:
-      MLFLOW_BACKEND_STORE_URI: postgresql://${POSTGRES_USER:-smartfarm}:${POSTGRES_PASSWORD}@db/${POSTGRES_DB:-smartfarm}
-      MLFLOW_DEFAULT_ARTIFACT_ROOT: /mlflow/artifacts
+      - model_artifacts:/app/models/artifacts
+      - pipeline_state:/app/pipeline/state
+      - app_logs:/app/logs
+      - ./api/data:/app/api/data
+      - ./engine/data:/app/engine/data
+      - ${ETL_DATA_DIR:-./etl_data}:/app/etl_data
     depends_on:
       db:
         condition: service_healthy
-    command: >
-      mlflow server
-        --backend-store-uri $MLFLOW_BACKEND_STORE_URI
-        --default-artifact-root /mlflow/artifacts
-        --host 0.0.0.0
-        --port 5000
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "3"
 
-  # ── Airflow ───────────────────────────────────────────────────────────────
-  airflow-init:
-    <<: *airflow-common
-    command: version
-    environment:
-      _AIRFLOW_DB_MIGRATE: "true"
-      _AIRFLOW_WWW_USER_CREATE: "true"
-      _AIRFLOW_WWW_USER_USERNAME: ${AIRFLOW_ADMIN_USER:-admin}
-      _AIRFLOW_WWW_USER_PASSWORD: ${AIRFLOW_ADMIN_PASSWORD}
+  # ── 주간 운영 리포트 (매주 월요일 08:00, 선택 실행) ──────────────────────────
+  # 즉시 실행: docker compose run --rm weekly-report
+  # 드라이런:  docker compose run --rm weekly-report python -m pipeline.weekly_report --dry-run
+  # 자동 실행: docker compose --profile weekly up -d weekly-report
+  weekly-report:
+    build:
+      context: .
+      dockerfile: Dockerfile.pipeline
+    image: smart-farm-pipeline:latest
+    container_name: smart-farm-weekly
+    <<: *common-env
+    volumes:
+      - model_artifacts:/app/models/artifacts:ro
+      - pipeline_state:/app/pipeline/state:ro
+      - ./api/data:/app/api/data:ro
+      - app_logs:/app/logs
+    entrypoint: >
+      sh -c "trap exit TERM;
+             while :; do
+               python -m pipeline.weekly_report;
+               sleep 7d & wait $${!};
+             done"
+    restart: unless-stopped
+    profiles:
+      - weekly
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "2"
 
-  airflow-webserver:
-    <<: *airflow-common
-    ports:
-      - "8080:8080"
-    command: webserver
-    depends_on:
-      - airflow-init
-
-  airflow-scheduler:
-    <<: *airflow-common
-    command: scheduler
-    depends_on:
-      - airflow-init
-
-  airflow-worker:
-    <<: *airflow-common
-    command: celery worker
-    depends_on:
-      - airflow-scheduler
-
-volumes:
-  pgdata:
-  airflow_logs:
-  mlflow_artifacts:
+  # ── KAMIS 가격 갱신 (매일 07:00, 선택 실행) ──────────────────────────────────
+  # docker compose run --rm kamis-refresh
+  # 또는 docker compose --profile kamis up -d kamis-refresh
+  kamis-refresh:
+    build:
+      context: .
+      dockerfile: Dockerfile.pipeline
+    image: smart-farm-pipeline:latest
+    container_name: smart-farm-kamis
+    <<: *common-env
+    volumes:
+      - ./api/data:/app/api/data   # kamis_price_cache.json 저장
+    entrypoint: >
+      sh -c "trap exit TERM;
+             while :; do
+               python -m pipeline.kamis_fetcher;
+               sleep 24h & wait $${!};
+             done"
+    restart: unless-stopped
+    profiles:
+      - kamis
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "2"

@@ -1,0 +1,12 @@
+[Unit]
+Description=Smart Farm — KAMIS 가격 갱신 타이머 (매일 07:00)
+Requires=smart-farm-kamis.service
+
+[Timer]
+# 매일 오전 7시 — 가락시장 개장 후 전날 정산가 반영 시점
+OnCalendar=*-*-* 07:00:00
+Persistent=true
+RandomizedDelaySec=300
+
+[Install]
+WantedBy=timers.target

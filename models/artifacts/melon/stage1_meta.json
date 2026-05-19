@@ -12,8 +12,8 @@
   ],
   "n_train": 596,
   "cv_r2_mean": 0.268,
-  "cv_r2_std": 0.105,
-  "cv_r2_min": 0.167,
+  "cv_r2_std": 0.103,
+  "cv_r2_min": 0.162,
   "gate_passed": false,
   "env_to_growth_lag": 1
 }

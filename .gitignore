@@ -45,6 +45,21 @@ server_restart.log
 .DS_Store
 Thumbs.db
 
+# ── Test / Coverage ───────────────────────────────────────────────────────────
+.coverage
+.coverage.*
+.coveragerc
+htmlcov/
+.pytest_cache/
+.cache/
+*.db-journal
+
+# ── Raw data / uploads ────────────────────────────────────────────────────────
+기초자료.zip
+기초자료/
+~$*.docx
+~$*.xlsx
+
 # ── Tools ─────────────────────────────────────────────────────────────────────
 .code-review-graph/
 .claude/

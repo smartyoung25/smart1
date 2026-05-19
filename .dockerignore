@@ -1,0 +1,47 @@
+# Git
+.git
+.gitignore
+
+# Python cache
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info
+
+# Development / test
+tests/
+pytest.ini
+*.log
+*.pid
+
+# Large training artefacts (mount as volume in production)
+engine/data/raw/
+pipeline/state/new_rows_since_retrain.json
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Docker itself
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# Frontend / docs (not needed in API image)
+frontend/
+docs/
+mockups/
+architecture.png
+
+# ETL scripts (run in separate pipeline container)
+scripts/
+pipelines/
+
+# Korean docs / xlsx
+*.docx
+*.xlsx
+기초자료/

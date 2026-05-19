@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Farm — 운영자 대시보드</title>
+<style>
+  :root {
+    --bg: #0f1117; --card: #1a1d2e; --border: #2a2d3e;
+    --accent: #4f8ef7; --green: #3ecf8e; --yellow: #f5c842; --red: #f2645a;
+    --text: #e2e8f0; --muted: #8892a4;
+    --font: 'Segoe UI', 'Malgun Gothic', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font); font-size: 14px; }
+
+  /* ── 로그인 오버레이 ── */
+  #login-overlay {
+    position: fixed; inset: 0; background: rgba(10,12,20,.96);
+    display: flex; align-items: center; justify-content: center; z-index: 100;
+  }
+  #login-overlay.hidden { display: none; }
+  .login-box {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 14px; padding: 36px 40px; width: 360px;
+  }
+  .login-box h2 { font-size: 20px; margin-bottom: 6px; }
+  .login-box p  { font-size: 12px; color: var(--muted); margin-bottom: 24px; }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 11px; color: var(--muted);
+                 font-weight: 600; text-transform: uppercase; margin-bottom: 5px; }
+  .field input {
+    width: 100%; padding: 9px 12px;
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 7px; color: var(--text); font-size: 13px;
+  }
+  .field input:focus { outline: none; border-color: var(--accent); }
+  #login-err { color: var(--red); font-size: 12px; min-height: 16px; margin-bottom: 10px; }
+  #btn-login {
+    width: 100%; padding: 10px; background: var(--accent); border: none;
+    border-radius: 7px; color: #fff; font-size: 14px; font-weight: 600;
+    cursor: pointer;
+  }
+  #btn-login:hover { opacity: .9; }
+  #btn-login:disabled { opacity: .5; cursor: default; }
+  .login-cfg { margin-top: 18px; }
+  .login-cfg label { font-size: 11px; color: var(--muted); }
+  .login-cfg input {
+    margin-top: 4px; width: 100%; padding: 7px 10px;
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 6px; color: var(--text); font-size: 12px;
+  }
+
+  /* ── 헤더 ── */
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 24px; background: var(--card);
+    border-bottom: 1px solid var(--border);
+  }
+  header h1 { font-size: 18px; font-weight: 700; }
+  header h1 span { color: var(--accent); }
+  #status-badge {
+    display: flex; align-items: center; gap: 6px;
+    padding: 4px 12px; border-radius: 20px;
+    background: rgba(62,207,142,.12); color: var(--green);
+    font-size: 12px; font-weight: 600;
+  }
+  #status-badge.offline { background: rgba(242,100,90,.12); color: var(--red); }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  #last-refresh { font-size: 11px; color: var(--muted); }
+  .hdr-btn {
+    padding: 5px 14px; border-radius: 6px; border: 1px solid var(--border);
+    background: transparent; color: var(--text); cursor: pointer; font-size: 12px;
+  }
+  .hdr-btn:hover { background: var(--border); }
+  #btn-logout { color: var(--red); border-color: rgba(242,100,90,.3); }
+  #btn-logout:hover { background: rgba(242,100,90,.1); }
+
+  /* ── 레이아웃 ── */
+  main { padding: 20px 24px; display: grid; gap: 16px; }
+  .row { display: grid; gap: 16px; }
+  .row-4 { grid-template-columns: repeat(4,1fr); }
+  .row-2 { grid-template-columns: 1fr 1fr; }
+  .row-3 { grid-template-columns: 2fr 1fr; }
+  @media(max-width:1100px) { .row-4 { grid-template-columns: repeat(2,1fr); } }
+  @media(max-width:700px)  { .row-4,.row-2,.row-3 { grid-template-columns:1fr; } }
+
+  /* ── 카드 ── */
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; }
+  .card-title {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .6px; color: var(--muted); margin-bottom: 10px;
+  }
+
+  /* ── KPI ── */
+  .kpi { text-align: center; }
+  .kpi .val { font-size: 32px; font-weight: 700; line-height: 1.1; }
+  .kpi .unit { font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .kpi .val.green { color: var(--green); }
+  .kpi .val.yellow { color: var(--yellow); }
+  .kpi .val.red { color: var(--red); }
+
+  /* ── 진행바 ── */
+  .prog-row { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+  .prog-label { min-width: 80px; font-size: 12px; color: var(--muted); }
+  .prog-bar { flex: 1; height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
+  .prog-fill { height: 100%; border-radius: 4px; transition: width .6s; }
+  .prog-fill.green  { background: var(--green); }
+  .prog-fill.yellow { background: var(--yellow); }
+  .prog-fill.red    { background: var(--red); }
+  .prog-val { min-width: 44px; text-align: right; font-size: 12px; }
+
+  /* ── 테이블 ── */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; padding: 6px 8px; color: var(--muted); font-weight: 600;
+       font-size: 11px; border-bottom: 1px solid var(--border); }
+  td { padding: 7px 8px; border-bottom: 1px solid rgba(42,45,62,.7); }
+  tr:last-child td { border-bottom: none; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+  .badge.ok   { background: rgba(62,207,142,.15); color: var(--green); }
+  .badge.warn { background: rgba(245,200,66,.15);  color: var(--yellow); }
+  .badge.fail { background: rgba(242,100,90,.15);  color: var(--red); }
+
+  /* ── ETL 로그 ── */
+  #etl-log {
+    background: #080b14; border-radius: 6px; padding: 12px;
+    font-family: 'Consolas','D2Coding',monospace; font-size: 11.5px;
+    line-height: 1.6; max-height: 260px; overflow-y: auto; color: #a8bbd0;
+  }
+  .log-warn  { color: var(--yellow); }
+  .log-error { color: var(--red); }
+  .log-ok    { color: var(--green); }
+
+  /* ── 재학습 이력 ── */
+  .event-list { display: flex; flex-direction: column; gap: 8px; max-height: 260px; overflow-y: auto; }
+  .event-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 12px; background: #13162a; border-radius: 7px;
+    border: 1px solid var(--border);
+  }
+  .event-ts   { font-size: 11px; color: var(--muted); }
+  .event-crops { color: var(--accent); font-weight: 600; font-size: 12px; }
+
+  .spinner { display: inline-block; width: 14px; height: 14px;
+             border: 2px solid var(--border); border-top-color: var(--accent);
+             border-radius: 50%; animation: spin .7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── 실시간 센서 패널 ── */
+  .sensor-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .ws-badge {
+    display: flex; align-items: center; gap: 5px;
+    padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;
+    background: rgba(79,142,247,.12); color: var(--accent);
+    transition: all .3s;
+  }
+  .ws-badge.connected    { background: rgba(62,207,142,.12); color: var(--green); }
+  .ws-badge.reconnecting { background: rgba(245,200,66,.12);  color: var(--yellow); }
+  .ws-badge.disconnected { background: rgba(242,100,90,.12);  color: var(--red); }
+  .ws-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .ws-dot.pulse { animation: pulse 1.2s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+  .sensor-grid { display: grid; grid-template-columns: repeat(6,1fr); gap: 10px; }
+  @media(max-width:1200px) { .sensor-grid { grid-template-columns: repeat(3,1fr); } }
+  @media(max-width:700px)  { .sensor-grid { grid-template-columns: repeat(2,1fr); } }
+
+  .sensor-card {
+    background: #13162a; border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px; text-align: center; transition: border-color .3s;
+  }
+  .sensor-card.updated { border-color: var(--accent); animation: flash .4s ease-out; }
+  @keyframes flash { 0%{background:#1b2344} 100%{background:#13162a} }
+  .sensor-icon { font-size: 18px; margin-bottom: 4px; }
+  .sensor-label { font-size: 10px; color: var(--muted); font-weight: 600;
+                  text-transform: uppercase; letter-spacing: .5px; }
+  .sensor-val   { font-size: 22px; font-weight: 700; margin: 2px 0; }
+  .sensor-unit  { font-size: 10px; color: var(--muted); }
+  .sensor-val.normal  { color: var(--green); }
+  .sensor-val.warning { color: var(--yellow); }
+  .sensor-val.anomaly { color: var(--red); }
+
+  .sensor-farm-sel {
+    background: var(--bg); border: 1px solid var(--border); color: var(--text);
+    border-radius: 6px; padding: 4px 8px; font-size: 12px; cursor: pointer;
+  }
+  .sensor-ts { font-size: 10px; color: var(--muted); margin-top: 10px; text-align: right; }
+
+  /* 이상값 토스트 */
+  #anomaly-toast {
+    position: fixed; bottom: 24px; right: 24px;
+    background: rgba(242,100,90,.95); color: #fff;
+    padding: 12px 18px; border-radius: 10px; font-size: 13px;
+    box-shadow: 0 4px 20px rgba(0,0,0,.4);
+    opacity: 0; pointer-events: none; transition: opacity .3s;
+    max-width: 320px; z-index: 200;
+  }
+  #anomaly-toast.show { opacity: 1; }
+
+  /* ── 멀티 농장 비교 ── */
+  .farms-hdr { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px; }
+  #farms-table { width:100%; border-collapse:collapse; font-size:12px; }
+  #farms-table th { padding:7px 10px; text-align:left; background:var(--card); border-bottom:2px solid var(--border);
+                    white-space:nowrap; color:var(--muted); font-weight:600; }
+  #farms-table td { padding:6px 10px; border-bottom:1px solid var(--border); white-space:nowrap; }
+  #farms-table tr:hover td { background: rgba(255,255,255,.03); }
+  #farms-table th.sortable { cursor:pointer; user-select:none; }
+  #farms-table th.sortable:hover { color:var(--fg); }
+  .farm-status { display:inline-flex; align-items:center; gap:5px; padding:2px 8px; border-radius:20px; font-size:11px; font-weight:600; }
+  .farm-status.online  { background:rgba(62,207,142,.12); color:var(--green); }
+  .farm-status.anomaly { background:rgba(242,100,90,.15); color:var(--red); }
+  .farm-status.offline { background:rgba(255,255,255,.06); color:var(--muted); }
+  .farm-val-hi  { color:var(--red); font-weight:600; }
+  .farm-val-lo  { color:#6ab4f5; font-weight:600; }
+  .farm-val-ok  { color:var(--green); }
+  .farms-stat-chip { padding:4px 12px; border-radius:20px; font-size:12px; font-weight:600; }
+  .farms-stat-total   { background:rgba(255,255,255,.07); color:var(--fg); }
+  .farms-stat-online  { background:rgba(62,207,142,.12); color:var(--green); }
+  .farms-stat-anomaly { background:rgba(242,100,90,.15); color:var(--red); }
+  .farms-stat-offline { background:rgba(255,255,255,.06); color:var(--muted); }
+
+  /* ── 센서 이력 차트 패널 ── */
+  #chart-panel {
+    overflow: hidden; max-height: 0; transition: max-height .4s ease;
+  }
+  #chart-panel.open { max-height: 520px; }
+  .chart-panel-inner {
+    border-top: 1px solid var(--border); margin-top: 12px; padding-top: 14px;
+  }
+  .chart-hdr {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 12px; flex-wrap: wrap; gap: 8px;
+  }
+  .chart-farm-id { font-weight: 700; color: var(--accent); font-size: 13px; }
+  .chart-tabs { display: flex; gap: 6px; }
+  .chart-tab {
+    padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 600;
+    cursor: pointer; border: 1px solid var(--border);
+    background: transparent; color: var(--muted); transition: all .2s;
+  }
+  .chart-tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  #chart-days-sel {
+    padding: 3px 8px; border-radius: 6px; border: 1px solid var(--border);
+    background: var(--bg); color: var(--fg); font-size: 11px;
+  }
+  .chart-close {
+    background: none; border: none; color: var(--muted); font-size: 16px;
+    cursor: pointer; padding: 2px 6px; border-radius: 4px;
+  }
+  .chart-close:hover { color: var(--fg); background: var(--border); }
+  #farm-chart-canvas { width: 100% !important; height: 300px !important; }
+  .chart-no-data { text-align: center; color: var(--muted); padding: 60px 0; font-size: 13px; }
+  #farms-table tbody tr { cursor: pointer; }
+  #farms-table tbody tr:hover td { background: rgba(79,142,247,.06); }
+  #farms-table tbody tr.selected td { background: rgba(79,142,247,.1); }
+
+  /* ── 재배 권고 이력 피드 ──────────────────────────────────────────────────── */
+  .advisor-feed { display:flex; flex-direction:column; gap:8px; max-height:340px; overflow-y:auto; }
+  .adv-entry { background:var(--surface2); border-radius:8px; padding:10px 12px; border-left:3px solid var(--accent); }
+  .adv-entry.side-high { border-left-color:#f2645a; }
+  .adv-entry.side-low  { border-left-color:#4f8ef7; }
+  .adv-entry-hdr { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:4px; margin-bottom:6px; }
+  .adv-farm-tag  { font-size:11px; font-weight:600; background:var(--surface); padding:2px 7px; border-radius:12px; color:var(--accent); }
+  .adv-crop-tag  { font-size:11px; color:var(--muted); }
+  .adv-ts        { font-size:10px; color:var(--muted); }
+  .adv-items     { display:flex; flex-direction:column; gap:3px; }
+  .adv-item      { font-size:12px; display:flex; align-items:baseline; gap:6px; }
+  .adv-field     { font-weight:600; min-width:80px; }
+  .adv-action    { color:var(--text); flex:1; }
+  .adv-val       { font-size:11px; color:var(--muted); white-space:nowrap; }
+  .adv-channels  { display:flex; gap:4px; margin-top:6px; flex-wrap:wrap; }
+  .adv-ch-badge  { font-size:10px; padding:1px 6px; border-radius:10px; background:var(--surface); color:var(--muted); border:1px solid var(--border); }
+  .adv-ch-badge.email  { color:#3ecf8e; border-color:#3ecf8e; }
+  .adv-ch-badge.sms    { color:#f5c842; border-color:#f5c842; }
+  .adv-ch-badge.kakao  { color:#f2c94c; border-color:#f2c94c; }
+  .adv-ch-badge.dry_run { color:var(--muted); }
+  .adv-filter    { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .adv-filter input, .adv-filter select { background:var(--surface2); border:1px solid var(--border); color:var(--text); border-radius:6px; padding:4px 8px; font-size:12px; }
+  #adv-empty     { color:var(--muted); font-size:13px; text-align:center; padding:24px 0; }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
+</head>
+<body>
+
+<!-- ── 로그인 오버레이 ── -->
+<div id="login-overlay">
+  <div class="login-box">
+    <h2>🌿 Smart Farm</h2>
+    <p>운영자 대시보드 — 관리자 계정으로 로그인하세요</p>
+    <div class="field">
+      <label>사용자명</label>
+      <input id="in-user" type="text" value="admin" autocomplete="username">
+    </div>
+    <div class="field">
+      <label>패스워드</label>
+      <input id="in-pass" type="password" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <div id="login-err"></div>
+    <button id="btn-login" onclick="doLogin()">로그인</button>
+    <div class="login-cfg">
+      <label>API 서버 URL</label>
+      <input id="login-api-url" value="http://localhost:8000" placeholder="http://localhost:8000">
+    </div>
+  </div>
+</div>
+
+<!-- ── 헤더 ── -->
+<header>
+  <h1>🌿 Smart Farm <span>대시보드</span></h1>
+  <div style="display:flex;align-items:center;gap:12px">
+    <span id="last-refresh">—</span>
+    <span id="logged-as" style="font-size:12px;color:var(--muted)"></span>
+    <button class="hdr-btn" onclick="refreshAll()">↻ 새로고침</button>
+    <button class="hdr-btn" id="btn-logout" onclick="doLogout()">로그아웃</button>
+    <div id="status-badge" class="offline"><div class="dot"></div><span>연결 확인 중</span></div>
+  </div>
+</header>
+
+<main>
+  <div class="row row-4">
+    <div class="card kpi">
+      <div class="card-title">API 상태</div>
+      <div class="val" id="kpi-api">—</div>
+      <div class="unit" id="kpi-api-ver">—</div>
+    </div>
+    <div class="card kpi">
+      <div class="card-title">모델 로드</div>
+      <div class="val green" id="kpi-models">—</div>
+      <div class="unit">/ 5 작목</div>
+    </div>
+    <div class="card kpi">
+      <div class="card-title">평균 R²</div>
+      <div class="val" id="kpi-r2">—</div>
+      <div class="unit">M2 앙상블</div>
+    </div>
+    <div class="card kpi">
+      <div class="card-title">처리 완료 CSV</div>
+      <div class="val green" id="kpi-done">—</div>
+      <div class="unit">누적 done/</div>
+    </div>
+  </div>
+
+  <!-- ── 실시간 센서 패널 ── -->
+  <div class="card" id="sensor-panel">
+    <div class="sensor-header">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="card-title" style="margin:0">실시간 센서 <span style="font-weight:400;color:var(--muted)">(IoT)</span></div>
+        <div class="ws-badge disconnected" id="ws-badge">
+          <div class="ws-dot" id="ws-dot"></div>
+          <span id="ws-label">연결 안 됨</span>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <select class="sensor-farm-sel" id="sensor-farm-sel" onchange="switchFarm(this.value)">
+          <option value="farm_001">farm_001 (오이)</option>
+          <option value="farm_002">farm_002 (방울토마토)</option>
+          <option value="farm_003">farm_003 (딸기)</option>
+          <option value="farm_004">farm_004 (완숙토마토)</option>
+        </select>
+        <button class="hdr-btn" onclick="wsReconnect()" style="font-size:11px;padding:3px 10px">↺ 재연결</button>
+      </div>
+    </div>
+    <div class="sensor-grid">
+      <div class="sensor-card" id="sc-temp">
+        <div class="sensor-icon">🌡️</div>
+        <div class="sensor-label">내부온도</div>
+        <div class="sensor-val normal" id="sv-temp">—</div>
+        <div class="sensor-unit">°C</div>
+      </div>
+      <div class="sensor-card" id="sc-humi">
+        <div class="sensor-icon">💧</div>
+        <div class="sensor-label">내부습도</div>
+        <div class="sensor-val normal" id="sv-humi">—</div>
+        <div class="sensor-unit">%</div>
+      </div>
+      <div class="sensor-card" id="sc-co2">
+        <div class="sensor-icon">🌫️</div>
+        <div class="sensor-label">CO₂</div>
+        <div class="sensor-val normal" id="sv-co2">—</div>
+        <div class="sensor-unit">ppm</div>
+      </div>
+      <div class="sensor-card" id="sc-solar">
+        <div class="sensor-icon">☀️</div>
+        <div class="sensor-label">일사량</div>
+        <div class="sensor-val normal" id="sv-solar">—</div>
+        <div class="sensor-unit">W/m²</div>
+      </div>
+      <div class="sensor-card" id="sc-soil">
+        <div class="sensor-icon">🌱</div>
+        <div class="sensor-label">지온</div>
+        <div class="sensor-val normal" id="sv-soil">—</div>
+        <div class="sensor-unit">°C</div>
+      </div>
+      <div class="sensor-card" id="sc-ec">
+        <div class="sensor-icon">⚡</div>
+        <div class="sensor-label">EC(양액)</div>
+        <div class="sensor-val normal" id="sv-ec">—</div>
+        <div class="sensor-unit">dS/m</div>
+      </div>
+    </div>
+    <div class="sensor-ts" id="sensor-ts">마지막 수신: —</div>
+  </div>
+
+  <!-- ── 전체 농장 현황 (멀티 농장 비교) ── -->
+  <div class="card" id="farms-overview-card">
+    <div class="farms-hdr">
+      <div class="card-title" style="margin:0">🏭 전체 농장 현황</div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <input id="farm-search" placeholder="농장 ID·지역·작목 검색" oninput="renderFarmsTable()"
+               style="padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--fg);font-size:12px;width:180px">
+        <select id="farm-crop-filter" onchange="renderFarmsTable()"
+                style="padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--fg);font-size:12px">
+          <option value="">전체 작목</option>
+          <option>딸기</option><option>방울토마토</option><option>완숙토마토</option>
+          <option>참외</option><option>파프리카</option><option>오이</option>
+        </select>
+        <select id="farm-status-filter" onchange="renderFarmsTable()"
+                style="padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--fg);font-size:12px">
+          <option value="">전체 상태</option>
+          <option value="online">온라인</option>
+          <option value="anomaly">이상</option>
+          <option value="offline">오프라인</option>
+        </select>
+        <span id="farms-count" style="font-size:11px;color:var(--muted)"></span>
+      </div>
+    </div>
+    <div id="farms-summary-bar" style="display:flex;gap:16px;margin:8px 0;flex-wrap:wrap"></div>
+    <div style="overflow-x:auto">
+      <table id="farms-table">
+        <thead>
+          <tr>
+            <th onclick="sortFarms('farm_id')"       class="sortable">농장 ID ↕</th>
+            <th onclick="sortFarms('crop_ko')"       class="sortable">작목 ↕</th>
+            <th onclick="sortFarms('sido')"          class="sortable">지역 ↕</th>
+            <th onclick="sortFarms('temp_internal')" class="sortable">온도℃ ↕</th>
+            <th onclick="sortFarms('humidity_int')"  class="sortable">습도% ↕</th>
+            <th onclick="sortFarms('co2_ppm')"       class="sortable">CO₂ppm ↕</th>
+            <th onclick="sortFarms('soil_temp')"     class="sortable">지온℃ ↕</th>
+            <th onclick="sortFarms('ec_dsm')"        class="sortable">EC ↕</th>
+            <th>상태</th>
+            <th>최종수신</th>
+          </tr>
+        </thead>
+        <tbody id="farms-tbody">
+          <tr><td colspan="10" style="text-align:center"><div class="spinner" style="margin:12px auto"></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ── 센서 이력 차트 패널 (행 클릭 시 열림) ── -->
+    <div id="chart-panel">
+      <div class="chart-panel-inner">
+        <div class="chart-hdr">
+          <div>
+            <span style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px">센서 이력 —</span>
+            <span class="chart-farm-id" id="chart-farm-label">—</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <div class="chart-tabs">
+              <button class="chart-tab active" onclick="setChartMetric('temp_internal')">🌡️ 온도</button>
+              <button class="chart-tab"        onclick="setChartMetric('humidity_int')">💧 습도</button>
+              <button class="chart-tab"        onclick="setChartMetric('co2_ppm')">🌫️ CO₂</button>
+              <button class="chart-tab"        onclick="setChartMetric('soil_temp')">🌱 지온</button>
+            </div>
+            <select id="chart-days-sel" onchange="reloadChart()">
+              <option value="1">1일</option>
+              <option value="3">3일</option>
+              <option value="7" selected>7일</option>
+              <option value="14">14일</option>
+              <option value="30">30일</option>
+            </select>
+            <button class="chart-close" onclick="closeChartPanel()" title="닫기">✕</button>
+          </div>
+        </div>
+        <canvas id="farm-chart-canvas"></canvas>
+        <div id="chart-no-data" class="chart-no-data" style="display:none">데이터가 없습니다</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:6px;text-align:right" id="chart-source-label"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row row-2">
+    <div class="card">
+      <div class="card-title">파이프라인 — 재학습 임계값 진행률</div>
+      <div id="pipeline-state-body"><div class="spinner"></div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">작물별 M2 모델</div>
+      <div id="crop-models-body"><div class="spinner"></div></div>
+    </div>
+  </div>
+
+  <div class="row row-3">
+    <div class="card">
+      <div class="card-title" style="display:flex;justify-content:space-between">
+        <span>ETL 로그 (최근 30줄)</span>
+        <span id="etl-mtime" style="font-size:10px;color:var(--muted)"></span>
+      </div>
+      <div id="etl-log"><div class="spinner"></div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">재학습 이력</div>
+      <div class="event-list" id="retrain-events"><div class="spinner"></div></div>
+    </div>
+  </div>
+</main>
+
+<div id="anomaly-toast"></div>
+
+<script>
+// ── 상태 ──────────────────────────────────────────────────────────────────────
+let _token   = sessionStorage.getItem('sf_token') || '';
+let _apiBase = sessionStorage.getItem('sf_api')   || 'http://localhost:8000';
+
+const $ = id => document.getElementById(id);
+
+if (_token) {
+  $('login-overlay').classList.add('hidden');
+  $('login-api-url').value = _apiBase;
+  refreshAll();
+}
+
+// ── 로그인 ────────────────────────────────────────────────────────────────────
+async function doLogin() {
+  const btn = $('btn-login'), errEl = $('login-err');
+  errEl.textContent = '';
+  btn.disabled = true; btn.textContent = '로그인 중…';
+  const api  = $('login-api-url').value.replace(/\/$/, '');
+  const user = $('in-user').value.trim();
+  const pass = $('in-pass').value;
+  try {
+    const r = await fetch(`${api}/api/v1/auth/token`, {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({username: user, password: pass}),
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!r.ok) { const b = await r.json().catch(()=>({})); throw new Error(b.detail||`HTTP ${r.status}`); }
+    const data = await r.json();
+    _token   = data.access_token;
+    _apiBase = api;
+    sessionStorage.setItem('sf_token', _token);
+    sessionStorage.setItem('sf_api',   _apiBase);
+    $('login-overlay').classList.add('hidden');
+    $('logged-as').textContent = `👤 ${user}`;
+    refreshAll();
+  } catch(e) {
+    errEl.textContent = '로그인 실패: ' + e.message;
+  } finally {
+    btn.disabled = false; btn.textContent = '로그인';
+  }
+}
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !$('login-overlay').classList.contains('hidden')) doLogin();
+});
+function doLogout() {
+  _token = '';
+  sessionStorage.removeItem('sf_token');
+  $('login-overlay').classList.remove('hidden');
+  $('logged-as').textContent = '';
+}
+
+// ── API 헬퍼 ─────────────────────────────────────────────────────────────────
+async function apiFetch(path, opts = {}) {
+  const r = await fetch(`${_apiBase}${path}`, {
+    ...opts,
+    headers: { Authorization: `Bearer ${_token}`, ...(opts.headers||{}) },
+    signal: AbortSignal.timeout(15000),
+  });
+  if (r.status === 401) { doLogout(); throw new Error('401'); }
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  return r.json();
+}
+
+// ── 전체 새로고침 ──────────────────────────────────────────────────────────────
+async function refreshAll() {
+  $('last-refresh').textContent = '로딩 중…';
+  await loadHealth();
+  await Promise.all([
+    loadOverview(), loadCropModels(),
+    loadPipelineState(), loadEtlStatus(), loadRetrainHistory(),
+    loadFarmsOverview(),
+  ]);
+  $('last-refresh').textContent = '갱신: ' + new Date().toLocaleTimeString('ko-KR');
+  if (_token && !_wsActive) wsConnect($('sensor-farm-sel').value);
+}
+
+// ── Health ────────────────────────────────────────────────────────────────────
+async function loadHealth() {
+  try {
+    const d = await apiFetch('/health');
+    $('kpi-api').textContent = '정상';
+    $('kpi-api').className   = 'val green';
+    $('kpi-api-ver').textContent = d.version || '—';
+    $('status-badge').className  = 'online';
+    $('status-badge').querySelector('span').textContent = 'API 연결됨';
+  } catch {
+    $('kpi-api').textContent = '오류';
+    $('kpi-api').className   = 'val red';
+    $('status-badge').className = 'offline';
+    $('status-badge').querySelector('span').textContent = '연결 끊김';
+  }
+}
+
+// ── Overview ──────────────────────────────────────────────────────────────────
+async function loadOverview() {
+  try {
+    const d = await apiFetch('/api/admin/overview');
+    $('kpi-models').textContent = d.models_loaded ?? '—';
+    $('kpi-r2').textContent     = d.avg_model_r2 != null ? d.avg_model_r2.toFixed(3) : '—';
+  } catch {}
+}
+
+// ── Crop models ───────────────────────────────────────────────────────────────
+async function loadCropModels() {
+  const el = $('crop-models-body');
+  try {
+    const d = await apiFetch('/api/admin/models');
+    const rows = (d.crops||[]).map(c => {
+      const st = c.status==='loaded' ? '✅' : '⚠️';
+      return `<tr><td>${st} ${c.crop_ko||c.crop}</td><td>${c.mape!=null?c.mape.toFixed(1)+'%':'—'}</td><td>${c.r2!=null?c.r2.toFixed(3):'—'}</td></tr>`;
+    }).join('');
+    el.innerHTML = `<table><thead><tr><th>작물</th><th>MAPE</th><th>R²</th></tr></thead><tbody>${rows}</tbody></table>`;
+  } catch(e) { el.innerHTML = `<span style="color:var(--red)">로드 실패: ${e.message}</span>`; }
+}
+
+// ── Pipeline state ────────────────────────────────────────────────────────────
+async function loadPipelineState() {
+  const el = $('pipeline-state-body');
+  try {
+    const d = await apiFetch('/api/admin/pipeline/state');
+    el.innerHTML = `
+      <div style="margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+          <span>환경 데이터</span><span>${d.new_env_rows} / ${d.env_threshold} 행 (${d.env_pct}%)</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" style="width:${d.env_pct}%"></div></div>
+      </div>
+      <div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+          <span>생산량 데이터</span><span>${d.new_prod_rows} / ${d.prod_threshold} 행 (${d.prod_pct}%)</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" style="width:${d.prod_pct}%"></div></div>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:8px">갱신: ${(d.last_updated||'—').slice(0,19).replace('T',' ')}</div>`;
+  } catch(e) { el.innerHTML = `<span style="color:var(--red)">로드 실패: ${e.message}</span>`; }
+}
+
+// ── ETL status ────────────────────────────────────────────────────────────────
+async function loadEtlStatus() {
+  const el = $('etl-log');
+  try {
+    const d = await apiFetch('/api/admin/pipeline/etl-status?lines=30');
+    $('kpi-done').textContent = d.done_files ?? '—';
+    if (d.last_modified) $('etl-mtime').textContent = d.last_modified.slice(0,19).replace('T',' ');
+    const lines = (d.log_tail||[]).map(l => {
+      const cls = l.includes('ERROR') ? 'log-error' : l.includes('WARN') ? 'log-warn' : '';
+      return `<div class="log-line ${cls}">${l}</div>`;
+    }).join('');
+    el.innerHTML = `<div class="log-box">${lines||'<span style="color:var(--muted)">로그 없음</span>'}</div>`;
+    el.querySelector('.log-box').scrollTop = 9999;
+  } catch(e) { el.innerHTML = `<span style="color:var(--red)">로드 실패: ${e.message}</span>`; }
+}
+
+// ── Retrain history ───────────────────────────────────────────────────────────
+async function loadRetrainHistory() {
+  const el = $('retrain-events');
+  try {
+    const d = await apiFetch('/api/admin/pipeline/retrain-history?limit=10');
+    if (!d.events?.length) { el.innerHTML = '<span style="color:var(--muted)">이력 없음</span>'; return; }
+    el.innerHTML = d.events.map(ev => {
+      const icon = ev.fail_count > 0 ? '❌' : '✅';
+      return `<div class="event-item">
+        <div style="display:flex;justify-content:space-between">
+          <span>${icon} ${ev.crops?.join(', ')||'—'}</span>
+          <span style="color:var(--muted);font-size:11px">${(ev.timestamp||'').slice(0,16).replace('T',' ')}</span>
+        </div>
+        <div style="font-size:11px;color:var(--muted)">성공 ${ev.success_count} / 실패 ${ev.fail_count} · ${ev.triggered_by||'—'}</div>
+      </div>`;
+    }).join('');
+  } catch(e) { el.innerHTML = `<span style="color:var(--red)">로드 실패: ${e.message}</span>`; }
+}
+
+// ── 멀티 농장 비교 ────────────────────────────────────────────────────────────
+let _farmsData    = [];
+let _farmsSortKey = 'farm_id';
+let _farmsSortAsc = true;
+
+async function loadFarmsOverview() {
+  try {
+    const d = await apiFetch('/api/admin/farms/overview?limit=200');
+    _farmsData = d.farms || [];
+    const bar = $('farms-summary-bar');
+    if (bar) bar.innerHTML =
+      `<span class="farms-stat-chip farms-stat-total">전체 ${d.total}</span>` +
+      `<span class="farms-stat-chip farms-stat-online">🟢 온라인 ${d.online}</span>` +
+      `<span class="farms-stat-chip farms-stat-anomaly">🔴 이상 ${d.anomaly}</span>` +
+      `<span class="farms-stat-chip farms-stat-offline">⚫ 오프라인 ${d.total - d.online}</span>`;
+    renderFarmsTable();
+  } catch(e) {
+    const tb = $('farms-tbody');
+    if (tb) tb.innerHTML = `<tr><td colspan="10" style="color:var(--red);text-align:center">로드 실패: ${e.message}</td></tr>`;
+  }
+}
+
+function sortFarms(key) {
+  if (_farmsSortKey === key) _farmsSortAsc = !_farmsSortAsc;
+  else { _farmsSortKey = key; _farmsSortAsc = true; }
+  renderFarmsTable();
+}
+
+function renderFarmsTable() {
+  const search     = ($('farm-search')?.value     || '').toLowerCase();
+  const cropFilter = $('farm-crop-filter')?.value  || '';
+  const statFilter = $('farm-status-filter')?.value || '';
+
+  let rows = _farmsData.filter(f => {
+    if (cropFilter && f.crop_ko !== cropFilter) return false;
+    if (statFilter === 'online'  && (!f.online || f.anomaly)) return false;
+    if (statFilter === 'anomaly' && !f.anomaly)  return false;
+    if (statFilter === 'offline' && f.online)    return false;
+    if (search) {
+      if (!`${f.farm_id} ${f.crop_ko} ${f.sido} ${f.sigungu}`.toLowerCase().includes(search)) return false;
+    }
+    return true;
+  });
+
+  rows.sort((a, b) => {
+    let av = a[_farmsSortKey], bv = b[_farmsSortKey];
+    if (av == null) av = _farmsSortAsc ? Infinity : -Infinity;
+    if (bv == null) bv = _farmsSortAsc ? Infinity : -Infinity;
+    if (typeof av === 'string') return _farmsSortAsc ? av.localeCompare(bv,'ko') : bv.localeCompare(av,'ko');
+    return _farmsSortAsc ? av - bv : bv - av;
+  });
+
+  const fc = $('farms-count');
+  if (fc) fc.textContent = `${rows.length}개 표시`;
+
+  const tbody = $('farms-tbody');
+  if (!tbody) return;
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--muted)">조건에 맞는 농장이 없습니다</td></tr>';
+    return;
+  }
+
+  const tempCls = v => v==null?'': v>35?'farm-val-hi': v<5?'farm-val-lo':'farm-val-ok';
+  const humiCls = v => v==null?'': v>95?'farm-val-hi': v<30?'farm-val-lo':'';
+  const co2Cls  = v => v==null?'': v>1500?'farm-val-hi':'';
+  const fmt     = (v, d=1) => v!=null ? Number(v).toFixed(d) : '—';
+  const fmtTs   = ts => {
+    if (!ts) return '—';
+    try { return new Date(ts).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'}); }
+    catch { return ts.slice(11,16); }
+  };
+
+  tbody.innerHTML = rows.map((f, idx) => {
+    const stCls  = f.anomaly?'anomaly': f.online?'online':'offline';
+    const stText = f.anomaly?'🔴 이상': f.online?'🟢 온라인':'⚫ 오프라인';
+    return `<tr data-farmid="${f.farm_id}" onclick="openChartPanel('${f.farm_id}',this)">
+      <td style="font-family:monospace;font-size:11px">${f.farm_id}</td>
+      <td>${f.crop_ko}</td>
+      <td>${f.sido} ${f.sigungu}</td>
+      <td class="${tempCls(f.temp_internal)}">${fmt(f.temp_internal)}</td>
+      <td class="${humiCls(f.humidity_int)}">${fmt(f.humidity_int)}</td>
+      <td class="${co2Cls(f.co2_ppm)}">${fmt(f.co2_ppm,0)}</td>
+      <td>${fmt(f.soil_temp)}</td>
+      <td>${fmt(f.ec_dsm,2)}</td>
+      <td><span class="farm-status ${stCls}">${stText}</span></td>
+      <td style="color:var(--muted);font-size:11px">${fmtTs(f.last_ts)}</td>
+    </tr>`;
+  }).join('');
+}
+
+setInterval(() => { if (_token) loadFarmsOverview(); }, 30_000);
+
+// ── 센서 이력 차트 (Chart.js) ─────────────────────────────────────────────────
+let _chartInstance  = null;
+let _chartFarmId    = null;
+let _chartMetric    = 'temp_internal';
+
+const METRIC_CFG = {
+  temp_internal: { label:'내부온도 (°C)',   color:'#f2645a', yLabel:'°C'     },
+  humidity_int:  { label:'내부습도 (%)',     color:'#4f8ef7', yLabel:'%'      },
+  co2_ppm:       { label:'CO₂ (ppm)',        color:'#3ecf8e', yLabel:'ppm'    },
+  soil_temp:     { label:'지온 (°C)',        color:'#f5c842', yLabel:'°C'     },
+};
+
+function openChartPanel(farmId, rowEl) {
+  // 선택 행 강조
+  document.querySelectorAll('#farms-tbody tr').forEach(r => r.classList.remove('selected'));
+  rowEl.classList.add('selected');
+
+  _chartFarmId = farmId;
+  $('chart-farm-label').textContent = farmId;
+  $('chart-panel').classList.add('open');
+
+  reloadChart();
+}
+
+function closeChartPanel() {
+  $('chart-panel').classList.remove('open');
+  document.querySelectorAll('#farms-tbody tr').forEach(r => r.classList.remove('selected'));
+  if (_chartInstance) { _chartInstance.destroy(); _chartInstance = null; }
+}
+
+function setChartMetric(metric) {
+  _chartMetric = metric;
+  document.querySelectorAll('.chart-tab').forEach(t => t.classList.remove('active'));
+  const keys = Object.keys(METRIC_CFG);
+  const idx  = keys.indexOf(metric);
+  document.querySelectorAll('.chart-tab')[idx]?.classList.add('active');
+  reloadChart();
+}
+
+async function reloadChart() {
+  if (!_chartFarmId) return;
+  const days    = parseInt($('chart-days-sel').value || '7', 10);
+  const canvas  = $('farm-chart-canvas');
+  const noData  = $('chart-no-data');
+  const srcLabel= $('chart-source-label');
+
+  canvas.style.display = 'none';
+  noData.style.display  = 'none';
+  srcLabel.textContent  = '로딩 중…';
+
+  try {
+    const d = await apiFetch(`/api/admin/farms/${_chartFarmId}/history?days=${days}`);
+    const pts = d.points || [];
+
+    if (!pts.length) {
+      noData.style.display = 'block';
+      noData.textContent   = `${_chartFarmId} — ${days}일 이내 데이터가 없습니다 (소스: ${d.source})`;
+      srcLabel.textContent = '';
+      return;
+    }
+
+    const cfg = METRIC_CFG[_chartMetric];
+    const labels = pts.map(p => {
+      try { return new Date(p.ts).toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}); }
+      catch { return p.ts.slice(5,16); }
+    });
+    const values = pts.map(p => p[_chartMetric]);
+
+    if (_chartInstance) _chartInstance.destroy();
+
+    canvas.style.display = 'block';
+    _chartInstance = new Chart(canvas, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          label:           cfg.label,
+          data:            values,
+          borderColor:     cfg.color,
+          backgroundColor: cfg.color + '22',
+          borderWidth:     1.5,
+          pointRadius:     pts.length > 200 ? 0 : 2,
+          tension:         0.3,
+          fill:            true,
+          spanGaps:        true,
+        }],
+      },
+      options: {
+        responsive:          true,
+        maintainAspectRatio: false,
+        animation:           { duration: 300 },
+        interaction:         { mode:'index', intersect:false },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#1a1d2e',
+            borderColor:     '#2a2d3e',
+            borderWidth:     1,
+            titleColor:      '#8892a4',
+            bodyColor:       '#e2e8f0',
+          },
+        },
+        scales: {
+          x: {
+            ticks: { color:'#8892a4', maxTicksLimit:10, maxRotation:0, font:{size:10} },
+            grid:  { color:'rgba(42,45,62,.6)' },
+          },
+          y: {
+            title: { display:true, text:cfg.yLabel, color:'#8892a4', font:{size:10} },
+            ticks: { color:'#8892a4', font:{size:10} },
+            grid:  { color:'rgba(42,45,62,.6)' },
+          },
+        },
+      },
+    });
+
+    srcLabel.textContent = `${pts.length}포인트 · 소스: ${d.source}`;
+  } catch(e) {
+    noData.style.display = 'block';
+    noData.textContent   = '차트 로드 실패: ' + e.message;
+    srcLabel.textContent = '';
+  }
+}
+
+// ── WebSocket 실시간 센서 ──────────────────────────────────────────────────────
+let _ws = null, _wsActive = false, _wsRetryDelay = 2000, _wsRetryTimer = null;
+let _currentFarm = 'farm_001';
+
+const SENSOR_RANGE = {
+  temp_internal: [-5,  55],
+  humidity_int:  [0,  100],
+  co2_ppm:       [200,5000],
+  soil_temp:     [-5,  50],
+  ec_dsm:        [0,   10],
+};
+
+function wsBadge(state) {
+  const badge = $('ws-badge'), label = $('ws-label');
+  badge.className = `ws-badge ${state}`;
+  const dot = badge.querySelector('.ws-dot');
+  if (state === 'connected') { label.textContent='실시간 연결'; dot?.classList.add('pulse'); }
+  else if (state === 'reconnecting') { label.textContent='재연결 중…'; dot?.classList.remove('pulse'); }
+  else { label.textContent='연결 안 됨'; dot?.classList.remove('pulse'); }
+}
+
+function wsConnect(farmId) {
+  if (farmId) _currentFarm = farmId;
+  if (_ws) { _ws.onclose=null; _ws.close(); }
+  clearTimeout(_wsRetryTimer);
+  wsBadge('reconnecting');
+  _wsActive = false;
+  const url = `${_apiBase.replace(/^http/,'ws')}/ws/farms/${_currentFarm}/sensors`;
+  try { _ws = new WebSocket(url); } catch { scheduleWsRetry(); return; }
+  _ws.onopen    = () => { wsBadge('connected'); _wsActive=true; _wsRetryDelay=2000; };
+  _ws.onmessage = e => {
+    try {
+      const msg = JSON.parse(e.data);
+      if (msg.type==='env')  applyEnvMessage(msg);
+      if (msg.type==='ping') _ws.send(JSON.stringify({type:'pong'}));
+    } catch {}
+  };
+  _ws.onerror = () => {};
+  _ws.onclose = () => { wsBadge('disconnected'); _wsActive=false; scheduleWsRetry(); };
+  setInterval(() => { if(_ws?.readyState===1) _ws.send(JSON.stringify({type:'ping'})); }, 30_000);
+}
+
+function scheduleWsRetry() {
+  _wsRetryTimer = setTimeout(() => wsConnect(), _wsRetryDelay);
+  _wsRetryDelay = Math.min(_wsRetryDelay*2, 30_000);
+}
+
+function switchFarm(farmId) {
+  _currentFarm = farmId;
+  ['temp','humi','co2','solar','soil','ec'].forEach(k => { const el=$(`sv-${k}`); if(el) el.textContent='—'; });
+  $('sensor-ts').textContent = '마지막 수신: —';
+  _wsRetryDelay = 2000;
+  wsConnect(farmId);
+}
+
+function applyEnvMessage(msg) {
+  const sv = (id, v) => { const el=$(id); if(el) el.textContent = v!=null?Number(v).toFixed(1):'—'; };
+  sv('sv-temp',  msg.temp_internal);
+  sv('sv-humi',  msg.humidity_int);
+  sv('sv-co2',   msg.co2_ppm);
+  sv('sv-solar', msg.solar_rad);
+  sv('sv-soil',  msg.soil_temp);
+  sv('sv-ec',    msg.ec_dsm);
+  const ts = msg.ts ? new Date(msg.ts).toLocaleTimeString('ko-KR') : new Date().toLocaleTimeString('ko-KR');
+  $('sensor-ts').textContent = `마지막 수신: ${ts}`;
+  ['temp','humi','co2','solar','soil','ec'].forEach(k => $(`sc-${k}`)?.classList.remove('anomaly'));
+  if (msg._anomaly) showAnomalyToast(msg);
+}
+
+function showAnomalyToast(msg) {
+  const toast = $('anomaly-toast');
+  toast.textContent = `🚨 ${msg.farm_id} 이상값 감지`;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 5000);
+}
+
+// HTTP 폴백 30초 polling
+setInterval(async () => {
+  if (_wsActive || !_token) return;
+  try {
+    const d = await apiFetch(`/api/sensors/${_currentFarm}/latest`);
+    if (d?.messages?.length) applyEnvMessage(d.messages[d.messages.length-1]);
+  } catch {}
+}, 30_000);
+
+// 60초 자동 전체 갱신
+setInterval(() => { if (_token) refreshAll(); }, 60_000);
+</script>
+</body>
+</html>

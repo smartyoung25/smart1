@@ -1,0 +1,20 @@
+[Unit]
+Description=Smart Farm — KAMIS 도매가격 갱신
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=smartfarm
+Group=smartfarm
+WorkingDirectory=/opt/smart_farm
+
+EnvironmentFile=-/opt/smart_farm/.env
+ExecStart=/opt/smart_farm/venv/bin/python -m pipeline.kamis_fetcher
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=smart-farm-kamis
+
+# 실패 시 1분 후 1회 재시도 (네트워크 지연 대응)
+TimeoutStartSec=120

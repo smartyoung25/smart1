@@ -1,0 +1,34 @@
+# Smart Farm AI Platform — Pipeline runner Dockerfile
+# Runs ETL + model retrain on cron schedule inside container
+
+FROM python:3.11-slim
+
+LABEL description="Smart Farm Pipeline Runner (ETL + Retrain)"
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc g++ libgomp1 cron curl \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Install full ML stack (includes optuna for retraining)
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt \
+    && pip install --no-cache-dir optuna
+
+COPY engine/     ./engine/
+COPY models/     ./models/
+COPY pipeline/   ./pipeline/
+COPY adapters/   ./adapters/
+COPY api/        ./api/
+
+# Copy ETL scripts (these run inside this container)
+COPY scripts/    ./scripts/
+
+RUN mkdir -p pipeline/state etl_data logs
+
+# Cron schedule: see startup.sh for dynamic injection via ENV
+COPY startup.sh /startup.sh
+RUN chmod +x /startup.sh
+
+CMD ["/startup.sh"]

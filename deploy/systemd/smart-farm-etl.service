@@ -1,0 +1,37 @@
+[Unit]
+Description=Smart Farm ETL Scanner (one-shot, triggered by timer)
+After=network.target
+# Ensure API is up before ETL tries to write to shared volume
+Wants=smart-farm-api.service
+
+[Service]
+Type=oneshot
+User=smartfarm
+Group=smartfarm
+WorkingDirectory=/opt/smart_farm
+
+EnvironmentFile=/opt/smart_farm/.env
+Environment=PYTHONPATH=/opt/smart_farm
+
+# Scan ETL_DATA_DIR for new CSV files and run incremental ETL
+ExecStart=/opt/smart_farm/venv/bin/python3 -B \
+    /opt/smart_farm/pipeline/run_etl_dir.py \
+    ${ETL_DATA_DIR:-/opt/smart_farm/etl_data}
+
+# Hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/smart_farm/etl_data \
+               /opt/smart_farm/pipeline/state \
+               /opt/smart_farm/logs \
+               /opt/smart_farm/models/artifacts
+PrivateTmp=true
+
+# Logging
+StandardOutput=append:/opt/smart_farm/logs/etl.log
+StandardError=append:/opt/smart_farm/logs/etl.log
+SyslogIdentifier=smart-farm-etl
+
+[Install]
+WantedBy=multi-user.target

@@ -68,9 +68,22 @@ def impute_series(s: pd.Series) -> pd.Series:
     return s.fillna(s.mean() if not np.isnan(s.mean()) else 0.0)
 
 
+# ── Parquet 캐시 ───────────────────────────────────────────────────────────────
+# 최초 실행 시 ZIP→월별 집계 Parquet 저장, 이후 캐시 재사용
+_CACHE_DIR = ROOT / ".cache" / "training"
+
+
+def _cache_path(kind: str, crop_ko: str) -> Path:
+    """kind: 'env' | 'growth'"""
+    _CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    safe = crop_ko.replace("/", "_")
+    return _CACHE_DIR / f"{kind}_{safe}.parquet"
+
+
 # ── 데이터 로드 ────────────────────────────────────────────────────────────────
 
 def _read_crop_csvs(year: int, crop_ko: str) -> list[pd.DataFrame]:
+    """ZIP에서 작목별 CSV 추출. 대용량 파일은 chunksize로 메모리 절약."""
     zp = DATA_DIR / f"스마트팜_{year}.zip"
     if not zp.exists():
         return []
@@ -81,18 +94,37 @@ def _read_crop_csvs(year: int, crop_ko: str) -> list[pd.DataFrame]:
                 continue
             try:
                 raw = zf.read(info.filename)
-                df = pd.read_csv(io.BytesIO(raw), encoding="euc-kr", low_memory=False)
-                if "품목" in df.columns:
-                    dc = df[df["품목"].astype(str).str.strip() == crop_ko].copy()
-                    if len(dc) > 0:
-                        frames.append(dc)
+                # 대용량(>10MB) 파일은 청크 읽기로 메모리 절약
+                if info.file_size > 10_000_000:
+                    chunk_frames = []
+                    for chunk in pd.read_csv(
+                        io.BytesIO(raw), encoding="euc-kr",
+                        low_memory=True, chunksize=50_000,
+                    ):
+                        if "품목" in chunk.columns:
+                            dc = chunk[chunk["품목"].astype(str).str.strip() == crop_ko]
+                            if len(dc) > 0:
+                                chunk_frames.append(dc.copy())
+                    if chunk_frames:
+                        frames.append(pd.concat(chunk_frames, ignore_index=True))
+                else:
+                    df = pd.read_csv(io.BytesIO(raw), encoding="euc-kr", low_memory=False)
+                    if "품목" in df.columns:
+                        dc = df[df["품목"].astype(str).str.strip() == crop_ko].copy()
+                        if len(dc) > 0:
+                            frames.append(dc)
             except Exception:
                 pass
     return frames
 
 
-def load_env_monthly(crop_ko: str) -> pd.DataFrame:
-    """전체 연도 환경 데이터를 월별 집계."""
+def load_env_monthly(crop_ko: str, use_cache: bool = True) -> pd.DataFrame:
+    """전체 연도 환경 데이터를 월별 집계. Parquet 캐시 사용으로 반복 실행 고속화."""
+    cp = _cache_path("env", crop_ko)
+    if use_cache and cp.exists():
+        logger.info("  환경 캐시 로드: %s", cp)
+        return pd.read_parquet(cp)
+
     all_frames = []
     for year in YEARS:
         frames = _read_crop_csvs(year, crop_ko)
@@ -134,12 +166,22 @@ def load_env_monthly(crop_ko: str) -> pd.DataFrame:
            .agg({col: ["mean", "std"] for col in env_vars})
            .reset_index())
     agg.columns = ["_".join(c).strip("_") if c[1] else c[0] for c in agg.columns]
-    logger.info("  환경 월집계: %d행", len(agg))
-    return _norm_keys(agg)
+    result = _norm_keys(agg)
+    logger.info("  환경 월집계: %d행", len(result))
+
+    if use_cache:
+        result.to_parquet(cp, index=False)
+        logger.info("  환경 캐시 저장: %s", cp)
+    return result
 
 
-def load_growth_monthly(crop_ko: str, growth_cols: list[str]) -> pd.DataFrame:
-    """전체 연도 생육 데이터를 월별 집계."""
+def load_growth_monthly(crop_ko: str, growth_cols: list[str], use_cache: bool = True) -> pd.DataFrame:
+    """전체 연도 생육 데이터를 월별 집계. Parquet 캐시 사용으로 반복 실행 고속화."""
+    cp = _cache_path("growth", crop_ko)
+    if use_cache and cp.exists():
+        logger.info("  생육 캐시 로드: %s", cp)
+        return pd.read_parquet(cp)
+
     all_frames = []
     for year in YEARS:
         frames = _read_crop_csvs(year, crop_ko)
@@ -173,8 +215,13 @@ def load_growth_monthly(crop_ko: str, growth_cols: list[str]) -> pd.DataFrame:
         return pd.DataFrame()
 
     combined = pd.concat(all_frames, ignore_index=True)
-    logger.info("  생육 월집계: %d행", len(combined))
-    return _norm_keys(combined)
+    result = _norm_keys(combined)
+    logger.info("  생육 월집계: %d행", len(result))
+
+    if use_cache:
+        result.to_parquet(cp, index=False)
+        logger.info("  생육 캐시 저장: %s", cp)
+    return result
 
 
 # ── 피처 행렬 구성 (lag 포함) ──────────────────────────────────────────────────
@@ -504,7 +551,7 @@ def check_gate(result: dict) -> bool:
 
 # ── 메인 ──────────────────────────────────────────────────────────────────────
 
-def run_crop(crop_ko: str) -> dict | None:
+def run_crop(crop_ko: str, use_cache: bool = True) -> dict | None:
     config = CROP_CONFIGS.get(crop_ko)
     if not config:
         logger.error("지원하지 않는 작목: %s", crop_ko)
@@ -515,13 +562,13 @@ def run_crop(crop_ko: str) -> dict | None:
     logger.info("=" * 55)
 
     logger.info("[1] 환경 데이터 로드")
-    env_m = load_env_monthly(crop_ko)
+    env_m = load_env_monthly(crop_ko, use_cache=use_cache)
     if env_m.empty:
         logger.error("  환경 데이터 없음 — 스킵")
         return None
 
     logger.info("[2] 생육 데이터 로드")
-    growth_m = load_growth_monthly(crop_ko, config.growth_cols)
+    growth_m = load_growth_monthly(crop_ko, config.growth_cols, use_cache=use_cache)
     if growth_m.empty:
         logger.error("  생육 데이터 없음 — 스킵")
         return None
@@ -576,6 +623,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--crop", default="all",
                         help="작목명 또는 'all' (기본: all)")
+    parser.add_argument("--no-cache", action="store_true",
+                        help="Parquet 캐시를 무시하고 ZIP에서 재로드")
     args = parser.parse_args()
 
     if args.crop == "all":
@@ -583,9 +632,10 @@ def main():
     else:
         targets = [args.crop]
 
+    use_cache = not args.no_cache
     results = {}
     for crop in targets:
-        r = run_crop(crop)
+        r = run_crop(crop, use_cache=use_cache)
         if r:
             results[crop] = r
 

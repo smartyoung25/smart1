@@ -12,9 +12,9 @@
     "growth_화방별착과수"
   ],
   "n_train": 1912,
-  "cv_r2_mean": 0.254,
-  "cv_r2_std": 0.053,
-  "cv_r2_min": 0.203,
+  "cv_r2_mean": 0.249,
+  "cv_r2_std": 0.055,
+  "cv_r2_min": 0.198,
   "gate_passed": false,
   "env_to_growth_lag": 2
 }

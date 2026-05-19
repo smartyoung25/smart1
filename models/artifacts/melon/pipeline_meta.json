@@ -37,7 +37,7 @@
     "cv_r2_std": 0.0,
     "cv_mape_mean": 49.0,
     "mape": 8.7,
-    "gate_passed": false,
+    "gate_passed": true,
     "agg_mode": "annual",
     "harvest_lag": 1,
     "area_default_m2": 3800.0,

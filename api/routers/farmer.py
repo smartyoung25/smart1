@@ -9,6 +9,7 @@ from fastapi import APIRouter, HTTPException
 logger = logging.getLogger(__name__)
 
 from api.schemas.farmer import (
+    DiseaseRiskResponse,
     FarmAlert,
     FarmSummary,
     FarmMeta,
@@ -47,6 +48,7 @@ from api.data.stats_loader import (
 )
 from api.services import persistence
 from api.services.model_loader import predict_revenue_per_m2, get_model_meta
+from models.m5_disease import env_risk_predict as _env_risk_predict
 
 router = APIRouter(prefix="/api/farms/{farm_id}", tags=["farmer"])
 
@@ -966,6 +968,46 @@ def delete_costs_manual(farm_id: str):
 
 
 # ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# GET /disease-risk  — 환경 센서 기반 병해 위험도 평가 (이미지 불필요)
+# ---------------------------------------------------------------------------
+
+@router.get("/disease-risk", response_model=DiseaseRiskResponse)
+def get_disease_risk(farm_id: str):
+    """현재 환경 측정값(온도·습도·CO2)으로 병해 위험도를 실시간 평가합니다.
+    이미지 없이도 환경 조건으로 잿빛곰팡이·흰가루병·역병 위험을 진단합니다.
+    """
+    meta = _require_farm(farm_id)
+    crop = meta.get("crop", "딸기")
+    env  = _get_env(farm_id)
+
+    env_snapshot = {
+        "temp_internal": float(env.get("temp_internal", 20.0)),
+        "humidity_int":  float(env.get("humidity_int", 70.0)),
+        "co2_ppm":       float(env.get("co2_ppm", 800.0)),
+    }
+
+    result = _env_risk_predict(env_snapshot, crop)
+
+    logger.info(
+        "[disease_risk] farm=%s crop=%s → %s [%s] score=%.2f",
+        farm_id, crop, result.disease, result.risk_level, result.score,
+    )
+
+    return DiseaseRiskResponse(
+        farm_id=farm_id,
+        updated_at=_now().isoformat(),
+        crop=crop,
+        disease=result.disease,
+        disease_ko=result.disease_ko,
+        risk_level=result.risk_level,
+        score=result.score,
+        reasons=result.reasons,
+        action_ko=result.action_ko,
+        env_snapshot=env_snapshot,
+    )
+
+
 # POST /chat  — AI 농가 운영 상담 (stub, AI API 연결 전)
 # ---------------------------------------------------------------------------
 # 실제 AI 연결 시: _stub_reply() 를 제거하고 아래 주석 처리된
@@ -1060,15 +1102,38 @@ def _stub_reply(farm_id: str, message: str) -> ChatResponse:
             referenced_data=["environment"],
         )
 
-    # ── 습도 관련 ─────────────────────────────────────────────────────────────
-    if any(kw in msg_lower for kw in ["습도", "건조", "곰팡이", "흰가루", "병해"]):
-        referenced.append("environment")
+    # ── 습도·병해 관련 — env_risk_predict 실 호출 ─────────────────────────────
+    if any(kw in msg_lower for kw in ["습도", "건조", "곰팡이", "흰가루", "병해", "역병", "탄저"]):
+        referenced.append("disease_risk")
+        env_snap = {
+            "temp_internal": float(env.get("temp_internal", {}).get("value", env.get("temp_internal", 20.0))
+                                   if isinstance(env.get("temp_internal"), dict)
+                                   else env.get("temp_internal", 20.0)),
+            "humidity_int":  float(env.get("humidity_int", {}).get("value", env.get("humidity_int", 70.0))
+                                   if isinstance(env.get("humidity_int"), dict)
+                                   else env.get("humidity_int", 70.0)),
+            "co2_ppm":       float(env.get("co2_ppm", {}).get("value", env.get("co2_ppm", 800.0))
+                                   if isinstance(env.get("co2_ppm"), dict)
+                                   else env.get("co2_ppm", 800.0)),
+        }
+        risk = _env_risk_predict(env_snap, crop)
+        risk_badge = {"high": "🔴 높음", "medium": "🟡 중간", "low": "🟢 낮음", "none": "✅ 정상"}.get(risk.risk_level, risk.risk_level)
+        if risk.disease == "healthy":
+            reply_disease = (
+                f"현재 {crop} 농장의 병해 위험도는 {risk_badge}입니다.\n\n"
+                f"온도 {env_snap['temp_internal']:.1f}°C, 습도 {env_snap['humidity_int']:.0f}%로 병해 발생 환경 조건에 해당하지 않습니다."
+            )
+        else:
+            reasons_str = " / ".join(risk.reasons) if risk.reasons else "환경 조건 이상"
+            reply_disease = (
+                f"현재 {crop} 농장에서 **{risk.disease_ko}** 위험이 감지됐습니다. [{risk_badge}]\n\n"
+                f"판단 근거: {reasons_str}\n\n"
+                f"**권장 조치:** {risk.action_ko}"
+            )
         return ChatResponse(
-            reply=f"{crop} 재배 시 적정 습도는 **60~70%** 입니다.\n\n"
-                  f"습도가 75% 이상 지속되면 보트리티스(회색곰팡이) 발생 위험이 높아집니다. "
-                  f"환기팬을 가동하거나 제습기를 사용하세요.",
-            suggestions=["환기 스케줄 최적화 방법", "병해 예방 체크리스트 보여줘", "제습 비용 대비 효과는?"],
-            referenced_data=["environment", "alerts"],
+            reply=reply_disease,
+            suggestions=["병해 진단 화면 보기", "환기 스케줄 최적화 방법", "방제 비용 얼마나 들어?"],
+            referenced_data=["disease_risk", "environment"],
         )
 
     # ── CO₂ 관련 ─────────────────────────────────────────────────────────────
@@ -1082,15 +1147,38 @@ def _stub_reply(farm_id: str, message: str) -> ChatResponse:
             referenced_data=["environment"],
         )
 
-    # ── AI 추천 관련 ─────────────────────────────────────────────────────────
+    # ── AI 추천 관련 — optimize() 실 호출 ──────────────────────────────────
     if any(kw in msg_lower for kw in ["추천", "제안", "개선", "최적", "올리", "높이"]):
         referenced.append("recommendations")
+        try:
+            from engine.what_if_simulator import EnvState as _ES
+            _env_vals = {
+                k: (v.get("value", 20.0) if isinstance(v, dict) else float(v))
+                for k, v in env.items() if k in ("temp_internal","humidity_int","co2_ppm","solar_rad")
+            }
+            _cur_state = _ES(
+                farm_id=farm_id,
+                values={k: _env_vals.get(k, d) for k, d in
+                        [("temp_internal", 20.0), ("humidity_int", 70.0),
+                         ("co2_ppm", 800.0),      ("solar_rad", 150.0)]},
+            )
+            from engine.farm_tier import FarmTier as _FT
+            _tier = _FT(meta.get("tier", "BASIC"))
+            recs  = optimize(farm_id, _tier, _cur_state,
+                             area_m2=float(area), crop_ko=crop)[:3]
+            if recs:
+                lines = "\n".join(
+                    f"{i+1}. {r.action_ko} → 예상 수익 **+{r.profit_delta/10000:.0f}만원**"
+                    for i, r in enumerate(recs)
+                )
+                reply_rec = f"현재 {crop} 농장 수익 극대화 상위 추천:\n\n{lines}\n\nAI 추천 탭에서 바로 적용할 수 있습니다."
+            else:
+                reply_rec = f"현재 {crop} 환경이 이미 최적에 가까워 추가 추천 조치가 없습니다."
+        except Exception as _e:
+            logger.warning("[chat/rec] optimize failed: %s", _e)
+            reply_rec = f"추천 조치를 계산하는 중 오류가 발생했습니다. AI 추천 탭을 직접 확인해 주세요."
         return ChatResponse(
-            reply=f"현재 {crop} 농장 수익 극대화를 위한 상위 추천 조치입니다:\n\n"
-                  f"1. 내부 온도 1°C 상향 → 예상 수익 +8만원\n"
-                  f"2. CO₂ 농도 900→1,100 ppm → 예상 수익 +5만원\n"
-                  f"3. 야간 습도 68%→63% → 병해 위험 감소\n\n"
-                  f"AI 추천 탭에서 [지금 적용] 버튼으로 바로 적용할 수 있습니다.",
+            reply=reply_rec,
             suggestions=["1번 추천 바로 적용", "추천 근거 더 자세히", "비용 부담 없는 조치만 보여줘"],
             referenced_data=["recommendations", "environment", "revenue"],
         )

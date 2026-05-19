@@ -1,0 +1,40 @@
+[Unit]
+Description=Smart Farm AI API Server
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=smartfarm
+Group=smartfarm
+WorkingDirectory=/opt/smart_farm
+
+# Environment
+EnvironmentFile=/opt/smart_farm/.env
+Environment=PYTHONPATH=/opt/smart_farm
+
+# Start / restart
+ExecStart=/opt/smart_farm/venv/bin/uvicorn api.main:app \
+    --host 0.0.0.0 \
+    --port ${API_PORT:-8000} \
+    --workers 2 \
+    --log-level info
+Restart=on-failure
+RestartSec=5
+StartLimitBurst=5
+StartLimitIntervalSec=60
+
+# Hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/smart_farm/logs /opt/smart_farm/models/artifacts
+PrivateTmp=true
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=smart-farm-api
+
+[Install]
+WantedBy=multi-user.target

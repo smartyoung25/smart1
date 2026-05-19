@@ -22,17 +22,19 @@ class TestWhatIfSimulator:
         assert len(candidates) > 0
 
     def test_candidate_within_bounds(self):
-        from engine.what_if_simulator import _BOUNDS
+        from engine.what_if_simulator import get_bounds
+        bounds = get_bounds("딸기")
         state = EnvState(farm_id="farm_001", values=BASE_ENV)
         candidates = generate_candidates(state)
         for c in candidates:
             for var, new_val in c.changes.items():
-                lo, hi = _BOUNDS.get(var, (-1e9, 1e9))
+                lo, hi = bounds.get(var, (-1e9, 1e9))
                 assert lo <= new_val <= hi, f"{var}={new_val} out of [{lo}, {hi}]"
 
     def test_single_variable_per_candidate(self):
+        # max_simultaneous=1 이면 단일 변수 후보만 생성
         state = EnvState(farm_id="farm_001", values=BASE_ENV)
-        candidates = generate_candidates(state)
+        candidates = generate_candidates(state, max_simultaneous=1)
         for c in candidates:
             assert len(c.changes) == 1
 

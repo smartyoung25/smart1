@@ -1,0 +1,12 @@
+[Unit]
+Description=Smart Farm Retrain Trigger — daily at 03:00
+Requires=smart-farm-retrain.service
+
+[Timer]
+# Fire daily at 03:00, one hour after ETL (matches RETRAIN_CRON_SCHEDULE default: 0 3 * * *)
+OnCalendar=*-*-* 03:00:00
+Persistent=true
+RandomizedDelaySec=300
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,14 @@
+[Unit]
+Description=Smart Farm ETL Scanner — daily at 02:00
+Requires=smart-farm-etl.service
+
+[Timer]
+# Fire daily at 02:00 local time (matches Docker ETL_CRON_SCHEDULE default: 0 2 * * *)
+OnCalendar=*-*-* 02:00:00
+# Run immediately on boot if the last scheduled run was missed
+Persistent=true
+# Randomise start by up to 5 min to avoid thundering-herd on multi-node setups
+RandomizedDelaySec=300
+
+[Install]
+WantedBy=timers.target

@@ -2,8 +2,8 @@
 import pytest
 from datetime import date
 
-from models.m1_growth import M1GrowthModel, GrowthPrediction
-from models.m2_yield import M2YieldModel, YieldPrediction
+from models.m1_growth import M1GrowthModel, GrowthPredictionV2 as GrowthPrediction
+from models.m2_yield import M2YieldModel, YieldPredictionV2 as YieldPrediction
 from models.m3_harvest_timing import predict as predict_harvest, update_gdd
 from models.m4_revenue import M4RevenueModel, RevenuePrediction
 from models.deployment_gate import evaluate, GateSummary
@@ -87,8 +87,9 @@ class TestM3HarvestTiming:
         assert pred.days_remaining == 0
 
     def test_higher_temp_fewer_days(self):
-        pred_warm = predict_harvest("strawberry", 600.0, avg_daily_temp=25.0)
-        pred_cool = predict_harvest("strawberry", 600.0, avg_daily_temp=18.0)
+        # gdd_current=200 < gdd_target=450 (from growth_stats.json)
+        pred_warm = predict_harvest("strawberry", 200.0, avg_daily_temp=25.0)
+        pred_cool = predict_harvest("strawberry", 200.0, avg_daily_temp=18.0)
         assert pred_warm.days_remaining < pred_cool.days_remaining
 
     def test_confidence_increases_with_gdd_progress(self):
@@ -98,12 +99,12 @@ class TestM3HarvestTiming:
 
     def test_update_gdd_accumulates(self):
         gdd = 0.0
-        gdd = update_gdd(gdd, t_max=25.0, t_min=15.0)  # mean=20, gdd=10
+        gdd = update_gdd(gdd, t_max=25.0, t_min=15.0, crop_type="tomato")  # mean=20, base=10, gdd=10
         assert gdd == pytest.approx(10.0)
 
     def test_update_gdd_no_accumulation_below_base(self):
         gdd_before = 100.0
-        gdd_after  = update_gdd(gdd_before, t_max=8.0, t_min=6.0)  # mean=7 < base=10
+        gdd_after  = update_gdd(gdd_before, t_max=8.0, t_min=6.0, crop_type="tomato")  # mean=7 < base=10
         assert gdd_after == pytest.approx(gdd_before)
 
 
@@ -149,7 +150,7 @@ class TestDeploymentGate:
         assert "M1" in summary.failed_modules()
 
     def test_m2_fail(self):
-        summary = evaluate({"M2": 30.0})
+        summary = evaluate({"M2": 41.0})  # threshold 40%로 변경됨
         assert summary.all_passed is False
         assert "M2" in summary.failed_modules()
 
@@ -184,3 +185,102 @@ class TestDeploymentGate:
         for r in d["results"]:
             assert "module_id" in r
             assert "passed" in r
+
+
+# ── M5 환경 병해 위험도 평가 ──────────────────────────────────────────────────
+
+class TestEnvRiskPredict:
+    from models.m5_disease import env_risk_predict, EnvRiskResult
+
+    def _pred(self, temp, humidity, co2=800.0, crop="딸기"):
+        from models.m5_disease import env_risk_predict
+        return env_risk_predict(
+            {"temp_internal": temp, "humidity_int": humidity, "co2_ppm": co2}, crop
+        )
+
+    def test_returns_env_risk_result(self):
+        from models.m5_disease import EnvRiskResult
+        r = self._pred(22.0, 70.0)
+        assert isinstance(r, EnvRiskResult)
+
+    def test_normal_env_is_healthy(self):
+        r = self._pred(22.0, 70.0)
+        assert r.disease == "healthy"
+        assert r.risk_level == "none"
+        assert r.score == 0.0
+
+    def test_gray_mold_low_temp_high_humidity(self):
+        r = self._pred(15.0, 90.0, crop="딸기")
+        assert r.disease == "gray_mold"
+        assert r.risk_level in ("medium", "high")
+
+    def test_phytophthora_high_temp_high_humidity(self):
+        r = self._pred(27.0, 92.0, co2=1300.0, crop="방울토마토")
+        assert r.disease == "phytophthora"
+        assert r.risk_level in ("medium", "high")
+
+    def test_powdery_mildew_moderate_humidity(self):
+        r = self._pred(24.0, 58.0, crop="참외")
+        assert r.disease == "powdery_mildew"
+        assert r.risk_level in ("medium", "high")
+
+    def test_score_in_range(self):
+        r = self._pred(16.0, 88.0)
+        assert 0.0 <= r.score <= 1.0
+
+    def test_action_ko_not_empty(self):
+        r = self._pred(16.0, 88.0)
+        assert len(r.action_ko) > 0
+
+    def test_reasons_present_when_risk(self):
+        r = self._pred(16.0, 88.0)
+        if r.risk_level != "none":
+            assert len(r.reasons) > 0
+
+    def test_high_co2_increases_score(self):
+        r_normal = self._pred(16.0, 87.0, co2=800.0)
+        r_high   = self._pred(16.0, 87.0, co2=1400.0)
+        assert r_high.score >= r_normal.score
+
+    def test_crop_priority_difference(self):
+        # 딸기 우선순위: gray_mold 먼저 — 저온다습에서 gray_mold 반환
+        r = self._pred(15.0, 90.0, crop="딸기")
+        assert r.disease == "gray_mold"
+
+    def test_risk_levels_ordered(self):
+        r_none = self._pred(22.0, 70.0)
+        r_high = self._pred(16.0, 90.0)
+        assert r_none.score <= r_high.score
+
+    def test_powdery_mildew_high_humidity_no_risk(self):
+        """흰가루병은 습도 상한 초과 시 위험 없어야 함"""
+        # humidity 92% > 흰가루병 h_hi=68% → 역병/잿빛곰팡이 범주로 처리
+        r = self._pred(24.0, 92.0, crop="참외")
+        # 참외 우선순위: powdery_mildew 먼저지만 습도 초과라 역병으로
+        assert r.disease != "powdery_mildew" or r.risk_level == "none"
+
+    def test_low_risk_score_range(self):
+        """중간 조건 → low 또는 medium risk"""
+        # 잿빛곰팡이 경계값 근처
+        r = self._pred(14.0, 84.0, crop="딸기")
+        assert r.risk_level in ("low", "medium", "high")
+        assert 0.0 < r.score <= 1.0
+
+    def test_medium_risk_level(self):
+        """score 0.40~0.64 범위 → medium"""
+        from models.m5_disease import env_risk_predict
+        r = env_risk_predict({"temp_internal": 15.5, "humidity_int": 85.0, "co2_ppm": 900.0}, "딸기")
+        assert r.score >= 0.0
+        if 0.40 <= r.score < 0.65:
+            assert r.risk_level == "medium"
+
+    def test_unknown_crop_uses_default_priority(self):
+        """알 수 없는 작목 → 기본 우선순위로 평가"""
+        r = self._pred(16.0, 88.0, crop="가지")
+        assert r.disease in ("healthy", "gray_mold", "powdery_mildew", "phytophthora", "anthracnose")
+
+    def test_temperature_alias(self):
+        """temperature 키도 지원"""
+        from models.m5_disease import env_risk_predict
+        r = env_risk_predict({"temperature": 16.0, "humidity": 88.0}, "딸기")
+        assert isinstance(r.score, float)

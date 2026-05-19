@@ -454,10 +454,19 @@ def _feature_cols(df: pd.DataFrame, growth_cols: list[str]) -> list[str]:
 
 
 def train_model(df_train: pd.DataFrame, target: str, config: CropConfig) -> dict:
+    """TimeSeriesSplit CV + early stopping + log1p 변환 + 강화된 정규화.
+
+    과적합 방지:
+      - early_stopping_rounds (XGB/LGB)  → n_estimators를 CV로 자동 결정
+      - max_depth=3, reg_alpha=1.0, reg_lambda=5.0  → 더 보수적인 트리
+      - log1p 타겟 변환 → 분포 정규화
+      - TimeSeriesSplit  → 미래 데이터 누수 차단
+    """
     from sklearn.impute import SimpleImputer
     from sklearn.preprocessing import StandardScaler
     from sklearn.linear_model import Ridge
     from sklearn.metrics import r2_score, mean_absolute_percentage_error
+    from sklearn.model_selection import TimeSeriesSplit
 
     feat_cols = _feature_cols(df_train, config.growth_cols)
     mask = df_train[target].astype(float) > 0
@@ -468,79 +477,181 @@ def train_model(df_train: pd.DataFrame, target: str, config: CropConfig) -> dict
 
     imputer = SimpleImputer(strategy="median")
     X = imputer.fit_transform(X_raw)
+    y_log = np.log1p(y.values)   # 타겟 log1p 변환
 
     if n < 10:
         scaler = StandardScaler()
         X_sc = scaler.fit_transform(X)
         model = Ridge(alpha=10.0)
-        model.fit(X_sc, y)
-        y_pred = model.predict(X_sc)
+        model.fit(X_sc, y_log)
+        y_pred = np.expm1(model.predict(X_sc))
         return {
             "type": "ridge_fallback", "model": model, "imputer": imputer, "scaler": scaler,
-            "feature_cols": feat_cols,
+            "feature_cols": feat_cols, "log_transform": True,
             "train_r2": round(float(r2_score(y, y_pred)), 4),
             "train_mape": round(float(mean_absolute_percentage_error(y, y_pred) * 100), 2),
+            "cv_r2": round(float(r2_score(y, y_pred)), 4),
             "n_train": n, "crop": config.crop_ko,
         }
 
-    preds = []
-    result: dict = {"type": "xgb_lgb_ensemble", "feature_cols": feat_cols,
-                    "imputer": imputer, "n_train": n, "crop": config.crop_ko}
+    # 샘플 크기별 하이퍼파라미터 (소샘플에서 early stopping 오작동 방지)
+    if n < 200:
+        lr, depth, mcw, es, sub = 0.15, 3, 2, 15, 0.9
+    elif n < 400:
+        lr, depth, mcw, es, sub = 0.10, 3, 3, 20, 0.85
+    else:
+        lr, depth, mcw, es, sub = 0.05, 3, 5, 30, 0.8
+
+    n_splits = 2 if n < 100 else (3 if n < 300 else 4)
+    tscv = TimeSeriesSplit(n_splits=n_splits)
+
+    cv_r2_xgb, cv_r2_lgb = [], []
+    best_xgb_iters, best_lgb_iters = [], []
+    _xgb_available = _lgb_available = False
+
+    # ── XGB CV ─────────────────────────────────────────────────────────────────
     try:
         import xgboost as xgb
-        xgb_m = xgb.XGBRegressor(
-            n_estimators=300, max_depth=4, learning_rate=0.05,
-            subsample=0.8, colsample_bytree=0.8, min_child_weight=3,
-            random_state=42, verbosity=0)
-        xgb_m.fit(X, y)
-        preds.append(xgb_m.predict(X))
-        result["xgb_model"] = xgb_m
-    except ImportError:
-        pass
-    try:
-        import lightgbm as lgb
-        lgb_m = lgb.LGBMRegressor(
-            n_estimators=300, num_leaves=31, learning_rate=0.05,
-            subsample=0.8, colsample_bytree=0.8, min_child_samples=5,
-            random_state=42, verbosity=-1)
-        lgb_m.fit(X, y)
-        preds.append(lgb_m.predict(X))
-        result["lgb_model"] = lgb_m
+        _xgb_available = True
+        for tr_idx, val_idx in tscv.split(X):
+            fold_m = xgb.XGBRegressor(
+                n_estimators=500, early_stopping_rounds=es,
+                learning_rate=lr, max_depth=depth,
+                subsample=sub, colsample_bytree=0.8,
+                min_child_weight=mcw, reg_alpha=1.0, reg_lambda=5.0,
+                random_state=42, verbosity=0,
+            )
+            fold_m.fit(X[tr_idx], y_log[tr_idx],
+                       eval_set=[(X[val_idx], y_log[val_idx])],
+                       verbose=False)
+            y_pred_v = np.expm1(fold_m.predict(X[val_idx]))
+            y_true_v = np.expm1(y_log[val_idx])
+            cv_r2_xgb.append(float(r2_score(y_true_v, y_pred_v)))
+            best_xgb_iters.append(fold_m.best_iteration)
+        logger.info("    XGB CV R²=%.3f  best_n=%.0f (n_splits=%d)",
+                    float(np.mean(cv_r2_xgb)), np.median(best_xgb_iters), n_splits)
     except ImportError:
         pass
 
-    if not preds:
+    # ── LGB CV ─────────────────────────────────────────────────────────────────
+    try:
+        import lightgbm as lgb
+        _lgb_available = True
+        _num_leaves = min(31, max(7, 2 ** depth - 1))
+        for tr_idx, val_idx in tscv.split(X):
+            fold_m = lgb.LGBMRegressor(
+                n_estimators=500, learning_rate=lr,
+                max_depth=depth, num_leaves=_num_leaves,
+                min_child_samples=max(2, mcw),
+                subsample=sub, colsample_bytree=0.8,
+                reg_alpha=1.0, reg_lambda=5.0,
+                random_state=42, verbosity=-1, n_jobs=1,
+            )
+            fold_m.fit(X[tr_idx], y_log[tr_idx],
+                       eval_set=[(X[val_idx], y_log[val_idx])],
+                       callbacks=[
+                           lgb.early_stopping(es, verbose=False),
+                           lgb.log_evaluation(-1),
+                       ])
+            y_pred_v = np.expm1(fold_m.predict(X[val_idx]))
+            y_true_v = np.expm1(y_log[val_idx])
+            cv_r2_lgb.append(float(r2_score(y_true_v, y_pred_v)))
+            best_lgb_iters.append(fold_m.best_iteration_ or es)
+        logger.info("    LGB CV R²=%.3f  best_n=%.0f",
+                    float(np.mean(cv_r2_lgb)), np.median(best_lgb_iters))
+    except ImportError:
+        pass
+
+    # Ridge 폴백 (XGB/LGB 모두 없을 때)
+    if not _xgb_available and not _lgb_available:
         scaler = StandardScaler()
         X_sc = scaler.fit_transform(X)
         model = Ridge(alpha=10.0)
-        model.fit(X_sc, y)
-        y_pred = model.predict(X_sc)
-        result.update({"type": "ridge_fallback", "model": model, "scaler": scaler})
-        preds = [y_pred]
-        result["type"] = "ridge_fallback"
+        cv_r2_ridge = []
+        for tr_idx, val_idx in tscv.split(X_sc):
+            model.fit(X_sc[tr_idx], y_log[tr_idx])
+            yp = np.expm1(model.predict(X_sc[val_idx]))
+            cv_r2_ridge.append(float(r2_score(np.expm1(y_log[val_idx]), yp)))
+        model.fit(X_sc, y_log)
+        y_pred = np.expm1(model.predict(X_sc))
+        return {
+            "type": "ridge_fallback", "model": model, "imputer": imputer, "scaler": scaler,
+            "feature_cols": feat_cols, "log_transform": True,
+            "train_r2": round(float(r2_score(y, y_pred)), 4),
+            "train_mape": round(float(mean_absolute_percentage_error(y, y_pred) * 100), 2),
+            "cv_r2": round(float(np.mean(cv_r2_ridge)), 4),
+            "n_train": n, "crop": config.crop_ko,
+        }
+
+    # 전체 데이터 최종 학습 (CV에서 결정된 best_n 사용)
+    best_xgb_n = max(30, int(np.median(best_xgb_iters))) if best_xgb_iters else 100
+    best_lgb_n = max(30, int(np.median(best_lgb_iters))) if best_lgb_iters else 100
+    xgb_cv_r2  = float(np.mean(cv_r2_xgb)) if cv_r2_xgb else -999.0
+    lgb_cv_r2  = float(np.mean(cv_r2_lgb)) if cv_r2_lgb else -999.0
+
+    result: dict = {"type": "xgb_lgb_ensemble", "feature_cols": feat_cols,
+                    "imputer": imputer, "n_train": n, "crop": config.crop_ko,
+                    "log_transform": True}
+    preds = []
+
+    if _xgb_available:
+        import xgboost as xgb
+        xgb_m = xgb.XGBRegressor(
+            n_estimators=best_xgb_n,
+            learning_rate=lr, max_depth=depth,
+            subsample=sub, colsample_bytree=0.8,
+            min_child_weight=mcw, reg_alpha=1.0, reg_lambda=5.0,
+            random_state=42, verbosity=0,
+        )
+        xgb_m.fit(X, y_log)
+        preds.append(np.expm1(xgb_m.predict(X)))
+        result["xgb_model"] = xgb_m
+
+    if _lgb_available:
+        import lightgbm as lgb
+        _num_leaves = min(31, max(7, 2 ** depth - 1))
+        lgb_m = lgb.LGBMRegressor(
+            n_estimators=best_lgb_n,
+            learning_rate=lr, max_depth=depth, num_leaves=_num_leaves,
+            min_child_samples=max(2, mcw),
+            subsample=sub, colsample_bytree=0.8,
+            reg_alpha=1.0, reg_lambda=5.0,
+            random_state=42, verbosity=-1, n_jobs=1,
+        )
+        lgb_m.fit(X, y_log)
+        preds.append(np.expm1(lgb_m.predict(X)))
+        result["lgb_model"] = lgb_m
 
     y_pred_ens = np.mean(preds, axis=0)
     r2   = float(r2_score(y, y_pred_ens))
     mape = float(mean_absolute_percentage_error(y, y_pred_ens) * 100)
+    cv_r2_best = max(xgb_cv_r2, lgb_cv_r2)
     result["train_r2"]   = round(r2, 4)
     result["train_mape"] = round(mape, 2)
-    logger.info("    [%s %s] train R2=%.3f  MAPE=%.1f%%",
-                config.crop_ko, result["type"], r2, mape)
+    result["cv_r2"]      = round(cv_r2_best, 4)
+    logger.info("    [%s %s] CV R²=%.3f  train R²=%.3f  MAPE=%.1f%%",
+                config.crop_ko, result["type"], cv_r2_best, r2, mape)
     return result
 
 
 def predict(model_info: dict, X_df: pd.DataFrame) -> np.ndarray:
     feat_cols = model_info["feature_cols"]
     X = model_info["imputer"].transform(X_df.reindex(columns=feat_cols))
+    log_transform = model_info.get("log_transform", False)
+
     if model_info["type"] == "ridge_fallback":
         if "scaler" in model_info:
             X = model_info["scaler"].transform(X)
-        return model_info["model"].predict(X)
+        raw = model_info["model"].predict(X)
+        return np.expm1(raw) if log_transform else raw
+
     ps = []
     if "xgb_model" in model_info:
-        ps.append(model_info["xgb_model"].predict(X))
+        raw = model_info["xgb_model"].predict(X)
+        ps.append(np.expm1(raw) if log_transform else raw)
     if "lgb_model" in model_info:
-        ps.append(model_info["lgb_model"].predict(X))
+        raw = model_info["lgb_model"].predict(X)
+        ps.append(np.expm1(raw) if log_transform else raw)
     return np.mean(ps, axis=0) if ps else np.zeros(len(X))
 
 
@@ -720,7 +831,7 @@ def run_crop_pipeline(config: CropConfig) -> dict:
         "n_train": len(df_train), "n_test": len(df_test),
         "target": target, "model_type": model_info.get("type"),
         "feature_count": len(model_info.get("feature_cols", [])),
-        "train_metrics": {"r2": model_info.get("train_r2"), "mape": model_info.get("train_mape")},
+        "train_metrics": {"r2": model_info.get("train_r2"), "cv_r2": model_info.get("cv_r2"), "mape": model_info.get("train_mape")},
         "test_metrics": val,
         "optimization_sample": opt["best"],
         "top5_env_combinations": opt["top5"],

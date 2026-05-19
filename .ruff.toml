@@ -1,0 +1,27 @@
+# ruff 린터 설정 — Smart Farm AI Platform
+
+target-version = "py311"
+line-length = 100
+
+[lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "UP",  # pyupgrade
+]
+ignore = [
+    "E501",   # line too long (line-length가 처리)
+    "B008",   # function calls in default args (FastAPI Depends 패턴)
+    "UP007",  # Optional[X] → X | None (Python 3.9 미만 호환성 위해 허용)
+]
+
+[lint.per-file-ignores]
+"tests/*" = ["B", "S"]   # 테스트에서 assert, magic values 허용
+"pipeline/train/*" = ["E402"]  # 학습 스크립트 top-level import 순서 허용
+
+[format]
+quote-style = "double"
+indent-style = "space"

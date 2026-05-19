@@ -1,0 +1,20 @@
+[Unit]
+Description=Smart Farm — 주간 운영 리포트 생성 및 발송
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=smartfarm
+Group=smartfarm
+WorkingDirectory=/opt/smart_farm
+
+EnvironmentFile=-/opt/smart_farm/.env
+ExecStart=/opt/smart_farm/venv/bin/python -m pipeline.weekly_report
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=smart-farm-weekly
+
+# Slack/이메일 전송 포함이므로 타임아웃 여유 설정
+TimeoutStartSec=180

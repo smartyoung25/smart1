@@ -1,0 +1,38 @@
+[Unit]
+Description=Smart Farm Model Retrain Trigger (one-shot, triggered by timer)
+After=smart-farm-etl.service
+# Retrain after ETL has had a chance to accumulate rows
+
+[Service]
+Type=oneshot
+User=smartfarm
+Group=smartfarm
+WorkingDirectory=/opt/smart_farm
+
+EnvironmentFile=/opt/smart_farm/.env
+Environment=PYTHONPATH=/opt/smart_farm
+
+ExecStart=/opt/smart_farm/venv/bin/python3 -B \
+    /opt/smart_farm/pipeline/retrain_trigger.py \
+    --env_threshold ${RETRAIN_ENV_ROWS:-500} \
+    --prod_threshold ${RETRAIN_PROD_ROWS:-200}
+
+# Hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/smart_farm/pipeline/state \
+               /opt/smart_farm/logs \
+               /opt/smart_farm/models/artifacts
+PrivateTmp=true
+
+# Retrain can be slow — allow up to 2 hours
+TimeoutStartSec=7200
+
+# Logging
+StandardOutput=append:/opt/smart_farm/logs/retrain.log
+StandardError=append:/opt/smart_farm/logs/retrain.log
+SyslogIdentifier=smart-farm-retrain
+
+[Install]
+WantedBy=multi-user.target

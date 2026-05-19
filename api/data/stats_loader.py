@@ -92,12 +92,28 @@ _PRICE_DEFAULTS: dict[str, float] = {
 
 
 def get_price_krw_kg(crop: str, percentile: str = "mean") -> float:
-    """
-    품목별 kg당 판매단가 반환.
+    """품목별 kg당 판매단가 반환.
+
+    조회 우선순위:
+      1. KAMIS 캐시 (kamis_price_cache.json — 당일 도매가격)
+      2. RDA 5년 패널 통계 (price_stats.json)
+      3. 하드코딩 기본값
+
     percentile: "mean" | "median" | "p25" | "p75"
-    데이터 없으면 기본값 사용.
+    (KAMIS 캐시 사용 시 percentile은 무시됨 — 단일 도매가격)
     """
     crop_ko = normalize_crop(crop)
+
+    # ① KAMIS 당일 캐시 우선
+    try:
+        from pipeline.kamis_fetcher import get_cached_price
+        kamis_price = get_cached_price(crop_ko)
+        if kamis_price is not None:
+            return kamis_price
+    except Exception:
+        pass   # pipeline 패키지 없는 환경(테스트 등)에서는 무시
+
+    # ② RDA 5년 패널 통계
     by_crop = _price_data().get("by_crop", {})
     stats = by_crop.get(crop_ko)
     if not stats:

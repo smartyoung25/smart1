@@ -14,6 +14,8 @@ from slowapi.errors import RateLimitExceeded
 
 from api.routers import farmer, admin
 from api.routers.auth import router as auth_router
+from api.routers.recommend_v2 import router as recommend_v2_router
+from api.routers.ws import router as ws_router, _setup_mqtt_bridge
 from api.middleware.auth import JWTMiddleware
 
 # ── Rate limiter ──────────────────────────────────────────────────────────────
@@ -47,6 +49,14 @@ app.add_middleware(JWTMiddleware)
 app.include_router(auth_router)
 app.include_router(farmer.router)
 app.include_router(admin.router)
+app.include_router(recommend_v2_router)
+app.include_router(ws_router)
+
+
+@app.on_event("startup")
+async def startup_event():
+    """앱 시작 시 MQTT→WebSocket 브리지 등록."""
+    _setup_mqtt_bridge()
 
 
 @app.get("/health", tags=["system"])

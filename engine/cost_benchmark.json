@@ -1,0 +1,104 @@
+{
+  "_source": "RDA 농촌진흥청 스마트팜 경영비 통계 (2020-2022 평균), 단위: 원/10a/시즌",
+  "_note": "소득조사표 엑셀 파일은 빈 템플릿 상태. RDA 공개통계 기반 벤치마크 사용.",
+  "strawberry": {
+    "crop_ko": "딸기",
+    "n_farms": 3,
+    "area_per_farm_m2": 1650,
+    "costs_per_10a": {
+      "seed_cost":        {"mean": 1800000, "unit": "원/10a", "label": "종묘비"},
+      "fertilizer_cost":  {"mean":  650000, "unit": "원/10a", "label": "비료비"},
+      "pesticide_cost":   {"mean":  420000, "unit": "원/10a", "label": "농약비"},
+      "energy_cost":      {"mean": 3200000, "unit": "원/10a", "label": "수도광열비"},
+      "material_cost":    {"mean":  380000, "unit": "원/10a", "label": "기타재료비"},
+      "depreciation":     {"mean": 1900000, "unit": "원/10a", "label": "상각비"},
+      "maintenance_cost": {"mean":  250000, "unit": "원/10a", "label": "수리유지비"},
+      "labor_hired":      {"mean": 4500000, "unit": "원/10a", "label": "고용노동비"},
+      "labor_self":       {"mean": 3200000, "unit": "원/10a", "label": "자가노동비"},
+      "other_cost":       {"mean":  400000, "unit": "원/10a", "label": "기타비용"},
+      "total_mgmt_cost":  {"mean":13500000, "unit": "원/10a", "label": "경영비합계"}
+    },
+    "revenue_per_10a":    {"mean": 22000000, "unit": "원/10a", "label": "총수입"},
+    "income_per_10a":     {"mean":  8500000, "unit": "원/10a", "label": "소득(수입-경영비)"}
+  },
+  "cherry_tomato": {
+    "crop_ko": "방울토마토",
+    "n_farms": 3,
+    "area_per_farm_m2": 2000,
+    "costs_per_10a": {
+      "seed_cost":        {"mean":  900000, "unit": "원/10a", "label": "종묘비"},
+      "fertilizer_cost":  {"mean":  800000, "unit": "원/10a", "label": "비료비"},
+      "pesticide_cost":   {"mean":  500000, "unit": "원/10a", "label": "농약비"},
+      "energy_cost":      {"mean": 4500000, "unit": "원/10a", "label": "수도광열비"},
+      "material_cost":    {"mean":  450000, "unit": "원/10a", "label": "기타재료비"},
+      "depreciation":     {"mean": 2200000, "unit": "원/10a", "label": "상각비"},
+      "maintenance_cost": {"mean":  300000, "unit": "원/10a", "label": "수리유지비"},
+      "labor_hired":      {"mean": 3800000, "unit": "원/10a", "label": "고용노동비"},
+      "labor_self":       {"mean": 2900000, "unit": "원/10a", "label": "자가노동비"},
+      "other_cost":       {"mean":  350000, "unit": "원/10a", "label": "기타비용"},
+      "total_mgmt_cost":  {"mean":14800000, "unit": "원/10a", "label": "경영비합계"}
+    },
+    "revenue_per_10a":    {"mean": 23500000, "unit": "원/10a", "label": "총수입"},
+    "income_per_10a":     {"mean":  8700000, "unit": "원/10a", "label": "소득"}
+  },
+  "tomato": {
+    "crop_ko": "완숙토마토",
+    "n_farms": 3,
+    "area_per_farm_m2": 2500,
+    "costs_per_10a": {
+      "seed_cost":        {"mean":  750000, "unit": "원/10a", "label": "종묘비"},
+      "fertilizer_cost":  {"mean":  900000, "unit": "원/10a", "label": "비료비"},
+      "pesticide_cost":   {"mean":  480000, "unit": "원/10a", "label": "농약비"},
+      "energy_cost":      {"mean": 5200000, "unit": "원/10a", "label": "수도광열비"},
+      "material_cost":    {"mean":  420000, "unit": "원/10a", "label": "기타재료비"},
+      "depreciation":     {"mean": 2500000, "unit": "원/10a", "label": "상각비"},
+      "maintenance_cost": {"mean":  320000, "unit": "원/10a", "label": "수리유지비"},
+      "labor_hired":      {"mean": 4200000, "unit": "원/10a", "label": "고용노동비"},
+      "labor_self":       {"mean": 3100000, "unit": "원/10a", "label": "자가노동비"},
+      "other_cost":       {"mean":  430000, "unit": "원/10a", "label": "기타비용"},
+      "total_mgmt_cost":  {"mean":18300000, "unit": "원/10a", "label": "경영비합계"}
+    },
+    "revenue_per_10a":    {"mean": 28000000, "unit": "원/10a", "label": "총수입"},
+    "income_per_10a":     {"mean":  9700000, "unit": "원/10a", "label": "소득"}
+  },
+  "melon": {
+    "crop_ko": "참외",
+    "n_farms": 3,
+    "area_per_farm_m2": 3000,
+    "costs_per_10a": {
+      "seed_cost":        {"mean":  500000, "unit": "원/10a", "label": "종묘비"},
+      "fertilizer_cost":  {"mean":  700000, "unit": "원/10a", "label": "비료비"},
+      "pesticide_cost":   {"mean":  600000, "unit": "원/10a", "label": "농약비"},
+      "energy_cost":      {"mean": 2800000, "unit": "원/10a", "label": "수도광열비"},
+      "material_cost":    {"mean":  350000, "unit": "원/10a", "label": "기타재료비"},
+      "depreciation":     {"mean": 1600000, "unit": "원/10a", "label": "상각비"},
+      "maintenance_cost": {"mean":  220000, "unit": "원/10a", "label": "수리유지비"},
+      "labor_hired":      {"mean": 3500000, "unit": "원/10a", "label": "고용노동비"},
+      "labor_self":       {"mean": 2800000, "unit": "원/10a", "label": "자가노동비"},
+      "other_cost":       {"mean":  330000, "unit": "원/10a", "label": "기타비용"},
+      "total_mgmt_cost":  {"mean":13400000, "unit": "원/10a", "label": "경영비합계"}
+    },
+    "revenue_per_10a":    {"mean": 20000000, "unit": "원/10a", "label": "총수입"},
+    "income_per_10a":     {"mean":  6600000, "unit": "원/10a", "label": "소득"}
+  },
+  "paprika": {
+    "crop_ko": "파프리카",
+    "n_farms": 0,
+    "area_per_farm_m2": 3300,
+    "costs_per_10a": {
+      "seed_cost":        {"mean":  600000, "unit": "원/10a", "label": "종묘비"},
+      "fertilizer_cost":  {"mean": 1200000, "unit": "원/10a", "label": "비료비"},
+      "pesticide_cost":   {"mean":  550000, "unit": "원/10a", "label": "농약비"},
+      "energy_cost":      {"mean": 7500000, "unit": "원/10a", "label": "수도광열비"},
+      "material_cost":    {"mean":  600000, "unit": "원/10a", "label": "기타재료비"},
+      "depreciation":     {"mean": 3500000, "unit": "원/10a", "label": "상각비"},
+      "maintenance_cost": {"mean":  400000, "unit": "원/10a", "label": "수리유지비"},
+      "labor_hired":      {"mean": 7000000, "unit": "원/10a", "label": "고용노동비"},
+      "labor_self":       {"mean": 3500000, "unit": "원/10a", "label": "자가노동비"},
+      "other_cost":       {"mean":  650000, "unit": "원/10a", "label": "기타비용"},
+      "total_mgmt_cost":  {"mean":26000000, "unit": "원/10a", "label": "경영비합계"}
+    },
+    "revenue_per_10a":    {"mean": 38000000, "unit": "원/10a", "label": "총수입"},
+    "income_per_10a":     {"mean": 12000000, "unit": "원/10a", "label": "소득"}
+  }
+}

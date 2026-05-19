@@ -42,11 +42,11 @@ YEARS    = [2018, 2019, 2020, 2021, 2022]
 
 # ── 지원 작목 및 GDD 기준온도 (문헌값, 실측 보정 적용 예정) ──────────────────
 CROP_CONFIG = {
-    "딸기":      {"base_temp": 6.0,  "gdd_init": 450, "growth_col_priority": ["초장", "엽수", "관부직경"]},
-    "방울토마토": {"base_temp": 10.0, "gdd_init": 600, "growth_col_priority": ["초장", "엽수", "화방별착과수"]},
-    "완숙토마토": {"base_temp": 10.0, "gdd_init": 600, "growth_col_priority": ["초장", "엽수", "화방별착과수"]},
-    "오이":      {"base_temp": 12.0, "gdd_init": 400, "growth_col_priority": ["초장", "마디수", "착과수"]},
-    "참외":      {"base_temp": 12.0, "gdd_init": 500, "growth_col_priority": ["초장", "엽수", "착과수"]},
+    "딸기":      {"base_temp": 6.0,  "gdd_init": 450, "gdd_range": (350, 600),  "growth_col_priority": ["초장", "엽수", "관부직경"]},
+    "방울토마토": {"base_temp": 10.0, "gdd_init": 550, "gdd_range": (400, 800),  "growth_col_priority": ["초장", "엽수", "화방별착과수"]},
+    "완숙토마토": {"base_temp": 10.0, "gdd_init": 600, "gdd_range": (400, 900),  "growth_col_priority": ["초장", "엽수", "화방별착과수"]},
+    "오이":      {"base_temp": 12.0, "gdd_init": 400, "gdd_range": (300, 600),  "growth_col_priority": ["초장", "마디수", "착과수"]},
+    "참외":      {"base_temp": 12.0, "gdd_init": 500, "gdd_range": (400, 700),  "growth_col_priority": ["초장", "엽수", "착과수"]},
 }
 
 # ── 생육 컬럼 → canonical 매핑 ────────────────────────────────────────────────
@@ -191,6 +191,10 @@ def compute_weekly_stats(df: pd.DataFrame, cult_df: pd.DataFrame | None, crop: s
         df["week"] = (df["days_since_planting"] / 7).apply(
             lambda x: int(x) + 1 if pd.notna(x) and x >= 0 else np.nan
         )
+        # 정식일 매핑 실패 행은 ISO week로 보완
+        mask = df["week"].isna()
+        if mask.any():
+            df.loc[mask, "week"] = df.loc[mask, "survey_date"].dt.isocalendar().week.astype(float)
         df = df[df["week"].between(1, 52)]
     else:
         # 정식일 없으면 연중 주차(ISO week) 사용
@@ -268,7 +272,10 @@ def estimate_gdd_to_harvest(
 
     daily_gdd = max(0.0, avg_daily_temp - base_temp)
     fitted_gdd = round(harvest_week * 7 * daily_gdd) if daily_gdd > 0 else CROP_CONFIG[crop]["gdd_init"]
-    fitted_gdd = max(200, min(3000, fitted_gdd))  # 현실적 범위 클램핑
+    # 작목별 합리적 GDD 범위로 클램핑
+    gdd_lo, gdd_hi = CROP_CONFIG[crop].get("gdd_range", (200, 3000))
+    if not (gdd_lo <= fitted_gdd <= gdd_hi):
+        fitted_gdd = CROP_CONFIG[crop]["gdd_init"]  # 범위 초과 시 문헌값 사용
 
     return {
         "base_temp_c":            base_temp,

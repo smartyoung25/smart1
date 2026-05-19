@@ -1,0 +1,9 @@
+{
+  "crop_ko": "오이",
+  "crop_en": "cucumber",
+  "season_months": 8,
+  "yield_baseline_kg_m2": 18.25,
+  "price_baseline_krw_kg": 1845,
+  "data_source": "synthetic_rda_stats",
+  "note": "농진청 통계 기반 합성 학습 — 실데이터 재학습 권장"
+}

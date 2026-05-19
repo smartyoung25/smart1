@@ -1,0 +1,2375 @@
+{
+  "참외": {
+    "월별_분포": {
+      "1": {
+        "temp_internal": {
+          "mean": 18.45,
+          "n": 43191
+        },
+        "humidity_int": {
+          "mean": 85.55,
+          "n": 42430
+        },
+        "co2_ppm": {
+          "mean": 730.24,
+          "n": 11618
+        },
+        "soil_temp": {
+          "mean": 19.31,
+          "n": 31581
+        },
+        "temp_external": {
+          "mean": -0.44,
+          "n": 7696
+        },
+        "solar_rad": {
+          "mean": 82.16,
+          "n": 15846
+        },
+        "wind_speed": {
+          "mean": 0.74,
+          "n": 7253
+        }
+      },
+      "2": {
+        "temp_internal": {
+          "mean": 19.6,
+          "n": 42954
+        },
+        "humidity_int": {
+          "mean": 87.04,
+          "n": 41084
+        },
+        "co2_ppm": {
+          "mean": 773.9,
+          "n": 10997
+        },
+        "soil_temp": {
+          "mean": 19.86,
+          "n": 34532
+        },
+        "temp_external": {
+          "mean": 2.92,
+          "n": 7913
+        },
+        "solar_rad": {
+          "mean": 116.87,
+          "n": 14918
+        },
+        "wind_speed": {
+          "mean": 0.72,
+          "n": 6854
+        }
+      },
+      "3": {
+        "temp_internal": {
+          "mean": 20.13,
+          "n": 44842
+        },
+        "humidity_int": {
+          "mean": 82.88,
+          "n": 43704
+        },
+        "co2_ppm": {
+          "mean": 781.11,
+          "n": 16702
+        },
+        "soil_temp": {
+          "mean": 20.41,
+          "n": 37045
+        },
+        "temp_external": {
+          "mean": 9.23,
+          "n": 8472
+        },
+        "solar_rad": {
+          "mean": 139.98,
+          "n": 15260
+        },
+        "wind_speed": {
+          "mean": 0.75,
+          "n": 6365
+        }
+      },
+      "4": {
+        "temp_internal": {
+          "mean": 20.19,
+          "n": 42630
+        },
+        "humidity_int": {
+          "mean": 78.34,
+          "n": 42172
+        },
+        "co2_ppm": {
+          "mean": 799.76,
+          "n": 19060
+        },
+        "soil_temp": {
+          "mean": 20.77,
+          "n": 36641
+        },
+        "temp_external": {
+          "mean": 14.15,
+          "n": 8329
+        },
+        "solar_rad": {
+          "mean": 177.69,
+          "n": 13583
+        },
+        "wind_speed": {
+          "mean": 1.02,
+          "n": 6712
+        }
+      },
+      "5": {
+        "temp_internal": {
+          "mean": 23.67,
+          "n": 43332
+        },
+        "humidity_int": {
+          "mean": 77.62,
+          "n": 42615
+        },
+        "co2_ppm": {
+          "mean": 741.56,
+          "n": 19764
+        },
+        "soil_temp": {
+          "mean": 23.94,
+          "n": 35988
+        },
+        "temp_external": {
+          "mean": 18.49,
+          "n": 8674
+        },
+        "solar_rad": {
+          "mean": 183.8,
+          "n": 13349
+        },
+        "wind_speed": {
+          "mean": 0.71,
+          "n": 6826
+        }
+      },
+      "6": {
+        "temp_internal": {
+          "mean": 26.95,
+          "n": 36994
+        },
+        "humidity_int": {
+          "mean": 76.96,
+          "n": 37011
+        },
+        "co2_ppm": {
+          "mean": 692.99,
+          "n": 18044
+        },
+        "soil_temp": {
+          "mean": 26.73,
+          "n": 29774
+        },
+        "temp_external": {
+          "mean": 23.32,
+          "n": 8278
+        },
+        "solar_rad": {
+          "mean": 184.04,
+          "n": 14662
+        },
+        "wind_speed": {
+          "mean": 0.68,
+          "n": 6478
+        }
+      },
+      "7": {
+        "temp_internal": {
+          "mean": 27.82,
+          "n": 20716
+        },
+        "humidity_int": {
+          "mean": 81.26,
+          "n": 21079
+        },
+        "co2_ppm": {
+          "mean": 658.18,
+          "n": 13939
+        },
+        "soil_temp": {
+          "mean": 27.11,
+          "n": 15127
+        },
+        "temp_external": {
+          "mean": 25.55,
+          "n": 4041
+        },
+        "solar_rad": {
+          "mean": 147.38,
+          "n": 9445
+        },
+        "wind_speed": {
+          "mean": 0.54,
+          "n": 3183
+        }
+      },
+      "8": {
+        "temp_internal": {
+          "mean": 28.2,
+          "n": 5474
+        },
+        "humidity_int": {
+          "mean": 82.31,
+          "n": 5872
+        },
+        "co2_ppm": {
+          "mean": 579.05,
+          "n": 4641
+        },
+        "soil_temp": {
+          "mean": 28.33,
+          "n": 4073
+        },
+        "solar_rad": {
+          "mean": 120.8,
+          "n": 1835
+        },
+        "temp_external": {
+          "mean": 30.39,
+          "n": 59
+        },
+        "wind_speed": {
+          "mean": 0.49,
+          "n": 59
+        }
+      },
+      "9": {
+        "temp_internal": {
+          "mean": 23.63,
+          "n": 1646
+        },
+        "humidity_int": {
+          "mean": 83.4,
+          "n": 1642
+        },
+        "soil_temp": {
+          "mean": 25.42,
+          "n": 1649
+        },
+        "co2_ppm": {
+          "mean": 629.84,
+          "n": 1001
+        }
+      },
+      "11": {
+        "temp_internal": {
+          "mean": 20.96,
+          "n": 868
+        },
+        "humidity_int": {
+          "mean": 76.51,
+          "n": 910
+        },
+        "co2_ppm": {
+          "mean": 805.68,
+          "n": 123
+        },
+        "soil_temp": {
+          "mean": 22.43,
+          "n": 863
+        },
+        "solar_rad": {
+          "mean": 107.09,
+          "n": 456
+        },
+        "temp_external": {
+          "mean": 5.87,
+          "n": 581
+        },
+        "wind_speed": {
+          "mean": 0.95,
+          "n": 581
+        }
+      },
+      "12": {
+        "temp_internal": {
+          "mean": 19.63,
+          "n": 22888
+        },
+        "humidity_int": {
+          "mean": 82.6,
+          "n": 23041
+        },
+        "co2_ppm": {
+          "mean": 767.8,
+          "n": 6622
+        },
+        "soil_temp": {
+          "mean": 19.91,
+          "n": 16469
+        },
+        "solar_rad": {
+          "mean": 83.77,
+          "n": 9607
+        },
+        "temp_external": {
+          "mean": -0.39,
+          "n": 5100
+        },
+        "wind_speed": {
+          "mean": 0.82,
+          "n": 5340
+        }
+      }
+    },
+    "최적_범위": {
+      "temp_internal": [
+        15.9,
+        26.6
+      ],
+      "humidity_int": [
+        70.6,
+        95.4
+      ],
+      "co2_ppm": [
+        517.0,
+        940.0
+      ],
+      "soil_temp": [
+        19.0,
+        24.9
+      ],
+      "solar_rad": [
+        1.0,
+        211.0
+      ],
+      "temp_external": [
+        2.6,
+        20.5
+      ],
+      "wind_speed": [
+        0.0,
+        1.0
+      ]
+    },
+    "조정_델타": {
+      "temp_internal": [
+        -5.4,
+        -2.7,
+        2.7,
+        5.4
+      ],
+      "humidity_int": [
+        -12.4,
+        -6.2,
+        6.2,
+        12.4
+      ],
+      "co2_ppm": [
+        -211.6,
+        -105.8,
+        105.8,
+        211.6
+      ],
+      "soil_temp": [
+        -3.0,
+        -1.5,
+        1.5,
+        3.0
+      ],
+      "solar_rad": [
+        -105.0,
+        -52.5,
+        52.5,
+        105.0
+      ],
+      "temp_external": [
+        -9.0,
+        -4.5,
+        4.5,
+        9.0
+      ],
+      "wind_speed": [
+        -0.4,
+        -0.2,
+        0.2,
+        0.4
+      ]
+    },
+    "수확량_상관": {},
+    "변수_통계": {
+      "temp_internal": {
+        "mean": 21.8,
+        "std": 7.64,
+        "p5": 10.6,
+        "p95": 36.0
+      },
+      "humidity_int": {
+        "mean": 81.55,
+        "std": 17.87,
+        "p5": 44.7,
+        "p95": 99.2
+      },
+      "co2_ppm": {
+        "mean": 735.61,
+        "std": 286.19,
+        "p5": 369.0,
+        "p95": 1298.0
+      },
+      "soil_temp": {
+        "mean": 22.09,
+        "std": 4.58,
+        "p5": 14.9,
+        "p95": 29.7
+      },
+      "solar_rad": {
+        "mean": 139.63,
+        "std": 224.67,
+        "p5": 1.0,
+        "p95": 672.0
+      },
+      "temp_external": {
+        "mean": 11.43,
+        "std": 10.98,
+        "p5": -6.0,
+        "p95": 28.8
+      },
+      "wind_speed": {
+        "mean": 0.76,
+        "std": 0.95,
+        "p5": 0.0,
+        "p95": 3.0
+      }
+    }
+  },
+  "완숙토마토": {
+    "월별_분포": {
+      "1": {
+        "temp_internal": {
+          "mean": 16.4,
+          "n": 108457
+        },
+        "humidity_int": {
+          "mean": 84.09,
+          "n": 105148
+        },
+        "co2_ppm": {
+          "mean": 515.94,
+          "n": 77327
+        },
+        "soil_temp": {
+          "mean": 17.43,
+          "n": 34140
+        },
+        "solar_rad": {
+          "mean": 98.46,
+          "n": 84787
+        },
+        "temp_external": {
+          "mean": 0.84,
+          "n": 106203
+        },
+        "wind_speed": {
+          "mean": 0.93,
+          "n": 74525
+        }
+      },
+      "2": {
+        "temp_internal": {
+          "mean": 17.19,
+          "n": 99208
+        },
+        "humidity_int": {
+          "mean": 83.36,
+          "n": 95699
+        },
+        "co2_ppm": {
+          "mean": 503.1,
+          "n": 71171
+        },
+        "soil_temp": {
+          "mean": 18.41,
+          "n": 30502
+        },
+        "solar_rad": {
+          "mean": 129.62,
+          "n": 75714
+        },
+        "temp_external": {
+          "mean": 3.18,
+          "n": 96345
+        },
+        "wind_speed": {
+          "mean": 1.0,
+          "n": 67393
+        }
+      },
+      "3": {
+        "temp_internal": {
+          "mean": 18.16,
+          "n": 110444
+        },
+        "humidity_int": {
+          "mean": 81.1,
+          "n": 106554
+        },
+        "co2_ppm": {
+          "mean": 481.63,
+          "n": 79302
+        },
+        "soil_temp": {
+          "mean": 19.3,
+          "n": 36380
+        },
+        "solar_rad": {
+          "mean": 165.52,
+          "n": 83938
+        },
+        "temp_external": {
+          "mean": 8.26,
+          "n": 105448
+        },
+        "wind_speed": {
+          "mean": 1.08,
+          "n": 74027
+        }
+      },
+      "4": {
+        "temp_internal": {
+          "mean": 18.99,
+          "n": 106187
+        },
+        "humidity_int": {
+          "mean": 78.24,
+          "n": 102859
+        },
+        "co2_ppm": {
+          "mean": 464.29,
+          "n": 74121
+        },
+        "soil_temp": {
+          "mean": 20.05,
+          "n": 34042
+        },
+        "solar_rad": {
+          "mean": 193.9,
+          "n": 81122
+        },
+        "temp_external": {
+          "mean": 12.12,
+          "n": 99417
+        },
+        "wind_speed": {
+          "mean": 1.1,
+          "n": 68669
+        }
+      },
+      "5": {
+        "temp_internal": {
+          "mean": 20.75,
+          "n": 96583
+        },
+        "humidity_int": {
+          "mean": 78.13,
+          "n": 92950
+        },
+        "co2_ppm": {
+          "mean": 431.13,
+          "n": 65044
+        },
+        "soil_temp": {
+          "mean": 21.51,
+          "n": 31204
+        },
+        "solar_rad": {
+          "mean": 211.87,
+          "n": 72610
+        },
+        "temp_external": {
+          "mean": 17.85,
+          "n": 88371
+        },
+        "wind_speed": {
+          "mean": 1.01,
+          "n": 58082
+        }
+      },
+      "6": {
+        "temp_internal": {
+          "mean": 23.63,
+          "n": 63786
+        },
+        "humidity_int": {
+          "mean": 81.81,
+          "n": 62345
+        },
+        "co2_ppm": {
+          "mean": 414.56,
+          "n": 41345
+        },
+        "solar_rad": {
+          "mean": 212.57,
+          "n": 46330
+        },
+        "temp_external": {
+          "mean": 22.05,
+          "n": 56340
+        },
+        "wind_speed": {
+          "mean": 0.77,
+          "n": 34230
+        },
+        "soil_temp": {
+          "mean": 24.31,
+          "n": 17844
+        }
+      },
+      "7": {
+        "temp_internal": {
+          "mean": 25.39,
+          "n": 38785
+        },
+        "humidity_int": {
+          "mean": 84.67,
+          "n": 38094
+        },
+        "co2_ppm": {
+          "mean": 389.78,
+          "n": 28426
+        },
+        "temp_external": {
+          "mean": 24.46,
+          "n": 32086
+        },
+        "solar_rad": {
+          "mean": 185.1,
+          "n": 28508
+        },
+        "wind_speed": {
+          "mean": 0.62,
+          "n": 24359
+        },
+        "soil_temp": {
+          "mean": 26.19,
+          "n": 10747
+        }
+      },
+      "8": {
+        "temp_internal": {
+          "mean": 26.45,
+          "n": 43589
+        },
+        "humidity_int": {
+          "mean": 82.24,
+          "n": 42617
+        },
+        "co2_ppm": {
+          "mean": 391.24,
+          "n": 31016
+        },
+        "soil_temp": {
+          "mean": 27.31,
+          "n": 11427
+        },
+        "solar_rad": {
+          "mean": 167.98,
+          "n": 32105
+        },
+        "temp_external": {
+          "mean": 25.74,
+          "n": 35798
+        },
+        "wind_speed": {
+          "mean": 0.8,
+          "n": 30097
+        }
+      },
+      "9": {
+        "temp_internal": {
+          "mean": 22.52,
+          "n": 75581
+        },
+        "humidity_int": {
+          "mean": 81.78,
+          "n": 73482
+        },
+        "co2_ppm": {
+          "mean": 400.58,
+          "n": 50573
+        },
+        "temp_external": {
+          "mean": 20.64,
+          "n": 66603
+        },
+        "solar_rad": {
+          "mean": 148.34,
+          "n": 55655
+        },
+        "soil_temp": {
+          "mean": 23.74,
+          "n": 19887
+        },
+        "wind_speed": {
+          "mean": 0.98,
+          "n": 49936
+        }
+      },
+      "10": {
+        "temp_internal": {
+          "mean": 19.55,
+          "n": 104588
+        },
+        "humidity_int": {
+          "mean": 80.79,
+          "n": 100657
+        },
+        "co2_ppm": {
+          "mean": 452.89,
+          "n": 66646
+        },
+        "solar_rad": {
+          "mean": 143.77,
+          "n": 77933
+        },
+        "temp_external": {
+          "mean": 14.06,
+          "n": 94387
+        },
+        "wind_speed": {
+          "mean": 0.72,
+          "n": 66882
+        },
+        "soil_temp": {
+          "mean": 21.28,
+          "n": 25612
+        }
+      },
+      "11": {
+        "temp_internal": {
+          "mean": 17.67,
+          "n": 105389
+        },
+        "humidity_int": {
+          "mean": 83.8,
+          "n": 101171
+        },
+        "co2_ppm": {
+          "mean": 490.41,
+          "n": 72076
+        },
+        "solar_rad": {
+          "mean": 107.66,
+          "n": 78842
+        },
+        "temp_external": {
+          "mean": 8.82,
+          "n": 97004
+        },
+        "wind_speed": {
+          "mean": 0.77,
+          "n": 67585
+        },
+        "soil_temp": {
+          "mean": 19.34,
+          "n": 26995
+        }
+      },
+      "12": {
+        "temp_internal": {
+          "mean": 16.3,
+          "n": 103510
+        },
+        "humidity_int": {
+          "mean": 84.7,
+          "n": 99965
+        },
+        "co2_ppm": {
+          "mean": 508.34,
+          "n": 72926
+        },
+        "solar_rad": {
+          "mean": 91.41,
+          "n": 78704
+        },
+        "temp_external": {
+          "mean": 1.51,
+          "n": 99875
+        },
+        "wind_speed": {
+          "mean": 0.94,
+          "n": 69218
+        },
+        "soil_temp": {
+          "mean": 17.5,
+          "n": 29289
+        }
+      }
+    },
+    "최적_범위": {
+      "temp_internal": [
+        15.4,
+        23.1
+      ],
+      "humidity_int": [
+        76.0,
+        93.1
+      ],
+      "co2_ppm": [
+        386.0,
+        565.0
+      ],
+      "soil_temp": [
+        17.1,
+        23.9
+      ],
+      "solar_rad": [
+        0.0,
+        243.0
+      ],
+      "temp_external": [
+        4.0,
+        18.9
+      ],
+      "wind_speed": [
+        0.0,
+        1.4
+      ]
+    },
+    "조정_델타": {
+      "temp_internal": [
+        -3.8,
+        -1.9,
+        1.9,
+        3.8
+      ],
+      "humidity_int": [
+        -8.6,
+        -4.3,
+        4.3,
+        8.6
+      ],
+      "co2_ppm": [
+        -89.6,
+        -44.8,
+        44.8,
+        89.6
+      ],
+      "soil_temp": [
+        -3.4,
+        -1.7,
+        1.7,
+        3.4
+      ],
+      "solar_rad": [
+        -121.6,
+        -60.8,
+        60.8,
+        121.6
+      ],
+      "temp_external": [
+        -7.4,
+        -3.7,
+        3.7,
+        7.4
+      ],
+      "wind_speed": [
+        -0.6,
+        -0.3,
+        0.3,
+        0.6
+      ]
+    },
+    "수확량_상관": {},
+    "변수_통계": {
+      "temp_internal": {
+        "mean": 19.36,
+        "std": 5.46,
+        "p5": 12.3,
+        "p95": 29.5
+      },
+      "humidity_int": {
+        "mean": 81.92,
+        "std": 16.39,
+        "p5": 49.8,
+        "p95": 100.0
+      },
+      "co2_ppm": {
+        "mean": 465.18,
+        "std": 140.85,
+        "p5": 280.0,
+        "p95": 751.0
+      },
+      "soil_temp": {
+        "mean": 20.42,
+        "std": 5.27,
+        "p5": 13.1,
+        "p95": 29.9
+      },
+      "solar_rad": {
+        "mean": 149.24,
+        "std": 243.28,
+        "p5": 0.0,
+        "p95": 767.0
+      },
+      "temp_external": {
+        "mean": 10.95,
+        "std": 9.51,
+        "p5": -3.7,
+        "p95": 26.5
+      },
+      "wind_speed": {
+        "mean": 0.92,
+        "std": 1.62,
+        "p5": 0.0,
+        "p95": 3.6
+      }
+    }
+  },
+  "오이": {
+    "월별_분포": {
+      "1": {
+        "temp_internal": {
+          "mean": 16.09,
+          "n": 18364
+        },
+        "humidity_int": {
+          "mean": 86.18,
+          "n": 16600
+        },
+        "co2_ppm": {
+          "mean": 667.68,
+          "n": 4786
+        },
+        "soil_temp": {
+          "mean": 17.19,
+          "n": 12116
+        },
+        "temp_external": {
+          "mean": 0.05,
+          "n": 8781
+        },
+        "solar_rad": {
+          "mean": 96.29,
+          "n": 11427
+        },
+        "wind_speed": {
+          "mean": 1.32,
+          "n": 6944
+        }
+      },
+      "2": {
+        "temp_internal": {
+          "mean": 17.02,
+          "n": 21455
+        },
+        "humidity_int": {
+          "mean": 83.67,
+          "n": 19591
+        },
+        "co2_ppm": {
+          "mean": 640.09,
+          "n": 7271
+        },
+        "soil_temp": {
+          "mean": 18.18,
+          "n": 14079
+        },
+        "solar_rad": {
+          "mean": 133.74,
+          "n": 14660
+        },
+        "temp_external": {
+          "mean": 3.14,
+          "n": 11118
+        },
+        "wind_speed": {
+          "mean": 1.34,
+          "n": 10412
+        }
+      },
+      "3": {
+        "temp_internal": {
+          "mean": 18.21,
+          "n": 24860
+        },
+        "humidity_int": {
+          "mean": 81.53,
+          "n": 22358
+        },
+        "co2_ppm": {
+          "mean": 618.67,
+          "n": 9097
+        },
+        "soil_temp": {
+          "mean": 19.37,
+          "n": 15736
+        },
+        "solar_rad": {
+          "mean": 177.89,
+          "n": 18758
+        },
+        "temp_external": {
+          "mean": 8.65,
+          "n": 15000
+        },
+        "wind_speed": {
+          "mean": 1.47,
+          "n": 14263
+        }
+      },
+      "4": {
+        "temp_internal": {
+          "mean": 19.48,
+          "n": 26255
+        },
+        "humidity_int": {
+          "mean": 78.01,
+          "n": 23970
+        },
+        "co2_ppm": {
+          "mean": 603.92,
+          "n": 9304
+        },
+        "soil_temp": {
+          "mean": 20.82,
+          "n": 17633
+        },
+        "solar_rad": {
+          "mean": 207.07,
+          "n": 19817
+        },
+        "temp_external": {
+          "mean": 12.76,
+          "n": 15137
+        },
+        "wind_speed": {
+          "mean": 1.67,
+          "n": 14367
+        }
+      },
+      "5": {
+        "temp_internal": {
+          "mean": 21.44,
+          "n": 22148
+        },
+        "humidity_int": {
+          "mean": 77.52,
+          "n": 20031
+        },
+        "co2_ppm": {
+          "mean": 579.72,
+          "n": 7755
+        },
+        "soil_temp": {
+          "mean": 22.3,
+          "n": 15097
+        },
+        "temp_external": {
+          "mean": 18.6,
+          "n": 13747
+        },
+        "wind_speed": {
+          "mean": 1.49,
+          "n": 12261
+        },
+        "solar_rad": {
+          "mean": 220.67,
+          "n": 16875
+        }
+      },
+      "6": {
+        "temp_internal": {
+          "mean": 24.4,
+          "n": 13905
+        },
+        "humidity_int": {
+          "mean": 79.43,
+          "n": 12403
+        },
+        "co2_ppm": {
+          "mean": 494.77,
+          "n": 4986
+        },
+        "soil_temp": {
+          "mean": 24.68,
+          "n": 9012
+        },
+        "temp_external": {
+          "mean": 23.52,
+          "n": 10244
+        },
+        "solar_rad": {
+          "mean": 233.94,
+          "n": 9590
+        },
+        "wind_speed": {
+          "mean": 1.44,
+          "n": 10513
+        }
+      },
+      "7": {
+        "temp_internal": {
+          "mean": 26.46,
+          "n": 7309
+        },
+        "humidity_int": {
+          "mean": 87.37,
+          "n": 6922
+        },
+        "co2_ppm": {
+          "mean": 425.79,
+          "n": 2895
+        },
+        "solar_rad": {
+          "mean": 237.85,
+          "n": 6541
+        },
+        "temp_external": {
+          "mean": 26.59,
+          "n": 5820
+        },
+        "wind_speed": {
+          "mean": 1.09,
+          "n": 7309
+        },
+        "soil_temp": {
+          "mean": 26.98,
+          "n": 4436
+        }
+      },
+      "8": {
+        "temp_internal": {
+          "mean": 27.28,
+          "n": 4548
+        },
+        "humidity_int": {
+          "mean": 88.54,
+          "n": 4220
+        },
+        "co2_ppm": {
+          "mean": 466.3,
+          "n": 1935
+        },
+        "solar_rad": {
+          "mean": 212.29,
+          "n": 3831
+        },
+        "temp_external": {
+          "mean": 27.47,
+          "n": 2874
+        },
+        "wind_speed": {
+          "mean": 1.14,
+          "n": 4552
+        },
+        "soil_temp": {
+          "mean": 27.89,
+          "n": 2864
+        }
+      },
+      "9": {
+        "temp_internal": {
+          "mean": 23.3,
+          "n": 7397
+        },
+        "humidity_int": {
+          "mean": 80.87,
+          "n": 7064
+        },
+        "co2_ppm": {
+          "mean": 473.83,
+          "n": 4236
+        },
+        "soil_temp": {
+          "mean": 24.14,
+          "n": 3410
+        },
+        "solar_rad": {
+          "mean": 203.46,
+          "n": 6874
+        },
+        "temp_external": {
+          "mean": 21.11,
+          "n": 5097
+        },
+        "wind_speed": {
+          "mean": 0.88,
+          "n": 7354
+        }
+      },
+      "10": {
+        "temp_internal": {
+          "mean": 19.06,
+          "n": 12483
+        },
+        "humidity_int": {
+          "mean": 80.7,
+          "n": 11229
+        },
+        "co2_ppm": {
+          "mean": 506.64,
+          "n": 6881
+        },
+        "soil_temp": {
+          "mean": 20.31,
+          "n": 6161
+        },
+        "solar_rad": {
+          "mean": 176.06,
+          "n": 9182
+        },
+        "temp_external": {
+          "mean": 13.86,
+          "n": 7107
+        },
+        "wind_speed": {
+          "mean": 0.87,
+          "n": 9423
+        }
+      },
+      "11": {
+        "temp_internal": {
+          "mean": 17.11,
+          "n": 16894
+        },
+        "humidity_int": {
+          "mean": 82.28,
+          "n": 15233
+        },
+        "co2_ppm": {
+          "mean": 575.49,
+          "n": 6727
+        },
+        "soil_temp": {
+          "mean": 19.0,
+          "n": 9832
+        },
+        "solar_rad": {
+          "mean": 107.98,
+          "n": 11266
+        },
+        "temp_external": {
+          "mean": 8.48,
+          "n": 8089
+        },
+        "wind_speed": {
+          "mean": 0.8,
+          "n": 8237
+        }
+      },
+      "12": {
+        "temp_internal": {
+          "mean": 15.54,
+          "n": 15213
+        },
+        "humidity_int": {
+          "mean": 89.2,
+          "n": 14329
+        },
+        "soil_temp": {
+          "mean": 17.16,
+          "n": 10440
+        },
+        "solar_rad": {
+          "mean": 79.67,
+          "n": 8823
+        },
+        "wind_speed": {
+          "mean": 1.13,
+          "n": 5026
+        },
+        "co2_ppm": {
+          "mean": 667.64,
+          "n": 2658
+        },
+        "temp_external": {
+          "mean": -0.79,
+          "n": 7213
+        }
+      }
+    },
+    "최적_범위": {
+      "temp_internal": [
+        14.3,
+        24.4
+      ],
+      "humidity_int": [
+        73.0,
+        97.0
+      ],
+      "co2_ppm": [
+        368.0,
+        722.0
+      ],
+      "soil_temp": [
+        17.7,
+        22.9
+      ],
+      "solar_rad": [
+        1.0,
+        268.25
+      ],
+      "temp_external": [
+        4.0,
+        20.4
+      ],
+      "wind_speed": [
+        0.2,
+        1.9
+      ]
+    },
+    "조정_델타": {
+      "temp_internal": [
+        -5.0,
+        -2.5,
+        2.5,
+        5.0
+      ],
+      "humidity_int": [
+        -12.0,
+        -6.0,
+        6.0,
+        12.0
+      ],
+      "co2_ppm": [
+        -177.0,
+        -88.5,
+        88.5,
+        177.0
+      ],
+      "soil_temp": [
+        -2.6,
+        -1.3,
+        1.3,
+        2.6
+      ],
+      "solar_rad": [
+        -133.6,
+        -66.8,
+        66.8,
+        133.6
+      ],
+      "temp_external": [
+        -8.2,
+        -4.1,
+        4.1,
+        8.2
+      ],
+      "wind_speed": [
+        -0.8,
+        -0.4,
+        0.4,
+        0.8
+      ]
+    },
+    "수확량_상관": {},
+    "변수_통계": {
+      "temp_internal": {
+        "mean": 19.35,
+        "std": 6.37,
+        "p5": 10.6,
+        "p95": 30.7
+      },
+      "humidity_int": {
+        "mean": 82.14,
+        "std": 19.37,
+        "p5": 38.93,
+        "p95": 100.0
+      },
+      "co2_ppm": {
+        "mean": 573.95,
+        "std": 284.95,
+        "p5": 254.0,
+        "p95": 1184.75
+      },
+      "soil_temp": {
+        "mean": 20.43,
+        "std": 4.1,
+        "p5": 14.7,
+        "p95": 27.8
+      },
+      "solar_rad": {
+        "mean": 172.71,
+        "std": 267.89,
+        "p5": 0.0,
+        "p95": 785.5
+      },
+      "temp_external": {
+        "mean": 12.32,
+        "std": 10.42,
+        "p5": -4.7,
+        "p95": 28.9
+      },
+      "wind_speed": {
+        "mean": 1.28,
+        "std": 1.37,
+        "p5": 0.0,
+        "p95": 3.9
+      }
+    }
+  },
+  "딸기": {
+    "월별_분포": {
+      "1": {
+        "temp_internal": {
+          "mean": 13.0,
+          "n": 129361
+        },
+        "humidity_int": {
+          "mean": 85.56,
+          "n": 125267
+        },
+        "co2_ppm": {
+          "mean": 576.08,
+          "n": 75355
+        },
+        "solar_rad": {
+          "mean": 105.89,
+          "n": 82750
+        },
+        "temp_external": {
+          "mean": 0.66,
+          "n": 102833
+        },
+        "wind_speed": {
+          "mean": 0.79,
+          "n": 66344
+        },
+        "soil_temp": {
+          "mean": 14.03,
+          "n": 46934
+        }
+      },
+      "2": {
+        "temp_internal": {
+          "mean": 14.17,
+          "n": 118990
+        },
+        "humidity_int": {
+          "mean": 82.94,
+          "n": 114598
+        },
+        "co2_ppm": {
+          "mean": 550.16,
+          "n": 73048
+        },
+        "solar_rad": {
+          "mean": 132.18,
+          "n": 74658
+        },
+        "temp_external": {
+          "mean": 3.1,
+          "n": 94221
+        },
+        "wind_speed": {
+          "mean": 0.88,
+          "n": 60712
+        },
+        "soil_temp": {
+          "mean": 15.09,
+          "n": 43326
+        }
+      },
+      "3": {
+        "temp_internal": {
+          "mean": 15.46,
+          "n": 128264
+        },
+        "humidity_int": {
+          "mean": 78.95,
+          "n": 123397
+        },
+        "co2_ppm": {
+          "mean": 512.42,
+          "n": 82460
+        },
+        "solar_rad": {
+          "mean": 166.43,
+          "n": 81966
+        },
+        "temp_external": {
+          "mean": 7.98,
+          "n": 101990
+        },
+        "wind_speed": {
+          "mean": 0.9,
+          "n": 66151
+        },
+        "soil_temp": {
+          "mean": 16.38,
+          "n": 45462
+        }
+      },
+      "4": {
+        "temp_internal": {
+          "mean": 16.67,
+          "n": 120122
+        },
+        "humidity_int": {
+          "mean": 76.6,
+          "n": 115655
+        },
+        "co2_ppm": {
+          "mean": 480.37,
+          "n": 75669
+        },
+        "solar_rad": {
+          "mean": 195.68,
+          "n": 77177
+        },
+        "temp_external": {
+          "mean": 11.88,
+          "n": 96021
+        },
+        "wind_speed": {
+          "mean": 0.89,
+          "n": 63541
+        },
+        "soil_temp": {
+          "mean": 17.22,
+          "n": 43330
+        }
+      },
+      "5": {
+        "temp_internal": {
+          "mean": 19.92,
+          "n": 87942
+        },
+        "humidity_int": {
+          "mean": 78.01,
+          "n": 85071
+        },
+        "co2_ppm": {
+          "mean": 430.5,
+          "n": 51263
+        },
+        "solar_rad": {
+          "mean": 203.18,
+          "n": 56053
+        },
+        "temp_external": {
+          "mean": 17.22,
+          "n": 71495
+        },
+        "wind_speed": {
+          "mean": 0.79,
+          "n": 45978
+        },
+        "soil_temp": {
+          "mean": 19.81,
+          "n": 30383
+        }
+      },
+      "6": {
+        "temp_internal": {
+          "mean": 24.1,
+          "n": 8432
+        },
+        "humidity_int": {
+          "mean": 84.1,
+          "n": 7469
+        },
+        "co2_ppm": {
+          "mean": 412.19,
+          "n": 4775
+        },
+        "solar_rad": {
+          "mean": 209.51,
+          "n": 5511
+        },
+        "temp_external": {
+          "mean": 21.97,
+          "n": 6668
+        },
+        "wind_speed": {
+          "mean": 0.53,
+          "n": 4409
+        },
+        "soil_temp": {
+          "mean": 23.7,
+          "n": 3387
+        }
+      },
+      "7": {
+        "temp_internal": {
+          "mean": 26.02,
+          "n": 1896
+        },
+        "humidity_int": {
+          "mean": 87.74,
+          "n": 1838
+        },
+        "co2_ppm": {
+          "mean": 364.33,
+          "n": 1488
+        },
+        "solar_rad": {
+          "mean": 168.54,
+          "n": 1896
+        },
+        "temp_external": {
+          "mean": 24.37,
+          "n": 1896
+        },
+        "wind_speed": {
+          "mean": 0.42,
+          "n": 1896
+        },
+        "soil_temp": {
+          "mean": 25.09,
+          "n": 744
+        }
+      },
+      "8": {
+        "temp_internal": {
+          "mean": 27.27,
+          "n": 3290
+        },
+        "humidity_int": {
+          "mean": 93.43,
+          "n": 2799
+        },
+        "co2_ppm": {
+          "mean": 386.16,
+          "n": 1872
+        },
+        "soil_temp": {
+          "mean": 27.34,
+          "n": 982
+        },
+        "solar_rad": {
+          "mean": 155.46,
+          "n": 2393
+        },
+        "temp_external": {
+          "mean": 25.78,
+          "n": 3137
+        },
+        "wind_speed": {
+          "mean": 0.45,
+          "n": 2393
+        }
+      },
+      "9": {
+        "temp_internal": {
+          "mean": 22.29,
+          "n": 69856
+        },
+        "humidity_int": {
+          "mean": 81.67,
+          "n": 63666
+        },
+        "co2_ppm": {
+          "mean": 429.47,
+          "n": 38224
+        },
+        "solar_rad": {
+          "mean": 166.29,
+          "n": 40456
+        },
+        "temp_external": {
+          "mean": 20.01,
+          "n": 56177
+        },
+        "wind_speed": {
+          "mean": 0.54,
+          "n": 32710
+        },
+        "soil_temp": {
+          "mean": 22.79,
+          "n": 21420
+        }
+      },
+      "10": {
+        "temp_internal": {
+          "mean": 17.88,
+          "n": 125289
+        },
+        "humidity_int": {
+          "mean": 78.66,
+          "n": 119162
+        },
+        "co2_ppm": {
+          "mean": 461.35,
+          "n": 72654
+        },
+        "solar_rad": {
+          "mean": 151.18,
+          "n": 76020
+        },
+        "temp_external": {
+          "mean": 13.97,
+          "n": 103043
+        },
+        "wind_speed": {
+          "mean": 0.59,
+          "n": 59259
+        },
+        "soil_temp": {
+          "mean": 19.07,
+          "n": 39566
+        }
+      },
+      "11": {
+        "temp_internal": {
+          "mean": 15.13,
+          "n": 125370
+        },
+        "humidity_int": {
+          "mean": 82.82,
+          "n": 117488
+        },
+        "co2_ppm": {
+          "mean": 524.02,
+          "n": 74105
+        },
+        "solar_rad": {
+          "mean": 117.45,
+          "n": 79942
+        },
+        "temp_external": {
+          "mean": 8.49,
+          "n": 101443
+        },
+        "wind_speed": {
+          "mean": 0.61,
+          "n": 59742
+        },
+        "soil_temp": {
+          "mean": 16.2,
+          "n": 41919
+        }
+      },
+      "12": {
+        "temp_internal": {
+          "mean": 12.87,
+          "n": 128851
+        },
+        "humidity_int": {
+          "mean": 85.77,
+          "n": 124045
+        },
+        "co2_ppm": {
+          "mean": 558.43,
+          "n": 74472
+        },
+        "solar_rad": {
+          "mean": 100.4,
+          "n": 81416
+        },
+        "temp_external": {
+          "mean": 1.3,
+          "n": 102511
+        },
+        "wind_speed": {
+          "mean": 0.76,
+          "n": 63001
+        },
+        "soil_temp": {
+          "mean": 14.18,
+          "n": 45113
+        }
+      }
+    },
+    "최적_범위": {
+      "temp_internal": [
+        10.8,
+        20.7
+      ],
+      "humidity_int": [
+        74.2,
+        95.0
+      ],
+      "co2_ppm": [
+        376.0,
+        596.0
+      ],
+      "soil_temp": [
+        13.1,
+        19.6
+      ],
+      "solar_rad": [
+        0.0,
+        200.0
+      ],
+      "temp_external": [
+        2.1,
+        15.2
+      ],
+      "wind_speed": [
+        0.0,
+        1.0
+      ]
+    },
+    "조정_델타": {
+      "temp_internal": [
+        -5.0,
+        -2.5,
+        2.5,
+        5.0
+      ],
+      "humidity_int": [
+        -10.4,
+        -5.2,
+        5.2,
+        10.4
+      ],
+      "co2_ppm": [
+        -110.0,
+        -55.0,
+        55.0,
+        110.0
+      ],
+      "soil_temp": [
+        -3.2,
+        -1.6,
+        1.6,
+        3.2
+      ],
+      "solar_rad": [
+        -100.0,
+        -50.0,
+        50.0,
+        100.0
+      ],
+      "temp_external": [
+        -6.6,
+        -3.3,
+        3.3,
+        6.6
+      ],
+      "wind_speed": [
+        -0.4,
+        -0.2,
+        0.2,
+        0.4
+      ]
+    },
+    "수확량_상관": {},
+    "변수_통계": {
+      "temp_internal": {
+        "mean": 16.04,
+        "std": 6.45,
+        "p5": 8.0,
+        "p95": 27.9
+      },
+      "humidity_int": {
+        "mean": 81.42,
+        "std": 19.13,
+        "p5": 38.9,
+        "p95": 99.8
+      },
+      "co2_ppm": {
+        "mean": 508.26,
+        "std": 191.82,
+        "p5": 278.0,
+        "p95": 906.0
+      },
+      "soil_temp": {
+        "mean": 16.8,
+        "std": 5.17,
+        "p5": 9.5,
+        "p95": 26.5
+      },
+      "solar_rad": {
+        "mean": 146.0,
+        "std": 241.51,
+        "p5": 0.0,
+        "p95": 688.0
+      },
+      "temp_external": {
+        "mean": 8.77,
+        "std": 8.66,
+        "p5": -4.5,
+        "p95": 23.5
+      },
+      "wind_speed": {
+        "mean": 0.76,
+        "std": 1.32,
+        "p5": 0.0,
+        "p95": 3.4
+      }
+    }
+  },
+  "방울토마토": {
+    "월별_분포": {
+      "1": {
+        "temp_internal": {
+          "mean": 14.96,
+          "n": 51065
+        },
+        "humidity_int": {
+          "mean": 84.21,
+          "n": 50091
+        },
+        "co2_ppm": {
+          "mean": 479.19,
+          "n": 32933
+        },
+        "soil_temp": {
+          "mean": 15.02,
+          "n": 15559
+        },
+        "solar_rad": {
+          "mean": 98.58,
+          "n": 38271
+        },
+        "temp_external": {
+          "mean": 1.31,
+          "n": 40107
+        },
+        "wind_speed": {
+          "mean": 0.75,
+          "n": 29829
+        }
+      },
+      "2": {
+        "temp_internal": {
+          "mean": 16.06,
+          "n": 47318
+        },
+        "humidity_int": {
+          "mean": 83.67,
+          "n": 45968
+        },
+        "soil_temp": {
+          "mean": 16.49,
+          "n": 16112
+        },
+        "solar_rad": {
+          "mean": 132.84,
+          "n": 33202
+        },
+        "temp_external": {
+          "mean": 3.12,
+          "n": 36334
+        },
+        "wind_speed": {
+          "mean": 0.86,
+          "n": 27011
+        },
+        "co2_ppm": {
+          "mean": 471.14,
+          "n": 30028
+        }
+      },
+      "3": {
+        "temp_internal": {
+          "mean": 17.35,
+          "n": 52920
+        },
+        "humidity_int": {
+          "mean": 82.14,
+          "n": 51496
+        },
+        "co2_ppm": {
+          "mean": 474.81,
+          "n": 31763
+        },
+        "soil_temp": {
+          "mean": 17.71,
+          "n": 19351
+        },
+        "solar_rad": {
+          "mean": 174.52,
+          "n": 37332
+        },
+        "temp_external": {
+          "mean": 8.09,
+          "n": 39496
+        },
+        "wind_speed": {
+          "mean": 1.04,
+          "n": 30769
+        }
+      },
+      "4": {
+        "temp_internal": {
+          "mean": 18.54,
+          "n": 50178
+        },
+        "humidity_int": {
+          "mean": 80.76,
+          "n": 48666
+        },
+        "co2_ppm": {
+          "mean": 468.12,
+          "n": 30268
+        },
+        "soil_temp": {
+          "mean": 18.97,
+          "n": 17490
+        },
+        "solar_rad": {
+          "mean": 209.05,
+          "n": 35196
+        },
+        "temp_external": {
+          "mean": 12.63,
+          "n": 37331
+        },
+        "wind_speed": {
+          "mean": 1.09,
+          "n": 28355
+        }
+      },
+      "5": {
+        "temp_internal": {
+          "mean": 20.78,
+          "n": 48918
+        },
+        "humidity_int": {
+          "mean": 79.27,
+          "n": 47274
+        },
+        "co2_ppm": {
+          "mean": 417.65,
+          "n": 30280
+        },
+        "soil_temp": {
+          "mean": 21.13,
+          "n": 18021
+        },
+        "solar_rad": {
+          "mean": 235.84,
+          "n": 33969
+        },
+        "temp_external": {
+          "mean": 18.69,
+          "n": 37846
+        },
+        "wind_speed": {
+          "mean": 1.02,
+          "n": 28888
+        }
+      },
+      "6": {
+        "temp_internal": {
+          "mean": 24.11,
+          "n": 39088
+        },
+        "humidity_int": {
+          "mean": 80.93,
+          "n": 37376
+        },
+        "co2_ppm": {
+          "mean": 398.95,
+          "n": 25086
+        },
+        "soil_temp": {
+          "mean": 24.0,
+          "n": 14642
+        },
+        "solar_rad": {
+          "mean": 242.78,
+          "n": 26840
+        },
+        "temp_external": {
+          "mean": 23.01,
+          "n": 30705
+        },
+        "wind_speed": {
+          "mean": 0.79,
+          "n": 25063
+        }
+      },
+      "7": {
+        "temp_internal": {
+          "mean": 26.99,
+          "n": 24599
+        },
+        "humidity_int": {
+          "mean": 81.67,
+          "n": 23864
+        },
+        "co2_ppm": {
+          "mean": 408.7,
+          "n": 17394
+        },
+        "soil_temp": {
+          "mean": 26.97,
+          "n": 7025
+        },
+        "solar_rad": {
+          "mean": 187.68,
+          "n": 18644
+        },
+        "temp_external": {
+          "mean": 25.74,
+          "n": 18995
+        },
+        "wind_speed": {
+          "mean": 0.72,
+          "n": 16189
+        }
+      },
+      "8": {
+        "temp_internal": {
+          "mean": 28.27,
+          "n": 36522
+        },
+        "humidity_int": {
+          "mean": 81.75,
+          "n": 35456
+        },
+        "co2_ppm": {
+          "mean": 408.8,
+          "n": 23665
+        },
+        "soil_temp": {
+          "mean": 28.3,
+          "n": 6509
+        },
+        "solar_rad": {
+          "mean": 185.84,
+          "n": 26052
+        },
+        "temp_external": {
+          "mean": 27.43,
+          "n": 30641
+        },
+        "wind_speed": {
+          "mean": 0.72,
+          "n": 22194
+        }
+      },
+      "9": {
+        "temp_internal": {
+          "mean": 23.05,
+          "n": 42713
+        },
+        "humidity_int": {
+          "mean": 82.91,
+          "n": 41194
+        },
+        "co2_ppm": {
+          "mean": 398.85,
+          "n": 26593
+        },
+        "soil_temp": {
+          "mean": 23.64,
+          "n": 11183
+        },
+        "solar_rad": {
+          "mean": 151.51,
+          "n": 32432
+        },
+        "temp_external": {
+          "mean": 22.07,
+          "n": 36878
+        },
+        "wind_speed": {
+          "mean": 0.73,
+          "n": 25402
+        }
+      },
+      "10": {
+        "temp_internal": {
+          "mean": 18.86,
+          "n": 56660
+        },
+        "humidity_int": {
+          "mean": 80.99,
+          "n": 56163
+        },
+        "co2_ppm": {
+          "mean": 457.12,
+          "n": 35143
+        },
+        "soil_temp": {
+          "mean": 19.2,
+          "n": 14522
+        },
+        "solar_rad": {
+          "mean": 146.46,
+          "n": 43796
+        },
+        "temp_external": {
+          "mean": 14.61,
+          "n": 49182
+        },
+        "wind_speed": {
+          "mean": 0.71,
+          "n": 33151
+        }
+      },
+      "11": {
+        "temp_internal": {
+          "mean": 16.65,
+          "n": 55481
+        },
+        "humidity_int": {
+          "mean": 84.51,
+          "n": 54383
+        },
+        "co2_ppm": {
+          "mean": 481.91,
+          "n": 36497
+        },
+        "soil_temp": {
+          "mean": 16.83,
+          "n": 15920
+        },
+        "solar_rad": {
+          "mean": 103.68,
+          "n": 42139
+        },
+        "temp_external": {
+          "mean": 8.95,
+          "n": 45906
+        },
+        "wind_speed": {
+          "mean": 0.63,
+          "n": 30260
+        }
+      },
+      "12": {
+        "temp_internal": {
+          "mean": 14.8,
+          "n": 53781
+        },
+        "humidity_int": {
+          "mean": 85.66,
+          "n": 53185
+        },
+        "co2_ppm": {
+          "mean": 487.69,
+          "n": 34019
+        },
+        "soil_temp": {
+          "mean": 15.36,
+          "n": 15737
+        },
+        "solar_rad": {
+          "mean": 88.59,
+          "n": 40150
+        },
+        "temp_external": {
+          "mean": 2.11,
+          "n": 43883
+        },
+        "wind_speed": {
+          "mean": 0.65,
+          "n": 30522
+        }
+      }
+    },
+    "최적_범위": {
+      "temp_internal": [
+        14.2,
+        23.9
+      ],
+      "humidity_int": [
+        73.0,
+        96.2
+      ],
+      "co2_ppm": [
+        340.0,
+        530.0
+      ],
+      "soil_temp": [
+        15.8,
+        22.5
+      ],
+      "solar_rad": [
+        0.0,
+        277.0
+      ],
+      "temp_external": [
+        4.6,
+        21.2
+      ],
+      "wind_speed": [
+        0.0,
+        1.3
+      ]
+    },
+    "조정_델타": {
+      "temp_internal": [
+        -4.8,
+        -2.4,
+        2.4,
+        4.8
+      ],
+      "humidity_int": [
+        -11.6,
+        -5.8,
+        5.8,
+        11.6
+      ],
+      "co2_ppm": [
+        -95.0,
+        -47.5,
+        47.5,
+        95.0
+      ],
+      "soil_temp": [
+        -3.4,
+        -1.7,
+        1.7,
+        3.4
+      ],
+      "solar_rad": [
+        -138.4,
+        -69.2,
+        69.2,
+        138.4
+      ],
+      "temp_external": [
+        -8.4,
+        -4.2,
+        4.2,
+        8.4
+      ],
+      "wind_speed": [
+        -0.6,
+        -0.3,
+        0.3,
+        0.6
+      ]
+    },
+    "수확량_상관": {},
+    "변수_통계": {
+      "temp_internal": {
+        "mean": 19.31,
+        "std": 6.33,
+        "p5": 11.1,
+        "p95": 30.6
+      },
+      "humidity_int": {
+        "mean": 82.48,
+        "std": 17.67,
+        "p5": 46.0,
+        "p95": 100.0
+      },
+      "co2_ppm": {
+        "mean": 450.89,
+        "std": 163.76,
+        "p5": 248.0,
+        "p95": 736.15
+      },
+      "soil_temp": {
+        "mean": 19.37,
+        "std": 5.0,
+        "p5": 12.8,
+        "p95": 28.5
+      },
+      "solar_rad": {
+        "mean": 157.29,
+        "std": 239.66,
+        "p5": 0.0,
+        "p95": 688.0
+      },
+      "temp_external": {
+        "mean": 12.83,
+        "std": 10.36,
+        "p5": -3.5,
+        "p95": 29.1
+      },
+      "wind_speed": {
+        "mean": 0.81,
+        "std": 1.17,
+        "p5": 0.0,
+        "p95": 3.2
+      }
+    }
+  }
+}

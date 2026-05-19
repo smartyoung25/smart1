@@ -121,8 +121,13 @@ CREATE TABLE IF NOT EXISTS env_measurements (
     PRIMARY KEY (time, farm_id, canonical_name)
 );
 
--- TimescaleDB 하이퍼테이블 전환 (TimescaleDB 설치 시 활성화)
--- SELECT create_hypertable('env_measurements', 'time', if_not_exists => TRUE);
+-- TimescaleDB 하이퍼테이블 전환 (TimescaleDB 미설치 환경에서도 안전하게 건너뜀)
+DO $$
+BEGIN
+    PERFORM create_hypertable('env_measurements', 'time', if_not_exists => TRUE);
+EXCEPTION WHEN undefined_function THEN
+    NULL;  -- TimescaleDB 없는 순수 PostgreSQL 환경
+END $$;
 
 CREATE INDEX IF NOT EXISTS idx_env_farm_name ON env_measurements (farm_id, canonical_name, time DESC);
 
@@ -149,6 +154,63 @@ VALUES
     ('farm_004', '농가 D',          'melon',         '경북 성주', 'semi_auto', 1000),
     ('farm_005', '농가 E',          'strawberry',    '전남 담양', 'manual',    900)
 ON CONFLICT (farm_id) DO NOTHING;
+
+-- ============================================================
+-- 생육 측정 데이터 테이블 (TimescaleDB hypertable)
+-- env_measurements와 분리 — crop 컬럼으로 작목별 쿼리 지원
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS growth_measurements (
+    time            TIMESTAMPTZ      NOT NULL,
+    farm_id         VARCHAR(32)      NOT NULL,
+    crop            VARCHAR(32)      NOT NULL,   -- 딸기 | 방울토마토 | 완숙토마토 | 참외 | 오이
+    canonical_name  VARCHAR(64)      NOT NULL,   -- plant_height | leaf_count | ...
+    value           DOUBLE PRECISION,
+    source_id       VARCHAR(32)      NOT NULL DEFAULT 'rda_api',
+    quality_tag     VARCHAR(16)      DEFAULT 'FINETUNED'
+        CHECK (quality_tag IN ('FINETUNED','TRANSFER','SIMULATION','LITERATURE')),
+    PRIMARY KEY (time, farm_id, crop, canonical_name)
+);
+
+-- TimescaleDB 하이퍼테이블 전환 (TimescaleDB 미설치 환경에서도 안전하게 건너뜀)
+DO $$
+BEGIN
+    PERFORM create_hypertable('growth_measurements', 'time', if_not_exists => TRUE);
+EXCEPTION WHEN undefined_function THEN
+    NULL;
+END $$;
+
+CREATE INDEX IF NOT EXISTS idx_growth_crop_name
+    ON growth_measurements (crop, canonical_name, time DESC);
+CREATE INDEX IF NOT EXISTS idx_growth_farm_crop
+    ON growth_measurements (farm_id, crop, time DESC);
+
+-- ============================================================
+-- 농가 수동 입력 로그
+-- ============================================================
+
+-- ============================================================
+-- 사용자 계정 테이블 (JWT 인증용)
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS users (
+    id              SERIAL PRIMARY KEY,
+    username        VARCHAR(64) UNIQUE NOT NULL,
+    hashed_password TEXT NOT NULL,
+    role            VARCHAR(16) DEFAULT 'viewer'
+        CHECK (role IN ('admin', 'manager', 'viewer')),
+    farm_id         VARCHAR(32) REFERENCES farms(farm_id),  -- NULL = 전체 농가 접근
+    created_at      TIMESTAMPTZ DEFAULT NOW(),
+    last_login_at   TIMESTAMPTZ
+);
+
+-- 기본 관리자 계정 — 비밀번호는 init_admin.sql 또는 docker-entrypoint에서 설정
+-- 여기서는 계정 행만 삽입; hashed_password는 배포 시 UPDATE로 교체
+INSERT INTO users (username, hashed_password, role)
+VALUES ('admin', '$2b$12$placeholder_replace_via_init_admin$', 'admin')
+ON CONFLICT (username) DO NOTHING;
+
+CREATE INDEX IF NOT EXISTS idx_users_username ON users (username);
 
 -- ============================================================
 -- 농가 수동 입력 로그

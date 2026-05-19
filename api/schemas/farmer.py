@@ -229,3 +229,18 @@ class ChatResponse(BaseModel):
     # 나중에 실제 AI 연결 시 사용할 메타
     model_used: str = "stub-v1"   # e.g. "gpt-4o", "claude-3-5-sonnet"
     confidence: Optional[float] = None
+
+
+class DiseaseRiskResponse(BaseModel):
+    """GET /api/farms/{farm_id}/disease-risk 응답"""
+    farm_id: str
+    updated_at: str
+    crop: str
+    disease: str                   # "healthy" | "gray_mold" | "powdery_mildew" | ...
+    disease_ko: str
+    risk_level: str                # "none" | "low" | "medium" | "high"
+    score: float                   # 0.0 ~ 1.0
+    reasons: list[str]             # 위험 판단 근거 문구
+    action_ko: str                 # 권장 조치
+    env_snapshot: dict             # 판단에 사용된 환경값
+
