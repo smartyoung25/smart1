@@ -22,6 +22,7 @@ import argparse
 import glob
 import logging
 import os
+import sys
 import zipfile
 from pathlib import Path
 from typing import Optional
@@ -30,6 +31,9 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
 
 BASE_DIR = Path(__file__).parent.parent
+# 프로젝트 루트를 sys.path에 추가 (adapters/ 패키지 접근용)
+if str(BASE_DIR) not in sys.path:
+    sys.path.insert(0, str(BASE_DIR))
 DATA_DIR = BASE_DIR / "기초자료"
 
 # Farm ID for 이암허브 farm
@@ -239,12 +243,14 @@ def load_env_2025(engine, farm_id: str = EEAM_FARM_ID) -> int:
         logger.warning("환경_2025.csv not found at %s", csv_path)
         return 0
 
-    df = pd.read_csv(csv_path, encoding="utf-8-sig")
-    result = adapt_dataframe(df, farm_id=farm_id)
+    df = pd.read_csv(csv_path, encoding="cp949")
+    # 타임스탬프 컬럼명 자동 탐색 (측정일시 / 측정시각 / 일시 등)
+    time_col = next((c for c in df.columns if any(k in c for k in ["측정일시", "측정시각", "일시", "시각"])), "측정일시")
+    result = adapt_dataframe(df, farm_id=farm_id, time_col=time_col)
     for err in result.errors:
         logger.warning(err)
     count = _insert_records(engine, result.records)
-    logger.info("환경_2025.csv: inserted %d records", count)
+    logger.info("환경_2025.csv: inserted %d records (time_col=%s)", count, time_col)
     return count
 
 
@@ -264,7 +270,7 @@ def load_growth_2025(engine, farm_id: str = EEAM_FARM_ID) -> int:
         logger.warning("생육_딸기_2025.csv not found at %s", csv_path)
         return 0
 
-    df = pd.read_csv(csv_path, encoding="utf-8-sig")
+    df = pd.read_csv(csv_path, encoding="cp949")
     items = df.to_dict(orient="records")
     result = adapt_response_list(items, farm_id=farm_id, time_key="측정일시")
     for err in result.errors:
@@ -292,18 +298,17 @@ def load_historical_zips(engine, farm_id: str = EEAM_FARM_ID) -> int:
             for name in zf.namelist():
                 if not name.lower().endswith(".csv"):
                     continue
-                with zf.open(name) as f:
-                    try:
-                        df = pd.read_csv(f, encoding="utf-8-sig")
-                    except Exception as exc:
-                        logger.warning("Could not read %s in %s: %s", name, zip_path, exc)
-                        continue
-                result = adapt_dataframe(df, farm_id=farm_id)
-                for err in result.errors:
-                    logger.debug(err)
-                count = _insert_records(engine, result.records)
-                total += count
-                logger.info("  %s: inserted %d records", name, count)
+                chunk_count = 0
+                try:
+                    with zf.open(name) as f:
+                        for chunk in pd.read_csv(f, encoding="cp949", chunksize=5000):
+                            result = adapt_dataframe(chunk, farm_id=farm_id)
+                            chunk_count += _insert_records(engine, result.records)
+                except Exception as exc:
+                    logger.warning("Could not read %s in %s: %s", name, zip_path, exc)
+                    continue
+                total += chunk_count
+                logger.info("  %s: inserted %d records", name, chunk_count)
     logger.info("Historical ZIPs total: %d records", total)
     return total
 
@@ -336,11 +341,12 @@ def load_multi_crop_data(engine) -> int:
                 farm_id = fid
                 break
         try:
-            df = pd.read_csv(csv_path, encoding="utf-8-sig")
+            df = pd.read_csv(csv_path, encoding="cp949")
         except Exception as exc:
             logger.warning("Could not read %s: %s", csv_path, exc)
             continue
-        result = adapt_dataframe(df, farm_id=farm_id)
+        time_col = next((c for c in df.columns if any(k in c for k in ["측정일시", "측정시각", "일시", "시각"])), "측정일시")
+        result = adapt_dataframe(df, farm_id=farm_id, time_col=time_col)
         count = _insert_records(engine, result.records)
         total += count
         logger.info("%s → farm %s: inserted %d records", csv_path.name, farm_id, count)
@@ -493,7 +499,11 @@ def run(db_url: str) -> None:
     total = 0
     total += load_env_2025(engine)
     total += load_growth_2025(engine)
-    total += load_historical_zips(engine)
+    # 대용량 ZIP 파일은 별도 실행 권장 (--skip-zips 플래그로 건너뜀)
+    import sys as _sys
+    skip_zips = "--skip-zips" in _sys.argv
+    if not skip_zips:
+        total += load_historical_zips(engine)
     total += load_multi_crop_data(engine)
     total += load_growth_panel(engine)        # 농진청 5년 생육 → growth_measurements
     total += load_growth_eeamhub(engine)      # 이암허브 생육   → growth_measurements
@@ -512,5 +522,12 @@ if __name__ == "__main__":
             f"기본값: {_SQLITE_DEFAULT} (환경변수 DATABASE_URL 없을 때)"
         ),
     )
+    parser.add_argument(
+        "--skip-zips", action="store_true",
+        help="대용량 ZIP 파일(2018~2022 히스토리) 적재를 건너뜁니다.",
+    )
     args = parser.parse_args()
+    if args.skip_zips:
+        # Patch sys.argv so run() can check
+        sys.argv.append("--skip-zips")
     run(args.db_url)

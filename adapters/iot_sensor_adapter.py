@@ -78,8 +78,28 @@ def adapt_dataframe(df, farm_id: str, time_col: str = "측정일시") -> Adapter
     Args:
         df:       DataFrame with Korean column names
         farm_id:  farm identifier
-        time_col: name of the timestamp column
+        time_col: name of the timestamp column (auto-detected if not in df)
     """
+    # Auto-detect time column if provided name not in df
+    if time_col not in df.columns:
+        _TIME_PATTERNS = [
+            "측정시간",  # 측정시간
+            "측정시각",  # 측정시각
+            "측정일시",  # 측정일시
+            "일시",              # 일시
+            "시간",              # 시간
+        ]
+        found = next((c for c in df.columns if any(p in c for p in _TIME_PATTERNS)), None)
+        if found:
+            time_col = found
+        elif df.columns.tolist():
+            # Last fallback: first column that has date-like values
+            import re
+            for col in df.columns:
+                vals = df[col].dropna().astype(str)
+                if vals.str.match(r"\d{4}-\d{2}-\d{2}").any():
+                    time_col = col
+                    break
     combined = AdapterResult()
     for _, row in df.iterrows():
         raw_time = row.get(time_col)
