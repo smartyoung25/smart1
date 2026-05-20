@@ -12,8 +12,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 
 # Install full ML stack (includes optuna for retraining)
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt \
+COPY requirements.pipeline.txt .
+RUN pip install --no-cache-dir -r requirements.pipeline.txt \
     && pip install --no-cache-dir optuna
 
 COPY engine/     ./engine/
