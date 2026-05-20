@@ -372,7 +372,7 @@
     <button id="btn-login" onclick="doLogin()">로그인</button>
     <div class="login-cfg">
       <label>API 서버 URL</label>
-      <input id="login-api-url" value="http://localhost:8000" placeholder="http://localhost:8000">
+      <input id="login-api-url" value="http://localhost" placeholder="http://localhost">
     </div>
   </div>
 </div>
@@ -653,7 +653,7 @@
 <script>
 // ── 상태 ──────────────────────────────────────────────────────────────────────
 let _token   = sessionStorage.getItem('sf_token') || '';
-let _apiBase = sessionStorage.getItem('sf_api')   || 'http://localhost:8000';
+let _apiBase = sessionStorage.getItem('sf_api')   || 'http://localhost';
 
 const $ = id => document.getElementById(id);
 

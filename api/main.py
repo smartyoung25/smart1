@@ -8,6 +8,9 @@ load_dotenv()
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+from pathlib import Path
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
@@ -31,7 +34,7 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # ── CORS (환경변수 기반 허용 출처) ─────────────────────────────────────────────
-_raw_origins = os.environ.get("ALLOWED_ORIGINS", "http://localhost:3000")
+_raw_origins = os.environ.get("ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:8000,http://localhost:8080")
 _allowed_origins = [o.strip() for o in _raw_origins.split(",") if o.strip()]
 
 app.add_middleware(
@@ -62,3 +65,13 @@ async def startup_event():
 @app.get("/health", tags=["system"])
 def health():
     return {"status": "ok", "version": app.version}
+
+
+# ── 대시보드 정적 파일 서빙 (프리뷰/단일포트 접속용) ──────────────────────────
+_DASHBOARD = Path(__file__).parent.parent / "dashboard"
+if _DASHBOARD.exists():
+    app.mount("/dashboard", StaticFiles(directory=str(_DASHBOARD)), name="dashboard")
+
+    @app.get("/", include_in_schema=False)
+    def serve_index():
+        return FileResponse(str(_DASHBOARD / "index.html"))

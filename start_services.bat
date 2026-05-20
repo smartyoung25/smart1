@@ -42,14 +42,34 @@ if errorlevel 1 (
     echo       이미 실행 중
 )
 
-REM ── 4. MQTT Subscriber (선택적) ──────────────────────────────────────────
-REM echo [4/4] MQTT Subscriber 시작...
-REM cd /d %SMART_FARM%
-REM start "smartfarm-mqtt" /MIN %PYTHON% -m pipeline.mqtt_subscriber
+REM ── 4. mosquitto MQTT 브로커 ─────────────────────────────────────────────
+echo [4/5] mosquitto (MQTT) 시작...
+tasklist /FI "IMAGENAME eq mosquitto.exe" 2>nul | find "mosquitto.exe" > nul
+if errorlevel 1 (
+    start "" /B "C:\Program Files\mosquitto\mosquitto.exe" -c "C:\smart_farm\mosquitto\config\mosquitto-windows.conf"
+    timeout /t 2 /nobreak > nul
+    echo       포트 1883 (MQTT), 9001 (WebSocket)
+) else (
+    echo       이미 실행 중
+)
+
+REM ── 5. MQTT Subscriber ───────────────────────────────────────────────────
+echo [5/5] MQTT Subscriber 시작...
+tasklist /FI "WINDOWTITLE eq smartfarm-mqtt*" 2>nul | find "python.exe" > nul
+if errorlevel 1 (
+    cd /d %SMART_FARM%
+    start "smartfarm-mqtt" /MIN %PYTHON% pipeline\mqtt_subscriber.py
+    timeout /t 2 /nobreak > nul
+    echo       smartfarm/+/env, smartfarm/+/prod 구독 시작
+) else (
+    echo       이미 실행 중
+)
 
 echo.
 echo [Smart Farm] 서비스 시작 완료
 echo   대시보드:  http://localhost/
 echo   API 문서:  http://localhost/docs
 echo   API 직접:  http://localhost:8000/health
+echo   MQTT:      localhost:1883
+echo   MQTT-WS:   ws://localhost:9001
 echo.

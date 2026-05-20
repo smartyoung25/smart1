@@ -39,6 +39,9 @@ _PUBLIC_PATHS: set[str] = {
     "/docs",
     "/redoc",
     "/openapi.json",
+    "/",            # 대시보드 index.html (프리뷰/단일포트)
+    "/dashboard",   # 정적 파일
+    "/favicon.ico",
 }
 
 _security = HTTPBearer(auto_error=False)
