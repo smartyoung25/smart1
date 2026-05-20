@@ -1,0 +1,36 @@
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "SIM", # flake8-simplify
+]
+ignore = [
+    "E501",  # line too long (handled by formatter)
+    "B008",  # do not perform function calls in default args
+    "B904",  # raise from None (too strict for this codebase)
+    "SIM108", # ternary operator (readability preference)
+    "UP007", # X | Y union syntax (Python 3.10+ only in runtime)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*"   = ["S101", "F841"]   # assert OK in tests; unused vars common
+"models/*"  = ["UP006", "UP007"] # older typing compat (Dict, Optional)
+"pipeline/*"= ["UP006", "UP007"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
+
+[tool.pytest.ini_options]
+# pytest.ini 우선이므로 여기서는 주석만
+# 실제 설정은 pytest.ini 참조
