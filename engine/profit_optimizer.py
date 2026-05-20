@@ -203,6 +203,27 @@ def optimize(
             _n_fruit_m  = len(_FRUIT_MONTHS.get(_crop_en_key, [4,5,6]))
             _SEASON_MONTHS = 12.0
 
+            # 논문 기반 과학 피처 상수 (train_stage2_yield._add_science_features와 동일)
+            _OPT_TEMP_RANGE = {
+                "strawberry": (15.0, 20.0), "cherry_tomato": (18.0, 25.0),
+                "tomato": (18.0, 25.0), "melon": (22.0, 30.0), "paprika": (18.0, 26.0),
+            }
+            _OPT_RH_RANGE = {
+                "strawberry": (55.0, 75.0), "cherry_tomato": (60.0, 80.0),
+                "tomato": (60.0, 80.0), "melon": (60.0, 75.0), "paprika": (60.0, 80.0),
+            }
+            _TRUSS_INTERVAL = {"cherry_tomato": 8.5, "tomato": 7.0}
+            import math as _math_sci
+            _KR_LAT = _math_sci.radians(36.5)
+            def _dl_hours(month: float) -> float:
+                """월 중순 천문 일장 (한국 36.5°N)."""
+                doy = int(month) * 30 - 15
+                decl = _math_sci.radians(23.45) * _math_sci.sin(_math_sci.radians(360/365*(doy-81)))
+                cos_ha = max(-1.0, min(1.0, -_math_sci.tan(_KR_LAT) * _math_sci.tan(decl)))
+                return 2.0 * _math_sci.degrees(_math_sci.acos(cos_ha)) / 15.0
+            _opt_tl, _opt_th = _OPT_TEMP_RANGE.get(_crop_en_key, (18.0, 25.0))
+            _opt_rl, _opt_rh_v = _OPT_RH_RANGE.get(_crop_en_key, (60.0, 80.0))
+
             def _env_to_season(env: dict) -> dict:
                 t    = env.get("temp_internal", 20.0)
                 sol  = env.get("solar_rad", 150.0)
@@ -252,6 +273,24 @@ def optimize(
                     "temp_co2_interact":        t * co2 / 10000.0,
                     "dli_temp_interact":        sol * 0.0115 * _SEASON_MONTHS * t / 100.0,
                     "stress_combined":          _cold_frac * _n_flower_m + _heat_frac * _n_fruit_m,
+                    # ── 논문 기반 과학 피처 (Phase 2) ──────────────────────────────
+                    # CO₂ Michaelis-Menten 포화 응답 (Km=250 ppm, C3 식물)
+                    "co2_mm_response":          co2 / (co2 + 250.0),
+                    # 최적 범위 체류 비율 (현재 환경값 기반 근사 — 추론 시 점 추정)
+                    "pct_time_optimal_temp":    1.0 if _opt_tl <= t <= _opt_th else 0.3,
+                    "pct_time_optimal_rh":      1.0 if _opt_rl <= hum <= _opt_rh_v else 0.3,
+                    "pct_time_cold_stress":     1.0 if t < _opt_tl else 0.0,
+                    "pct_time_heat_stress":     1.0 if t > _opt_th else 0.0,
+                    # 토마토 전용 PAR/화방 피처
+                    "cumulative_par_mj":        sol * 0.0115 * 0.217 * 8.0 * 30.4 if _crop_en_key in ("cherry_tomato","tomato") else 0.0,
+                    "truss_count_estimate":     _gdd_season / _TRUSS_INTERVAL.get(_crop_en_key, 7.5),
+                    "par_yield_efficiency":     1.0,
+                    # 딸기 전용 일장 피처 (이식월 9월 기준)
+                    "daylength_plant_month":    _dl_hours(9.0) if _crop_en_key == "strawberry" else 12.0,
+                    "sd_induction_index":       max(0.0, 14.5 - _dl_hours(9.0)) if _crop_en_key == "strawberry" else 0.0,
+                    "sd_month_fraction":        0.67 if _crop_en_key == "strawberry" else 0.0,
+                    # 파프리카 진동 프록시
+                    "harvest_month_cv":         0.2,
                     # 연도 정규화 (최신 연도 → 1.0에 가까움)
                     "year_norm":                1.0,
                     "n_harvest_months":         8.0,

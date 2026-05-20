@@ -673,6 +673,198 @@ def _add_critical_event_features(
     return result
 
 
+# ── 논문 기반 생리학적 피처 (Phase 2) ────────────────────────────────────────
+
+# 작목별 최적 환경 범위 (PeerJ 2023 Korean farm study + RDA 기준)
+_OPT_TEMP_RANGE: dict[str, tuple[float, float]] = {
+    "딸기":       (15.0, 20.0),   # 과실 발달기 최적
+    "방울토마토": (18.0, 25.0),
+    "완숙토마토": (18.0, 25.0),
+    "참외":       (22.0, 30.0),
+    "파프리카":   (18.0, 26.0),
+}
+_OPT_RH_RANGE: dict[str, tuple[float, float]] = {
+    "딸기":       (55.0, 75.0),   # 과습 → 회색곰팡이, 건조 → 수정 불량
+    "방울토마토": (60.0, 80.0),
+    "완숙토마토": (60.0, 80.0),
+    "참외":       (60.0, 75.0),
+    "파프리카":   (60.0, 80.0),
+}
+# TOMSIM (Heuvelink) 화방 출현 간격 (℃·day / 화방)
+_TRUSS_INTERVAL: dict[str, float] = {
+    "방울토마토": 8.5,
+    "완숙토마토": 7.0,
+}
+_KR_LAT_RAD = np.radians(36.5)   # 한국 평균 위도 36.5°N
+
+
+def _daylength_hours(month: float) -> float:
+    """월 중순 기준 천문 일장 계산 (한국 위도 36.5°N).
+
+    Cooper (1969) 근사식 사용:
+      δ = 23.45 × sin(360/365 × (doy − 81))
+      ω = arccos(−tan(φ) × tan(δ))
+      N = 2ω/15  (시간)
+    """
+    if not (1 <= month <= 12):
+        return 12.0
+    doy = int(month) * 30 - 15
+    decl = np.radians(23.45) * np.sin(np.radians(360.0 / 365.0 * (doy - 81)))
+    cos_ha = -np.tan(_KR_LAT_RAD) * np.tan(decl)
+    cos_ha = float(np.clip(cos_ha, -1.0, 1.0))
+    return 2.0 * np.degrees(np.arccos(cos_ha)) / 15.0
+
+
+def _add_science_features(
+    env_monthly: pd.DataFrame,
+    prod_ann: pd.DataFrame,
+    config: "CropConfig",
+) -> pd.DataFrame:
+    """논문 기반 생리학적 피처를 prod_ann에 추가한다.
+
+    추가 피처:
+      pct_time_optimal_temp  — 월평균 온도가 작목별 최적 범위 내 비율 (PeerJ 2023)
+      pct_time_optimal_rh    — 습도 최적 범위 내 비율
+      co2_mm_response        — CO₂ Michaelis-Menten 포화 응답 (Km=250 ppm, C3 식물)
+      [딸기 전용]
+        daylength_plant_month  — 이식월 일장(h), 천문학 계산 (센서 불필요)
+        sd_induction_index     — 단일 유도 강도 (14.5h − 일장).clip(0) : 높을수록 화아분화↑
+        pct_time_optimal_temp_straw — 딸기 전용 최적 범위 체류 비율
+      [토마토 전용]
+        cumulative_par_mj      — 시즌 누적 차단 PAR (mol→MJ 환산, TOMSIM 기반)
+        truss_count_estimate   — 화방 수 추정 (GDD / TOMSIM 화방 간격)
+      [파프리카 전용]
+        n_harvest_months_cv    — 월별 수확 편차계수 (컨베이어 벨트 진동 프록시)
+    """
+    result = prod_ann.copy()
+    key    = ["farm_id", "year"]
+    crop   = config.crop_ko
+
+    # ── 1. 최적 온도 체류 비율 ─────────────────────────────────────────────────
+    opt_tl, opt_th = _OPT_TEMP_RANGE.get(crop, (18.0, 25.0))
+    if not env_monthly.empty and "temp_internal" in env_monthly.columns:
+        _em = env_monthly.copy()
+        _em = _norm_keys(_em)
+        _em["_t_ok"] = _em["temp_internal"].between(opt_tl, opt_th).astype(float)
+        _t_agg = (
+            _em.groupby(key)["_t_ok"].mean().reset_index()
+            .rename(columns={"_t_ok": "pct_time_optimal_temp"})
+        )
+        result = result.merge(_t_agg, on=key, how="left")
+        result["pct_time_optimal_temp"] = result["pct_time_optimal_temp"].fillna(0.5)
+
+        # 과열 / 저온 스트레스 시간 비율 (PeerJ: 범위 이탈이 수확 감소 유발)
+        _em["_t_cold"] = (_em["temp_internal"] < opt_tl).astype(float)
+        _em["_t_heat"] = (_em["temp_internal"] > opt_th).astype(float)
+        for _col, _new in [("_t_cold", "pct_time_cold_stress"),
+                           ("_t_heat", "pct_time_heat_stress")]:
+            _agg = (_em.groupby(key)[_col].mean().reset_index()
+                    .rename(columns={_col: _new}))
+            result = result.merge(_agg, on=key, how="left")
+            result[_new] = result[_new].fillna(0.0)
+        logger.info("  [과학 피처] pct_time_optimal_temp / cold_stress / heat_stress 추가")
+
+    # ── 2. 최적 습도 체류 비율 ─────────────────────────────────────────────────
+    opt_rl, opt_rh = _OPT_RH_RANGE.get(crop, (60.0, 80.0))
+    if not env_monthly.empty and "humidity_int" in env_monthly.columns:
+        _em2 = env_monthly.copy()
+        _em2 = _norm_keys(_em2)
+        _em2["_rh_ok"] = _em2["humidity_int"].between(opt_rl, opt_rh).astype(float)
+        _rh_agg = (
+            _em2.groupby(key)["_rh_ok"].mean().reset_index()
+            .rename(columns={"_rh_ok": "pct_time_optimal_rh"})
+        )
+        result = result.merge(_rh_agg, on=key, how="left")
+        result["pct_time_optimal_rh"] = result["pct_time_optimal_rh"].fillna(0.5)
+        logger.info("  [과학 피처] pct_time_optimal_rh 추가")
+
+    # ── 3. CO₂ Michaelis-Menten 포화 응답 ─────────────────────────────────────
+    # A_net = Amax × [CO₂] / (Km + [CO₂]),  Km ≈ 250 ppm (C3 식물)
+    # co2_mm_response ∈ [0.28(100ppm)~0.80(1000ppm)]: 비선형 수익 체감 포착
+    if "co2_ppm_mean" in result.columns:
+        _co2 = result["co2_ppm_mean"].fillna(400.0).clip(lower=50.0)
+        result["co2_mm_response"] = _co2 / (_co2 + 250.0)
+        logger.info("  [과학 피처] CO₂ Michaelis-Menten 응답 (Km=250 ppm) 추가")
+
+    # ── 4. 딸기 전용: 일장 + 단일 유도 지수 ──────────────────────────────────
+    if crop == "딸기" and "plant_month" in result.columns:
+        _pm = result["plant_month"].replace(0, np.nan)
+        result["daylength_plant_month"] = _pm.apply(
+            lambda m: _daylength_hours(m) if pd.notna(m) else _daylength_hours(9.0)
+        )
+        # 단일 유도 강도: 14.5h 미달 시 화아분화 강하게 유도됨
+        # Seolhyang(설향) 임계 일장 ≈ 14.5h (IntechOpen review)
+        result["sd_induction_index"] = (
+            14.5 - result["daylength_plant_month"]
+        ).clip(lower=0.0)
+        # 이식 시기별 적산 단일 일수 추정 (이식 후 60일, 하루 단위 근사)
+        # daylength < 14.5h 인 월 수 × 30 / 60 (정규화)
+        if not env_monthly.empty:
+            _em_s = env_monthly.copy()
+            _em_s = _norm_keys(_em_s)
+            # 이식 후 시즌 초반 (plant_month + 0~2개월) 저일장 월 비율
+            def _sd_months(row):
+                pm = row.get("plant_month", 0)
+                if not pm or pd.isna(pm):
+                    pm = 9
+                pm = int(pm)
+                # 이식 후 3개월 체크
+                check_months = [(pm + i - 1) % 12 + 1 for i in range(3)]
+                return sum(1 for m in check_months if _daylength_hours(m) < 14.5) / 3.0
+            if "plant_month" in result.columns:
+                result["sd_month_fraction"] = result.apply(_sd_months, axis=1)
+        logger.info("  [딸기 전용·과학 피처] daylength + sd_induction_index + sd_month_fraction 추가")
+
+    # ── 5. 토마토 전용: 누적 PAR + 화방 수 추정 (TOMSIM) ─────────────────────
+    if crop in ("방울토마토", "완숙토마토"):
+        _truss_iv = _TRUSS_INTERVAL.get(crop, 7.5)
+
+        # 누적 차단 PAR: DLI(mol/m²/d) × 0.217MJ/mol × 30.4d/월 × 재배월수
+        # TOMSIM RUE=2.5 g DM/MJ; cumulative_par_mj → 이론적 건물 생산량 기준값
+        if "dli_annual" in result.columns:
+            _n_m = result["n_harvest_months"].clip(lower=1)
+            result["cumulative_par_mj"] = (
+                result["dli_annual"] * 0.217 * _n_m * 30.4
+            ).clip(lower=0)
+            logger.info("  [토마토 전용·과학 피처] cumulative_par_mj 추가")
+
+        # 화방 수 추정: GDD_시즌 / 화방 출현 간격
+        if "gdd_annual" in result.columns:
+            result["truss_count_estimate"] = (
+                result["gdd_annual"] / _truss_iv
+            ).clip(lower=0, upper=300)
+            logger.info("  [토마토 전용·과학 피처] truss_count_estimate (GDD/%.1f) 추가",
+                        _truss_iv)
+
+        # PAR 단위 예상 수확량 대비 상대 생산성 (관리 품질 프록시)
+        # 주의: harvest_index_ratio는 yield_per_m2를 분자로 사용하므로
+        #       farm target encoding 이후 적용 → leakage 없음 (farm hist로 정규화)
+        if "cumulative_par_mj" in result.columns and "farm_yield_hist_mean" in result.columns:
+            _expected_rue = (result["cumulative_par_mj"] * 2.5 / 1000.0).clip(lower=0.1)
+            result["par_yield_efficiency"] = (
+                result["farm_yield_hist_mean"] / _expected_rue
+            ).clip(0.05, 10.0)
+            logger.info("  [토마토 전용·과학 피처] par_yield_efficiency (farm hist / RUE 기대값) 추가")
+
+    # ── 6. 파프리카 전용: 컨베이어 벨트 진동 프록시 ───────────────────────────
+    # 수확량 진동이 심한 농가 = 착과 부하 관리 미흡 → 예측 어려움 표시
+    if crop == "파프리카" and "n_harvest_months" in result.columns:
+        # 농가별 역대 n_harvest_months 변동계수 (expanding, shift 1)
+        result_sorted = result.sort_values(key)
+        _nhm_cv = (
+            result_sorted.groupby("farm_id")["n_harvest_months"]
+            .transform(lambda x:
+                (x.astype(float).expanding().std().shift(1)
+                 / x.astype(float).expanding().mean().shift(1).clip(lower=1e-9))
+                .fillna(0.0)
+            )
+        ).clip(0, 3)
+        result["harvest_month_cv"] = _nhm_cv.values
+        logger.info("  [파프리카 전용·과학 피처] harvest_month_cv (컨베이어 벨트 진동 프록시) 추가")
+
+    return result
+
+
 # ── 연간(시즌) 집계 행렬 ─────────────────────────────────────────────────────
 
 def build_stage2_matrix_annual(
@@ -837,6 +1029,9 @@ def build_stage2_matrix_annual(
         prod_ann = prod_ann.merge(_temp_std_agg, on=["farm_id", "year"], how="left")
         prod_ann["temp_internal_season_std"] = prod_ann["temp_internal_season_std"].fillna(0)
         logger.info("  [딸기 전용] chill_months + temp_internal_season_std 피처 추가")
+
+    # ④-e 논문 기반 생리학적 피처 (과학 피처 Phase 2)
+    prod_ann = _add_science_features(env_monthly, prod_ann, config)
 
     # ⑦-b 상대 수확량 타겟 (yield_ratio): farm identity 제거
     # yield_ratio = 올해 수확량 / 농가 역대 평균 수확량
