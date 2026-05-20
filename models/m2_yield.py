@@ -90,6 +90,59 @@ def predict_yield(crop_ko: str, season_env: Dict[str, float],
         mape_cv = pkg.get("mape", 99)
         source  = "m2_model_v2"
 
+    elif "feature_cols" in pkg and "imputer" in pkg:
+        # ── 포맷 C (train_stage2_yield.py) — imputer + model/model_lgb ─────────
+        feat_cols     = pkg["feature_cols"]
+        imputer       = pkg["imputer"]
+        log_transform = pkg.get("log_transform", True)
+
+        if not feat_cols:
+            return {"yield_kg_total": 5000.0, "yield_kg_m2": 5.0, "source": "stub"}
+
+        # 피처 행 구성: 0으로 초기화 (imputer가 훈련 중앙값으로 채움)
+        row = {c: 0.0 for c in feat_cols}
+        row.update(season_env)   # 환경값 오버라이드
+
+        # 농가 이력 피처 처리 (farm_encoding에서 조회)
+        fe  = pkg.get("farm_encoding", {})
+        fym = fe.get("per_farm", {})
+        if "farm_yield_hist_mean" in feat_cols:
+            if farm_id and str(farm_id) in fym:
+                row["farm_yield_hist_mean"] = float(fym[str(farm_id)])
+            else:
+                row["farm_yield_hist_mean"] = float(
+                    fe.get("global_mean",
+                           float(np.median(list(fym.values()))) if fym else 5.0)
+                )
+        if "farm_yield_hist_cv" in feat_cols:
+            row["farm_yield_hist_cv"] = float(fe.get("global_cv", 0.5))
+        if "log_area_m2" in feat_cols:
+            row["log_area_m2"] = float(np.log1p(area_m2))
+
+        # imputer.transform: 0 패딩된 피처 → 훈련 중앙값으로 대체
+        X_raw = pd.DataFrame([row])[feat_cols]
+        X = imputer.transform(X_raw)
+
+        preds = []
+        xgb_m = pkg.get("model")
+        lgb_m = pkg.get("model_lgb")
+        if xgb_m is not None:
+            preds.append(float(xgb_m.predict(X)[0]))
+        if lgb_m is not None:
+            preds.append(float(lgb_m.predict(X)[0]))
+        if not preds:
+            return {"yield_kg_total": 5000.0, "yield_kg_m2": 5.0, "source": "stub"}
+
+        log_pred = float(np.mean(preds))
+        if log_transform:
+            # 모델이 log1p(yield_per_m2)를 예측 → expm1 후 area_m2 곱
+            yield_total = float(np.expm1(max(log_pred, 0))) * max(area_m2, 1)
+        else:
+            yield_total = max(log_pred, 0) * max(area_m2, 1)
+
+        mape_cv = float(pkg.get("cv_mape_mean", pkg.get("mape", 99)))
+        source  = "m2_stage2"
+
     else:
         # ── 포맷 B (DAG retrain_m2) ───────────────────────────────────────────
         feat_cols     = pkg.get("features", [])

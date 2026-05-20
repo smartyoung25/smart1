@@ -175,19 +175,88 @@ def optimize(
             _opt_max = _OPT_MAX.get(_crop_en_key, 30.0)
             _SEASON_DAYS_EST = 180.0
 
+            # 작기 임계이벤트 설정 (train_stage2_yield.py와 동일)
+            _FLOWER_MONTHS = {
+                "strawberry": [11,12,1], "cherry_tomato": [3,4,5],
+                "tomato": [3,4,5], "melon": [4,5], "paprika": [3,4,5],
+            }
+            _FRUIT_MONTHS = {
+                "strawberry": [1,2,3], "cherry_tomato": [4,5,6],
+                "tomato": [4,5,6], "melon": [5,6], "paprika": [4,5,6],
+            }
+            _COLD_THRESH = {
+                "strawberry": 8.0, "cherry_tomato": 12.0, "tomato": 12.0,
+                "melon": 14.0, "paprika": 12.0,
+            }
+            _HEAT_THRESH = {
+                "strawberry": 25.0, "cherry_tomato": 32.0, "tomato": 32.0,
+                "melon": 35.0, "paprika": 30.0,
+            }
+            _VPD_OPT = {
+                "strawberry": (0.6, 1.0), "cherry_tomato": (0.8, 1.4),
+                "tomato": (0.8, 1.4), "melon": (0.7, 1.2), "paprika": (0.8, 1.2),
+            }
+            _cold_thr = _COLD_THRESH.get(_crop_en_key, 10.0)
+            _heat_thr = _HEAT_THRESH.get(_crop_en_key, 32.0)
+            _vpd_lo, _vpd_hi = _VPD_OPT.get(_crop_en_key, (0.7, 1.2))
+            _n_flower_m = len(_FLOWER_MONTHS.get(_crop_en_key, [3,4,5]))
+            _n_fruit_m  = len(_FRUIT_MONTHS.get(_crop_en_key, [4,5,6]))
+            _SEASON_MONTHS = 12.0
+
             def _env_to_season(env: dict) -> dict:
                 t    = env.get("temp_internal", 20.0)
                 sol  = env.get("solar_rad", 150.0)
                 co2  = env.get("co2_ppm", 500.0)
                 hum  = env.get("humidity_int", 75.0)
+                ec   = env.get("ec_dsm", 2.0)
                 # GDD approximation: assume constant daily temp over season
                 _gdd_day    = max(0.0, t - _base_t)
                 _gdd_season = _gdd_day * _SEASON_DAYS_EST
-                # Fraction-based stress approximations (point estimate → binary proxy)
-                _cold_frac  = 1.0 if t < _base_t else 0.0
-                _heat_frac  = 1.0 if t > _opt_max else 0.0
+                # Stress fractions (0 or 1, scaled by number of critical months)
+                _cold_frac  = 1.0 if t < _cold_thr else 0.0
+                _heat_frac  = 1.0 if t > _heat_thr else 0.0
+                # VPD 계산 (Tetens 공식)
+                import math as _math
+                _svp = 0.6108 * _math.exp(17.27 * t / (t + 237.3))
+                _vpd = max(0.0, _svp * (1.0 - hum / 100.0))
+                _vpd_out = 1.0 if (_vpd < _vpd_lo or _vpd > _vpd_hi) else 0.0
+
                 return {
-                    # v2 features
+                    # ── stage2 포맷 C 피처 (train_stage2_yield.py와 동일 이름) ─────────
+                    "temp_internal_mean":       t,
+                    "temp_internal_std":        0.0,
+                    "humidity_int_mean":        hum,
+                    "humidity_int_std":         0.0,
+                    "co2_ppm_mean":             co2,
+                    "co2_ppm_std":              0.0,
+                    "solar_rad_mean":           sol,
+                    "solar_rad_std":            0.0,
+                    "ec_dsm_mean":              ec,
+                    "ec_dsm_std":               0.0,
+                    "gdd_annual":               _gdd_season,
+                    # 임계이벤트 피처 (현재 온도로부터 추정)
+                    "flower_temp_mean":         t,
+                    "flower_cold_months":       _cold_frac * _n_flower_m,
+                    "vpd_flower_mean":          _vpd,
+                    "fruit_temp_mean":          t,
+                    "fruit_heat_months":        _heat_frac * _n_fruit_m,
+                    "dli_annual":               sol * 0.0115 * _SEASON_MONTHS,
+                    "vpd_out_months":           _vpd_out * _SEASON_MONTHS,
+                    "vpd_annual_mean":          _vpd,
+                    # 편차 피처 (추론 시점에서는 0 → imputer가 중앙값으로 대체)
+                    "temp_internal_mean_farm_dev":  0.0,
+                    "humidity_int_mean_farm_dev":   0.0,
+                    "co2_ppm_mean_farm_dev":        0.0,
+                    "solar_rad_mean_farm_dev":      0.0,
+                    # 상호작용 피처
+                    "temp_co2_interact":        t * co2 / 10000.0,
+                    "dli_temp_interact":        sol * 0.0115 * _SEASON_MONTHS * t / 100.0,
+                    "stress_combined":          _cold_frac * _n_flower_m + _heat_frac * _n_fruit_m,
+                    # 연도 정규화 (최신 연도 → 1.0에 가까움)
+                    "year_norm":                1.0,
+                    "n_harvest_months":         8.0,
+                    # 면적 피처는 m2_yield.py에서 area_m2로 계산
+                    # ── 구버전 v2/v3 피처 (포맷 A/B 호환성 유지) ─────────────────────
                     "temp_internal_mean_mean":  t,
                     "temp_internal_max_mean":   t + 3.0,
                     "temp_internal_min_mean":   t - 3.0,
@@ -200,18 +269,15 @@ def optimize(
                     "season_num":               1.0,
                     "year":                     float(_dt.date.today().year),
                     "ship_days":                30.0,
-                    # v3 new features (approximated from single point-in-time env reading)
                     "gdd_recomputed":           _gdd_season,
-                    "temp_range_mean":          6.0,   # fixed typical diurnal range
+                    "temp_range_mean":          6.0,
                     "cold_day_count":           _cold_frac * _SEASON_DAYS_EST,
                     "heat_stress_days":         _heat_frac * _SEASON_DAYS_EST,
                     "solar_rad_cumsum":         sol * 8.0 * _SEASON_DAYS_EST,
-                    "co2_ppm_std":              0.0,   # unknown at inference time
-                    "temp_std_daily":           0.0,   # unknown at inference time
+                    "temp_std_daily":           0.0,
                     "gdd_per_day":              _gdd_day,
                     "cold_day_frac":            _cold_frac,
                     "heat_stress_frac":         _heat_frac,
-                    # std features (unknown at inference time, use 0)
                     "temp_internal_mean_std":   0.0,
                     "humidity_int_mean_std":    0.0,
                     "solar_rad_mean_std":       0.0,
@@ -219,11 +285,16 @@ def optimize(
                     "gdd_cumsum_std":           0.0,
                 }
 
-            _m2_baseline = _m2_predict(crop_ko, _env_to_season(dict(current_env.values)), area_m2)
+            # farm_id 전달: m2_yield.py 포맷 C에서 farm_encoding 조회에 사용
+            _opt_farm_id = farm_id if farm_id else None
+            _m2_baseline = _m2_predict(
+                crop_ko, _env_to_season(dict(current_env.values)),
+                area_m2, _opt_farm_id,
+            )
             _baseline_yield_m2 = max(0.01, _m2_baseline["yield_kg_m2"])
 
             def _m2_fn(env: dict) -> tuple[float, float]:
-                r = _m2_predict(crop_ko, _env_to_season(env), area_m2)
+                r = _m2_predict(crop_ko, _env_to_season(env), area_m2, _opt_farm_id)
                 return max(0.0, r["yield_kg_m2"]), 0.72
 
             # Sensitivity check: skip M2 if it returns the same yield for all candidates
