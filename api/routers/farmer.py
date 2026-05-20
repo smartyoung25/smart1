@@ -49,6 +49,7 @@ from api.data.stats_loader import (
 from api.services import persistence
 from api.services.model_loader import predict_revenue_per_m2, get_model_meta
 from models.m5_disease import env_risk_predict as _env_risk_predict
+from adapters.irrigation_adapter import adapt_irrigation
 
 router = APIRouter(prefix="/api/farms/{farm_id}", tags=["farmer"])
 
@@ -1238,3 +1239,83 @@ def post_chat(farm_id: str, body: ChatRequest):
     """
     _require_farm(farm_id)
     return _stub_reply(farm_id, body.message)
+
+# ── P4 관수 데이터 수신 (관수통합관리시스템 연동) ─────────────────────────────
+
+class IrrigationPeriod(BaseModel):
+    period:     int   = Field(..., ge=1, le=4, description="구간 번호 (1=일출, 2=오전, 3=오후, 4=일몰)")
+    supply_ml:  float = Field(0.0, ge=0, description="공급량 (ml)")
+    drain_ml:   float = Field(0.0, ge=0, description="배액량 (ml)")
+    ec:         Optional[float] = Field(None, description="배액 EC (dS/m)")
+    ph:         Optional[float] = Field(None, description="배액 pH")
+    slab_wt_kg: Optional[float] = Field(None, description="slab 무게 (kg)")
+
+
+class IrrigationPayload(BaseModel):
+    crop:          str              = Field(..., description="작물명 (한국어)")
+    date:          str              = Field(..., description="날짜 (YYYY-MM-DD)")
+    periods:       list[IrrigationPeriod] = Field(..., description="P4 구간별 데이터")
+    slab_vol_l:    float            = Field(15.0, gt=0, description="slab 용량 (L)")
+    max_wt_kg:     Optional[float]  = Field(None, description="당일 최대 무게 (kg)")
+    min_wt_kg:     Optional[float]  = Field(None, description="일출 전 최소 무게 (kg)")
+    sunset_wt_kg:  Optional[float]  = Field(None, description="일몰 직후 무게 (kg)")
+
+
+class IrrigationResponse(BaseModel):
+    farm_id:     str
+    date:        str
+    records_saved: int
+    warnings:    list[str] = []
+    summary: dict
+
+
+@router.post("/irrigation", response_model=IrrigationResponse, summary="P4 관수 데이터 수신")
+def receive_irrigation(farm_id: str, body: IrrigationPayload):
+    """관수통합관리시스템(HTML)의 시간대별 관리 탭 P4 데이터를 수신해
+    canonical 변수(wc_mean, dr_pct_mean, ec_drain, supply_total 등)로 변환·저장합니다.
+
+    저장된 데이터는 다음 ETL 사이클에서 ML 학습 피처로 자동 편입됩니다.
+    """
+    payload_dict = {
+        "farm_id":       farm_id,
+        "crop":          body.crop,
+        "date":          body.date,
+        "slab_vol_l":    body.slab_vol_l,
+        "max_wt_kg":     body.max_wt_kg,
+        "min_wt_kg":     body.min_wt_kg,
+        "sunset_wt_kg":  body.sunset_wt_kg,
+        "periods": [
+            {
+                "period":     p.period,
+                "supply_ml":  p.supply_ml,
+                "drain_ml":   p.drain_ml,
+                "ec":         p.ec,
+                "ph":         p.ph,
+                "slab_wt_kg": p.slab_wt_kg,
+            }
+            for p in body.periods
+        ],
+    }
+
+    result = adapt_irrigation(payload_dict)
+
+    # 실제 운영 환경에서는 DB에 저장; 현재는 로그만 기록
+    if result.errors:
+        logger.warning("[irrigation] farm=%s date=%s warnings: %s",
+                       farm_id, body.date, result.errors)
+
+    summary = {}
+    for rec in result.records:
+        summary[rec.canonical_name] = round(rec.value, 3)
+
+    logger.info("[irrigation] farm=%s date=%s → %d canonical records: %s",
+                farm_id, body.date, len(result.records), summary)
+
+    return IrrigationResponse(
+        farm_id=farm_id,
+        date=body.date,
+        records_saved=len(result.records),
+        warnings=result.errors,
+        summary=summary,
+    )
+

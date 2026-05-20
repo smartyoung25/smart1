@@ -49,6 +49,15 @@ VALID_RANGES: dict[str, tuple[Optional[float], Optional[float]]] = {
     "fruit_count":    (0, 200),
     "kamis_price":    (0, 99999),
     "gdd_cumsum":     (0, 99999),
+    # ── P4 관수 관리 피처 (관수통합관리시스템 연동) ──────────────────────────
+    "wc_mean":        (0, 100),    # 함수율 평균 (%)
+    "wc_max":         (0, 100),    # 함수율 최대 (%)
+    "wc_min":         (0, 100),    # 함수율 최소 (%)
+    "dr_pct_mean":    (0, 100),    # 배액률 평균 (%)
+    "ec_drain":       (0, 10),     # 배액 EC 평균 (dS/m)
+    "supply_total":   (0, 5000),   # 총 공급량 (ml/slab/일)
+    "irr_count":      (0, 30),     # 관수 횟수 (회/일)
+    "nl_pct":         (0, 50),     # 야간소실률 (%)
 }
 
 
