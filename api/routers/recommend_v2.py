@@ -131,8 +131,9 @@ def recommend(body: RecommendRequest):
     tier       = _TIER_MAP.get(body.tier, FarmTier.SEMI_AUTO)
     current_env = EnvState(farm_id=body.farm_id, values=env_dict)
 
-    # 이상 감지
-    raw_alerts = detect_anomalies(body.crop, env_dict)
+    # 이상 감지 (현재 월 기반 작기단계 인식)
+    import datetime as _dt
+    raw_alerts = detect_anomalies(body.crop, env_dict, month=_dt.date.today().month)
     alerts = [
         AlertOut(
             variable=a.variable, variable_ko=a.variable_ko,
@@ -143,7 +144,7 @@ def recommend(body: RecommendRequest):
         for a in raw_alerts
     ]
 
-    # 수익 최적화
+    # 수익 최적화 (작기단계 month 전달)
     recs = optimize(
         farm_id=body.farm_id,
         tier=tier,
@@ -151,6 +152,7 @@ def recommend(body: RecommendRequest):
         horizon_days=body.horizon_days,
         area_m2=body.area_m2,
         crop_ko=body.crop,
+        month=_dt.date.today().month,
     )
 
     model_source = "M2" if (recs and abs(recs[0].confidence - 0.72) < 0.01) else "pipeline"

@@ -123,8 +123,12 @@ def _setup_mqtt_bridge() -> None:
                                  "solar_rad", "ec_dsm", "soil_temp"}
                     env_vals = {k: float(v) for k, v in msg.items()
                                 if k in _ENV_KEYS and v is not None}
+                    import datetime as _dt
                     crop_ko = msg.get("crop_ko", "딸기")
-                    alerts = detect_anomalies(crop_ko, env_vals)
+                    alerts = detect_anomalies(
+                        crop_ko, env_vals,
+                        month=_dt.date.today().month,
+                    )
                     enriched = {
                         **msg,
                         "_anomaly": bool(alerts),

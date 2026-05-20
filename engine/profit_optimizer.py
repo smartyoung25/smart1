@@ -146,8 +146,13 @@ def optimize(
     yield_predict_fn: Optional[Callable[[dict], tuple[float, float]]] = None,
     price_forecast_fn: Optional[Callable[[], float]] = None,
     baseline_yield_kg_m2: float = 0.5,
+    month: Optional[int] = None,
 ) -> list[Recommendation]:
-    """Find top-N environment adjustments that maximise profit."""
+    """Find top-N environment adjustments that maximise profit.
+
+    Args:
+        month: 현재 월 (1~12). None이면 today 기준. 작기단계 후보 생성에 사용.
+    """
     if yield_predict_fn is None:
         import datetime as _dt
         _cur_month = _dt.date.today().month
@@ -313,7 +318,9 @@ def optimize(
                 return 3000.0
 
     price      = price_forecast_fn()
-    candidates = generate_candidates(current_env, max_simultaneous=2, crop_ko=crop_ko)
+    candidates = generate_candidates(
+        current_env, max_simultaneous=2, crop_ko=crop_ko, month=month
+    )
     results: list[Recommendation] = []
 
     for candidate in candidates:

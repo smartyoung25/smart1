@@ -501,6 +501,178 @@ def build_stage2_matrix(
     return df
 
 
+# ── 임계 이벤트 피처 (개화기/착과기 스트레스) ────────────────────────────────
+
+# 작목별 임계 이벤트 기간 및 임계값 정의
+# flowering_months : 개화기 (저온에 민감 → 수정 장애)
+# fruit_set_months : 착과기 (고온에 민감 → 낙과·품질 저하)
+# cold_thresh      : 저온 임계 (℃), 이하이면 개화기 스트레스
+# heat_thresh      : 고온 임계 (℃), 이상이면 착과기 스트레스
+# dli_scale        : DLI 환산 계수 (W/m²·h → mol/m²·d 근사)
+_CRITICAL_EVENT_CFG: dict[str, dict] = {
+    "딸기": {
+        "flowering_months": [11, 12, 1],
+        "fruit_set_months": [1, 2, 3],
+        "cold_thresh": 8.0,
+        "heat_thresh": 25.0,
+        "vpd_opt": (0.6, 1.0),
+    },
+    "방울토마토": {
+        "flowering_months": [3, 4, 5],
+        "fruit_set_months": [4, 5, 6],
+        "cold_thresh": 12.0,
+        "heat_thresh": 32.0,
+        "vpd_opt": (0.8, 1.4),
+    },
+    "완숙토마토": {
+        "flowering_months": [3, 4, 5],
+        "fruit_set_months": [4, 5, 6],
+        "cold_thresh": 12.0,
+        "heat_thresh": 32.0,
+        "vpd_opt": (0.8, 1.4),
+    },
+    "참외": {
+        "flowering_months": [4, 5],
+        "fruit_set_months": [5, 6],
+        "cold_thresh": 14.0,
+        "heat_thresh": 35.0,
+        "vpd_opt": (0.7, 1.2),
+    },
+    "파프리카": {
+        "flowering_months": [3, 4, 5],
+        "fruit_set_months": [4, 5, 6],
+        "cold_thresh": 12.0,
+        "heat_thresh": 30.0,
+        "vpd_opt": (0.8, 1.2),
+    },
+}
+
+
+def _calc_vpd_series(temp: pd.Series, humi: pd.Series) -> pd.Series:
+    """월 평균 온도·습도로 VPD(kPa) 계산."""
+    import numpy as np
+    svp = 0.6108 * np.exp(17.27 * temp / (temp + 237.3))
+    return (svp * (1.0 - humi.clip(1, 100) / 100.0)).clip(lower=0)
+
+
+def _add_critical_event_features(
+    env_monthly: pd.DataFrame,
+    prod_ann: pd.DataFrame,
+    crop_ko: str,
+) -> pd.DataFrame:
+    """임계 이벤트 피처를 prod_ann에 추가한다.
+
+    월 평균값을 기반으로 작목별 핵심 시기의 스트레스를 정량화:
+      - flower_cold_months : 개화기 중 저온 임계 이하 월 수
+      - flower_temp_mean   : 개화기 평균 온도
+      - fruit_heat_months  : 착과기 중 고온 임계 이상 월 수
+      - fruit_temp_mean    : 착과기 평균 온도
+      - dli_annual         : 연간 DLI 추정 (일사량 기반)
+      - vpd_out_months     : VPD 최적 범위 이탈 월 수
+      - vpd_flower_mean    : 개화기 평균 VPD
+    """
+    cfg = _CRITICAL_EVENT_CFG.get(crop_ko)
+    if cfg is None or env_monthly.empty:
+        return prod_ann
+
+    key = ["farm_id", "year"]
+    em  = env_monthly.copy()
+    em  = _norm_keys(em)
+
+    has_temp  = "temp_internal" in em.columns
+    has_humi  = "humidity_int"  in em.columns
+    has_solar = "solar_rad"     in em.columns
+
+    flower_m   = cfg["flowering_months"]
+    fruit_m    = cfg["fruit_set_months"]
+    cold_thr   = cfg["cold_thresh"]
+    heat_thr   = cfg["heat_thresh"]
+    vpd_lo, vpd_hi = cfg["vpd_opt"]
+
+    # ── VPD 시리즈 ───────────────────────────────────────────────────────────
+    if has_temp and has_humi:
+        em["vpd"] = _calc_vpd_series(em["temp_internal"], em["humidity_int"])
+
+    feats: list[pd.DataFrame] = []
+
+    # ── 개화기 피처 ──────────────────────────────────────────────────────────
+    flower_df = em[em["month"].isin(flower_m)]
+    if has_temp and not flower_df.empty:
+        flower_agg = (
+            flower_df.groupby(key)
+            .agg(
+                flower_temp_mean=("temp_internal", "mean"),
+                flower_cold_months=("temp_internal",
+                                    lambda x: (x < cold_thr).sum()),
+            )
+            .reset_index()
+        )
+        feats.append(flower_agg)
+
+    if has_temp and has_humi and not flower_df.empty and "vpd" in flower_df.columns:
+        vpd_flower_agg = (
+            flower_df.groupby(key)
+            .agg(vpd_flower_mean=("vpd", "mean"))
+            .reset_index()
+        )
+        feats.append(vpd_flower_agg)
+
+    # ── 착과기 피처 ──────────────────────────────────────────────────────────
+    fruit_df = em[em["month"].isin(fruit_m)]
+    if has_temp and not fruit_df.empty:
+        fruit_agg = (
+            fruit_df.groupby(key)
+            .agg(
+                fruit_temp_mean=("temp_internal", "mean"),
+                fruit_heat_months=("temp_internal",
+                                   lambda x: (x > heat_thr).sum()),
+            )
+            .reset_index()
+        )
+        feats.append(fruit_agg)
+
+    # ── DLI 연간 누적 ────────────────────────────────────────────────────────
+    # DLI(mol/m²/d) ≈ 일사량(W/m²) × 3600초 × 일조시간(≈8h) × 10^-6 × (1/0.217)
+    # 월 단위 근사: DLI_monthly ≈ solar_rad_mean × 0.0115 (W/m² → mol/m²/d)
+    if has_solar and not em.empty:
+        dli_agg = (
+            em.groupby(key)
+            .agg(dli_annual=("solar_rad", lambda x: (x * 0.0115).sum()))
+            .reset_index()
+        )
+        feats.append(dli_agg)
+
+    # ── VPD 이탈 월 수 (연간) ────────────────────────────────────────────────
+    if "vpd" in em.columns:
+        vpd_agg = (
+            em.groupby(key)
+            .agg(
+                vpd_out_months=("vpd",
+                                lambda x: ((x < vpd_lo) | (x > vpd_hi)).sum()),
+                vpd_annual_mean=("vpd", "mean"),
+            )
+            .reset_index()
+        )
+        feats.append(vpd_agg)
+
+    # ── prod_ann에 병합 ──────────────────────────────────────────────────────
+    result = prod_ann.copy()
+    for feat_df in feats:
+        result = result.merge(feat_df, on=key, how="left")
+
+    # 결측(해당 월 데이터 없음) → 0 채움
+    new_cols = [c for c in result.columns if c not in prod_ann.columns]
+    result[new_cols] = result[new_cols].fillna(0)
+
+    if new_cols:
+        logger.info(
+            "  임계 이벤트 피처 %d개 추가 (%s): %s",
+            len(new_cols), crop_ko, new_cols,
+        )
+
+    return result
+
+
 # ── 연간(시즌) 집계 행렬 ─────────────────────────────────────────────────────
 
 def build_stage2_matrix_annual(
@@ -564,6 +736,11 @@ def build_stage2_matrix_annual(
         prod_ann["gdd_annual"] = (
             prod_ann["temp_internal_mean"] - config.t_base
         ).clip(lower=0) * 365
+
+    # ④-b 임계 이벤트 피처 (개화기 저온 · 착과기 고온 · DLI · VPD 이탈)
+    prod_ann = _add_critical_event_features(
+        env_monthly, prod_ann, config.crop_ko
+    )
 
     # ⑤ 재배메타 (연간 키: year_farm_id)
     if cultiv_meta:
