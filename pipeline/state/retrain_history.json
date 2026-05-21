@@ -1,0 +1,52 @@
+[
+  {
+    "timestamp": "2026-05-15T23:13:37.534208",
+    "triggered_by": "force",
+    "crops": [
+      "딸기"
+    ],
+    "results": {
+      "딸기": {
+        "prep_m1": {
+          "status": "failed",
+          "returncode": 1,
+          "stderr_tail": "File \"/usr/local/lib/python3.10/dist-packages/pandas/core/reshape/concat.py\", line 507, in _clean_keys_and_objs\n    raise ValueError(\"No objects to concatenate\")\nValueError: No objects to concatenate\n"
+        },
+        "train_m1": {
+          "status": "skipped",
+          "reason": "prep_m1 failed"
+        },
+        "train_m2": {
+          "status": "failed",
+          "returncode": 1,
+          "stderr_tail": "10/site-packages/lightgbm/basic.py\", line 834, in _data_from_pandas\n    raise ValueError(\"Input data must be 2 dimensional and non empty.\")\nValueError: Input data must be 2 dimensional and non empty.\n"
+        }
+      }
+    }
+  },
+  {
+    "timestamp": "2026-05-15T23:13:46.296698",
+    "triggered_by": "env_rows=600 >= 500",
+    "crops": [
+      "딸기"
+    ],
+    "results": {
+      "딸기": {
+        "prep_m1": {
+          "status": "failed",
+          "returncode": 1,
+          "stderr_tail": "File \"/usr/local/lib/python3.10/dist-packages/pandas/core/reshape/concat.py\", line 507, in _clean_keys_and_objs\n    raise ValueError(\"No objects to concatenate\")\nValueError: No objects to concatenate\n"
+        },
+        "train_m1": {
+          "status": "skipped",
+          "reason": "prep_m1 failed"
+        },
+        "train_m2": {
+          "status": "failed",
+          "returncode": 1,
+          "stderr_tail": "10/site-packages/lightgbm/basic.py\", line 834, in _data_from_pandas\n    raise ValueError(\"Input data must be 2 dimensional and non empty.\")\nValueError: Input data must be 2 dimensional and non empty.\n"
+        }
+      }
+    }
+  }
+]

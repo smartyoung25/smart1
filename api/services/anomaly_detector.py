@@ -46,6 +46,46 @@ _UNITS = {
     "vpd":           "kPa",
 }
 
+# ── 관수 지표 메타데이터 (Priva 표준 + 관수통합관리시스템.xlsx 기준) ───────────────
+_IRR_LABELS_KO: dict[str, str] = {
+    "uptake_efficiency_ml_j": "흡수효율",
+    "dr_pct_mean":            "배액률",
+    "nl_pct":                 "야간소실률",
+    "wc_mean":                "함수율",
+}
+_IRR_UNITS: dict[str, str] = {
+    "uptake_efficiency_ml_j": "ml/J",
+    "dr_pct_mean":            "%",
+    "nl_pct":                 "%",
+    "wc_mean":                "%",
+}
+# {var: (normal_min, normal_max, critical_min, critical_max)}
+# 정상 범위: 운영 목표 구간 / critical 범위: 즉시 대응 필요 경계
+_IRR_THRESHOLDS: dict[str, tuple[float, float, float, float]] = {
+    "uptake_efficiency_ml_j": (1.0,  2.5,  0.7,  3.0),   # ml/J
+    "dr_pct_mean":            (20.0, 40.0, 10.0, 55.0),   # %
+    "nl_pct":                 (3.0,  7.0,  1.0,  10.0),   # %
+    "wc_mean":                (65.0, 85.0, 55.0, 90.0),   # %
+}
+_IRR_ADVICE_KO: dict[str, dict[str, str]] = {
+    "uptake_efficiency_ml_j": {
+        "low":  "흡수효율 저하 — 공급 EC 점검, 근권 온도 확인, 드리퍼 막힘 여부 점검",
+        "high": "흡수효율 과다 — 공급량 과다 또는 배액량 부족, 관수 프로그램 재검토",
+    },
+    "dr_pct_mean": {
+        "low":  "배액률 부족 — 공급량 10~20% 증량 또는 관수 횟수 추가 검토",
+        "high": "배액률 과다 — 공급량 10~20% 감량 또는 관수 간격 연장 검토",
+    },
+    "nl_pct": {
+        "low":  "야간 소실 부족 — 야간 온도 낮춤 또는 환기 증가로 뿌리압 회복 유도",
+        "high": "야간 소실 과다 — 야간 온도 2℃ 낮춤, 습도 상향으로 과증산 억제",
+    },
+    "wc_mean": {
+        "low":  "함수율 저하 — 관수 트리거 임계값 낮춤 또는 1회 공급량 증량",
+        "high": "함수율 과다 — 관수 간격 연장, 배액 채널 점검",
+    },
+}
+
 # ── 작목별 최적 VPD 범위 (kPa) ────────────────────────────────────────────────
 # 출처: 작목별 스마트팜 표준 재배지침 (농촌진흥청)
 # 작기 단계: early(정식~활착), mid(생장·개화), late(수확기)
@@ -164,6 +204,58 @@ def _check_vpd(
     )
 
 
+def _check_irrigation_metrics(
+    irr_values: dict[str, float],
+    stage: str,
+) -> list[EnvAlert]:
+    """관수 지표(흡수효율·배액률·야간소실률·함수율) 이상 감지.
+
+    env_stats.json과 독립된 고정 Priva 기준 임계값을 사용.
+    Args:
+        irr_values: 관수 canonical 변수 dict (예: dr_pct_mean=28.5, nl_pct=5.1 …)
+        stage:      작기 단계 ("early"|"mid"|"late"|"unknown")
+    """
+    alerts: list[EnvAlert] = []
+    stage_note = f" [{stage}기]" if stage != "unknown" else ""
+
+    for var, val in irr_values.items():
+        if var not in _IRR_THRESHOLDS:
+            continue
+        norm_min, norm_max, crit_min, crit_max = _IRR_THRESHOLDS[var]
+        label = _IRR_LABELS_KO[var]
+        unit  = _IRR_UNITS[var]
+        advice = _IRR_ADVICE_KO.get(var, {})
+
+        if val < crit_min or val > crit_max:
+            severity  = "critical"
+            direction = "너무 낮음" if val < crit_min else "너무 높음"
+            hint      = advice.get("low" if val < crit_min else "high", "")
+            msg = (f"[CRITICAL] {label} {val:.2f}{unit}{stage_note} — "
+                   f"허용 범위({crit_min}~{crit_max}{unit}) {direction}. {hint}")
+        elif val < norm_min or val > norm_max:
+            severity  = "major"
+            direction = "낮음" if val < norm_min else "높음"
+            hint      = advice.get("low" if val < norm_min else "high", "")
+            msg = (f"[MAJOR] {label} {val:.2f}{unit}{stage_note} — "
+                   f"정상 범위({norm_min}~{norm_max}{unit}) {direction}. {hint}")
+        else:
+            continue
+
+        alerts.append(EnvAlert(
+            variable=var,
+            variable_ko=label,
+            current_value=round(val, 3),
+            normal_min=norm_min,
+            normal_max=norm_max,
+            unit=unit,
+            severity=severity,
+            message_ko=msg,
+            season_stage=stage,
+        ))
+
+    return alerts
+
+
 def detect_anomalies(
     crop_ko: str,
     env_values: dict[str, float],
@@ -260,6 +352,13 @@ def detect_anomalies(
         vpd_alert = _check_vpd(crop_ko, temp, humi, stage)
         if vpd_alert is not None:
             alerts.append(vpd_alert)
+
+    # ── 관수 지표 이상 감지 (관수 canonical 변수 존재 시) ──────────────────────
+    IRR_VARS = set(_IRR_THRESHOLDS.keys())
+    irr_values = {k: v for k, v in env_values.items() if k in IRR_VARS}
+    if irr_values:
+        irr_alerts = _check_irrigation_metrics(irr_values, stage)
+        alerts.extend(irr_alerts)
 
     _order = {"critical": 0, "major": 1, "minor": 2}
     alerts.sort(key=lambda a: _order.get(a.severity, 9))

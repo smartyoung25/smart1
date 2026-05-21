@@ -1,6 +1,6 @@
 {
   "generated_at": "2026-05-10T10:48:35.173501",
-  "total_farms": 701,
+  "total_farms": 706,
   "area_stats_by_crop": {
     "가지": {
       "avg_m2": 1930.0,
@@ -64,6 +64,51 @@
     }
   },
   "farms": {
+    "farm_001": {
+      "crop": "오이",
+      "crop_ko": "오이",
+      "sido": "경상남도",
+      "sigungu": "창녕군",
+      "area_m2": 1200,
+      "name": "동서 오이 농장",
+      "iot_available": true
+    },
+    "farm_002": {
+      "crop": "방울토마토",
+      "crop_ko": "방울토마토",
+      "sido": "충청북도",
+      "sigungu": "충주시",
+      "area_m2": 800,
+      "name": "청풍 토마토 농장",
+      "iot_available": true
+    },
+    "farm_003": {
+      "crop": "딸기",
+      "crop_ko": "딸기(설향)",
+      "sido": "전라북도",
+      "sigungu": "군산시",
+      "area_m2": 1500,
+      "name": "한솔 딸기 농장",
+      "iot_available": true
+    },
+    "farm_004": {
+      "crop": "완숙토마토",
+      "crop_ko": "완숙토마토",
+      "sido": "경상북도",
+      "sigungu": "상주시",
+      "area_m2": 1000,
+      "name": "대원 토마토 농장",
+      "iot_available": true
+    },
+    "farm_005": {
+      "crop": "미등록",
+      "crop_ko": "미등록",
+      "sido": "—",
+      "sigungu": "—",
+      "area_m2": 900,
+      "name": "농가 E",
+      "iot_available": false
+    },
     "강원_철원_파프리카_8_1": {
       "sido": "강원",
       "sigungu": "철원",

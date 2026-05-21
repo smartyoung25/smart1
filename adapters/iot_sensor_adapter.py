@@ -111,7 +111,7 @@ def adapt_dataframe(df, farm_id: str, time_col: str = "측정일시") -> Adapter
 
     # Vectorized timestamp parsing (much faster than iterrows fromisoformat)
     raw_times = df[time_col].astype(str)
-    parsed_times = _pd.to_datetime(raw_times, errors="coerce", infer_datetime_format=True)
+    parsed_times = _pd.to_datetime(raw_times, errors="coerce")
 
     sensor_cols = [c for c in _FIELD_MAP if c in df.columns]
 

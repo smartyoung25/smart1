@@ -1,0 +1,13 @@
+{
+  "2026-05-21": {
+    "wc_mean": 88.5,
+    "wc_max": 96.2,
+    "wc_min": 72.1,
+    "dr_pct_mean": 28.4,
+    "ec_drain": 3.1,
+    "supply_total": 1050.0,
+    "irr_count": 3.0,
+    "nl_pct": 6.2,
+    "recorded_at": "2026-05-21T08:26:31.012124+00:00"
+  }
+}

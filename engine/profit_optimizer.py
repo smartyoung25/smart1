@@ -23,6 +23,10 @@ logger = logging.getLogger(__name__)
 
 MAX_RECOMMENDATIONS = 5
 
+# ── 야간소실률 기준값 (Priva 표준) ────────────────────────────────────────────
+_NL_NORMAL_MIN = 3.0    # 야간소실률 정상 하한 (%)
+_NL_NORMAL_MAX = 7.0    # 야간소실률 정상 상한 (%)
+
 _INCOME_SURVEY_PATH = Path(__file__).parent.parent / "api" / "data" / "income_survey.json"
 
 _SEASON_DAYS = 150
@@ -91,6 +95,71 @@ def _tier_action(tier: FarmTier) -> str:
     if tier == FarmTier.SEMI_AUTO:
         return "approval_required"
     return "auto"
+
+
+def _night_loss_recommendations(
+    nl_pct: float,
+    crop_ko: str,
+    tier: FarmTier,
+    area_m2: float = 1000.0,
+    horizon_days: int = 30,
+    cost_rates: Optional[dict] = None,
+) -> list[Recommendation]:
+    """야간소실률(nl_pct) 이탈 시 야간 환경 권고 Recommendation 생성.
+
+    야간소실률 > 7% (과증산):
+      → 야간 온도 -2℃ 권고: 에너지 절감(heating cost 감소) + 증산 억제
+    야간소실률 < 3% (증산 부족):
+      → 야간 습도 조정 또는 환기 개선 권고
+
+    profit_delta:
+      - 과증산 케이스: 난방비 절감분 (temp_cost_rate × 2℃ × horizon_days)
+      - 증산 부족 케이스: 작물 스트레스 완화에 따른 정성적 수익 개선 (보수적 추정)
+    """
+    if _NL_NORMAL_MIN <= nl_pct <= _NL_NORMAL_MAX:
+        return []
+
+    recs: list[Recommendation] = []
+    temp_rate = (cost_rates or {}).get("temp_internal", _COST_PER_UNIT_FALLBACK["temp_internal"])
+
+    if nl_pct > _NL_NORMAL_MAX:
+        # 야간 과증산: 온도 2℃ 낮춤 → 난방비 절감 + 증산 억제
+        temp_delta   = 2.0
+        energy_save  = temp_rate * temp_delta * horizon_days
+        excess       = round(nl_pct - _NL_NORMAL_MAX, 1)
+        recs.append(Recommendation(
+            rank=0,
+            action_ko=(
+                f"야간 온도 2℃ 낮춤 — 야간소실률 {nl_pct:.1f}% > {_NL_NORMAL_MAX:.0f}% 기준 "
+                f"(과증산 {excess}%p 초과). 난방비 절감 + 수분 스트레스 완화 기대"
+            ),
+            profit_delta=round(energy_save, 0),
+            revenue_delta=0.0,
+            cost_delta=round(-energy_save, 0),
+            confidence=0.65,
+            canonical_changes={"temp_internal": -temp_delta},
+            tier_action=_tier_action(tier),
+        ))
+    else:
+        # 야간 소실 부족: 뿌리압 저하 → 주간 흡수 능률 하락 → 간접 수익 손실
+        # 보수 추정: 0.5% 수익 개선 가능
+        deficit     = round(_NL_NORMAL_MIN - nl_pct, 1)
+        revenue_est = round(area_m2 * 0.5 * 3000 * 0.005, 0)   # 0.5kg/m² × 3000원/kg × 0.5%
+        recs.append(Recommendation(
+            rank=0,
+            action_ko=(
+                f"야간 습도 조정·환기 점검 — 야간소실률 {nl_pct:.1f}% < {_NL_NORMAL_MIN:.0f}% 기준 "
+                f"(증산 부족 {deficit}%p). 야간 통풍 또는 온도 소폭 상향으로 뿌리압 회복 유도"
+            ),
+            profit_delta=round(revenue_est, 0),
+            revenue_delta=round(revenue_est, 0),
+            cost_delta=0.0,
+            confidence=0.55,
+            canonical_changes={"humidity_int": -5.0},   # 야간 습도 5% 낮춤 (절대값 아닌 델타)
+            tier_action=_tier_action(tier),
+        ))
+
+    return recs
 
 
 def _compute_cost_delta(
@@ -337,8 +406,10 @@ def optimize(
                 return max(0.0, r["yield_kg_m2"]), 0.72
 
             # Sensitivity check: skip M2 if it returns the same yield for all candidates
+            # threshold=1e-5 (완화): 미세 변화도 감지, 낮은 R² 모델에서 폴백 방지
             _probe_candidates = generate_candidates(current_env, max_simultaneous=1, crop_ko=crop_ko)
-            if _check_sensitivity(_m2_fn, dict(current_env.values), _probe_candidates):
+            if _check_sensitivity(_m2_fn, dict(current_env.values), _probe_candidates,
+                                  threshold=1e-5):
                 yield_predict_fn   = _m2_fn
                 baseline_yield_kg_m2 = _baseline_yield_m2
                 logger.info("[profit_optimizer] M2 model active: baseline=%.3f kg/m2", _baseline_yield_m2)
@@ -419,13 +490,22 @@ def optimize(
                         return baseline_yield_kg_m2 + bonus, 0.6
 
     if price_forecast_fn is None:
+        # KAMIS API → stats_loader → stub 순으로 폴백
         try:
-            from api.data.stats_loader import get_price_krw_kg
+            from scripts.data_integration.kamis_api import get_price as _kamis_price
             def price_forecast_fn() -> float:
-                return get_price_krw_kg(crop_ko)
-        except Exception:
-            def price_forecast_fn() -> float:
-                return 3000.0
+                try:
+                    return _kamis_price(crop_ko)
+                except Exception:
+                    return 3000.0
+        except ImportError:
+            try:
+                from api.data.stats_loader import get_price_krw_kg
+                def price_forecast_fn() -> float:
+                    return get_price_krw_kg(crop_ko)
+            except Exception:
+                def price_forecast_fn() -> float:
+                    return 3000.0
 
     price      = price_forecast_fn()
     candidates = generate_candidates(
@@ -453,15 +533,33 @@ def optimize(
             tier_action=_tier_action(tier),
         ))
 
+    # ── 야간소실률 → 야간 환경 권고 통합 ───────────────────────────────────────
+    nl_pct = current_env.values.get("nl_pct")
+    if nl_pct is not None:
+        _cost_rates_for_nl = _get_cost_rates(crop_ko, area_m2)
+        nl_recs = _night_loss_recommendations(
+            nl_pct, crop_ko, tier, area_m2, horizon_days, _cost_rates_for_nl
+        )
+        if nl_recs:
+            results.extend(nl_recs)
+            logger.info(
+                "[profit_optimizer] night-loss recs added: nl_pct=%.1f%% %s",
+                nl_pct,
+                "과증산" if nl_pct > _NL_NORMAL_MAX else "증산부족",
+            )
+
     results.sort(key=lambda r: r.profit_delta, reverse=True)
     top = results[:MAX_RECOMMENDATIONS]
     for i, rec in enumerate(top, start=1):
         rec.rank = i
+
+    # confidence 변수가 마지막 loop 이후 정의돼 있지 않을 수 있으므로 안전하게 참조
+    _last_conf = top[0].confidence if top else 0.0
     logger.info(
-        "[profit_optimizer] farm=%s model=%s candidates=%d top_delta=KRW%.0f",
+        "[profit_optimizer] farm=%s candidates=%d nl_recs=%d top_delta=KRW%.0f",
         farm_id,
-        "M2" if confidence == 0.72 else "pipeline",
         len(candidates),
+        len(nl_recs) if nl_pct is not None else 0,
         top[0].profit_delta if top else 0,
     )
     return top

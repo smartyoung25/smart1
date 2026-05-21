@@ -19,6 +19,7 @@ from api.routers import farmer, admin
 from api.routers.auth import router as auth_router
 from api.routers.recommend_v2 import router as recommend_v2_router
 from api.routers.ws import router as ws_router, _setup_mqtt_bridge
+from api.routers.billing import farm_router as billing_farm_router, admin_router as billing_admin_router
 from api.middleware.auth import JWTMiddleware
 
 # ── Rate limiter ──────────────────────────────────────────────────────────────
@@ -54,12 +55,30 @@ app.include_router(farmer.router)
 app.include_router(admin.router)
 app.include_router(recommend_v2_router)
 app.include_router(ws_router)
+# 빌링/구독 라우터
+app.include_router(billing_farm_router,  prefix="/api/farms/{farm_id}")
+app.include_router(billing_admin_router, prefix="/api/admin")
 
 
 @app.on_event("startup")
 async def startup_event():
-    """앱 시작 시 MQTT→WebSocket 브리지 등록."""
+    """앱 시작 시 MQTT→WebSocket 브리지 등록 + KAMIS 가격 갱신."""
     _setup_mqtt_bridge()
+
+    # KAMIS 당일 가격 갱신 (백그라운드 — API 키 없으면 mock 폴백)
+    import asyncio, logging as _log
+    _kamis_logger = _log.getLogger("kamis_startup")
+    async def _refresh_kamis():
+        try:
+            import sys as _sys, pathlib as _pl
+            _sys.path.insert(0, str(_pl.Path(__file__).parent.parent))
+            from pipeline.kamis_fetcher import refresh_prices
+            loop = asyncio.get_event_loop()
+            updated = await loop.run_in_executor(None, refresh_prices)
+            _kamis_logger.info("[startup] KAMIS 가격 갱신 완료: %d개 작목", len(updated))
+        except Exception as e:
+            _kamis_logger.warning("[startup] KAMIS 갱신 실패 (무시): %s", e)
+    asyncio.create_task(_refresh_kamis())
 
 
 @app.get("/health", tags=["system"])

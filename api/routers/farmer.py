@@ -4,7 +4,9 @@ import logging
 from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel, Field
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -31,13 +33,16 @@ from api.schemas.farmer import (
     ManualEnvResponse,
     WhatIfInput,
     WhatIfResult,
+    WhatIfMultiInput,
+    WhatIfMultiResult,
+    WhatIfScenarioResult,
     ChatRequest,
     ChatResponse,
 )
 from engine.farm_tier import FarmTier
 from engine.profit_optimizer import optimize
 from engine.what_if_simulator import EnvState
-from api.services.kma_service import get_weather_summary, FARM_STATION
+from api.services.kma_service import get_weather_summary, FARM_STATION, get_solar_irrigation_schedule
 from api.services.region_station import find_station, list_sido, list_sigungu
 from api.data.stats_loader import (
     get_price_krw_kg,
@@ -47,7 +52,7 @@ from api.data.stats_loader import (
     estimate_harvest_days,
 )
 from api.services import persistence
-from api.services.model_loader import predict_revenue_per_m2, get_model_meta
+from api.services.model_loader import predict_revenue_per_m2, get_model_meta, predict_yield_bounds
 from models.m5_disease import env_risk_predict as _env_risk_predict
 from adapters.irrigation_adapter import adapt_irrigation
 
@@ -83,6 +88,17 @@ _FARM_META: dict[str, dict[str, Any]] = {
     "farm_005": {
         "tier": FarmTier.MANUAL,    "area_m2": 900,  "iot_available": False,
         "name": "농가 E (IoT 미구축)", "crop": "미등록",
+        "sido": None, "sigungu": None, "address_detail": "",
+    },
+    # ── 실증 농가 (데이터 통합 완료) ──────────────────────────────────────────
+    "jonomheon": {
+        "tier": FarmTier.SEMI_AUTO, "area_m2": 6611, "iot_available": False,
+        "name": "조남헌 파프리카 농장", "crop": "파프리카",
+        "sido": "강원도", "sigungu": "철원군", "address_detail": "",
+    },
+    "sanwoo": {
+        "tier": FarmTier.MANUAL,    "area_m2": 4000, "iot_available": False,
+        "name": "SANWOO 딸기 농장",    "crop": "딸기",
         "sido": None, "sigungu": None, "address_detail": "",
     },
 }
@@ -127,6 +143,22 @@ _FARM_ENV: dict[str, dict[str, float]] = {
         "solar_rad":     480.0,
         "ec_dsm":         2.8,
         "soil_temp":     20.0,
+    },
+    "jonomheon": {      # 조남헌 파프리카: 적온·적습
+        "temp_internal": 22.0,
+        "humidity_int":  65.0,
+        "co2_ppm":       800.0,
+        "solar_rad":     300.0,
+        "ec_dsm":         2.0,
+        "soil_temp":     18.0,
+    },
+    "sanwoo": {         # SANWOO 딸기: 저온·고습
+        "temp_internal": 18.0,
+        "humidity_int":  72.0,
+        "co2_ppm":       900.0,
+        "solar_rad":     200.0,
+        "ec_dsm":         1.2,
+        "soil_temp":     14.0,
     },
 }
 
@@ -281,6 +313,24 @@ _RESOURCE_COSTS: dict[str, dict] = {
 def _require_farm(farm_id: str) -> dict[str, Any]:
     meta = _FARM_META.get(farm_id)
     if meta is None:
+        # farm_registry.json 폴백 (실제 농가 데이터)
+        try:
+            from api.data.stats_loader import _farm_registry
+            reg = _farm_registry()
+            reg_farm = reg.get("farms", {}).get(farm_id)
+            if reg_farm:
+                meta = {
+                    "tier": FarmTier.MANUAL,
+                    "area_m2": float(reg_farm.get("plant_area_m2") or 1000.0),
+                    "iot_available": False,
+                    "name": farm_id,
+                    "crop": reg_farm.get("crop") or reg_farm.get("crop_ko", "미상"),
+                    "sido": reg_farm.get("sido"), "sigungu": reg_farm.get("sigungu"),
+                    "address_detail": "",
+                }
+        except Exception:
+            pass
+    if meta is None:
         raise HTTPException(status_code=404, detail=f"Farm '{farm_id}' not found")
     return meta
 
@@ -297,13 +347,13 @@ def _get_env(farm_id: str) -> dict[str, float]:
       2. IoT 구축 농가   → _FARM_ENV 기본값 기반
       3. 공통 보강       → 기상청 ASOS 실측값으로 temp/humidity/solar/soil 갱신
     """
-    meta = _FARM_META[farm_id]
+    meta = _FARM_META.get(farm_id) or {}
 
-    if not meta["iot_available"]:
+    if not meta.get("iot_available", False):
         # IoT 없음: 수동 입력 있으면 사용, 없으면 빈 dict
         base = persistence.get_manual_env(farm_id)
     else:
-        base = dict(_FARM_ENV[farm_id])
+        base = dict(_FARM_ENV.get(farm_id, _FARM_ENV["farm_001"]))
 
     # 기상청 ASOS 실측값으로 외부 기상 관련 항목 보강
     # (온도는 오프셋 보정값 사용, IoT 농가는 내부 측정값 우선이므로 덮어쓰지 않음)
@@ -623,6 +673,32 @@ def get_environment(farm_id: str):
     # 하위 호환: 기존 measurements = indoor + outdoor 전체
     all_pts = indoor_pts + outdoor_pts
 
+    # UI 편의: flat 필드 — loadCurrentEnv() JS가 d.temp_internal 등으로 직접 접근
+    flat: dict[str, float | None] = {}
+    for pt in all_pts:
+        flat.setdefault(pt.canonical_name, pt.value)
+
+    # 이상 감지 결과 — loadEnvAnomalies() JS가 d.alerts 로 접근
+    from api.services.anomaly_detector import detect_anomalies
+    anomaly_list: list[dict] = []
+    if flat:
+        try:
+            results = detect_anomalies(
+                crop_ko=meta.get("crop", "딸기"),
+                env_values={k: v for k, v in flat.items() if v is not None},
+            )
+            for r in results:
+                anomaly_list.append({
+                    "variable":      r.variable,
+                    "variable_ko":   r.variable_ko,
+                    "current_value": r.current_value,
+                    "unit":          r.unit,
+                    "severity":      r.severity,
+                    "message_ko":    r.message_ko,
+                })
+        except Exception:
+            pass
+
     return EnvironmentResponse(
         farm_id=farm_id,
         updated_at=_now(),
@@ -630,6 +706,16 @@ def get_environment(farm_id: str):
         indoor=indoor_section,
         outdoor=outdoor_section,
         measurements=all_pts,
+        # flat 편의 필드
+        temp_internal=flat.get("temp_internal"),
+        humidity_int=flat.get("humidity_int"),
+        co2_ppm=flat.get("co2_ppm"),
+        solar_rad=flat.get("solar_rad"),
+        ec_dsm=flat.get("ec_dsm"),
+        soil_temp=flat.get("soil_temp"),
+        timestamp=_now().isoformat(),
+        # 이상 감지
+        alerts=anomaly_list,
     )
 
 
@@ -678,17 +764,131 @@ def get_harvest(farm_id: str):
 
     predicted_date = (date.today() + timedelta(days=days_to_harvest)).isoformat()
     yield_m2       = get_yield_kg_m2(crop)
+    area           = meta["area_m2"]
+    total_kg       = round(yield_m2 * area, 1)
+
+    # ── M2 모델 실제 Q10/Q90 신뢰구간 ──────────────────────────────────────
+    env_feat_for_bounds = {
+        "temp_internal_mean": float((env or {}).get("temp_internal", 20.0)),
+        "humidity_int_mean":  float((env or {}).get("humidity_int",  70.0)),
+        "co2_ppm_mean":       float((env or {}).get("co2_ppm",      800.0)),
+        "solar_rad_mean":     float((env or {}).get("solar_rad",    100.0)),
+        "soil_temp_mean":     float((env or {}).get("soil_temp",     18.0)),
+    }
+    bounds = predict_yield_bounds(crop, env_feat_for_bounds)
+    if bounds["has_bounds"]:
+        # M2 모델 Q10/Q90 → 면적 적용 (kg/m² × m²)
+        yield_q10 = round(bounds["yield_lower"] * area, 1)
+        yield_q90 = round(bounds["yield_upper"] * area, 1)
+        # M2 점예측이 있으면 total_kg도 업데이트
+        if bounds["yield_per_m2"]:
+            total_kg  = round(bounds["yield_per_m2"] * area, 1)
+            yield_m2  = bounds["yield_per_m2"]
+        confidence = 0.82
+        model_used = "m2_quantile"
+    else:
+        # 폴백: stats 기반 ±20% (M2 미학습 작목)
+        yield_q10  = round(total_kg * 0.80, 1)
+        yield_q90  = round(total_kg * 1.20, 1)
+        confidence = 0.60
+        model_used = "stats_fallback"
 
     return HarvestForecast(
         farm_id=farm_id,
         updated_at=_now(),
         predicted_date=predicted_date,
         predicted_yield_kg_m2=round(yield_m2, 2),
-        confidence=0.72,
+        confidence=confidence,
+        # UI 편의 필드
+        yield_kg_forecast=total_kg,
+        yield_q10=yield_q10,
+        yield_q90=yield_q90,
+        days_to_harvest=days_to_harvest,
+        crop_ko=crop,
+        area_m2=area,
     )
 
 
 # ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# GET /market/price-history  — KAMIS 도매가격 이력 (최근 30일)
+# ---------------------------------------------------------------------------
+
+@router.get("/market/price-history", summary="KAMIS 도매가격 이력 (최근 30일)")
+def get_price_history(
+    farm_id: str,
+    days: int = Query(30, ge=7, le=90, description="조회 일수 (기본 30일)"),
+):
+    """KAMIS 캐시에서 최근 N일 도매가격 이력을 반환합니다.
+
+    - KAMIS API 키가 설정된 경우 실시간 수집 데이터 반영
+    - 키 미설정 시 price_stats.json 기준 추정값 표시
+    - 반환: {crop, history: [{date, price_krw_kg, source}], stats: {avg, min, max, latest}}
+    """
+    meta = _require_farm(farm_id)
+    crop = meta.get("crop", "딸기")
+
+    from pipeline.kamis_fetcher import load_cache, get_price_with_fallback
+    from api.data.stats_loader import get_price_krw_kg
+    from datetime import timedelta
+
+    cache   = load_cache()
+    history_raw: dict[str, float] = cache.get("history", {}).get(crop, {})
+    source  = cache.get("source", "rda_static")
+
+    # 요청 기간 필터
+    cutoff = (date.today() - timedelta(days=days)).isoformat()
+    history_filtered = {
+        d: p for d, p in sorted(history_raw.items())
+        if d >= cutoff
+    }
+
+    # KAMIS 이력이 부족하면 price_stats 기준 추정값으로 채움
+    stats_price = get_price_krw_kg(crop)
+    if len(history_filtered) < 3:
+        # 지난 N일 날짜 생성 + stats 단가로 채움 (실시간 API 미사용 환경 대비)
+        today_obj = date.today()
+        history_filtered = {
+            (today_obj - timedelta(days=i)).isoformat(): round(stats_price, 0)
+            for i in range(days - 1, -1, -1)
+        }
+        source = "rda_static_estimated"
+
+    records = [
+        {"date": d, "price_krw_kg": round(p, 0), "source": source}
+        for d, p in sorted(history_filtered.items())
+    ]
+
+    prices = [r["price_krw_kg"] for r in records]
+    stats  = {
+        "avg":    round(sum(prices) / len(prices), 0) if prices else 0,
+        "min":    min(prices) if prices else 0,
+        "max":    max(prices) if prices else 0,
+        "latest": prices[-1] if prices else 0,
+    }
+
+    # 추세 (최근 7일 평균 vs 전 7일 평균)
+    trend = "flat"
+    if len(prices) >= 14:
+        recent_avg = sum(prices[-7:]) / 7
+        prev_avg   = sum(prices[-14:-7]) / 7
+        if prev_avg:
+            change_pct = (recent_avg - prev_avg) / prev_avg * 100
+            trend = "up" if change_pct > 2 else ("down" if change_pct < -2 else "flat")
+
+    logger.info("[price_history] farm=%s crop=%s days=%d records=%d source=%s",
+                farm_id, crop, days, len(records), source)
+    return {
+        "farm_id":   farm_id,
+        "crop":      crop,
+        "days":      days,
+        "source":    source,
+        "history":   records,
+        "stats":     stats,
+        "trend":     trend,
+    }
+
+
 # GET /revenue
 # ---------------------------------------------------------------------------
 
@@ -698,8 +898,11 @@ def get_revenue(farm_id: str):
     crop     = meta.get("crop", "딸기")
     area     = meta["area_m2"]
 
-    # 실데이터 단가 (stats_loader — KAMIS 5년 패널 기반)
-    price    = get_price_krw_kg(crop)
+    # 실데이터 단가: KAMIS 캐시 → stats_loader 폴백
+    from pipeline.kamis_fetcher import get_price_with_fallback
+    _price_info = get_price_with_fallback(crop)
+    price       = _price_info["price_krw_kg"]
+    _price_src  = _price_info["source"]     # "kamis_cache" | "rda_static"
 
     # ── ML 모델 예측 (없으면 통계 기반 폴백) ──────────────────────────────────
     env      = _get_env(farm_id)
@@ -745,6 +948,12 @@ def get_revenue(farm_id: str):
         predicted_revenue_krw=round(revenue, 0),
         predicted_cost_krw=round(cost, 0),
         predicted_profit_krw=round(revenue - cost, 0),
+        # UI 별칭
+        price_krw_kg=round(price, 0),
+        revenue_krw=round(revenue, 0),
+        cost_krw=round(cost, 0),
+        price_source=_price_src,    # "kamis_cache" | "rda_static"
+        crop_ko=crop,
     )
 
 
@@ -786,22 +995,8 @@ def whatif(farm_id: str, body: WhatIfInput):
     # 가상 환경값: 현재값 위에 body 값 덮어쓰기
     hypo_env = {**base_env, **body.model_dump(exclude_none=True)}
 
-    price = get_price_krw_kg(crop)
-
-    def _predict(env: dict) -> tuple[float, str]:
-        """env dict → (월 매출 원, 모델 출처)"""
-        feat     = _env_to_feat(env, crop)
-        ml_rev   = predict_revenue_per_m2(crop, feat, month=month)
-        if ml_rev is not None and ml_rev > 0:
-            return ml_rev * area, "ml_model"
-        # 폴백: 온도 기반 단순 추정
-        from api.data.stats_loader import get_yield_kg_m2
-        yield_m2 = get_yield_kg_m2(crop)
-        temp_bonus = max(0.0, (env.get("temp_internal", 20.0) - 20.0) * 0.01)
-        return (yield_m2 + temp_bonus) * price * area, "stats_fallback"
-
-    baseline_rev, src  = _predict(base_env)
-    whatif_rev,   _    = _predict(hypo_env)
+    baseline_rev, src  = _predict(base_env,  crop, area, month)
+    whatif_rev,   _    = _predict(hypo_env,  crop, area, month)
     delta              = whatif_rev - baseline_rev
     delta_pct          = (delta / baseline_rev * 100) if baseline_rev else 0.0
 
@@ -816,7 +1011,84 @@ def whatif(farm_id: str, body: WhatIfInput):
         delta_pct=round(delta_pct, 2),
         confidence=0.75 if src == "ml_model" else 0.5,
         model_used=src,
+        # UI 별칭
+        profit_gain_krw=round(delta),
+        revenue_gain_krw=round(delta),
+        revenue_krw=round(whatif_rev),
     )
+
+
+# ---------------------------------------------------------------------------
+# POST /whatif/multi  — 다중 시나리오 비교 (Pro 전용)
+# ---------------------------------------------------------------------------
+
+@router.post("/whatif/multi", response_model=WhatIfMultiResult)
+def whatif_multi(farm_id: str, body: WhatIfMultiInput):
+    """여러 환경 시나리오를 동시에 비교하여 최적 조합을 찾습니다.
+
+    - 최대 10개 시나리오 지원
+    - 각 시나리오는 현재 환경값에서 지정된 변수만 교체 (unspecified = 현재값 유지)
+    - 응답에 수익 기준 rank 포함 (1=최고)
+    """
+    import datetime as _dt
+    meta   = _require_farm(farm_id)
+    crop   = meta.get("crop", "딸기")
+    area   = meta["area_m2"]
+    month  = _dt.date.today().month
+
+    current_env = _get_env(farm_id)
+    base_env    = {**_FARM_ENV.get(farm_id, _FARM_ENV["farm_001"]), **current_env}
+
+    # 베이스라인 매출
+    baseline_rev, baseline_src = _predict(base_env, crop, area, month)
+
+    results: list[WhatIfScenarioResult] = []
+    for sc in body.scenarios:
+        sc_dict   = sc.model_dump(exclude={"label"}, exclude_none=True)
+        hypo_env  = {**base_env, **sc_dict}
+        rev, src  = _predict(hypo_env, crop, area, month)
+        delta     = rev - baseline_rev
+        delta_pct = (delta / baseline_rev * 100) if baseline_rev else 0.0
+        results.append(WhatIfScenarioResult(
+            label=sc.label,
+            whatif_revenue_krw=round(rev),
+            delta_krw=round(delta),
+            delta_pct=round(delta_pct, 2),
+            confidence=0.75 if src == "ml_model" else 0.5,
+            model_used=src,
+            rank=0,   # 정렬 후 채움
+        ))
+
+    # 수익 순위 정렬
+    results.sort(key=lambda r: r.whatif_revenue_krw, reverse=True)
+    for i, r in enumerate(results):
+        r.rank = i + 1
+
+    best = results[0]
+    logger.info(
+        "[whatif_multi] farm=%s crop=%s scenarios=%d best='%s' delta=%.0f",
+        farm_id, crop, len(results), best.label, best.delta_krw,
+    )
+    return WhatIfMultiResult(
+        farm_id=farm_id,
+        baseline_revenue_krw=round(baseline_rev),
+        scenarios=results,
+        best_label=best.label,
+        best_delta_krw=round(best.delta_krw),
+    )
+
+
+# _predict 헬퍼: whatif / whatif_multi 공용
+def _predict(env: dict, crop: str, area: float, month: int) -> tuple[float, str]:
+    feat   = _env_to_feat(env, crop)
+    ml_rev = predict_revenue_per_m2(crop, feat, month=month)
+    if ml_rev is not None and ml_rev > 0:
+        return ml_rev * area, "ml_model"
+    from api.data.stats_loader import get_yield_kg_m2
+    yield_m2   = get_yield_kg_m2(crop)
+    price      = get_price_krw_kg(crop)
+    temp_bonus = max(0.0, (env.get("temp_internal", 20.0) - 20.0) * 0.01)
+    return (yield_m2 + temp_bonus) * price * area, "stats_fallback"
 
 
 # ---------------------------------------------------------------------------
@@ -899,27 +1171,24 @@ def _compute_costs(farm_id: str) -> CostBreakdownResponse:
             return f"실제입력 {l_hrs:,.0f}시간 × {l_rate:,.0f}원/시간"
         return f"{rc['labor_hours_day']}시간/일 × 30일 × {l_rate:,.0f}원/시간"
 
+    def _item(category: str, label_ko: str, amount: float, unit_label: str, is_manual: bool) -> CostItem:
+        return CostItem(
+            category=category, label_ko=label_ko, label=label_ko,
+            amount_krw=round(amount), unit_label=unit_label,
+            pct_of_total=pct(amount), is_manual=is_manual,
+        )
+
     items = [
-        CostItem(category="electricity", label_ko="전기료",
-                 amount_krw=round(elec),  unit_label=_elec_label(),
-                 pct_of_total=pct(elec),  is_manual=elec_manual),
-        CostItem(category="water",       label_ko="용수비",
-                 amount_krw=round(water), unit_label=_water_label(),
-                 pct_of_total=pct(water), is_manual=water_manual),
-        CostItem(category="heating",     label_ko="난방비",
-                 amount_krw=round(heat),  unit_label=_heat_label(),
-                 pct_of_total=pct(heat),  is_manual=heat_manual),
-        CostItem(category="labor",       label_ko="인건비",
-                 amount_krw=round(labor), unit_label=_labor_label(),
-                 pct_of_total=pct(labor), is_manual=labor_manual),
-        CostItem(category="nutrients",   label_ko="영양제·비료",
-                 amount_krw=round(nutr),
-                 unit_label="실제입력" if nutr_manual else f"{rc['nutrients_krw_day']:,.0f}원/일 × 30일",
-                 pct_of_total=pct(nutr),  is_manual=nutr_manual),
-        CostItem(category="pesticides",  label_ko="농약·방제",
-                 amount_krw=round(pest),
-                 unit_label="실제입력" if pest_manual else f"{rc['pesticides_krw_day']:,.0f}원/일 × 30일",
-                 pct_of_total=pct(pest),  is_manual=pest_manual),
+        _item("electricity", "전기료",    elec,  _elec_label(),  elec_manual),
+        _item("water",       "용수비",    water, _water_label(), water_manual),
+        _item("heating",     "난방비",    heat,  _heat_label(),  heat_manual),
+        _item("labor",       "인건비",    labor, _labor_label(), labor_manual),
+        _item("nutrients",   "영양제·비료", nutr,
+              "실제입력" if nutr_manual else f"{rc['nutrients_krw_day']:,.0f}원/일 × 30일",
+              nutr_manual),
+        _item("pesticides",  "농약·방제",  pest,
+              "실제입력" if pest_manual else f"{rc['pesticides_krw_day']:,.0f}원/일 × 30일",
+              pest_manual),
     ]
 
     return CostBreakdownResponse(
@@ -927,6 +1196,7 @@ def _compute_costs(farm_id: str) -> CostBreakdownResponse:
         updated_at=_now(),
         items=items,
         total_cost_krw=round(total),
+        total_krw=round(total),           # UI 별칭
         cost_per_m2=round(total / meta["area_m2"], 1),
         electricity_kwh_month=kwh_m,
         water_m3_month=m3_m,
@@ -1238,6 +1508,53 @@ def post_chat(farm_id: str, body: ChatRequest):
     AI API 연결 후: _stub_reply → _call_ai_api 교체.
     """
     _require_farm(farm_id)
+    # ── 쿼터 검사 및 소비 ─────────────────────────────────────────────────────
+    from api.services.billing import check_chat_quota, consume_chat_quota
+    from fastapi import HTTPException
+    quota = check_chat_quota(farm_id)
+    if not quota["allowed"]:
+        tier   = quota["tier"]
+        max_q  = quota["max"]
+        if max_q == 0:
+            raise HTTPException(
+                status_code=402,
+                detail=f"AI 채팅은 Smart 플랜 이상에서 사용할 수 있습니다 (현재: {tier}). 업그레이드 후 이용해 주세요.",
+            )
+        raise HTTPException(
+            status_code=429,
+            detail=f"이번 달 AI 채팅 쿼터를 모두 사용했습니다 ({quota['used']}/{max_q}회). 다음 달 초기화 또는 플랜 업그레이드 후 이용해 주세요.",
+        )
+    consume_chat_quota(farm_id)
+    # ──────────────────────────────────────────────────────────────────────────
+
+    # ── 티어 기반 AI 라우팅 ────────────────────────────────────────────────────
+    from api.services.ai_chat import _cfg as _ai_cfg
+    _api_key = _ai_cfg("ANTHROPIC_API_KEY")
+    _tier    = quota.get("tier", "basic")
+    _use_llm = bool(_api_key) and _tier in ("pro", "enterprise")
+
+    if _use_llm:
+        from api.services.ai_chat import call_claude, build_farm_context
+        _meta    = _FARM_META.get(farm_id, {})
+        _env     = _get_env(farm_id) or {}
+        _alerts  = _build_alerts(farm_id, _env) if _env else []
+        _ctx     = build_farm_context(farm_id, _meta, _env, _alerts)
+        _history = [{"role": m.role, "content": m.content} for m in body.history]
+        _result  = call_claude(
+            farm_id=farm_id,
+            message=body.message,
+            history=_history,
+            context=_ctx,
+            tier=_tier,
+        )
+        return ChatResponse(
+            reply           = _result["reply"],
+            suggestions     = _result.get("suggestions", []),
+            model_used      = _result.get("model_used", "claude"),
+            referenced_data = _result.get("referenced_data", []),
+        )
+
+    # Smart 이하 또는 API 키 미설정 → 규칙 기반 stub
     return _stub_reply(farm_id, body.message)
 
 # ── P4 관수 데이터 수신 (관수통합관리시스템 연동) ─────────────────────────────
@@ -1299,7 +1616,6 @@ def receive_irrigation(farm_id: str, body: IrrigationPayload):
 
     result = adapt_irrigation(payload_dict)
 
-    # 실제 운영 환경에서는 DB에 저장; 현재는 로그만 기록
     if result.errors:
         logger.warning("[irrigation] farm=%s date=%s warnings: %s",
                        farm_id, body.date, result.errors)
@@ -1311,6 +1627,10 @@ def receive_irrigation(farm_id: str, body: IrrigationPayload):
     logger.info("[irrigation] farm=%s date=%s → %d canonical records: %s",
                 farm_id, body.date, len(result.records), summary)
 
+    # ── 저장 (DB → JSON 폴백) ─────────────────────────────────────────────
+    from api.services.irrigation_store import save_irrigation_day
+    save_irrigation_day(farm_id, body.date, summary)
+
     return IrrigationResponse(
         farm_id=farm_id,
         date=body.date,
@@ -1319,3 +1639,65 @@ def receive_irrigation(farm_id: str, body: IrrigationPayload):
         summary=summary,
     )
 
+
+# ── KMA 일사량 기반 관수 스케줄 조회 ─────────────────────────────────────────────
+
+class IrrigationScheduleResponse(BaseModel):
+    farm_id:                str
+    daily_gsr_mj_m2:        Optional[float] = None
+    solar_rad_avg_wm2:      Optional[float] = None
+    n_irrigations:          int
+    total_supply_ml:        float
+    supply_per_trigger_ml:  float
+    first_irrigation:       str
+    last_irrigation:        str
+    trigger_mj_m2:          float
+    obs_date:               Optional[str]   = None
+    station_id:             Optional[int]   = None
+    source:                 str
+    note:                   str
+
+
+# ── 관수 분석 결과 조회 ────────────────────────────────────────────────────────
+
+@router.get("/irrigation/analysis", summary="관수 품질 분석 (함수율·배액률·EC 등)")
+def get_irrigation_analysis(
+    farm_id: str,
+    days: int = Query(7, ge=1, le=90, description="조회 기간 (일, 기본 7일)"),
+):
+    """POST /irrigation 으로 수신된 P4 관수 데이터의 분석 결과를 반환합니다.
+
+    반환 항목:
+    - **records**: 날짜별 wc_mean, dr_pct_mean, ec_drain, nl_pct 등
+    - **summary**: 각 변수의 평균·최솟값·최댓값·최신값·상태(normal/high/low)
+    - **alerts**: 정상 범위(wc 60–95%, dr 20–40%, ec 2.0–4.5 dS/m) 이탈 항목
+    """
+    _require_farm(farm_id)
+    from api.services.irrigation_store import get_irrigation_analysis
+    return get_irrigation_analysis(farm_id, days=days)
+
+
+@router.get("/irrigation/schedule", response_model=IrrigationScheduleResponse,
+            summary="KMA 일사량 기반 내일 관수 스케줄 예측")
+def get_irrigation_schedule(
+    farm_id: str,
+    trigger_mj_m2: float = 2.0,
+    supply_ml: float = 250.0,
+):
+    """KMA ASOS 전일 일사량을 기반으로 내일 권장 관수 스케줄을 계산합니다.
+
+    Priva 일사비례 관수 방식:
+    - 누적 일사량 `trigger_mj_m2` (기본 2 MJ/m²) 마다 1회 관수
+    - 첫 관수: 일출 후 30분, 마지막 관수: 일몰 2시간 전
+
+    Query params:
+    - `trigger_mj_m2`: 관수 트리거 임계값 (기본 2.0 MJ/m²)
+    - `supply_ml`: 1회 관수량 (ml/slab, 기본 250ml)
+    """
+    _require_farm(farm_id)
+    sched = get_solar_irrigation_schedule(
+        farm_id,
+        trigger_mj_m2=trigger_mj_m2,
+        supply_ml_per_trigger=supply_ml,
+    )
+    return IrrigationScheduleResponse(farm_id=farm_id, **sched)

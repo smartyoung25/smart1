@@ -134,13 +134,26 @@ def predict_yield(crop_ko: str, season_env: Dict[str, float],
             return {"yield_kg_total": 5000.0, "yield_kg_m2": 5.0, "source": "stub"}
 
         log_pred = float(np.mean(preds))
-        if log_transform:
+        agg_mode = pkg.get("agg_mode", "annual")
+
+        if agg_mode == "annual_residual":
+            # 모델이 yield_residual(= yield_per_m2 - farm_hist_mean)을 예측.
+            # 실제 수확량 = residual + farm_hist_mean baseline
+            farm_mean = float(
+                fym.get(str(farm_id), fe.get("global_mean", 5.0))
+                if farm_id and str(farm_id) in fym
+                else fe.get("global_mean", float(np.median(list(fym.values()))) if fym else 5.0)
+            )
+            yield_per_m2 = log_pred + farm_mean   # 잔차 + baseline (log 변환 없음)
+            yield_total  = max(yield_per_m2, 0) * max(area_m2, 1)
+        elif log_transform:
             # 모델이 log1p(yield_per_m2)를 예측 → expm1 후 area_m2 곱
             yield_total = float(np.expm1(max(log_pred, 0))) * max(area_m2, 1)
         else:
             yield_total = max(log_pred, 0) * max(area_m2, 1)
 
-        mape_cv = float(pkg.get("cv_mape_mean", pkg.get("mape", 99)))
+        _raw_mape = pkg.get("cv_mape_mean") or pkg.get("mape")
+        mape_cv = float(_raw_mape) if _raw_mape is not None else 99.0
         source  = "m2_stage2"
 
     else:

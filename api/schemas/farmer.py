@@ -76,6 +76,17 @@ class EnvironmentResponse(BaseResponse):
     outdoor: EnvironmentSection  # 외부 기상 (기상청 ASOS)
     # 하위 호환용 flat 목록 (기존 코드 영향 최소화)
     measurements: list[EnvPoint] = []
+    # UI 편의용 flat 필드 (loadCurrentEnv JS에서 d.temp_internal 등으로 직접 접근)
+    temp_internal:  Optional[float] = None
+    humidity_int:   Optional[float] = None
+    co2_ppm:        Optional[float] = None
+    solar_rad:      Optional[float] = None
+    ec_dsm:         Optional[float] = None
+    soil_temp:      Optional[float] = None
+    ph:             Optional[float] = None
+    timestamp:      Optional[str]   = None
+    # 이상 감지 결과 (loadEnvAnomalies JS에서 d.alerts 접근)
+    alerts: list[dict] = []
 
 
 class HarvestForecast(BaseResponse):
@@ -83,6 +94,13 @@ class HarvestForecast(BaseResponse):
     predicted_date: Optional[str] = None    # ISO date string
     predicted_yield_kg_m2: Optional[float] = None
     confidence: float = 0.0
+    # UI 편의 필드 (대시보드 JS가 직접 접근)
+    yield_kg_forecast: Optional[float] = None   # = predicted_yield_kg_m2 × area_m2
+    yield_q10: Optional[float] = None            # 80% 신뢰구간 하한 (−20%)
+    yield_q90: Optional[float] = None            # 80% 신뢰구간 상한 (+20%)
+    days_to_harvest: Optional[int] = None
+    crop_ko: Optional[str] = None
+    area_m2: Optional[float] = None
 
 
 class RevenueResponse(BaseResponse):
@@ -91,12 +109,19 @@ class RevenueResponse(BaseResponse):
     predicted_revenue_krw: float
     predicted_cost_krw: float
     predicted_profit_krw: float
+    # UI 편의 별칭 (대시보드 JS가 price_krw_kg, revenue_krw, cost_krw 등으로 접근)
+    price_krw_kg: float = 0.0
+    revenue_krw: float = 0.0
+    cost_krw: float = 0.0
+    price_source: str = "stats_avg"    # "kamis_live" | "stats_avg"
+    crop_ko: Optional[str] = None
 
 
 class CostItem(BaseModel):
     """단일 비용 항목"""
     category: str          # electricity | water | heating | labor | nutrients | pesticides
     label_ko: str
+    label: str = ""        # UI 별칭 (label_ko 와 동일값 — JS가 it.label 로 접근)
     amount_krw: float      # 월 비용 (원)
     unit_label: str        # "180kWh/일 × 30일 × 105원/kWh"
     pct_of_total: float    # 전체 비용 중 비율 (0.0~1.0)
@@ -138,6 +163,8 @@ class CostBreakdownResponse(BaseResponse):
     water_m3_month: float
     has_manual_input: bool = False      # 실제값 입력 여부
     manual_input: Optional[ManualCostInput] = None  # 현재 저장된 실제값
+    # UI 별칭 (대시보드 JS가 d.total_krw 로 접근)
+    total_krw: float = 0.0
 
 
 class FarmMeta(BaseModel):
@@ -204,6 +231,47 @@ class WhatIfResult(BaseModel):
     delta_pct: float                 # 증감률 (%)
     confidence: float                # 모델 신뢰도 0–1
     model_used: str                  # "ml_model" | "stats_fallback"
+    # UI 편의 별칭 (대시보드 JS가 profit_gain_krw, revenue_krw 등으로 접근)
+    profit_gain_krw: float = 0.0     # = delta_krw
+    revenue_gain_krw: float = 0.0    # = delta_krw (legacy)
+    revenue_krw: float = 0.0         # = whatif_revenue_krw
+    yield_kg_forecast: Optional[float] = None
+
+
+class WhatIfScenario(BaseModel):
+    """다중 What-if 시나리오 중 하나."""
+    label: str = Field(..., description="시나리오 이름 (예: '고온 설정', '최적 CO₂')")
+    temp_internal: Optional[float] = Field(None, ge=0,   le=50)
+    humidity_int:  Optional[float] = Field(None, ge=20,  le=100)
+    co2_ppm:       Optional[float] = Field(None, ge=300, le=2000)
+    solar_rad:     Optional[float] = Field(None, ge=0,   le=1200)
+    ec_dsm:        Optional[float] = Field(None, ge=0.5, le=5.0)
+    soil_temp:     Optional[float] = Field(None, ge=5,   le=35)
+
+
+class WhatIfMultiInput(BaseModel):
+    """POST /whatif/multi — 여러 시나리오를 한 번에 비교."""
+    scenarios: list[WhatIfScenario] = Field(..., min_length=1, max_length=10)
+
+
+class WhatIfScenarioResult(BaseModel):
+    """WhatIfMultiResult 내 단일 시나리오 결과."""
+    label: str
+    whatif_revenue_krw: float
+    delta_krw: float
+    delta_pct: float
+    confidence: float
+    model_used: str
+    rank: int            # 수익 기준 순위 (1=최고)
+
+
+class WhatIfMultiResult(BaseModel):
+    """POST /whatif/multi 응답."""
+    farm_id: str
+    baseline_revenue_krw: float
+    scenarios: list[WhatIfScenarioResult]
+    best_label: str           # 가장 수익이 높은 시나리오 이름
+    best_delta_krw: float
 
 
 class ChatMessage(BaseModel):

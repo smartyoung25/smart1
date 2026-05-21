@@ -7617,10 +7617,11 @@ class TestWhatIfSimulatorExtra:
         from engine.what_if_simulator import EnvState
 
         # same delta appears twice → same new_val → same frozenset key → early return
+        # get_adjustment_deltas now takes (crop_ko, stage="unknown") — use *args/**kwargs
         monkeypatch.setattr(wis, "get_adjustment_deltas",
-                            lambda crop: {"temp_internal": [1.0, 1.0]})
+                            lambda *args, **kwargs: {"temp_internal": [1.0, 1.0]})
         monkeypatch.setattr(wis, "get_bounds",
-                            lambda crop: {"temp_internal": (0.0, 100.0)})
+                            lambda *args, **kwargs: {"temp_internal": (0.0, 100.0)})
 
         env = EnvState(farm_id="f1", values={"temp_internal": 22.0})
         candidates = wis.generate_candidates(env, max_simultaneous=1, crop_ko="딸기")

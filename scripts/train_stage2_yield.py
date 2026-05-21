@@ -40,7 +40,7 @@ sys.path.insert(0, str(ROOT))
 
 from models.crop_config import (
     CROP_CONFIGS, CropConfig, ENV_COLS, ENV_HARD_BOUNDS,
-    DATA_DIR, YEARS, get_artifact_dir,
+    DATA_DIR, YEARS, SUPP_YEARS, get_artifact_dir,
 )
 
 # 작목별 면적 기본값 (farm_registry median 기반)
@@ -1008,27 +1008,61 @@ def build_stage2_matrix_annual(
     )
 
     # ④-c 딸기 전용 피처: 저온적산(냉장시간 프록시) + 주야간 온도진폭
-    _has_temp_col = "temp_internal" in env_monthly.columns if not env_monthly.empty else False
+    # 외기온(temp_external) 우선 사용 — 온실 내부온도는 난방으로 7℃ 이하가 거의 없어
+    # chill_months≈0이 되므로 예측력 없음. 설향 품종 임계 8℃ 기준 (Fennell 2004).
+    _has_ext_col = "temp_external" in env_monthly.columns if not env_monthly.empty else False
+    _has_int_col = "temp_internal" in env_monthly.columns if not env_monthly.empty else False
+    _has_temp_col = _has_ext_col or _has_int_col
     if config.crop_ko == "딸기" and _has_temp_col and not env_monthly.empty:
         em_straw = env_monthly.copy()
         em_straw = _norm_keys(em_straw)
-        # 냉장시간 프록시: 7℃ 이하 월수 (딸기 화아분화 유도에 저온 필수)
+        # 냉각 시간 proxy: 외기온(우선) 또는 내부온도 기준
+        _chill_t_col = "temp_external" if _has_ext_col else "temp_internal"
+        _chill_thresh = 8.0 if _has_ext_col else 7.0  # 외기온은 8℃, 내부는 7℃ 임계
+
+        # 주요 냉각 기간(10~12월) 평균 외기온 — 화아분화 유도 강도
+        _chill_season_months = [10, 11, 12]
+        em_chill = em_straw[em_straw["month"].isin(_chill_season_months)] if "month" in em_straw.columns else em_straw
+
         _chill_agg = (
-            em_straw.groupby(["farm_id", "year"])
-            .agg(chill_months=("temp_internal", lambda x: (x < 7.0).sum()))
+            em_chill.groupby(["farm_id", "year"])
+            .agg(chill_months=(
+                _chill_t_col,
+                lambda x: (x < _chill_thresh).sum()
+            ))
             .reset_index()
         )
         prod_ann = prod_ann.merge(_chill_agg, on=["farm_id", "year"], how="left")
         prod_ann["chill_months"] = prod_ann["chill_months"].fillna(0)
-        # 온도 표준편차 (연간 온도 변동폭): 딸기는 서늘→따뜻 계절성에 민감
+
+        # 냉각 기간 평균 외기온 — 낮을수록 chill 강도 높음
+        if _has_ext_col:
+            _ext_temp_agg = (
+                em_chill.groupby(["farm_id", "year"])
+                .agg(chill_period_ext_temp_mean=(
+                    "temp_external", "mean"
+                ))
+                .reset_index()
+            )
+            prod_ann = prod_ann.merge(_ext_temp_agg, on=["farm_id", "year"], how="left")
+            prod_ann["chill_period_ext_temp_mean"] = prod_ann["chill_period_ext_temp_mean"].fillna(10.0)
+            # 연속 chill_unit proxy: 8℃ 이하 누적 적산 (℃·일)
+            # chill_degree_days = max(0, thresh - T_mean) × days_in_month_fraction
+            prod_ann["chill_degree_days"] = (
+                _chill_thresh - prod_ann["chill_period_ext_temp_mean"]
+            ).clip(lower=0) * 3.0  # ×3 (3 냉각 개월)
+
+        # 온도 계절 표준편차 (서늘→따뜻 계절성 강도)
         _temp_std_agg = (
             em_straw.groupby(["farm_id", "year"])
-            .agg(temp_internal_season_std=("temp_internal", "std"))
+            .agg(temp_internal_season_std=("temp_internal" if _has_int_col else _chill_t_col, "std"))
             .reset_index()
         )
         prod_ann = prod_ann.merge(_temp_std_agg, on=["farm_id", "year"], how="left")
         prod_ann["temp_internal_season_std"] = prod_ann["temp_internal_season_std"].fillna(0)
-        logger.info("  [딸기 전용] chill_months + temp_internal_season_std 피처 추가")
+
+        logger.info("  [딸기 전용] chill_months(%s기준) + chill_degree_days + temp_season_std 추가",
+                    _chill_t_col)
 
     # ④-e 논문 기반 생리학적 피처 (과학 피처 Phase 2)
     prod_ann = _add_science_features(env_monthly, prod_ann, config)
@@ -1224,20 +1258,44 @@ def train_stage2(
         n_splits = 4
 
     # ── CV 전략: GroupKFold(year) 우선, 연도 부족 시 TimeSeriesSplit 폴백 ──────
+    # SUPP_YEARS: 보조 데이터 연도 (단일 농가 등) — 항상 train 집합에만 포함,
+    #             테스트 폴드로 격리되면 n_test=1 → R²=NaN 문제 방지
+    _SUPP_YEARS = set(SUPP_YEARS) if SUPP_YEARS else set()
+
     _year_arr = df.loc[mask, "year"].astype(int).values if "year" in df.columns else None
     _n_unique_years = int(len(set(_year_arr))) if _year_arr is not None else 0
-    if _n_unique_years >= 3:
-        # 진정한 Leave-One-Year-Out CV: n_splits = 연도 수
-        # 각 fold = 1년 test + 나머지 연도 train → 훈련 데이터가 fold마다 최대
+
+    # 테스트 폴드 후보 연도 (보조연도 제외)
+    _cv_test_years = sorted(set(_year_arr) - _SUPP_YEARS) if _year_arr is not None else []
+
+    if len(_cv_test_years) >= 3:
+        # 진정한 Leave-One-Year-Out CV: 보조연도는 항상 train에 포함
+        # 각 fold = 1년 test + (나머지 모든 연도 + 보조연도) train
+        _n_cv_splits   = len(_cv_test_years)
+        _manual_splits = []
+        for _ty in _cv_test_years:
+            _ti = np.where(_year_arr == _ty)[0]
+            _tri = np.where(_year_arr != _ty)[0]   # 보조연도 포함 → always train
+            if len(_ti) > 0:
+                _manual_splits.append((_tri, _ti))
+        _cv_splitter = None   # 수동 splits 사용 표시
+        _cv_groups   = None
+        logger.info(
+            "  CV 전략: LOYO splits=%d (고유연도=%d, 보조연도=%s는 always-train)",
+            _n_cv_splits, _n_unique_years, sorted(_SUPP_YEARS),
+        )
+    elif _n_unique_years >= 3:
         _n_cv_splits = _n_unique_years
         _cv_splitter = GroupKFold(n_splits=_n_cv_splits)
         _cv_groups   = _year_arr
+        _manual_splits = None
         logger.info("  CV 전략: LOYO GroupKFold(year) splits=%d (고유연도=%d, 진정 leave-one-year-out)",
                     _n_cv_splits, _n_unique_years)
     else:
         _n_cv_splits = n_splits
-        _cv_splitter = TimeSeriesSplit(n_splits=_n_cv_splits)
-        _cv_groups   = None
+        _cv_splitter   = TimeSeriesSplit(n_splits=_n_cv_splits)
+        _cv_groups     = None
+        _manual_splits = None
         logger.info("  CV 전략: TimeSeriesSplit splits=%d (연도부족=%d)",
                     _n_cv_splits, _n_unique_years)
 
@@ -1288,10 +1346,17 @@ def train_stage2(
         logger.info("  XGB 파라미터: lr=%.2f depth=%d mcw=%d es=%d (n=%d)",
                     xgb_lr, xgb_depth, xgb_mcw, xgb_es, n_samples)
 
+        # ── CV split 제공자 (수동 splits / GroupKFold / TimeSeriesSplit 통일) ──────
+        def _cv_split_iter(X_mat, y_vec, groups=None):
+            """_manual_splits 우선, 없으면 _cv_splitter 사용."""
+            if _manual_splits is not None:
+                return iter(_manual_splits)
+            return iter(_cv_splitter.split(X_mat, y_vec, groups=groups))
+
         cv_r2, cv_mape, best_iters = [], [], []
         xgb_val_preds: list[tuple] = []  # (y_true_v, y_xgb_pred) per fold — 앙상블용
 
-        for fold, (tr_idx, val_idx) in enumerate(_cv_splitter.split(X, y, groups=_cv_groups)):
+        for fold, (tr_idx, val_idx) in enumerate(_cv_split_iter(X, y, groups=_cv_groups)):
             X_tr, X_val = X[tr_idx], X[val_idx]
             y_tr, y_val = np.log1p(y[tr_idx]), np.log1p(y[val_idx])
 
@@ -1335,7 +1400,7 @@ def train_stage2(
             _ens_cv_r2, _ens_cv_mape = [], []
             _num_leaves = min(31, max(7, 2 ** xgb_depth - 1))
 
-            for _fold2, (_tr2, _vl2) in enumerate(_cv_splitter.split(X, y, groups=_cv_groups)):
+            for _fold2, (_tr2, _vl2) in enumerate(_cv_split_iter(X, y, groups=_cv_groups)):
                 _lgb_m = _lgb.LGBMRegressor(
                     n_estimators=500, learning_rate=xgb_lr,
                     max_depth=xgb_depth, num_leaves=_num_leaves,
@@ -1391,12 +1456,12 @@ def train_stage2(
         from sklearn.preprocessing import StandardScaler as _StdScaler
         _scaler_r = _StdScaler()
         X_sc_r = _scaler_r.fit_transform(X)
-        _ridge_alphas = [0.1, 1.0, 10.0, 100.0]
+        _ridge_alphas = [0.1, 1.0, 10.0, 100.0, 1000.0, 10000.0]
         best_r_alpha, best_r_cv_r2, best_r_cv_mape = 10.0, -999.0, 999.0
 
         for _alpha in _ridge_alphas:
             _fold_r2s, _fold_mapes = [], []
-            for _tr, _vl in _cv_splitter.split(X_sc_r, y, groups=_cv_groups):
+            for _tr, _vl in _cv_split_iter(X_sc_r, y, groups=_cv_groups):
                 _rm = Ridge(alpha=_alpha)
                 _rm.fit(X_sc_r[_tr], np.log1p(y[_tr]))
                 _yp = np.expm1(_rm.predict(X_sc_r[_vl]))
@@ -1660,7 +1725,7 @@ def train_stage2(
         X_sc = scaler.fit_transform(X)
         cv_r2, cv_mape = [], []
         model = Ridge(alpha=10.0)
-        for tr_idx, val_idx in _cv_splitter.split(X_sc, y, groups=_cv_groups):
+        for tr_idx, val_idx in _cv_split_iter(X_sc, y, groups=_cv_groups):
             model.fit(X_sc[tr_idx], np.log1p(y[tr_idx]))
             y_pv = np.expm1(model.predict(X_sc[val_idx]))
             cv_r2.append(float(r2_score(y[val_idx], y_pv)))
@@ -1825,12 +1890,19 @@ def run_crop(crop_ko: str, use_cache: bool = True) -> dict | None:
     # ── m2_yield_model.pkl 동기화 저장 (포맷 C: m2_yield.py가 직접 로드) ─────
     # m2_yield.py는 "feature_cols" + "imputer" 키를 포맷 C로 감지해 stage2 모델을 직접 사용.
     # 이로써 profit_optimizer.py가 실제 학습된 M2 모델을 사용할 수 있음.
+    # 잔차 모드(annual_residual)에서 log_transform=True를 유지하면
+    # 음수 잔차에 log1p 적용 → NaN → TypeError 발생.
+    # 잔차 모드는 스케일이 ±수십 kg/m² 이므로 log 변환 불필요.
+    _log_transform_save = (
+        False if agg_mode == "annual_residual"
+        else bundle.get("log_transform", True)
+    )
     m2_bundle = {
         "feature_cols":      bundle.get("feature_cols", []),
         "imputer":           bundle.get("imputer"),
         "model":             bundle.get("model"),       # XGB
         "model_lgb":         bundle.get("model_lgb"),   # LGB (있으면)
-        "log_transform":     bundle.get("log_transform", True),
+        "log_transform":     _log_transform_save,
         "farm_encoding":     bundle.get("farm_encoding", {}),
         "cv_mape_mean":      result.get("cv_mape_mean"),
         "mape":              result.get("mape"),

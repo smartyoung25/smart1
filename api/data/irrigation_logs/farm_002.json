@@ -1,0 +1,20 @@
+{
+  "2026-05-19": {
+    "wc_mean": 75.0,
+    "dr_pct_mean": 18.5,
+    "ec_drain": 4.8,
+    "supply_total": 900.0,
+    "irr_count": 3.0,
+    "nl_pct": 12.0,
+    "recorded_at": "2026-05-21T08:28:07.839854+00:00"
+  },
+  "2026-05-20": {
+    "wc_mean": 78.2,
+    "dr_pct_mean": 16.0,
+    "ec_drain": 5.1,
+    "supply_total": 850.0,
+    "irr_count": 3.0,
+    "nl_pct": 14.0,
+    "recorded_at": "2026-05-21T08:28:07.853200+00:00"
+  }
+}

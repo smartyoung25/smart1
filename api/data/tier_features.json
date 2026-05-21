@@ -1,0 +1,65 @@
+{
+  "_comment": "스마트팜 AI 플랫폼 — 티어별 기능 접근 매트릭스",
+  "tiers": {
+    "basic":      { "rank": 1, "name_ko": "기본",           "price_krw_month": 0,      "color": "#8892a4" },
+    "smart":      { "rank": 2, "name_ko": "스마트",         "price_krw_month": 79000,  "color": "#4f8ef7" },
+    "pro":        { "rank": 3, "name_ko": "프로",           "price_krw_month": 199000, "color": "#a78bfa" },
+    "enterprise": { "rank": 4, "name_ko": "엔터프라이즈",   "price_krw_month": 499000, "color": "#f9a825" }
+  },
+  "ai_quotas": {
+    "basic":      0,
+    "smart":      30,
+    "pro":        200,
+    "enterprise": -1
+  },
+  "features": {
+    "env_manual_input":        { "section": "environ",     "min_tier": "basic",  "label_ko": "수동 환경값 입력" },
+    "env_iot_sensor":          { "section": "environ",     "min_tier": "smart",  "label_ko": "IoT 센서 실시간 조회" },
+    "env_asos_weather":        { "section": "environ",     "min_tier": "smart",  "label_ko": "기상청 ASOS 외부 기상" },
+    "env_anomaly_basic":       { "section": "environ",     "min_tier": "smart",  "label_ko": "환경 이상감지 (기본)" },
+    "env_vpd_stage":           { "section": "environ",     "min_tier": "pro",    "label_ko": "VPD + 작기단계 분석" },
+    "env_weather_forecast":    { "section": "environ",     "min_tier": "smart",  "label_ko": "7일 기상 예보" },
+
+    "irr_schedule":            { "section": "irrigation",  "min_tier": "smart",  "label_ko": "일사비례 관수 스케줄" },
+    "irr_drain_fraction":      { "section": "irrigation",  "min_tier": "smart",  "label_ko": "배액률(dr_pct_mean) 분석" },
+    "irr_wc_analysis":         { "section": "irrigation",  "min_tier": "smart",  "label_ko": "함수율(wc_mean) 분석" },
+    "irr_night_loss":          { "section": "irrigation",  "min_tier": "pro",    "label_ko": "야간소실률(nl_pct) + 권고" },
+    "irr_uptake_efficiency":   { "section": "irrigation",  "min_tier": "pro",    "label_ko": "흡수효율(ml/J) 이상감지" },
+    "irr_ec_drain":            { "section": "irrigation",  "min_tier": "pro",    "label_ko": "드레인 EC 분석" },
+
+    "growth_days_to_harvest":  { "section": "growth",      "min_tier": "basic",  "label_ko": "잔여 재배일 (GDD)" },
+    "growth_yield_forecast":   { "section": "growth",      "min_tier": "smart",  "label_ko": "수확량 예측 (M2)" },
+    "growth_yield_interval":   { "section": "growth",      "min_tier": "pro",    "label_ko": "수확량 80% 신뢰구간 (q10/q90)" },
+    "growth_disease_basic":    { "section": "growth",      "min_tier": "smart",  "label_ko": "병해 위험도 (기본)" },
+    "growth_disease_detail":   { "section": "growth",      "min_tier": "pro",    "label_ko": "병해 판단 근거 + env_snapshot" },
+    "growth_reco_checklist":   { "section": "growth",      "min_tier": "basic",  "label_ko": "권고 체크리스트" },
+    "growth_reco_approval":    { "section": "growth",      "min_tier": "pro",    "label_ko": "반자동 권고 (승인 후 적용)" },
+    "growth_reco_auto":        { "section": "growth",      "min_tier": "enterprise", "label_ko": "완전자동 권고 (즉시 적용)" },
+
+    "market_price_stats":      { "section": "market",      "min_tier": "basic",  "label_ko": "KAMIS 통계 시세 (stats_avg)" },
+    "market_price_live":       { "section": "market",      "min_tier": "smart",  "label_ko": "KAMIS 실시간 시세 (kamis_live)" },
+    "market_price_history":    { "section": "market",      "min_tier": "smart",  "label_ko": "가격 이력 14일" },
+    "market_revenue_basic":    { "section": "market",      "min_tier": "basic",  "label_ko": "기본 매출 추정" },
+    "market_revenue_ml":       { "section": "market",      "min_tier": "pro",    "label_ko": "ML 모델 매출 예측 (M3)" },
+    "market_optimal_env":      { "section": "market",      "min_tier": "pro",    "label_ko": "최적 재배환경 → 소득 추정" },
+
+    "energy_cost_basic":       { "section": "energy",      "min_tier": "basic",  "label_ko": "기본 비용 추정 (전체 합계)" },
+    "energy_cost_breakdown":   { "section": "energy",      "min_tier": "smart",  "label_ko": "항목별 비용 분석 (pct_of_total)" },
+    "energy_cost_manual_input":{ "section": "energy",      "min_tier": "smart",  "label_ko": "실제 비용 직접 입력" },
+    "energy_cost_per_m2":      { "section": "energy",      "min_tier": "smart",  "label_ko": "m² 단위 비용 (cost_per_m2)" },
+    "energy_profit_forecast":  { "section": "energy",      "min_tier": "smart",  "label_ko": "시즌 손익 예측" },
+    "energy_profit_margin":    { "section": "energy",      "min_tier": "pro",    "label_ko": "이익률 분석 (profit_margin_pct)" },
+
+    "ctrl_whatif_single":      { "section": "control",     "min_tier": "smart",  "label_ko": "What-if 단일 시나리오" },
+    "ctrl_whatif_multi":       { "section": "control",     "min_tier": "pro",    "label_ko": "What-if 멀티 시나리오" },
+    "ctrl_reco_delta":         { "section": "control",     "min_tier": "pro",    "label_ko": "권고 수익/비용 3분해 (delta)" },
+    "ctrl_reco_apply":         { "section": "control",     "min_tier": "pro",    "label_ko": "권고 액추에이터 적용 (승인)" },
+    "ctrl_reco_auto":          { "section": "control",     "min_tier": "enterprise", "label_ko": "권고 완전자동 적용" },
+    "ctrl_heatmap":            { "section": "control",     "min_tier": "pro",    "label_ko": "권고 빈도 히트맵" },
+    "ctrl_model_metrics":      { "section": "control",     "min_tier": "pro",    "label_ko": "ML 모델 지표 (R², MAPE)" },
+
+    "ai_chat_basic":           { "section": "ai_chat",     "min_tier": "smart",  "label_ko": "AI 상담 (쿼터제)" },
+    "ai_chat_suggestions":     { "section": "ai_chat",     "min_tier": "pro",    "label_ko": "후속 질문 칩 (suggestions[])" },
+    "ai_chat_gpt4o":           { "section": "ai_chat",     "min_tier": "pro",    "label_ko": "GPT-4o 연결 AI 상담" }
+  }
+}

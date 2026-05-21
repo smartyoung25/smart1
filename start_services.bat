@@ -4,20 +4,22 @@ REM 사용: start_services.bat
 
 setlocal
 set SMART_FARM=C:\smart_farm
-set PGSQL=C:\PostgreSQL\pgsql
+set PGSQL17=C:\Program Files\PostgreSQL\17
 set NGINX=C:\nginx
 set PYTHON=C:\tools\python311\python.exe
 
 echo [Smart Farm] 서비스 시작 중...
 
-REM ── 1. PostgreSQL ──────────────────────────────────────────────────────────
-echo [1/4] PostgreSQL 시작...
-%PGSQL%\bin\pg_ctl status -D %PGSQL%\data > nul 2>&1
+REM ── 1. PostgreSQL 17 (Windows 서비스) ──────────────────────────────────────
+echo [1/5] PostgreSQL 17 확인...
+"%PGSQL17%\bin\pg_isready.exe" -h 127.0.0.1 -p 5432 > nul 2>&1
 if errorlevel 1 (
-    %PGSQL%\bin\pg_ctl start -D %PGSQL%\data -l %PGSQL%\data\postgres.log
-    timeout /t 3 /nobreak > nul
+    echo       PostgreSQL 서비스 시작 중...
+    net start postgresql-x64-17 > nul 2>&1
+    timeout /t 4 /nobreak > nul
+    echo       시작 완료
 ) else (
-    echo       이미 실행 중
+    echo       이미 실행 중 (127.0.0.1:5432)
 )
 
 REM ── 2. FastAPI (uvicorn) ───────────────────────────────────────────────────

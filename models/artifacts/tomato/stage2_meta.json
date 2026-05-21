@@ -15,6 +15,8 @@
   "cv_mape_mean": 123.4,
   "mape": 16.7,
   "gate_passed": true,
+  "cv_mape_warning": true,
+  "cv_mape_warning_note": "cv_mape=123.4% vs train_mape=16.7% — GroupKFold(year) 연도 편차 과대, quantile 모델로 불확실성 표현",
   "agg_mode": "annual",
   "harvest_lag": 1,
   "area_default_m2": 1400.0,

@@ -79,6 +79,22 @@ def normalize_crop(crop_ko: str) -> str:
     return base if base else crop_ko
 
 
+def _patch_imputer(imputer) -> None:
+    """sklearn 1.5+ 호환: 구버전으로 직렬화된 SimpleImputer에 _fill_dtype 속성 보정.
+
+    sklearn 1.5부터 SimpleImputer.transform()이 self._fill_dtype를 참조.
+    구버전 모델은 해당 속성이 없으므로 statistics_.dtype으로 채워준다.
+    """
+    if imputer is None:
+        return
+    if not hasattr(imputer, "_fill_dtype"):
+        try:
+            imputer._fill_dtype = imputer.statistics_.dtype
+            logger.debug("[model_loader] SimpleImputer._fill_dtype 패치 적용")
+        except Exception as exc:
+            logger.warning("[model_loader] SimpleImputer 패치 실패: %s", exc)
+
+
 # ---------------------------------------------------------------------------
 # 4-Stage 모델 로드
 # ---------------------------------------------------------------------------
@@ -108,6 +124,8 @@ def load_4stage_model(crop_ko: str) -> Optional[dict]:
         s2 = pickle.loads(s2_path.read_bytes())
         s3 = pickle.loads(s3_path.read_bytes())
         meta = json.loads(meta_path.read_text(encoding="utf-8")) if meta_path.exists() else {}
+        # sklearn 1.5+ 호환: SimpleImputer._fill_dtype 누락 시 보정
+        _patch_imputer(s2.get("imputer"))
         logger.info("[model_loader] 4-stage 로드: %s (s2 feats=%d)",
                     crop_ko, len(s2.get("feature_cols", [])))
         return {"stage2": s2, "stage3": s3, "meta": meta, "crop_en": crop_en}
@@ -250,6 +268,7 @@ def load_model(crop_ko: str) -> Optional[dict]:
     try:
         with open(pkl_path, "rb") as f:
             model_info = pickle.load(f)
+        _patch_imputer(model_info.get("imputer"))
         logger.info("[model_loader] 구형 모델 로드: %s", pkl_path.name)
         return model_info
     except Exception as e:

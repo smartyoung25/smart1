@@ -1,0 +1,22 @@
+# MQTT ACL (Access Control List) — 운영 환경용
+# allow_anonymous false 설정 후 아래 규칙 적용
+#
+# 형식:
+#   user <username>
+#   topic read/write/readwrite <topic>
+#   pattern read/write <topic>  # %c=클라이언트ID, %u=사용자명
+
+# 센서 장치 — 각 농장 토픽에만 발행 가능
+user sensor_farm_001
+topic write smartfarm/farm_001/#
+
+user sensor_farm_002
+topic write smartfarm/farm_002/#
+
+# 구독자 (API 서버) — 전체 읽기
+user smartfarm_api
+topic read smartfarm/#
+
+# 관리자 — 전체 권한
+user smartfarm_admin
+topic readwrite #

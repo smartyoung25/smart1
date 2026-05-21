@@ -3,10 +3,10 @@
 # docker compose up -d 실행 시 자동 적용됨
 
 services:
-  # 로컬 PostgreSQL 사용 → DB 컨테이너 비활성화
+  # 로컬 PostgreSQL 사용 → DB 컨테이너 스케일 0 (비활성화, depends_on 참조는 유지)
   db:
-    profiles:
-      - docker-db-only
+    deploy:
+      replicas: 0
 
   # API: 로컬 PostgreSQL을 host.docker.internal로 연결
   api:

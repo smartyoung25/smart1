@@ -93,6 +93,11 @@ _UNIT_LABELS: dict[str, str] = {
     "soil_temp":     "℃",
 }
 
+# ── 관수 지표 기준값 (Priva 표준) ─────────────────────────────────────────────
+_DR_NORMAL_MIN = 20.0   # 배액률 정상 하한 (%)
+_DR_NORMAL_MAX = 40.0   # 배액률 정상 상한 (%)
+_SUPPLY_MIN_ML = 100.0  # 공급량 최소값 (ml/slab/day)
+
 # Fallback adjustment deltas
 _ADJUSTMENT_DELTAS_FALLBACK: dict[str, list[float]] = {
     "temp_internal":  [-2.0, -1.0, +1.0, +2.0],
@@ -276,6 +281,69 @@ def _format_delta(name: str, delta: float) -> str:
     return f"{_PARAM_LABELS_KO.get(name, name)} {sign}{delta:.1f}{unit}"
 
 
+def _drain_fraction_candidates(
+    current: EnvState,
+    stage: str,
+) -> list[Candidate]:
+    """배액률(dr_pct_mean) 이탈 시 총 공급량(supply_total) ±10/20% 조정 후보 생성.
+
+    Priva 일사비례 관수 규칙:
+      - 배액률 < 20%: 공급 부족 → 공급량 증량 또는 트리거 임계값 낮춤
+      - 배액률 > 40%: 과잉 공급 → 공급량 감량 또는 트리거 간격 연장
+    supply_total 없으면 대표값 1000ml/slab으로 추정.
+    """
+    dr = current.values.get("dr_pct_mean")
+    if dr is None:
+        return []
+    # 정상 범위 내이면 후보 불필요
+    if _DR_NORMAL_MIN <= dr <= _DR_NORMAL_MAX:
+        return []
+
+    supply = current.values.get("supply_total")
+    if supply is None or supply <= 0:
+        supply = 1000.0   # fallback 대표값 (ml/slab/day)
+        supply_note = " (추정값)"
+    else:
+        supply_note = ""
+
+    candidates: list[Candidate] = []
+
+    if dr < _DR_NORMAL_MIN:
+        # 공급 부족 → 증량
+        for pct in [0.10, 0.20]:
+            new_supply = round(supply * (1 + pct))
+            new_supply = max(_SUPPLY_MIN_ML, new_supply)
+            desc = (
+                f"총 공급량 +{pct*100:.0f}%{supply_note} "
+                f"({supply:.0f}→{new_supply:.0f}ml/slab) — "
+                f"배액률 {dr:.1f}% < {_DR_NORMAL_MIN:.0f}% (공급 부족, 근권 건조 위험)"
+            )
+            candidates.append(Candidate(
+                changes={"supply_total": new_supply},
+                description_ko=desc,
+                stage=stage,
+                target_type="irrigation",
+            ))
+    else:
+        # 과잉 공급 → 감량
+        for pct in [0.10, 0.20]:
+            new_supply = round(supply * (1 - pct))
+            new_supply = max(_SUPPLY_MIN_ML, new_supply)
+            desc = (
+                f"총 공급량 -{pct*100:.0f}%{supply_note} "
+                f"({supply:.0f}→{new_supply:.0f}ml/slab) — "
+                f"배액률 {dr:.1f}% > {_DR_NORMAL_MAX:.0f}% (과잉 공급, 양분 손실)"
+            )
+            candidates.append(Candidate(
+                changes={"supply_total": new_supply},
+                description_ko=desc,
+                stage=stage,
+                target_type="irrigation",
+            ))
+
+    return candidates
+
+
 def generate_candidates(
     current: EnvState,
     max_simultaneous: int = 2,
@@ -365,12 +433,21 @@ def generate_candidates(
                             f"{_format_delta(var_b, db)}")
                     _add({var_a: new_a, var_b: new_b}, desc, ttype="combo")
 
+    # ── 4. 배액률 이탈 시 관수 공급량 조정 후보 ──────────────────────────────────
+    drain_cands = _drain_fraction_candidates(current, stage)
+    for dc in drain_cands:
+        key = frozenset((k, round(v, 4)) for k, v in dc.changes.items())
+        if key not in seen:
+            seen.add(key)
+            candidates.append(dc)
+
     logger.debug(
         "[what_if_simulator] crop=%s stage=%s month=%d candidates=%d "
-        "(single=%d vpd=%d combo=%d)",
+        "(single=%d vpd=%d combo=%d irr=%d)",
         crop_ko, stage, month, len(candidates),
         sum(1 for c in candidates if c.target_type == "single"),
         sum(1 for c in candidates if c.target_type == "vpd_target"),
         sum(1 for c in candidates if c.target_type == "combo"),
+        sum(1 for c in candidates if c.target_type == "irrigation"),
     )
     return candidates

@@ -543,20 +543,31 @@ class FarmsOverviewResponse(BaseModel):
 def get_farms_overview(limit: int = Query(default=200, ge=1, le=700)):
     """전체 농장의 최신 IoT 센서 스냅샷 + 이상 여부를 반환 (비교 대시보드용).
 
-    - 실시간 MQTT 버퍼에 데이터가 있으면 우선 사용.
-    - 없으면 farm_registry에서 기본 정보만 반환 (online=false).
+    우선순위:
+    1. 실시간 MQTT 버퍼 (가장 최신)
+    2. farmer.py _FARM_ENV 정적 샘플값 (데모 농장 farm_001~005)
+    3. 없으면 online=false
     """
     from pipeline.mqtt_subscriber import get_recent_messages
+    # farmer.py의 정적 환경값 (데모 농장 폴백용)
+    try:
+        from api.routers.farmer import _FARM_ENV as _DEMO_ENV
+    except Exception:
+        _DEMO_ENV = {}
 
     # farm_registry 로드
     registry_path = ROOT / "api" / "data" / "farm_registry.json"
     farms_meta: dict[str, dict] = {}
     if registry_path.exists():
         try:
-            raw = json.loads(registry_path.read_text(encoding="utf-8"))
+            raw = json.loads(registry_path.read_text(encoding="utf-8-sig"))
             farms_meta = raw.get("farms", {})
-        except Exception as e:
-            logger.warning("[admin] farm_registry 로드 실패: %s", e)
+        except Exception:
+            try:
+                raw = json.loads(registry_path.read_text(encoding="utf-8"))
+                farms_meta = raw.get("farms", {})
+            except Exception as e:
+                logger.warning("[admin] farm_registry 로드 실패: %s", e)
 
     # MQTT 버퍼 → farm_id 별 최신 메시지
     recent_msgs = get_recent_messages(n=500)
@@ -572,6 +583,22 @@ def get_farms_overview(limit: int = Query(default=200, ge=1, le=700)):
     # farm_registry 기반으로 전체 목록 구성
     for farm_id, meta in list(farms_meta.items())[:limit]:
         msg = latest_by_farm.get(farm_id)
+
+        # MQTT 없으면 _FARM_ENV 정적 샘플로 폴백 (데모 농장 farm_001~005)
+        if msg is None and farm_id in _DEMO_ENV:
+            demo_vals = _DEMO_ENV[farm_id]
+            msg = {
+                "temp_internal": demo_vals.get("temp_internal"),
+                "humidity_int":  demo_vals.get("humidity_int"),
+                "co2_ppm":       demo_vals.get("co2_ppm"),
+                "solar_rad":     demo_vals.get("solar_rad"),
+                "soil_temp":     demo_vals.get("soil_temp"),
+                "ec_dsm":        demo_vals.get("ec_dsm"),
+                "ts":            None,
+                "_anomaly":      False,
+                "_demo":         True,   # 샘플 표시용 플래그
+            }
+
         online  = msg is not None
         anomaly = bool(msg.get("_anomaly", False)) if msg else False
 
@@ -1187,11 +1214,16 @@ class ProfitForecastResponse(BaseModel):
 
 @router.get("/farms/{farm_id}/profit-forecast",
             response_model=ProfitForecastResponse, tags=["profit"])
-def get_profit_forecast(farm_id: str):
+def get_profit_forecast(
+    farm_id: str,
+    crop: str | None = None,
+    area_m2: float | None = None,
+):
     """농장 손익 예측.
 
     M2 수확량 예측 × KAMIS 실시간 시세 (없으면 과거 평균) × 비용 파라미터
     → 시즌 예상 매출·비용·순이익 반환.
+    registry 미등록 농가는 crop/area_m2 쿼리 파라미터로 폴백.
     """
     import json as _json
     import os as _os
@@ -1222,7 +1254,17 @@ def get_profit_forecast(farm_id: str):
             pass
 
     if not farm:
-        raise HTTPException(status_code=404, detail=f"농장을 찾을 수 없습니다: {farm_id}")
+        # 쿼리 파라미터 폴백 (미등록 농가도 crop+area_m2 제공 시 계산 가능)
+        if crop:
+            farm = {
+                "crop_ko": crop,
+                "plant_area_m2": float(area_m2) if area_m2 else 1000.0,
+                "season": "2",
+            }
+        else:
+            raise HTTPException(status_code=404,
+                detail=f"농장을 찾을 수 없습니다: {farm_id}. "
+                       "쿼리 파라미터 ?crop=작목명&area_m2=면적 을 추가하거나 농가를 등록하세요.")
 
     crop_ko       = farm.get("crop_ko") or farm.get("crop", "미상")
     plant_area_m2 = float(farm.get("plant_area_m2") or 1000.0)

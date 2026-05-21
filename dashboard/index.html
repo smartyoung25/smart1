@@ -222,11 +222,11 @@
   .farms-stat-anomaly { background:rgba(242,100,90,.15); color:var(--red); }
   .farms-stat-offline { background:rgba(255,255,255,.06); color:var(--muted); }
 
-  /* ── 센서 이력 차트 패널 ── */
+  /* ── 농가 상세 패널 ── */
   #chart-panel {
     overflow: hidden; max-height: 0; transition: max-height .4s ease;
   }
-  #chart-panel.open { max-height: 520px; }
+  #chart-panel.open { max-height: 660px; }
   .chart-panel-inner {
     border-top: 1px solid var(--border); margin-top: 12px; padding-top: 14px;
   }
@@ -281,6 +281,66 @@
   .adv-filter input, .adv-filter select { background:var(--surface2); border:1px solid var(--border); color:var(--text); border-radius:6px; padding:4px 8px; font-size:12px; }
   #adv-empty     { color:var(--muted); font-size:13px; text-align:center; padding:24px 0; }
 
+  /* ── 사이드바 레이아웃 ── */
+  #app-layout {
+    display: flex;
+    min-height: calc(100vh - 49px);
+    overflow: hidden;
+  }
+  #sidebar {
+    width: 172px;
+    flex-shrink: 0;
+    background: var(--card);
+    border-right: 1px solid var(--border);
+    padding: 10px 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    overflow-y: auto;
+  }
+  #content-area {
+    flex: 1;
+    overflow-y: auto;
+    min-width: 0;
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .nav-group-label {
+    font-size: 9.5px; color: var(--muted); text-transform: uppercase;
+    letter-spacing: .7px; padding: 10px 8px 3px; font-weight: 700;
+  }
+  .nav-item {
+    display: flex; align-items: center; gap: 7px;
+    width: 100%; padding: 7px 10px;
+    border: none; border-radius: 7px;
+    background: transparent; color: var(--muted);
+    font-size: 12.5px; font-weight: 500;
+    cursor: pointer; text-align: left;
+    transition: all .15s; white-space: nowrap;
+  }
+  .nav-item:hover { background: rgba(255,255,255,.05); color: var(--text); }
+  .nav-item.active { background: rgba(79,142,247,.15); color: var(--accent); font-weight: 700; }
+  .nav-icon { font-size: 14px; }
+  /* 섹션 전환 */
+  .sec { display: none; flex-direction: column; gap: 14px; }
+  .sec.active { display: flex; }
+  /* 모바일 — 모바일 반응형 (Phase 29) ───────────────────────────────────────────── */
+  @media (max-width: 900px) {
+    #app-layout { flex-direction: column-reverse; }
+    #sidebar {
+      width: 100%; flex-direction: row; overflow-x: auto;
+      padding: 4px 6px; border-right: none;
+      border-top: 1px solid var(--border);
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
+    }
+    #content-area { padding: 10px; padding-bottom: 60px; }
+    .nav-group-label { display: none; }
+    .nav-item { flex-direction: column; gap: 1px; padding: 4px 8px; font-size: 9px; }
+    .nav-icon { font-size: 17px; }
+  }
+
   /* ── 모바일 반응형 (Phase 29) ───────────────────────────────────────────── */
   @media (max-width: 900px) {
     header { flex-wrap: wrap; gap: 6px; padding: 8px 12px; }
@@ -296,7 +356,7 @@
     #farms-table th, #farms-table td { padding: 5px 6px; }
     .farms-stat-chip { display: none; }
     /* 차트 패널 */
-    #chart-panel.open { max-height: 380px; }
+    #chart-panel.open { max-height: 500px; }
     .chart-tabs { gap: 4px; }
     .chart-tab  { font-size: 11px; padding: 3px 8px; }
     /* 센서 카드 */
@@ -350,6 +410,256 @@
   .hm-4  { background:#d85c3a; }
   .hm-5  { background:#c0392b; }
   #heatmap-empty { color:var(--muted); font-size:13px; text-align:center; padding:24px 0; }
+
+  /* ── 농가 상세 탭 뷰 ── */
+  .detail-tabs { display:flex; gap:5px; flex-wrap:wrap; }
+  .detail-tab {
+    padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 600;
+    cursor: pointer; border: 1px solid var(--border);
+    background: transparent; color: var(--muted); transition: all .2s;
+  }
+  .detail-tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .detail-pane { display: none; padding-top: 10px; }
+  .detail-pane.active { display: block; }
+
+  /* 수확·매출 그리드 */
+  .harvest-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:6px; }
+  @media(max-width:700px){ .harvest-grid { grid-template-columns:1fr 1fr; } }
+  .harvest-kpi { background:#13162a; border-radius:8px; padding:10px 12px; text-align:center; }
+  .harvest-kpi .hk-label { font-size:10px; color:var(--muted); margin-bottom:3px; }
+  .harvest-kpi .hk-val { font-size:18px; font-weight:700; }
+  .harvest-kpi .hk-val.positive { color:var(--green); }
+  .harvest-kpi .hk-val.negative { color:var(--red); }
+  .harvest-note { font-size:10px; color:var(--muted); margin-top:6px; }
+
+  /* AI 권고 패널 */
+  .reco-list { display:flex; flex-direction:column; gap:7px; max-height:280px; overflow-y:auto; }
+  .reco-item {
+    background:#13162a; border-radius:7px; padding:9px 12px;
+    border-left:3px solid var(--accent); display:flex; gap:10px; align-items:flex-start;
+  }
+  .reco-item.side-high { border-left-color:var(--red); }
+  .reco-item.side-low  { border-left-color:#6ab4f5; }
+  .reco-field  { font-weight:700; font-size:12px; min-width:72px; }
+  .reco-action { font-size:12px; flex:1; }
+  .reco-val    { font-size:11px; color:var(--muted); white-space:nowrap; }
+  .reco-apply-btn {
+    margin-top:10px; padding:6px 16px; background:var(--accent); border:none;
+    border-radius:6px; color:#fff; font-size:12px; font-weight:600; cursor:pointer;
+  }
+  .reco-apply-btn:hover { opacity:.85; }
+  .reco-gain { font-size:11px; color:var(--green); margin-top:4px; }
+
+  /* 병해 위험 */
+  .disease-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-top:6px; }
+  @media(max-width:700px){ .disease-grid { grid-template-columns:1fr; } }
+  .disease-card { background:#13162a; border-radius:8px; padding:12px; }
+  .disease-name { font-weight:600; font-size:13px; margin-bottom:8px; }
+  .disease-risk-bar { height:8px; background:var(--border); border-radius:4px; overflow:hidden; margin-bottom:4px; }
+  .disease-risk-fill { height:100%; border-radius:4px; transition:width .6s; }
+  .disease-risk-low  { background:var(--green); }
+  .disease-risk-med  { background:var(--yellow); }
+  .disease-risk-high { background:var(--red); }
+  .disease-pct { font-size:11px; color:var(--muted); }
+  .disease-stub { font-size:11px; color:var(--yellow); margin-top:6px; }
+
+  /* KAMIS 가격 스트립 */
+  #price-strip {
+    background:var(--card); border-bottom:1px solid var(--border);
+    padding:5px 24px; display:flex; gap:10px; align-items:center;
+    overflow-x:auto; white-space:nowrap; font-size:12px; scrollbar-width:none;
+  }
+  #price-strip::-webkit-scrollbar { display:none; }
+  .price-label { font-size:11px; color:var(--muted); flex-shrink:0; }
+  .price-chip {
+    display:inline-flex; align-items:center; gap:5px; padding:2px 10px;
+    background:rgba(79,142,247,.08); border-radius:20px; border:1px solid rgba(79,142,247,.2);
+    flex-shrink:0;
+  }
+  .price-chip .pc-crop { color:var(--muted); font-size:11px; }
+  .price-chip .pc-val  { font-weight:700; color:var(--accent); }
+  .price-chip .pc-chg.up   { color:var(--green); font-size:10px; }
+  .price-chip .pc-chg.down { color:var(--red);   font-size:10px; }
+  .price-chip .pc-src.live { color:var(--green); font-size:10px; }
+  .price-chip .pc-src.avg  { color:var(--muted); font-size:10px; }
+
+  /* 게이트 배지 */
+  .gate-badge { display:inline-block; padding:1px 6px; border-radius:8px; font-size:10px; font-weight:600; margin-left:4px; }
+  .gate-badge.pass { background:rgba(62,207,142,.15); color:var(--green); }
+  .gate-badge.fail { background:rgba(242,100,90,.15);  color:var(--red); }
+  .gate-badge.warn { background:rgba(245,200,66,.15);  color:var(--yellow); }
+
+  /* ── 환경/비용 입력 폼 공통 ── */
+  .env-input {
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 6px; color: var(--text); font-size: 13px;
+    padding: 7px 10px; width: 100%;
+  }
+  .env-input:focus { outline: none; border-color: var(--accent); }
+  /* What-if 결과 카드 */
+  .wi-result-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:8px; }
+  .wi-result-item { background:#13162a; border-radius:7px; padding:10px; text-align:center; }
+  .wi-result-item .wi-label { font-size:10px; color:var(--muted); margin-bottom:3px; }
+  .wi-result-item .wi-val { font-size:16px; font-weight:700; }
+  .wi-result-item .wi-val.pos { color:var(--green); }
+  .wi-result-item .wi-val.neg { color:var(--red); }
+  /* 환경값 카드 그리드 */
+  .env-kpi-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:8px; }
+  .env-kpi-item { background:#13162a; border-radius:7px; padding:8px 10px; text-align:center; }
+  .env-kpi-item .ek-label { font-size:9px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:.5px; }
+  .env-kpi-item .ek-val { font-size:18px; font-weight:700; margin-top:2px; }
+  /* 기상 예보 테이블 */
+  .weather-tbl { width:100%; border-collapse:collapse; font-size:12px; margin-top:8px; }
+  .weather-tbl th { color:var(--muted); font-size:10px; padding:4px 6px; text-align:center; border-bottom:1px solid var(--border); }
+  .weather-tbl td { padding:5px 6px; text-align:center; border-bottom:1px solid rgba(42,45,62,.5); }
+  /* 비용 내역 */
+  .cost-section { margin-top:8px; }
+  .cost-section-title { font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; margin-bottom:5px; }
+  .cost-row { display:flex; justify-content:space-between; font-size:12px; padding:4px 0; border-bottom:1px solid rgba(42,45,62,.4); }
+  .cost-row:last-child { border-bottom:none; font-weight:700; }
+  .cost-total { color:var(--accent); }
+
+  /* ── 티어 잠금 오버레이 ── */
+  .tier-lock-overlay {
+    position:absolute; inset:0; border-radius:inherit;
+    background:rgba(10,12,22,.82); backdrop-filter:blur(3px);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:8px; z-index:20; text-align:center; padding:20px;
+  }
+  .tier-lock-overlay .tl-icon { font-size:28px; }
+  .tier-lock-overlay .tl-title { font-size:13px; font-weight:700; color:var(--text); }
+  .tier-lock-overlay .tl-desc  { font-size:11px; color:var(--muted); max-width:220px; line-height:1.5; }
+  .tier-lock-overlay .tl-btn {
+    margin-top:6px; padding:7px 18px; border-radius:20px; border:none;
+    background:var(--accent); color:#fff; font-size:12px; font-weight:700;
+    cursor:pointer; transition:opacity .15s;
+  }
+  .tier-lock-overlay .tl-btn:hover { opacity:.85; }
+  .tier-badge {
+    display:inline-flex; align-items:center; gap:4px;
+    padding:2px 8px; border-radius:10px; font-size:10px; font-weight:700;
+    border:1px solid currentColor;
+  }
+  /* 플랜 배지 섹션 (사이드바 하단) */
+  #plan-badge-wrap {
+    padding:10px 12px; border-top:1px solid var(--border); font-size:11px;
+  }
+  .plan-badge {
+    display:flex; align-items:center; gap:6px; padding:7px 10px;
+    border-radius:8px; background:rgba(255,255,255,.05);
+    cursor:pointer; transition:background .15s;
+  }
+  .plan-badge:hover { background:rgba(255,255,255,.10); }
+  .plan-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+  .plan-name { font-weight:700; flex:1; }
+  .plan-chat-quota { color:var(--muted); font-size:10px; }
+  /* 업그레이드 모달 */
+  #upgrade-modal-bg {
+    display:none; position:fixed; inset:0; background:rgba(0,0,0,.6);
+    z-index:500; align-items:center; justify-content:center;
+  }
+  #upgrade-modal-bg.open { display:flex; }
+  #upgrade-modal {
+    background:#1a1d2e; border:1px solid var(--border); border-radius:16px;
+    padding:28px 32px; max-width:440px; width:calc(100vw - 40px);
+  }
+  .upgrade-tier-card {
+    border:2px solid var(--border); border-radius:10px; padding:14px 16px;
+    margin-bottom:10px; cursor:pointer; transition:border-color .2s, background .2s;
+    display:flex; align-items:center; gap:12px;
+  }
+  .upgrade-tier-card input[type=radio] { accent-color:var(--accent); }
+  .upgrade-tier-card:hover { border-color:var(--tc, var(--accent)); }
+  .upgrade-tier-card:has(input:checked) { border-color:var(--tc, var(--accent)); background:rgba(79,142,247,.08); }
+  .upgrade-tier-card-inner { flex:1; }
+  .upgrade-tier-card.selected { border-color:var(--accent); background:rgba(79,142,247,.08); }
+  .utc-price { margin-left:auto; font-weight:700; font-size:13px; }
+  /* 섹션 잠금 배너 */
+  .tier-lock-banner { position:relative; }
+
+  /* ── 관수 스케줄 카드 ── */
+  .irr-sched-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:10px; }
+  .irr-kpi { background:#13162a; border-radius:8px; padding:10px 12px; text-align:center; }
+  .irr-kpi .ik-label { font-size:9px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:.5px; }
+  .irr-kpi .ik-val  { font-size:20px; font-weight:700; margin-top:3px; color:var(--accent); }
+  .irr-kpi .ik-unit { font-size:10px; color:var(--muted); }
+  .irr-timeline { display:flex; align-items:center; gap:6px; margin-top:10px; font-size:12px; }
+  .irr-time-dot { width:9px; height:9px; border-radius:50%; background:var(--accent); flex-shrink:0; }
+  .irr-anomaly-list { margin-top:8px; display:flex; flex-direction:column; gap:5px; }
+  .irr-alert-row { display:flex; align-items:flex-start; gap:8px; padding:7px 10px; border-radius:7px; font-size:12px; }
+  .irr-alert-row.critical { background:rgba(242,100,90,.12); border-left:3px solid var(--red); }
+  .irr-alert-row.major    { background:rgba(245,200,66,.10); border-left:3px solid var(--yellow); }
+  .irr-alert-row.minor    { background:rgba(79,142,247,.08); border-left:3px solid var(--accent); }
+
+  /* ── 생산/유통 섹션 ── */
+  .price-hist-table { width:100%; border-collapse:collapse; font-size:12px; margin-top:8px; }
+  .price-hist-table th { color:var(--muted); font-size:10px; padding:4px 8px; text-align:right; border-bottom:1px solid var(--border); }
+  .price-hist-table th:first-child { text-align:left; }
+  .price-hist-table td { padding:5px 8px; text-align:right; border-bottom:1px solid rgba(42,45,62,.4); font-size:12px; }
+  .price-hist-table td:first-child { text-align:left; color:var(--muted); }
+  .price-up   { color:var(--red); }
+  .price-down { color:var(--accent); }
+  .advisor-opt-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:8px; }
+  .advisor-opt-item { background:#13162a; border-radius:7px; padding:8px 10px; }
+  .advisor-opt-item .ao-var { font-size:10px; color:var(--muted); font-weight:600; text-transform:uppercase; }
+  .advisor-opt-item .ao-val { font-size:16px; font-weight:700; margin-top:2px; }
+  .advisor-opt-item .ao-range { font-size:10px; color:var(--muted); margin-top:1px; }
+
+  /* ── AI 상담 플로팅 ── */
+  #chat-fab {
+    position:fixed; bottom:28px; right:28px; z-index:300;
+    width:52px; height:52px; border-radius:50%;
+    background:var(--accent); border:none; cursor:pointer;
+    font-size:22px; box-shadow:0 4px 18px rgba(79,142,247,.45);
+    display:flex; align-items:center; justify-content:center;
+    transition:transform .15s;
+  }
+  #chat-fab:hover { transform:scale(1.08); }
+  #chat-panel {
+    position:fixed; bottom:92px; right:28px; z-index:299;
+    width:360px; max-height:520px; display:none; flex-direction:column;
+    background:var(--card); border:1px solid var(--border); border-radius:14px;
+    box-shadow:0 8px 32px rgba(0,0,0,.55); overflow:hidden;
+  }
+  #chat-panel.open { display:flex; }
+  .chat-header {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:12px 16px; background:#13162a; border-bottom:1px solid var(--border);
+    font-size:13px; font-weight:700;
+  }
+  #chat-messages {
+    flex:1; overflow-y:auto; padding:12px 14px;
+    display:flex; flex-direction:column; gap:8px; min-height:200px;
+  }
+  .chat-msg { max-width:88%; padding:8px 12px; border-radius:10px; font-size:12px; line-height:1.5; word-break:break-word; }
+  .chat-msg.user { align-self:flex-end; background:rgba(79,142,247,.2); color:var(--text); border-bottom-right-radius:3px; }
+  .chat-msg.ai   { align-self:flex-start; background:#13162a; color:var(--text); border-bottom-left-radius:3px; }
+  .chat-msg.ai .chat-who { font-size:9px; color:var(--accent); font-weight:700; margin-bottom:3px; }
+  .chat-input-row { display:flex; gap:6px; padding:10px 12px; border-top:1px solid var(--border); background:#13162a; }
+  #chat-input {
+    flex:1; background:var(--bg); border:1px solid var(--border);
+    border-radius:8px; color:var(--text); font-size:12px; padding:8px 10px;
+  }
+  #chat-input:focus { outline:none; border-color:var(--accent); }
+  #chat-send {
+    padding:7px 14px; background:var(--accent); border:none; border-radius:8px;
+    color:#fff; font-size:12px; cursor:pointer; font-weight:600;
+  }
+  #chat-send:disabled { opacity:.5; cursor:default; }
+  .chat-sugg-chip {
+    background:rgba(79,142,247,.15); border:1px solid rgba(79,142,247,.4);
+    border-radius:12px; color:var(--accent); font-size:10px; padding:3px 8px;
+    cursor:pointer; transition:background .15s;
+  }
+  .chat-sugg-chip:hover { background:rgba(79,142,247,.3); }
+  .chat-farm-sel {
+    background:var(--bg); border:1px solid var(--border); border-radius:6px;
+    color:var(--text); font-size:11px; padding:3px 6px;
+  }
+  @media(max-width:900px) {
+    #chat-fab { bottom:72px; }
+    #chat-panel { width:calc(100vw - 24px); right:12px; bottom:128px; }
+  }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
 </head>
@@ -389,7 +699,68 @@
   </div>
 </header>
 
-<main>
+<!-- ── KAMIS 실시간 시세 스트립 ── -->
+<div id="price-strip" style="display:none">
+  <span class="price-label">📊 KAMIS 시세</span>
+  <div id="price-chips" style="display:flex;gap:8px;align-items:center"></div>
+</div>
+
+<div id="app-layout">
+<!-- ── 사이드바 ── -->
+<nav id="sidebar">
+  <div class="nav-group-label">메뉴</div>
+  <button class="nav-item active" onclick="showSection('dashboard')"><span class="nav-icon">📊</span>대시보드</button>
+  <button class="nav-item" onclick="showSection('environ')"><span class="nav-icon">🌡️</span>환경</button>
+  <button class="nav-item" onclick="showSection('control')"><span class="nav-icon">🔔</span>알림·권고</button>
+  <button class="nav-item" onclick="showSection('irrigation')"><span class="nav-icon">💧</span>관수관리</button>
+  <button class="nav-item" onclick="showSection('growth')"><span class="nav-icon">🌱</span>생육·수확</button>
+  <button class="nav-item" onclick="showSection('market')"><span class="nav-icon">📦</span>생산·유통</button>
+  <button class="nav-item" onclick="showSection('energy')"><span class="nav-icon">⚡</span>비용·손익</button>
+  <button class="nav-item" onclick="showSection('system')"><span class="nav-icon">🔧</span>시스템</button>
+  <!-- 구독 플랜 배지 -->
+  <div id="plan-badge-wrap">
+    <div class="plan-badge" onclick="openUpgradeModal()" title="플랜 업그레이드">
+      <div class="plan-dot" id="plan-dot" style="background:#8892a4"></div>
+      <span class="plan-name" id="plan-name">기본</span>
+      <span class="plan-chat-quota" id="plan-chat-quota"></span>
+      <span style="color:var(--muted);font-size:10px">⬆</span>
+    </div>
+  </div>
+</nav>
+
+<!-- ══════════════ 업그레이드 모달 ══════════════ -->
+<div id="upgrade-modal-bg" onclick="if(event.target===this)closeUpgradeModal()">
+  <div id="upgrade-modal">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div style="font-size:16px;font-weight:700">플랜 업그레이드</div>
+      <button onclick="closeUpgradeModal()" style="background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer">✕</button>
+    </div>
+    <div id="upgrade-current-plan" style="font-size:12px;color:var(--muted);margin-bottom:14px"></div>
+    <div id="upgrade-tier-list"><!-- JS로 채움 --></div>
+    <div style="margin-top:16px">
+      <div style="font-size:10px;color:var(--muted);margin-bottom:8px">결제 방식</div>
+      <div style="display:flex;gap:8px;margin-bottom:14px">
+        <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer">
+          <input type="radio" name="pg-channel" value="manual" checked> 수동(관리자)
+        </label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer">
+          <input type="radio" name="pg-channel" value="kakaopay"> 카카오페이
+        </label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer">
+          <input type="radio" name="pg-channel" value="toss"> 토스
+        </label>
+      </div>
+      <button id="upgrade-submit-btn" class="reco-apply-btn" style="width:100%" onclick="submitUpgrade()">업그레이드 신청</button>
+      <div id="upgrade-result" style="margin-top:8px;font-size:12px;text-align:center"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── 콘텐츠 영역 ── -->
+<div id="content-area">
+
+<!-- ══════════════ 대시보드 ══════════════ -->
+<div id="sec-dashboard" class="sec active">
   <div class="row row-4">
     <div class="card kpi">
       <div class="card-title">API 상태</div>
@@ -409,7 +780,7 @@
     <div class="card kpi">
       <div class="card-title">처리 완료 CSV</div>
       <div class="val green" id="kpi-done">—</div>
-      <div class="unit">누적 done/</div>
+      <div class="unit">누적 done</div>
     </div>
   </div>
 
@@ -520,15 +891,30 @@
       </table>
     </div>
 
-    <!-- ── 센서 이력 차트 패널 (행 클릭 시 열림) ── -->
+    <!-- ── 농가 상세 패널 (행 클릭 시 열림) ── -->
     <div id="chart-panel">
       <div class="chart-panel-inner">
+        <!-- 상단: 농장 ID + 뷰 탭 + 닫기 -->
         <div class="chart-hdr">
-          <div>
-            <span style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px">센서 이력 —</span>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px">농가 상세 —</span>
             <span class="chart-farm-id" id="chart-farm-label">—</span>
+            <span id="chart-farm-crop" style="font-size:11px;color:var(--muted)"></span>
           </div>
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <div class="detail-tabs">
+              <button class="detail-tab active" onclick="setDetailTab('env')">🌡️ 환경 이력</button>
+              <button class="detail-tab"        onclick="setDetailTab('reco')">🤖 AI 권고</button>
+              <button class="detail-tab"        onclick="setDetailTab('harvest')">📈 수확·매출</button>
+              <button class="detail-tab"        onclick="setDetailTab('disease')">🦠 병해 위험</button>
+            </div>
+            <button class="chart-close" onclick="closeChartPanel()" title="닫기">✕</button>
+          </div>
+        </div>
+
+        <!-- 탭 1: 환경 이력 -->
+        <div id="detail-env" class="detail-pane active">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px">
             <div class="chart-tabs">
               <button class="chart-tab active" onclick="setChartMetric('temp_internal')">🌡️ 온도</button>
               <button class="chart-tab"        onclick="setChartMetric('humidity_int')">💧 습도</button>
@@ -542,67 +928,183 @@
               <option value="14">14일</option>
               <option value="30">30일</option>
             </select>
-            <button class="chart-close" onclick="closeChartPanel()" title="닫기">✕</button>
           </div>
+          <canvas id="farm-chart-canvas"></canvas>
+          <div id="chart-no-data" class="chart-no-data" style="display:none">데이터가 없습니다</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:6px;text-align:right" id="chart-source-label"></div>
         </div>
-        <canvas id="farm-chart-canvas"></canvas>
-        <div id="chart-no-data" class="chart-no-data" style="display:none">데이터가 없습니다</div>
-        <div style="font-size:10px;color:var(--muted);margin-top:6px;text-align:right" id="chart-source-label"></div>
+
+        <!-- 탭 2: AI 권고 -->
+        <div id="detail-reco" class="detail-pane">
+          <div id="detail-reco-body" style="min-height:160px"><div class="spinner" style="margin:40px auto;display:block"></div></div>
+        </div>
+
+        <!-- 탭 3: 수확·매출 예측 -->
+        <div id="detail-harvest" class="detail-pane">
+          <div id="detail-harvest-body" style="min-height:160px"><div class="spinner" style="margin:40px auto;display:block"></div></div>
+        </div>
+
+        <!-- 탭 4: 병해 위험 -->
+        <div id="detail-disease" class="detail-pane">
+          <div id="detail-disease-body" style="min-height:160px"><div class="spinner" style="margin:40px auto;display:block"></div></div>
+        </div>
       </div>
+    </div>
+  </div>
+
+
+</div> <!-- /sec-dashboard -->
+
+<!-- ══════════════ 생육/재배 ══════════════ -->
+<div id="sec-growth" class="sec">
+  <div class="row row-2">
+    <!-- 수확량 예측 -->
+    <div class="card">
+      <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+        <span>🌾 수확량 예측 (M2)</span>
+        <div style="display:flex;gap:6px">
+          <select id="growth-farm-sel" class="profit-farm-sel" onchange="loadGrowthHarvestRevenue()">
+            <option value="">농장 선택…</option>
+          </select>
+          <button class="hdr-btn" onclick="loadGrowthHarvestRevenue()">↻</button>
+        </div>
+      </div>
+      <div id="growth-harvest-body" style="min-height:80px;color:var(--muted);font-size:12px;padding:16px 0;text-align:center">농장을 선택하세요</div>
+    </div>
+    <!-- 매출 예측 -->
+    <div class="card">
+      <div class="card-title">💰 매출·손익 예측 (M3)</div>
+      <div id="growth-revenue-body" style="min-height:80px;color:var(--muted);font-size:12px;padding:16px 0;text-align:center">농장 선택 후 자동 표시</div>
+    </div>
+  </div>
+
+  <!-- What-if 시뮬레이션 -->
+  <div class="card">
+    <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <span>🔮 What-if 환경 시뮬레이션</span>
+      <select id="whatif-farm-sel" class="profit-farm-sel" onchange="resetWhatIf()">
+        <option value="">농장 선택…</option>
+      </select>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:12px 0" id="whatif-inputs">
+      <div><div style="font-size:10px;color:var(--muted);margin-bottom:3px">내부온도 (°C)</div>
+        <input id="wi-temp" type="number" step="0.5" placeholder="예: 24.0" class="env-input"></div>
+      <div><div style="font-size:10px;color:var(--muted);margin-bottom:3px">내부습도 (%)</div>
+        <input id="wi-humi" type="number" step="1" placeholder="예: 70" class="env-input"></div>
+      <div><div style="font-size:10px;color:var(--muted);margin-bottom:3px">CO₂ (ppm)</div>
+        <input id="wi-co2" type="number" step="10" placeholder="예: 800" class="env-input"></div>
+      <div><div style="font-size:10px;color:var(--muted);margin-bottom:3px">EC (dS/m)</div>
+        <input id="wi-ec" type="number" step="0.1" placeholder="예: 2.5" class="env-input"></div>
+    </div>
+    <button class="reco-apply-btn" onclick="runWhatIf()">▶ 시뮬레이션 실행</button>
+    <div id="whatif-result" style="margin-top:12px"></div>
+  </div>
+
+  <!-- 작물별 M2 모델 현황 -->
+  <div class="card">
+    <div class="card-title">🤖 작물별 M2 모델 현황</div>
+    <div id="crop-models-body"><div class="spinner"></div></div>
+  </div>
+</div> <!-- /sec-growth -->
+
+<!-- ══════════════ 관수관리 ══════════════ -->
+<div id="sec-irrigation" class="sec">
+
+  <!-- 관수 스케줄 예측 -->
+  <div class="card">
+    <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <span>☀️ KMA 일사량 기반 관수 스케줄 예측</span>
+      <div style="display:flex;gap:6px;align-items:center">
+        <select id="irr-sched-farm" class="profit-farm-sel" onchange="loadIrrigationSchedule()">
+          <option value="">농장 선택…</option>
+        </select>
+        <label style="font-size:11px;color:var(--muted)">트리거</label>
+        <input id="irr-trigger-mj" type="number" step="0.5" value="2.0" min="0.5" max="5" class="env-input" style="width:60px">
+        <span style="font-size:11px;color:var(--muted)">MJ</span>
+        <button class="hdr-btn" onclick="loadIrrigationSchedule()">↻</button>
+      </div>
+    </div>
+    <div id="irr-sched-body">
+      <div style="color:var(--muted);font-size:12px;padding:20px 0;text-align:center">농장을 선택하세요</div>
     </div>
   </div>
 
   <div class="row row-2">
+    <!-- P4 관수 데이터 입력 -->
     <div class="card">
-      <div class="card-title">파이프라인 — 재학습 임계값 진행률</div>
-      <div id="pipeline-state-body"><div class="spinner"></div></div>
-    </div>
-    <div class="card">
-      <div class="card-title">작물별 M2 모델</div>
-      <div id="crop-models-body"><div class="spinner"></div></div>
-    </div>
-  </div>
-
-  <div class="row row-3">
-    <div class="card">
-      <div class="card-title" style="display:flex;justify-content:space-between">
-        <span>ETL 로그 (최근 30줄)</span>
-        <span id="etl-mtime" style="font-size:10px;color:var(--muted)"></span>
-      </div>
-      <div id="etl-log"><div class="spinner"></div></div>
-    </div>
-    <div class="card">
-      <div class="card-title">재학습 이력</div>
-      <div class="event-list" id="retrain-events"><div class="spinner"></div></div>
-    </div>
-  </div>
-
-  <div class="row" style="margin-top:0">
-    <div class="card" style="flex:1">
-      <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
-        <span>🌿 재배 권고 이력</span>
-        <div class="adv-filter">
-          <input  id="adv-filter-farm" placeholder="농장 ID" oninput="renderAdvisoryFeed()" style="width:90px" />
-          <select id="adv-filter-limit" onchange="loadAdvisoryHistory()">
-            <option value="20">20건</option>
-            <option value="50" selected>50건</option>
-            <option value="100">100건</option>
-          </select>
-          <button class="hdr-btn" onclick="loadAdvisoryHistory()">↻</button>
+      <div class="card-title">💧 P4 관수 데이터 입력</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+        <div>
+          <div style="font-size:10px;color:var(--muted);margin-bottom:3px">농장</div>
+          <select id="irri-farm-sel2" class="profit-farm-sel" style="width:100%"><option value="">선택…</option></select>
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--muted);margin-bottom:3px">날짜</div>
+          <input id="irri-date" type="date" class="env-input" style="width:100%">
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--muted);margin-bottom:3px">공급량 (ml/slab)</div>
+          <input id="irri-supply" type="number" step="10" class="env-input" placeholder="예: 1050" style="width:100%">
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--muted);margin-bottom:3px">배액량 (ml/slab)</div>
+          <input id="irri-drain" type="number" step="10" class="env-input" placeholder="예: 280" style="width:100%">
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--muted);margin-bottom:3px">EC (dS/m)</div>
+          <input id="irri-ec2" type="number" step="0.01" class="env-input" placeholder="예: 2.3" style="width:100%">
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--muted);margin-bottom:3px">야간 최대무게 (kg)</div>
+          <input id="irri-maxwt" type="number" step="0.1" class="env-input" placeholder="예: 14.8" style="width:100%">
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--muted);margin-bottom:3px">일몰 후 무게 (kg)</div>
+          <input id="irri-sunsetwt" type="number" step="0.1" class="env-input" placeholder="예: 13.5" style="width:100%">
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--muted);margin-bottom:3px">흡수효율 (ml/J)</div>
+          <input id="irri-uptake" type="number" step="0.01" class="env-input" placeholder="예: 1.8" style="width:100%">
         </div>
       </div>
-      <div id="advisory-feed-body">
-        <div class="advisor-feed" id="advisory-feed"></div>
-        <div id="adv-empty" style="display:none">권고 이력이 없습니다</div>
+      <button class="reco-apply-btn" onclick="submitIrrigationP4()">💾 관수 데이터 저장</button>
+      <div id="irri-result2" style="margin-top:8px;font-size:12px"></div>
+    </div>
+
+    <!-- 관수 이상 감지 결과 -->
+    <div class="card">
+      <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+        <span>⚠️ 관수 이상 감지</span>
+        <button class="hdr-btn" onclick="checkIrrigationAnomalies()">↻</button>
+      </div>
+      <div id="irr-anomaly-body">
+        <div style="color:var(--muted);font-size:12px;padding:20px 0;text-align:center">관수 데이터 입력 후 자동 감지</div>
       </div>
     </div>
   </div>
 
-  <div class="row" style="margin-top:0">
-    <!-- 손익 예측 -->
-    <div class="card" style="flex:1;min-width:260px">
+</div> <!-- /sec-irrigation -->
+
+<!-- ══════════════ 에너지/비용 ══════════════ -->
+<div id="sec-energy" class="sec">
+  <div class="row row-2">
+    <!-- 비용 내역 조회 -->
+    <div class="card">
+      <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+        <span>💳 비용 내역 조회 (M4)</span>
+        <div style="display:flex;gap:6px">
+          <select id="cost-farm-sel" class="profit-farm-sel" onchange="loadCostBreakdown()">
+            <option value="">농장 선택…</option>
+          </select>
+          <button class="hdr-btn" onclick="loadCostBreakdown()">↻</button>
+        </div>
+      </div>
+      <div id="cost-body" style="min-height:100px;color:var(--muted);font-size:12px;padding:16px 0;text-align:center">농장을 선택하세요</div>
+    </div>
+    <!-- 이번 시즌 손익 예측 -->
+    <div class="card">
       <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
-        <span>💰 이번 시즌 손익 예측</span>
+        <span>📊 시즌 손익 예측</span>
         <div style="display:flex;gap:6px;align-items:center">
           <select id="profit-farm-sel" class="profit-farm-sel" onchange="loadProfitForecast()">
             <option value="">농장 선택…</option>
@@ -614,39 +1116,345 @@
         <div style="color:var(--muted);font-size:12px;padding:16px 0;text-align:center">농장을 선택하세요</div>
       </div>
     </div>
-    <!-- 권고 빈도 히트맵 -->
-    <div class="card" style="flex:1.6;min-width:320px">
-      <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
-        <span>🔥 권고 빈도 히트맵</span>
-        <div style="display:flex;gap:6px;align-items:center">
-          <select id="heatmap-days-sel" onchange="loadAdvisorySummary()"
-            style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:4px 8px;font-size:12px">
-            <option value="7">7일</option>
-            <option value="30" selected>30일</option>
-            <option value="90">90일</option>
-          </select>
-          <button class="hdr-btn" onclick="loadAdvisorySummary()">↻</button>
-        </div>
+  </div>
+
+  <!-- 수동 비용 입력 -->
+  <div class="card">
+    <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+      <span>✏️ 실제 비용 직접 입력</span>
+      <select id="cost-manual-farm" class="profit-farm-sel" onchange="loadCostManualForm()">
+        <option value="">농장 선택…</option>
+      </select>
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:10px">
+      입력한 항목만 적용됩니다. 미입력 항목은 기본 추정값을 사용합니다.
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px">
+      <div>
+        <div style="font-size:10px;color:var(--muted);margin-bottom:3px">전기 사용량 (kWh/월)</div>
+        <input id="mc-elec-kwh" type="number" class="env-input" placeholder="예: 4500" style="width:100%">
       </div>
-      <div id="heatmap-body">
-        <div id="heatmap-empty" style="display:none">권고 이력이 없습니다</div>
-        <div class="heatmap-wrap">
-          <table class="heatmap-table" id="heatmap-table">
-            <thead><tr id="heatmap-thead"></tr></thead>
-            <tbody id="heatmap-tbody"></tbody>
-          </table>
-        </div>
-        <div style="margin-top:8px;display:flex;gap:6px;align-items:center;font-size:10px;color:var(--muted)">
-          <span>빈도:</span>
-          <span class="hm-cell hm-0" style="width:20px;height:16px">0</span>
-          <span class="hm-cell hm-1" style="width:20px;height:16px">1</span>
-          <span class="hm-cell hm-3" style="width:20px;height:16px">3</span>
-          <span class="hm-cell hm-5" style="width:20px;height:16px">5+</span>
-        </div>
+      <div>
+        <div style="font-size:10px;color:var(--muted);margin-bottom:3px">전기 단가 (원/kWh)</div>
+        <input id="mc-elec-rate" type="number" class="env-input" placeholder="예: 112" style="width:100%">
+      </div>
+      <div>
+        <div style="font-size:10px;color:var(--muted);margin-bottom:3px">용수 사용량 (m³/월)</div>
+        <input id="mc-water-m3" type="number" class="env-input" placeholder="예: 180" style="width:100%">
+      </div>
+      <div>
+        <div style="font-size:10px;color:var(--muted);margin-bottom:3px">용수 단가 (원/m³)</div>
+        <input id="mc-water-rate" type="number" class="env-input" placeholder="예: 620" style="width:100%">
+      </div>
+      <div>
+        <div style="font-size:10px;color:var(--muted);margin-bottom:3px">난방 에너지 (kWh/월)</div>
+        <input id="mc-heat-kwh" type="number" class="env-input" placeholder="예: 2000" style="width:100%">
+      </div>
+      <div>
+        <div style="font-size:10px;color:var(--muted);margin-bottom:3px">난방 단가 (원/kWh)</div>
+        <input id="mc-heat-rate" type="number" class="env-input" placeholder="예: 85" style="width:100%">
+      </div>
+      <div>
+        <div style="font-size:10px;color:var(--muted);margin-bottom:3px">인건 시간 (시간/월)</div>
+        <input id="mc-labor-hrs" type="number" class="env-input" placeholder="예: 120" style="width:100%">
+      </div>
+      <div>
+        <div style="font-size:10px;color:var(--muted);margin-bottom:3px">시급 (원/시간)</div>
+        <input id="mc-labor-rate" type="number" class="env-input" placeholder="예: 9860" style="width:100%">
+      </div>
+      <div>
+        <div style="font-size:10px;color:var(--muted);margin-bottom:3px">영양제·비료 (원/월)</div>
+        <input id="mc-nutr" type="number" class="env-input" placeholder="예: 80000" style="width:100%">
+      </div>
+      <div>
+        <div style="font-size:10px;color:var(--muted);margin-bottom:3px">농약·방제 (원/월)</div>
+        <input id="mc-pest" type="number" class="env-input" placeholder="예: 30000" style="width:100%">
+      </div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="reco-apply-btn" onclick="submitManualCost()">💾 저장</button>
+      <button class="reco-apply-btn" onclick="deleteManualCost()" style="background:var(--red)">🗑️ 삭제 (기본값 복원)</button>
+    </div>
+    <div id="cost-manual-result" style="margin-top:8px;font-size:12px"></div>
+  </div>
+</div> <!-- /sec-energy -->
+
+<!-- ══════════════ 제어최적화 ══════════════ -->
+<div id="sec-control" class="sec">
+  <!-- 최적 권고 요약 -->
+  <div class="card">
+    <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <span>🤖 AI 최적 권고 (실시간)</span>
+      <div style="display:flex;gap:6px">
+        <select id="ctrl-farm-sel" class="profit-farm-sel" onchange="loadCtrlRecommendations()">
+          <option value="">농장 선택…</option>
+        </select>
+        <button class="hdr-btn" onclick="loadCtrlRecommendations()">↻</button>
+      </div>
+    </div>
+    <div id="ctrl-reco-body" style="min-height:60px;color:var(--muted);font-size:12px;padding:12px 0;text-align:center">농장을 선택하세요</div>
+  </div>
+
+  <!-- 권고 이력 피드 -->
+  <div class="card">
+    <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <span>🌿 재배 권고 이력</span>
+      <div class="adv-filter">
+        <input  id="adv-filter-farm" placeholder="농장 ID" oninput="renderAdvisoryFeed()" style="width:90px" />
+        <select id="adv-filter-limit" onchange="loadAdvisoryHistory()">
+          <option value="20">20건</option>
+          <option value="50" selected>50건</option>
+          <option value="100">100건</option>
+        </select>
+        <button class="hdr-btn" onclick="loadAdvisoryHistory()">↻</button>
+      </div>
+    </div>
+    <div id="advisory-feed-body">
+      <div class="advisor-feed" id="advisory-feed"></div>
+      <div id="adv-empty" style="display:none">권고 이력이 없습니다</div>
+    </div>
+  </div>
+
+  <!-- 권고 빈도 히트맵 -->
+  <div class="card">
+    <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <span>🔥 권고 빈도 히트맵</span>
+      <div style="display:flex;gap:6px;align-items:center">
+        <select id="heatmap-days-sel" onchange="loadAdvisorySummary()"
+          style="background:var(--card);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:4px 8px;font-size:12px">
+          <option value="7">7일</option>
+          <option value="30" selected>30일</option>
+          <option value="90">90일</option>
+        </select>
+        <button class="hdr-btn" onclick="loadAdvisorySummary()">↻</button>
+      </div>
+    </div>
+    <div id="heatmap-body">
+      <div id="heatmap-empty" style="display:none">권고 이력이 없습니다</div>
+      <div class="heatmap-wrap">
+        <table class="heatmap-table" id="heatmap-table">
+          <thead><tr id="heatmap-thead"></tr></thead>
+          <tbody id="heatmap-tbody"></tbody>
+        </table>
+      </div>
+      <div style="margin-top:8px;display:flex;gap:6px;align-items:center;font-size:10px;color:var(--muted)">
+        <span>빈도:</span>
+        <span class="hm-cell hm-0" style="width:20px;height:16px">0</span>
+        <span class="hm-cell hm-1" style="width:20px;height:16px">1</span>
+        <span class="hm-cell hm-3" style="width:20px;height:16px">3</span>
+        <span class="hm-cell hm-5" style="width:20px;height:16px">5+</span>
       </div>
     </div>
   </div>
-</main>
+</div> <!-- /sec-control -->
+
+<!-- ══════════════ 환경설정 ══════════════ -->
+<div id="sec-environ" class="sec">
+  <div class="row row-2">
+    <!-- 현재 환경값 조회 -->
+    <div class="card">
+      <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+        <span>🌡️ 현재 환경값</span>
+        <div style="display:flex;gap:6px">
+          <select id="env-view-farm" class="profit-farm-sel" onchange="loadCurrentEnv()">
+            <option value="">농장 선택…</option>
+          </select>
+          <button class="hdr-btn" onclick="loadCurrentEnv()">↻</button>
+        </div>
+      </div>
+      <div id="env-current-body" style="min-height:100px;color:var(--muted);font-size:12px;padding:16px 0;text-align:center">농장을 선택하세요</div>
+    </div>
+    <!-- 7일 기상 예보 -->
+    <div class="card">
+      <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+        <span>🌤️ 7일 기상 예보 (KMA)</span>
+        <div style="display:flex;gap:6px">
+          <select id="weather-farm-sel" class="profit-farm-sel" onchange="loadWeatherForecast()">
+            <option value="">농장 선택…</option>
+          </select>
+          <button class="hdr-btn" onclick="loadWeatherForecast()">↻</button>
+        </div>
+      </div>
+      <div id="weather-body" style="min-height:100px;color:var(--muted);font-size:12px;padding:16px 0;text-align:center">농장을 선택하세요</div>
+    </div>
+  </div>
+
+  <!-- 수동 환경값 입력 -->
+  <div class="card">
+    <div class="card-title">✏️ 환경값 수동 입력</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px">
+      <div>
+        <div style="font-size:10px;color:var(--muted);margin-bottom:3px">농장</div>
+        <select id="env-manual-farm" class="profit-farm-sel" style="width:100%">
+          <option value="">선택…</option>
+        </select>
+      </div>
+      <div>
+        <div style="font-size:10px;color:var(--muted);margin-bottom:3px">내부온도 (°C)</div>
+        <input id="em-temp" type="number" step="0.1" class="env-input" placeholder="예: 24.0" style="width:100%">
+      </div>
+      <div>
+        <div style="font-size:10px;color:var(--muted);margin-bottom:3px">내부습도 (%)</div>
+        <input id="em-humi" type="number" step="1" class="env-input" placeholder="예: 70" style="width:100%">
+      </div>
+      <div>
+        <div style="font-size:10px;color:var(--muted);margin-bottom:3px">CO₂ (ppm)</div>
+        <input id="em-co2" type="number" step="10" class="env-input" placeholder="예: 800" style="width:100%">
+      </div>
+      <div>
+        <div style="font-size:10px;color:var(--muted);margin-bottom:3px">EC (dS/m)</div>
+        <input id="em-ec" type="number" step="0.01" class="env-input" placeholder="예: 2.5" style="width:100%">
+      </div>
+      <div>
+        <div style="font-size:10px;color:var(--muted);margin-bottom:3px">pH</div>
+        <input id="em-ph" type="number" step="0.1" class="env-input" placeholder="예: 6.2" style="width:100%">
+      </div>
+    </div>
+    <button class="reco-apply-btn" onclick="submitManualEnv()">💾 환경값 저장</button>
+    <div id="env-manual-result" style="margin-top:8px;font-size:12px"></div>
+  </div>
+
+  <!-- 환경 이상 감지 패널 -->
+  <div class="card">
+    <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+      <span>🚨 환경 이상 감지 (VPD·온도·습도·CO₂·EC)</span>
+      <div style="display:flex;gap:6px;align-items:center">
+        <select id="env-anomaly-farm" class="profit-farm-sel" onchange="loadEnvAnomalies()">
+          <option value="">농장 선택…</option>
+        </select>
+        <button class="hdr-btn" onclick="loadEnvAnomalies()">↻</button>
+      </div>
+    </div>
+    <div id="env-anomaly-body">
+      <div style="color:var(--muted);font-size:12px;padding:16px 0;text-align:center">농장을 선택하세요</div>
+    </div>
+  </div>
+
+</div> <!-- /sec-environ -->
+
+<!-- ══════════════ 생산/유통 ══════════════ -->
+<div id="sec-market" class="sec">
+
+  <!-- KAMIS 작목별 시세 현황 -->
+  <div class="card">
+    <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <span>💹 KAMIS 작목별 시세 현황</span>
+      <div style="display:flex;gap:6px;align-items:center">
+        <button class="hdr-btn" onclick="loadMarketPrices()">↻ 갱신</button>
+      </div>
+    </div>
+    <div id="market-prices-body">
+      <div style="color:var(--muted);font-size:12px;padding:16px 0;text-align:center"><div class="spinner"></div></div>
+    </div>
+  </div>
+
+  <!-- 가격 이력 조회 -->
+  <div class="card">
+    <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <span>📈 가격 이력 (30일)</span>
+      <div style="display:flex;gap:6px;align-items:center">
+        <select id="price-hist-crop" class="profit-farm-sel" onchange="loadPriceHistory()">
+          <option value="">작목 선택…</option>
+          <option value="딸기">딸기</option>
+          <option value="방울토마토">방울토마토</option>
+          <option value="완숙토마토">완숙토마토</option>
+          <option value="오이">오이</option>
+          <option value="파프리카">파프리카</option>
+          <option value="참외">참외</option>
+        </select>
+        <button class="hdr-btn" onclick="loadPriceHistory()">↻</button>
+      </div>
+    </div>
+    <div id="price-hist-body">
+      <div style="color:var(--muted);font-size:12px;padding:16px 0;text-align:center">작목을 선택하세요</div>
+    </div>
+  </div>
+
+  <div class="row row-2">
+    <!-- 수확량 예측 요약 (생산측) -->
+    <div class="card">
+      <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+        <span>🌾 출하 예측</span>
+        <div style="display:flex;gap:6px">
+          <select id="market-harvest-farm" class="profit-farm-sel" onchange="loadMarketHarvest()">
+            <option value="">농장 선택…</option>
+          </select>
+          <button class="hdr-btn" onclick="loadMarketHarvest()">↻</button>
+        </div>
+      </div>
+      <div id="market-harvest-body" style="min-height:80px;color:var(--muted);font-size:12px;padding:16px 0;text-align:center">농장을 선택하세요</div>
+    </div>
+
+    <!-- 어드바이저 최적 환경 (전작목) -->
+    <div class="card">
+      <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+        <span>🏆 최적 재배 환경 기준</span>
+        <div style="display:flex;gap:6px;align-items:center">
+          <select id="advisor-crop-sel" class="profit-farm-sel" onchange="loadAdvisorOptimal()">
+            <option value="">작목 선택…</option>
+            <option value="딸기">딸기</option>
+            <option value="방울토마토">방울토마토</option>
+            <option value="완숙토마토">완숙토마토</option>
+            <option value="오이">오이</option>
+            <option value="파프리카">파프리카</option>
+          </select>
+          <button class="hdr-btn" onclick="loadAdvisorOptimal()">↻</button>
+        </div>
+      </div>
+      <div id="advisor-opt-body" style="min-height:80px;color:var(--muted);font-size:12px;padding:16px 0;text-align:center">작목을 선택하세요</div>
+    </div>
+  </div>
+
+</div> <!-- /sec-market -->
+
+<!-- ══════════════ 시스템 ══════════════ -->
+<div id="sec-system" class="sec">
+  <div class="row row-2">
+    <div class="card">
+      <div class="card-title">파이프라인 — 재학습 임계값 진행률</div>
+      <div id="pipeline-state-body"><div class="spinner"></div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">재학습 이력</div>
+      <div class="event-list" id="retrain-events"><div class="spinner"></div></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title" style="display:flex;justify-content:space-between">
+      <span>ETL 로그 (최근 30줄)</span>
+      <span id="etl-mtime" style="font-size:10px;color:var(--muted)"></span>
+    </div>
+    <div id="etl-log"><div class="spinner"></div></div>
+  </div>
+</div> <!-- /sec-system -->
+
+</div> <!-- /content-area -->
+</div> <!-- /app-layout -->
+
+<!-- ── AI 상담 플로팅 ── -->
+<button id="chat-fab" onclick="toggleChat()" title="AI 상담">💬</button>
+
+<div id="chat-panel">
+  <div class="chat-header">
+    <span>🤖 스마트팜 AI 상담</span>
+    <div style="display:flex;gap:8px;align-items:center">
+      <select id="chat-farm-sel" class="chat-farm-sel">
+        <option value="">농장 선택…</option>
+      </select>
+      <button onclick="toggleChat()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px">✕</button>
+    </div>
+  </div>
+  <div id="chat-messages">
+    <div class="chat-msg ai">
+      <div class="chat-who">SMART FARM AI</div>
+      안녕하세요! 재배 환경, 수확량 예측, 관수 관리에 대해 무엇이든 물어보세요.
+    </div>
+  </div>
+  <div class="chat-input-row">
+    <input id="chat-input" placeholder="질문을 입력하세요… (Enter 전송)" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat();}">
+    <button id="chat-send" onclick="sendChat()">전송</button>
+  </div>
+</div>
 
 <div id="anomaly-toast"></div>
 
@@ -655,12 +1463,32 @@
 let _token   = sessionStorage.getItem('sf_token') || '';
 let _apiBase = sessionStorage.getItem('sf_api')   || 'http://localhost';
 
+// ── 빌링 상태 ──────────────────────────────────────────────────────────────────
+let _myFarmId  = sessionStorage.getItem('sf_farm_id') || '';
+let _myTier    = sessionStorage.getItem('sf_tier')    || 'basic';
+let _planCache = null;   // GET /billing/plan 캐시
+let _featCache = {};     // { section: [features] }
+
+function _decodeJwt(token) {
+  try {
+    const b64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    return JSON.parse(atob(b64));
+  } catch { return {}; }
+}
+
 const $ = id => document.getElementById(id);
 
 if (_token) {
   $('login-overlay').classList.add('hidden');
   $('login-api-url').value = _apiBase;
+  // JWT에서 farm_id/tier 복원 (sessionStorage에 없는 경우 디코딩)
+  if (!_myFarmId) {
+    const claims = _decodeJwt(_token);
+    _myFarmId = claims.farm_id || '';
+    _myTier   = claims.tier    || 'basic';
+  }
   refreshAll();
+  if (_myFarmId) loadPlanBadge(_myFarmId);
 }
 
 // ── 로그인 ────────────────────────────────────────────────────────────────────
@@ -683,9 +1511,16 @@ async function doLogin() {
     _apiBase = api;
     sessionStorage.setItem('sf_token', _token);
     sessionStorage.setItem('sf_api',   _apiBase);
+    // JWT 클레임에서 farm_id / tier 추출
+    const claims = _decodeJwt(_token);
+    _myFarmId = claims.farm_id || data.farm_id || '';
+    _myTier   = data.tier || claims.tier || 'basic';
+    sessionStorage.setItem('sf_farm_id', _myFarmId);
+    sessionStorage.setItem('sf_tier',    _myTier);
     $('login-overlay').classList.add('hidden');
     $('logged-as').textContent = `👤 ${user}`;
     refreshAll();
+    if (_myFarmId) loadPlanBadge(_myFarmId);
   } catch(e) {
     errEl.textContent = '로그인 실패: ' + e.message;
   } finally {
@@ -724,6 +1559,7 @@ async function refreshAll() {
     loadFarmsOverview(),
     loadAdvisoryHistory(),
     loadAdvisorySummary(),
+    loadPricesLatest(),
   ]);
   $('last-refresh').textContent = '갱신: ' + new Date().toLocaleTimeString('ko-KR');
   if (_token && !_wsActive) wsConnect($('sensor-farm-sel').value);
@@ -761,10 +1597,25 @@ async function loadCropModels() {
   try {
     const d = await apiFetch('/api/admin/models');
     const rows = (d.crops||[]).map(c => {
-      const st = c.status==='loaded' ? '✅' : '⚠️';
-      return `<tr><td>${st} ${c.crop_ko||c.crop}</td><td>${c.mape!=null?c.mape.toFixed(1)+'%':'—'}</td><td>${c.r2!=null?c.r2.toFixed(3):'—'}</td></tr>`;
+      const st = c.status === 'loaded' ? '✅' : '⚠️';
+      // 게이트 배지: M1(R² 게이트), M2(MAPE 게이트)
+      const m1Gate = c.gate_m1 != null ? c.gate_m1 : (c.r2 != null ? c.r2 >= -0.20 : null);
+      const m2Gate = c.gate_m2 != null ? c.gate_m2 : (c.mape != null ? c.mape <= 40 : null);
+      const gateBadge = (passed, label) => {
+        if (passed == null) return '';
+        const cls = passed ? 'pass' : 'fail';
+        const txt = passed ? '✓' : '✗';
+        return `<span class="gate-badge ${cls}">${label}${txt}</span>`;
+      };
+      const mapeWarn = c.cv_mape_warning
+        ? `<span class="gate-badge warn" title="CV MAPE 과대 (연도별 편차)">CV⚠</span>` : '';
+      return `<tr>
+        <td>${st} ${c.crop_ko||c.crop}</td>
+        <td>${c.mape!=null?c.mape.toFixed(1)+'%':'—'}${gateBadge(m2Gate,'M2')}</td>
+        <td>${c.r2!=null?c.r2.toFixed(3):'—'}${gateBadge(m1Gate,'M1')}${mapeWarn}</td>
+      </tr>`;
     }).join('');
-    el.innerHTML = `<table><thead><tr><th>작물</th><th>MAPE</th><th>R²</th></tr></thead><tbody>${rows}</tbody></table>`;
+    el.innerHTML = `<table><thead><tr><th>작물</th><th>MAPE</th><th>R²</th></tr></thead><tbody>${rows||'<tr><td colspan="3" style="color:var(--muted);text-align:center">데이터 없음</td></tr>'}</tbody></table>`;
   } catch(e) { el.innerHTML = `<span style="color:var(--red)">로드 실패: ${e.message}</span>`; }
 }
 
@@ -842,6 +1693,7 @@ async function loadFarmsOverview() {
       `<span class="farms-stat-chip farms-stat-offline">⚫ 오프라인 ${d.total - d.online}</span>`;
     renderFarmsTable();
     populateProfitFarmSel(_farmsData);
+    populateAllFarmSels();
   } catch(e) {
     const tb = $('farms-tbody');
     if (tb) tb.innerHTML = `<tr><td colspan="10" style="color:var(--red);text-align:center">로드 실패: ${e.message}</td></tr>`;
@@ -930,6 +1782,8 @@ const METRIC_CFG = {
   soil_temp:     { label:'지온 (°C)',        color:'#f5c842', yLabel:'°C'     },
 };
 
+let _detailTab = 'env';
+
 function openChartPanel(farmId, rowEl) {
   // 선택 행 강조
   document.querySelectorAll('#farms-tbody tr').forEach(r => r.classList.remove('selected'));
@@ -937,9 +1791,37 @@ function openChartPanel(farmId, rowEl) {
 
   _chartFarmId = farmId;
   $('chart-farm-label').textContent = farmId;
+
+  // 농장 작목명 표시
+  const farmInfo = _farmsData.find(f => f.farm_id === farmId);
+  if ($('chart-farm-crop')) $('chart-farm-crop').textContent = farmInfo?.crop_ko || '';
+
   $('chart-panel').classList.add('open');
 
-  reloadChart();
+  // 현재 활성 탭 기준으로 로드
+  if (_detailTab === 'env')     reloadChart();
+  else if (_detailTab === 'reco')    loadFarmRecommendations(farmId);
+  else if (_detailTab === 'harvest') loadFarmHarvestRevenue(farmId);
+  else if (_detailTab === 'disease') loadFarmDiseaseRisk(farmId);
+}
+
+function setDetailTab(tab) {
+  _detailTab = tab;
+  // 탭 버튼 active 전환
+  document.querySelectorAll('.detail-tab').forEach(t => t.classList.remove('active'));
+  const tabIdx = ['env','reco','harvest','disease'].indexOf(tab);
+  document.querySelectorAll('.detail-tab')[tabIdx]?.classList.add('active');
+  // 패널 pane 전환
+  ['detail-env','detail-reco','detail-harvest','detail-disease'].forEach(id => {
+    const el = $(id); if (el) el.classList.remove('active');
+  });
+  $(`detail-${tab}`)?.classList.add('active');
+  // 데이터 로드
+  if (!_chartFarmId) return;
+  if (tab === 'env')     reloadChart();
+  else if (tab === 'reco')    loadFarmRecommendations(_chartFarmId);
+  else if (tab === 'harvest') loadFarmHarvestRevenue(_chartFarmId);
+  else if (tab === 'disease') loadFarmDiseaseRisk(_chartFarmId);
 }
 
 function closeChartPanel() {
@@ -1040,6 +1922,214 @@ async function reloadChart() {
     noData.textContent   = '차트 로드 실패: ' + e.message;
     srcLabel.textContent = '';
   }
+}
+
+// ── 농가 상세: AI 권고 ────────────────────────────────────────────────────────
+const RECO_FIELD_LABELS = {
+  temp_internal:'내부온도', humidity_int:'내부습도',
+  co2_ppm:'CO₂', soil_temp:'지온', ec_dsm:'EC',
+};
+
+// 공통 권고 아이템 렌더 헬퍼 (RecommendationItem 스키마 기반)
+function _renderRecoItems(items, farmId) {
+  const TIER_BADGE = { auto:'🤖자동', approval_required:'✋승인필요', checklist:'📋체크리스트' };
+  const listHtml = items.map(r => {
+    // RecommendationItem: rank, action_ko, profit_delta, revenue_delta, cost_delta, confidence, tier_action, canonical_changes
+    const profitCls = (r.profit_delta ?? 0) >= 0 ? 'positive' : 'negative';
+    const sign = (r.profit_delta ?? 0) >= 0 ? '+' : '';
+    const tierTxt = TIER_BADGE[r.tier_action] || r.tier_action || '';
+    const changes = r.canonical_changes || {};
+    const changeSummary = Object.entries(changes)
+      .map(([k, v]) => `${RECO_FIELD_LABELS[k]||k} ${v>=0?'+':''}${v}`)
+      .join(', ');
+    // 구버전 호환 (field/side/action 구조 혼용)
+    const action = r.action_ko || r.action || r.message || '—';
+    return `<div class="reco-item">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px">
+        <span class="reco-action">${r.rank != null ? `#${r.rank} ` : ''}${action}</span>
+        <span style="white-space:nowrap">${tierTxt}</span>
+      </div>
+      ${changeSummary ? `<div style="font-size:10px;color:var(--muted);margin-top:2px">조정: ${changeSummary}</div>` : ''}
+      <div style="display:flex;gap:12px;margin-top:4px;font-size:11px">
+        <span class="reco-val ${profitCls}">수익 ${sign}${Math.round(r.profit_delta??0).toLocaleString('ko-KR')}원</span>
+        ${r.confidence != null ? `<span style="color:var(--muted)">신뢰도 ${Math.round((r.confidence??0)*100)}%</span>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+  const totalProfit = items.reduce((s, r) => s + (r.profit_delta ?? 0), 0);
+  const gainHtml = items.length > 0
+    ? `<div class="reco-gain">📈 권고 전체 적용 시 기대 수익: +${Math.round(totalProfit).toLocaleString('ko-KR')}원</div>`
+    : '';
+  return { listHtml, gainHtml };
+}
+
+async function loadFarmRecommendations(farmId) {
+  const el = $('detail-reco-body');
+  if (!el) return;
+  el.innerHTML = '<div class="spinner" style="margin:40px auto;display:block"></div>';
+  try {
+    const d = await apiFetch(`/api/farms/${farmId}/recommendations`);
+    const items = d.recommendations || d.items || [];
+    if (!items.length) {
+      el.innerHTML = '<div style="text-align:center;color:var(--muted);padding:40px 0">현재 권고 사항이 없습니다 ✅</div>';
+      return;
+    }
+    const { listHtml, gainHtml } = _renderRecoItems(items, farmId);
+    el.innerHTML = `
+      <div class="reco-list">${listHtml}</div>
+      ${gainHtml}
+      <button class="reco-apply-btn" onclick="applyRecommendations('${farmId}')">✅ 권고 적용 요청</button>`;
+  } catch(e) {
+    el.innerHTML = `<div style="color:var(--red);padding:12px">권고 조회 실패: ${e.message}</div>`;
+  }
+}
+
+async function applyRecommendations(farmId) {
+  if (!confirm(`${farmId}의 AI 권고를 적용하시겠습니까?`)) return;
+  try {
+    await apiFetch(`/api/farms/${farmId}/apply`, { method:'POST', headers:{'Content-Type':'application/json'}, body:'{}' });
+    alert('권고가 적용 요청되었습니다.');
+    loadFarmRecommendations(farmId);
+  } catch(e) { alert('적용 실패: ' + e.message); }
+}
+
+// ── 농가 상세: 수확·매출 예측 ─────────────────────────────────────────────────
+async function loadFarmHarvestRevenue(farmId) {
+  const el = $('detail-harvest-body');
+  if (!el) return;
+  el.innerHTML = '<div class="spinner" style="margin:40px auto;display:block"></div>';
+  try {
+    const [harv, rev] = await Promise.allSettled([
+      apiFetch(`/api/farms/${farmId}/harvest`),
+      apiFetch(`/api/farms/${farmId}/revenue`),
+    ]);
+    const h = harv.status === 'fulfilled' ? harv.value : null;
+    const r = rev.status  === 'fulfilled' ? rev.value  : null;
+    const fmt = n => n != null ? Math.round(n).toLocaleString('ko-KR') : '—';
+    const fmtKg = n => n != null ? Number(n).toFixed(1) : '—';
+
+    const profit    = (r?.revenue_krw ?? 0) - (r?.cost_krw ?? 0);
+    const profitCls = profit >= 0 ? 'positive' : 'negative';
+    const profitSign= profit >= 0 ? '+' : '';
+
+    el.innerHTML = `
+      <div class="harvest-grid">
+        <div class="harvest-kpi">
+          <div class="hk-label">예상 수확량</div>
+          <div class="hk-val">${fmtKg(h?.yield_kg_forecast)} <span style="font-size:13px;color:var(--muted)">kg</span></div>
+        </div>
+        <div class="harvest-kpi">
+          <div class="hk-label">80% 신뢰구간</div>
+          <div class="hk-val" style="font-size:14px">${h?.yield_q10 != null ? `${fmtKg(h.yield_q10)}–${fmtKg(h.yield_q90)} kg` : '—'}</div>
+        </div>
+        <div class="harvest-kpi">
+          <div class="hk-label">잔여 재배일</div>
+          <div class="hk-val">${h?.days_to_harvest ?? '—'} <span style="font-size:13px;color:var(--muted)">일</span></div>
+        </div>
+        <div class="harvest-kpi">
+          <div class="hk-label">예상 매출</div>
+          <div class="hk-val">${fmt(r?.revenue_krw)} <span style="font-size:11px;color:var(--muted)">원</span></div>
+        </div>
+        <div class="harvest-kpi">
+          <div class="hk-label">예상 비용</div>
+          <div class="hk-val">${fmt(r?.cost_krw)} <span style="font-size:11px;color:var(--muted)">원</span></div>
+        </div>
+        <div class="harvest-kpi">
+          <div class="hk-label">예상 순이익</div>
+          <div class="hk-val ${profitCls}">${profitSign}${fmt(profit)} <span style="font-size:11px">원</span></div>
+        </div>
+      </div>
+      <div class="harvest-note">
+        ${r?.crop_ko || ''} · 시세 ${r?.price_krw_kg != null ? Math.round(r.price_krw_kg).toLocaleString('ko-KR')+'원/kg' : '—'}
+        ${r?.price_source === 'kamis_live' ? ' 🟢실시간' : ' 📊평균'}
+        · 면적 ${h?.area_m2 != null ? h.area_m2.toLocaleString('ko-KR')+' m²' : '—'}
+      </div>`;
+  } catch(e) {
+    el.innerHTML = `<div style="color:var(--red);padding:12px">조회 실패: ${e.message}</div>`;
+  }
+}
+
+// ── 농가 상세: 병해 위험 ──────────────────────────────────────────────────────
+async function loadFarmDiseaseRisk(farmId) {
+  const el = $('detail-disease-body');
+  if (!el) return;
+  el.innerHTML = '<div class="spinner" style="margin:40px auto;display:block"></div>';
+  try {
+    const d = await apiFetch(`/api/farms/${farmId}/disease-risk`);
+    // API는 단일 DiseaseRiskResponse (flat) 또는 배열 형태 모두 처리
+    let risks = d.risks || d.diseases || null;
+    if (!risks) {
+      // flat 단일 객체 → 배열 변환
+      if (d.disease) {
+        risks = [{
+          disease_ko:  d.disease_ko  || d.disease,
+          disease:     d.disease,
+          risk_score:  d.score       ?? 0,
+          risk_level:  d.risk_level,
+          note:        (d.reasons || []).join(' ') || d.action_ko || '',
+        }];
+      } else {
+        risks = [];
+      }
+    }
+    if (!risks.length) {
+      el.innerHTML = '<div style="text-align:center;color:var(--muted);padding:40px 0">병해 위험 데이터가 없습니다</div>';
+      return;
+    }
+    const cards = risks.map(r => {
+      const pct   = Math.round((r.risk_score ?? r.score ?? r.risk ?? 0) * 100);
+      const lvl   = pct < 30 ? 'low' : pct < 60 ? 'med' : 'high';
+      const lvlTxt= pct < 30 ? '낮음' : pct < 60 ? '중간' : '높음';
+      const badge = pct < 30 ? 'ok' : pct < 60 ? 'warn' : 'fail';
+      return `<div class="disease-card">
+        <div class="disease-name">${r.disease_ko || r.disease || '—'}
+          <span class="badge ${badge}" style="float:right">${lvlTxt}</span>
+        </div>
+        <div class="disease-risk-bar">
+          <div class="disease-risk-fill disease-risk-${lvl}" style="width:${pct}%"></div>
+        </div>
+        <div class="disease-pct">${pct}% · ${r.note || r.description || r.action_ko || ''}</div>
+      </div>`;
+    }).join('');
+    // env_snapshot 표시
+    const snap = d.env_snapshot;
+    const snapHtml = snap ? `<div style="font-size:10px;color:var(--muted);margin-top:8px">
+      판단근거: 온도 ${snap.temp_internal??'—'}°C / 습도 ${snap.humidity_int??'—'}% / CO₂ ${snap.co2_ppm??'—'}ppm</div>` : '';
+    // 조치 권고
+    const actionHtml = d.action_ko ? `<div style="font-size:11px;color:var(--accent);margin-top:6px">💊 ${d.action_ko}</div>` : '';
+    el.innerHTML = `<div class="disease-grid">${cards}</div>${snapHtml}${actionHtml}`;
+  } catch(e) {
+    el.innerHTML = `<div style="color:var(--red);padding:12px">병해 조회 실패: ${e.message}</div>`;
+  }
+}
+
+// ── KAMIS 실시간 시세 스트립 ──────────────────────────────────────────────────
+async function loadPricesLatest() {
+  if (!_token) return;
+  try {
+    const d = await apiFetch('/api/admin/prices/latest');
+    const prices = d.prices || d.items || [];
+    if (!prices.length) return;
+    const strip = $('price-strip');
+    const chips = $('price-chips');
+    if (!strip || !chips) return;
+    chips.innerHTML = prices.map(p => {
+      const fmtPrice = Math.round(p.price_krw_kg ?? p.price ?? 0).toLocaleString('ko-KR');
+      const chgVal   = p.change_pct ?? p.chg_pct;
+      const chgHtml  = chgVal != null
+        ? `<span class="pc-chg ${chgVal >= 0 ? 'up' : 'down'}">${chgVal >= 0 ? '▲' : '▼'}${Math.abs(chgVal).toFixed(1)}%</span>`
+        : '';
+      const srcCls   = p.source === 'kamis_live' ? 'live' : 'avg';
+      const srcTxt   = p.source === 'kamis_live' ? '실시간' : '평균';
+      return `<span class="price-chip">
+        <span class="pc-crop">${p.crop_ko || p.crop || '—'}</span>
+        <span class="pc-val">${fmtPrice}원/kg</span>
+        ${chgHtml}
+        <span class="pc-src ${srcCls}">${srcTxt}</span>
+      </span>`;
+    }).join('');
+    strip.style.display = 'flex';
+  } catch { /* 가격 스트립 실패는 무시 */ }
 }
 
 // ── WebSocket 실시간 센서 ──────────────────────────────────────────────────────
@@ -1314,6 +2404,1113 @@ function renderHeatmap(d) {
     }).join('');
     return `<tr><td style="font-size:11px;white-space:nowrap">${fid}</td>${cells}<td style="font-weight:600">${total}</td></tr>`;
   }).join('');
+}
+
+// ── 섹션 내비게이션 ─────────────────────────────────────────────────────────
+
+/** 현재 로그인 농가 ID (존재하고 _farmsData에 실제로 있는 경우만),
+ *  없으면 _farmsData 첫 번째 농가로 자동 선택
+ *  admin/manager 계정은 farm_id='' 이므로 항상 첫 번째 농가 반환 */
+function _defaultFarm() {
+  if (_myFarmId && _farmsData.some(f => f.farm_id === _myFarmId)) {
+    return _myFarmId;
+  }
+  return _farmsData.length ? _farmsData[0].farm_id : '';
+}
+
+/** select 요소를 farmId로 지정하고, 아직 값이 없을 때만 적용 */
+function _autoSel(selId, farmId) {
+  const sel = $(selId);
+  if (sel && !sel.value && farmId) sel.value = farmId;
+}
+
+const SECTION_LOADERS = {
+  dashboard:  () => loadFarmsOverview(),
+
+  environ: () => {
+    populateAllFarmSels();
+    const fid = _defaultFarm();
+    if (fid) {
+      _autoSel('env-view-farm', fid);
+      _autoSel('env-anomaly-farm', fid);
+      _autoSel('weather-farm-sel', fid);
+      _autoSel('env-manual-farm', fid);
+      loadCurrentEnv();
+    }
+    if (_myFarmId) tierGuard(_myFarmId, 'environ');
+  },
+
+  control: () => {
+    loadAdvisoryHistory();
+    loadAdvisorySummary();
+    if (_myFarmId) tierGuard(_myFarmId, 'control');
+  },
+
+  irrigation: () => {
+    populateAllFarmSels();
+    const fid = _defaultFarm();
+    if (fid) {
+      _autoSel('irr-sched-farm', fid);
+      _autoSel('irri-farm-sel', fid);
+      _autoSel('irri-farm-sel2', fid);
+      loadIrrigationAnalysis(fid);
+    }
+    if (_myFarmId) tierGuard(_myFarmId, 'irrigation');
+  },
+
+  growth: () => {
+    loadCropModels();
+    populateGrowthSel();
+    const fid = _defaultFarm();
+    if (fid) {
+      _autoSel('growth-farm-sel', fid);
+      _autoSel('whatif-farm-sel', fid);
+      loadGrowthHarvestRevenue();
+    }
+    if (_myFarmId) tierGuard(_myFarmId, 'growth');
+  },
+
+  market: () => {
+    loadMarketPrices();
+    const fid = _defaultFarm();
+    if (fid) {
+      _autoSel('market-harvest-farm', fid);
+      const sel = $('price-hist-crop');
+      if (sel && !sel.value) sel.value = '딸기';
+      loadPriceHistory();
+    }
+    if (_myFarmId) tierGuard(_myFarmId, 'market');
+  },
+
+  energy: () => {
+    loadPricesLatest();
+    const fid = _defaultFarm();
+    if (fid) {
+      _autoSel('cost-farm-sel', fid);
+      _autoSel('profit-farm-sel', fid);
+      _autoSel('cost-manual-farm', fid);
+      loadProfitForecast();
+    }
+    if (_myFarmId) tierGuard(_myFarmId, 'energy');
+  },
+
+  system: () => { loadPipelineState(); loadEtlStatus(); loadRetrainHistory(); },
+};
+
+function showSection(name) {
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll(`[onclick="showSection('${name}')"]`).forEach(b => b.classList.add('active'));
+  document.querySelectorAll('.sec').forEach(s => s.classList.remove('active'));
+  $(`sec-${name}`)?.classList.add('active');
+
+  const runLoader = () => { if (SECTION_LOADERS[name]) SECTION_LOADERS[name](); };
+
+  // _farmsData가 아직 로드 안 됐으면 먼저 로드 후 섹션 로더 실행
+  if (!_farmsData.length && name !== 'dashboard' && name !== 'system') {
+    loadFarmsOverview().then(runLoader).catch(runLoader);
+  } else {
+    runLoader();
+  }
+}
+
+// ── 농장 선택지 일괄 채우기 헬퍼 ────────────────────────────────────────────
+function populateSelectWithFarms(selId, current = '') {
+  const sel = $(selId);
+  if (!sel || !_farmsData.length) return;
+  sel.innerHTML = '<option value="">선택…</option>' +
+    _farmsData.map(f =>
+      `<option value="${f.farm_id}" ${f.farm_id === current ? 'selected' : ''}>${f.farm_id} (${f.crop_ko||''})</option>`
+    ).join('');
+}
+
+function populateAllFarmSels() {
+  ['growth-farm-sel','whatif-farm-sel','cost-farm-sel','profit-farm-sel',
+   'ctrl-farm-sel','irri-farm-sel','irri-farm-sel2',
+   'irr-sched-farm','market-harvest-farm',
+   'env-view-farm','weather-farm-sel','env-manual-farm','env-anomaly-farm',
+   'cost-manual-farm','chat-farm-sel'].forEach(id => populateSelectWithFarms(id));
+}
+
+// populateProfitFarmSel 확장 (기존 함수 덮어쓰기)
+function populateProfitFarmSel(farms) {
+  _farmsData = farms && farms.length ? farms : _farmsData;
+  populateAllFarmSels();
+  // 손익 예측 자동 첫 농장 선택
+  const sel = $('profit-farm-sel');
+  if (sel && !sel.value && _farmsData.length) {
+    sel.value = _farmsData[0].farm_id;
+    loadProfitForecast();
+  }
+}
+
+function populateGrowthSel() {
+  populateAllFarmSels();
+  const sel = $('growth-farm-sel');
+  if (sel && !sel.value && _farmsData.length) {
+    sel.value = _farmsData[0].farm_id;
+    loadGrowthHarvestRevenue();
+  }
+}
+
+// ── 생육/재배: 수확량 + 매출 ─────────────────────────────────────────────────
+async function loadGrowthHarvestRevenue() {
+  const farmId = $('growth-farm-sel')?.value;
+  if (!farmId) return;
+  // 동기화: whatif 농장도 맞춤
+  if ($('whatif-farm-sel')) $('whatif-farm-sel').value = farmId;
+  const hEl = $('growth-harvest-body'), rEl = $('growth-revenue-body');
+  if (hEl) hEl.innerHTML = '<div class="spinner"></div>';
+  if (rEl) rEl.innerHTML = '<div class="spinner"></div>';
+  try {
+    const [harv, rev] = await Promise.allSettled([
+      apiFetch(`/api/farms/${farmId}/harvest`),
+      apiFetch(`/api/farms/${farmId}/revenue`),
+    ]);
+    const h = harv.status === 'fulfilled' ? harv.value : null;
+    const r = rev.status  === 'fulfilled' ? rev.value  : null;
+    const fmt  = n => n != null ? Math.round(n).toLocaleString('ko-KR') : '—';
+    const fmtF = n => n != null ? Number(n).toFixed(1) : '—';
+    if (hEl) hEl.innerHTML = `
+      <div class="harvest-grid">
+        <div class="harvest-kpi"><div class="hk-label">예상 수확량</div>
+          <div class="hk-val">${fmtF(h?.yield_kg_forecast)} <span style="font-size:12px;color:var(--muted)">kg</span></div></div>
+        <div class="harvest-kpi"><div class="hk-label">80% 신뢰구간</div>
+          <div class="hk-val" style="font-size:14px">${h?.yield_q10!=null?`${fmtF(h.yield_q10)}–${fmtF(h.yield_q90)} kg`:'—'}</div></div>
+        <div class="harvest-kpi"><div class="hk-label">잔여 재배일</div>
+          <div class="hk-val">${h?.days_to_harvest ?? '—'} <span style="font-size:12px;color:var(--muted)">일</span></div></div>
+      </div>
+      <div class="harvest-note">${h?.crop_ko||''} · 면적 ${h?.area_m2!=null?h.area_m2.toLocaleString('ko-KR')+' m²':'—'}</div>`;
+    if (rEl) {
+      const profit = (r?.revenue_krw??0) - (r?.cost_krw??0);
+      const pCls   = profit >= 0 ? 'positive' : 'negative';
+      rEl.innerHTML = `
+        <div class="harvest-grid">
+          <div class="harvest-kpi"><div class="hk-label">예상 매출</div>
+            <div class="hk-val">${fmt(r?.revenue_krw)} <span style="font-size:11px;color:var(--muted)">원</span></div></div>
+          <div class="harvest-kpi"><div class="hk-label">예상 비용</div>
+            <div class="hk-val">${fmt(r?.cost_krw)} <span style="font-size:11px;color:var(--muted)">원</span></div></div>
+          <div class="harvest-kpi"><div class="hk-label">예상 순이익</div>
+            <div class="hk-val ${pCls}">${profit>=0?'+':''}${fmt(profit)} <span style="font-size:10px">원</span></div></div>
+        </div>
+        <div class="harvest-note">시세 ${r?.price_krw_kg!=null?Math.round(r.price_krw_kg).toLocaleString('ko-KR')+'원/kg':'—'} ${r?.price_source==='kamis_live'?'🟢실시간':'📊평균'}</div>`;
+    }
+  } catch(e) {
+    if (hEl) hEl.innerHTML = `<span style="color:var(--red);font-size:12px">조회 실패: ${e.message}</span>`;
+  }
+}
+
+// ── What-if 시뮬레이션 ────────────────────────────────────────────────────────
+function resetWhatIf() { $('whatif-result').innerHTML = ''; }
+
+async function runWhatIf() {
+  const farmId = $('whatif-farm-sel')?.value;
+  if (!farmId) { alert('농장을 선택하세요'); return; }
+  const el = $('whatif-result');
+  el.innerHTML = '<div class="spinner"></div>';
+  const body = {};
+  if ($('wi-temp')?.value) body.temp_internal  = parseFloat($('wi-temp').value);
+  if ($('wi-humi')?.value) body.humidity_int   = parseFloat($('wi-humi').value);
+  if ($('wi-co2')?.value)  body.co2_ppm        = parseFloat($('wi-co2').value);
+  if ($('wi-ec')?.value)   body.ec_dsm         = parseFloat($('wi-ec').value);
+  try {
+    const d = await apiFetch(`/api/farms/${farmId}/whatif`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(body),
+    });
+    const fmt = n => n!=null ? Math.round(n).toLocaleString('ko-KR') : '—';
+    const fmtF= n => n!=null ? Number(n).toFixed(1) : '—';
+    const gain     = d.profit_gain_krw ?? d.revenue_gain_krw ?? 0;
+    const gainCls  = gain >= 0 ? 'pos' : 'neg';
+    const scenarios= d.scenarios || [];
+    let scenHtml = '';
+    if (scenarios.length) {
+      scenHtml = '<div style="margin-top:10px"><div style="font-size:11px;color:var(--muted);margin-bottom:6px">시나리오 비교</div>' +
+        '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px">' +
+        scenarios.map(s => {
+          const sg = s.profit_gain_krw ?? s.revenue_change ?? 0;
+          const sCls = sg >= 0 ? 'pos' : 'neg';
+          return `<div class="wi-result-item">
+            <div class="wi-label">${s.label || JSON.stringify(s.env||{})}</div>
+            <div class="wi-val ${sCls}">${sg>=0?'+':''}${fmt(sg)} 원</div>
+          </div>`;
+        }).join('') + '</div></div>';
+    }
+    el.innerHTML = `
+      <div class="wi-result-grid">
+        <div class="wi-result-item"><div class="wi-label">예측 수확량</div>
+          <div class="wi-val">${fmtF(d.yield_kg_forecast)} kg</div></div>
+        <div class="wi-result-item"><div class="wi-label">예측 매출</div>
+          <div class="wi-val">${fmt(d.revenue_krw)} 원</div></div>
+        <div class="wi-result-item"><div class="wi-label">수익 변화</div>
+          <div class="wi-val ${gainCls}">${gain>=0?'+':''}${fmt(gain)} 원</div></div>
+      </div>
+      ${scenHtml}`;
+  } catch(e) {
+    el.innerHTML = `<span style="color:var(--red);font-size:12px">시뮬레이션 실패: ${e.message}</span>`;
+  }
+}
+
+// ── 에너지/비용: 비용 내역 조회 ───────────────────────────────────────────────
+async function loadCostBreakdown() {
+  const farmId = $('cost-farm-sel')?.value;
+  const el = $('cost-body');
+  if (!farmId || !el) return;
+  el.innerHTML = '<div class="spinner"></div>';
+  try {
+    const d = await apiFetch(`/api/farms/${farmId}/costs`);
+    const fmt = n => n!=null ? Math.round(n).toLocaleString('ko-KR') : '—';
+    const items  = d.items || d.breakdown || [];
+    const total  = d.total_cost_krw ?? d.total_krw ?? d.total ?? 0;
+    const perM2  = d.cost_per_m2;
+    const rows = items.map(it => {
+      const label = it.label_ko || it.label || it.name || it.item || '—';
+      const pct   = it.pct_of_total != null ? Math.round(it.pct_of_total * 100) : null;
+      const manualBadge = it.is_manual ? ' <span style="font-size:9px;color:var(--accent);border:1px solid var(--accent);border-radius:3px;padding:0 3px">실제입력</span>' : '';
+      const barHtml = pct != null
+        ? `<div style="height:3px;background:rgba(255,255,255,.08);border-radius:2px;margin-top:3px">
+            <div style="height:3px;background:var(--accent);border-radius:2px;width:${pct}%"></div></div>` : '';
+      return `<div class="cost-row" style="flex-direction:column;align-items:stretch;gap:2px">
+        <div style="display:flex;justify-content:space-between">
+          <span>${label}${manualBadge}</span>
+          <span style="font-weight:600">${fmt(it.amount_krw??it.amount)} 원${pct!=null?` <span style="font-size:10px;color:var(--muted)">(${pct}%)</span>`:''}</span>
+        </div>
+        ${it.unit_label ? `<div style="font-size:10px;color:var(--muted)">${it.unit_label}</div>` : ''}
+        ${barHtml}
+      </div>`;
+    }).join('');
+    const hasManualBadge = d.has_manual_input
+      ? '<span style="font-size:10px;color:var(--accent);border:1px solid var(--accent);border-radius:4px;padding:1px 5px;margin-left:6px">일부 실제입력</span>' : '';
+    el.innerHTML = `
+      <div class="cost-section">
+        <div class="cost-section-title">월간 비용 분석 ${hasManualBadge}</div>
+        ${rows}
+        <div class="cost-row" style="margin-top:6px;border-top:1px solid rgba(255,255,255,.08);padding-top:8px">
+          <span style="font-weight:600">월간 합계</span>
+          <span class="cost-total">${fmt(total)} 원</span>
+        </div>
+        ${perM2 != null ? `<div style="font-size:11px;color:var(--muted);text-align:right;margin-top:4px">㎡당 ${Number(perM2).toFixed(1)}원</div>` : ''}
+      </div>
+      ${d.electricity_kwh_month != null ? `<div style="font-size:10px;color:var(--muted);margin-top:4px">전기 ${Math.round(d.electricity_kwh_month).toLocaleString('ko-KR')} kWh / 용수 ${Math.round(d.water_m3_month||0).toLocaleString('ko-KR')} m³</div>` : ''}`;
+  } catch(e) {
+    el.innerHTML = `<span style="color:var(--red);font-size:12px">조회 실패: ${e.message}</span>`;
+  }
+}
+
+// ── 에너지/비용: 수동 비용 입력 / 삭제 ──────────────────────────────────────
+function loadCostManualForm() {
+  // 농장 선택 변경 시 기존 입력값 불러오기 (cost 조회 후 manual_input 필드 채우기)
+  const farmId = $('cost-manual-farm')?.value;
+  if (!farmId) return;
+  apiFetch(`/api/farms/${farmId}/costs`).then(d => {
+    const mi = d.manual_input || {};
+    const set = (id, key) => { const el=$(id); if(el && mi[key]!=null) el.value=mi[key]; else if(el) el.value=''; };
+    set('mc-elec-kwh', 'electricity_kwh_month');
+    set('mc-elec-rate','electricity_rate');
+    set('mc-water-m3', 'water_m3_month');
+    set('mc-water-rate','water_rate');
+    set('mc-heat-kwh', 'heating_kwh_month');
+    set('mc-heat-rate','heating_rate');
+    set('mc-labor-hrs','labor_hours_month');
+    set('mc-labor-rate','labor_rate');
+    set('mc-nutr',     'nutrients_krw_month');
+    set('mc-pest',     'pesticides_krw_month');
+  }).catch(()=>{});
+}
+
+async function submitManualCost() {
+  const farmId = $('cost-manual-farm')?.value;
+  const resEl  = $('cost-manual-result');
+  if (!farmId) { if (resEl) resEl.innerHTML = '<span style="color:var(--yellow)">농장을 선택하세요</span>'; return; }
+  // 구조화된 비용 입력 (ManualCostInput 스키마)
+  const f = (id) => { const v = $(id)?.value; return v !== '' && v != null ? parseFloat(v) : undefined; };
+  const body = {};
+  const fields = [
+    ['mc-elec-kwh', 'electricity_kwh_month'],
+    ['mc-elec-rate','electricity_rate'],
+    ['mc-water-m3', 'water_m3_month'],
+    ['mc-water-rate','water_rate'],
+    ['mc-heat-kwh', 'heating_kwh_month'],
+    ['mc-heat-rate','heating_rate'],
+    ['mc-labor-hrs','labor_hours_month'],
+    ['mc-labor-rate','labor_rate'],
+    ['mc-nutr',     'nutrients_krw_month'],
+    ['mc-pest',     'pesticides_krw_month'],
+  ];
+  fields.forEach(([id, key]) => { const v = f(id); if (v !== undefined && !isNaN(v)) body[key] = v; });
+  if (!Object.keys(body).length) { if (resEl) resEl.innerHTML = '<span style="color:var(--yellow)">하나 이상의 비용을 입력하세요</span>'; return; }
+  try {
+    const r = await apiFetch(`/api/farms/${farmId}/costs/manual`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(body),
+    });
+    if (resEl) resEl.innerHTML = `<span style="color:var(--green)">${r.message_ko || '저장 완료'}</span>`;
+    if ($('cost-farm-sel')?.value === farmId) loadCostBreakdown();
+  } catch(e) {
+    if (resEl) resEl.innerHTML = `<span style="color:var(--red)">저장 실패: ${e.message}</span>`;
+  }
+}
+
+async function deleteManualCost() {
+  const farmId = $('cost-manual-farm')?.value;
+  if (!farmId) { alert('농장을 선택하세요'); return; }
+  if (!confirm(`${farmId}의 수동 비용 항목을 모두 삭제하겠습니까?`)) return;
+  try {
+    await apiFetch(`/api/farms/${farmId}/costs/manual`, { method: 'DELETE' });
+    const resEl = $('cost-manual-result');
+    if (resEl) resEl.innerHTML = '<span style="color:var(--green)">삭제 완료</span>';
+    loadCostBreakdown();
+  } catch(e) { alert('삭제 실패: ' + e.message); }
+}
+
+// ── 제어최적화: AI 권고 조회 ─────────────────────────────────────────────────
+async function loadCtrlRecommendations() {
+  const farmId = $('ctrl-farm-sel')?.value;
+  const el = $('ctrl-reco-body');
+  if (!farmId || !el) return;
+  el.innerHTML = '<div class="spinner"></div>';
+  try {
+    const d = await apiFetch(`/api/farms/${farmId}/recommendations`);
+    const items = d.recommendations || d.items || [];
+    if (!items.length) {
+      el.innerHTML = '<div style="color:var(--muted);text-align:center;padding:20px">현재 권고 사항이 없습니다 ✅</div>';
+      return;
+    }
+    const { listHtml, gainHtml } = _renderRecoItems(items, farmId);
+    el.innerHTML = `<div class="reco-list">${listHtml}</div>
+      ${gainHtml}
+      <button class="reco-apply-btn" style="margin-top:10px" onclick="applyCtrlRecommendations('${farmId}')">✅ 권고 적용</button>`;
+  } catch(e) {
+    el.innerHTML = `<span style="color:var(--red);font-size:12px">조회 실패: ${e.message}</span>`;
+  }
+}
+
+async function applyCtrlRecommendations(farmId) {
+  if (!confirm(`${farmId} 권고를 적용하시겠습니까?`)) return;
+  try {
+    await apiFetch(`/api/farms/${farmId}/apply`, { method:'POST', headers:{'Content-Type':'application/json'}, body:'{}' });
+    alert('권고 적용 요청 완료');
+  } catch(e) { alert('적용 실패: ' + e.message); }
+}
+
+// ── 제어최적화: 관수 데이터 입력 ─────────────────────────────────────────────
+async function submitIrrigation() {
+  const farmId = $('irri-farm-sel')?.value;
+  if (!farmId) { alert('농장을 선택하세요'); return; }
+  const el = $('irri-result');
+  const body = {
+    amount_l: parseFloat($('irri-amount')?.value||'0'),
+    ec_dsm:   parseFloat($('irri-ec')?.value||'0'),
+    ph:       parseFloat($('irri-ph')?.value||'0'),
+  };
+  try {
+    await apiFetch(`/api/farms/${farmId}/irrigation`, {
+      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body),
+    });
+    if (el) el.innerHTML = `<span style="color:var(--green)">관수 데이터 전송 완료 (${body.amount_l}L)</span>`;
+    ['irri-amount','irri-ec','irri-ph'].forEach(id => { const inp=$(id); if(inp) inp.value=''; });
+  } catch(e) {
+    if (el) el.innerHTML = `<span style="color:var(--red)">전송 실패: ${e.message}</span>`;
+  }
+}
+
+// ── 환경설정: 현재 환경값 조회 ───────────────────────────────────────────────
+async function loadCurrentEnv() {
+  const farmId = $('env-view-farm')?.value;
+  const el = $('env-current-body');
+  if (!farmId || !el) return;
+  el.innerHTML = '<div class="spinner"></div>';
+  try {
+    const d = await apiFetch(`/api/farms/${farmId}/environment`);
+    const fmtF = (n,d=1) => n!=null ? Number(n).toFixed(d) : '—';
+    const items = [
+      { label:'내부온도',    val:fmtF(d.temp_internal),  unit:'°C' },
+      { label:'내부습도',    val:fmtF(d.humidity_int),   unit:'%'  },
+      { label:'CO₂',         val:fmtF(d.co2_ppm,0),      unit:'ppm'},
+      { label:'지온',        val:fmtF(d.soil_temp),       unit:'°C' },
+      { label:'EC',          val:fmtF(d.ec_dsm,2),        unit:'dS/m'},
+      { label:'pH',          val:fmtF(d.ph,1),            unit:''   },
+    ];
+    const ts = d.timestamp ? new Date(d.timestamp).toLocaleString('ko-KR') : '';
+    el.innerHTML = `
+      <div class="env-kpi-grid">
+        ${items.map(it=>`<div class="env-kpi-item">
+          <div class="ek-label">${it.label}</div>
+          <div class="ek-val">${it.val} <span style="font-size:10px;color:var(--muted)">${it.unit}</span></div>
+        </div>`).join('')}
+      </div>
+      ${ts?`<div style="font-size:10px;color:var(--muted);margin-top:6px;text-align:right">측정시각: ${ts}</div>`:''}`;
+  } catch(e) {
+    el.innerHTML = `<span style="color:var(--red);font-size:12px">조회 실패: ${e.message}</span>`;
+  }
+}
+
+// ── 환경설정: 7일 기상 예보 ──────────────────────────────────────────────────
+async function loadWeatherForecast() {
+  const farmId = $('weather-farm-sel')?.value;
+  const el = $('weather-body');
+  if (!farmId || !el) return;
+  el.innerHTML = '<div class="spinner"></div>';
+  try {
+    const d = await apiFetch(`/api/farms/${farmId}/environment/weather`);
+    const days = d.forecast || d.days || [];
+    if (!days.length) { el.innerHTML = '<div style="color:var(--muted);text-align:center;padding:20px">예보 데이터 없음</div>'; return; }
+    const rows = days.map(day => {
+      const dt  = day.date ? new Date(day.date).toLocaleDateString('ko-KR',{month:'numeric',day:'numeric',weekday:'short'}) : day.date;
+      const icon= (day.sky||'').includes('맑') ? '☀️' : (day.sky||'').includes('구름') ? '⛅' : '🌧️';
+      return `<tr>
+        <td>${dt}</td><td>${icon} ${day.sky||'—'}</td>
+        <td>${day.temp_min!=null?day.temp_min+'°':''} / ${day.temp_max!=null?day.temp_max+'°':'—'}</td>
+        <td>${day.precip_prob!=null?day.precip_prob+'%':'—'}</td>
+        <td>${day.wind_spd!=null?day.wind_spd+' m/s':'—'}</td>
+      </tr>`;
+    }).join('');
+    el.innerHTML = `<table class="weather-tbl">
+      <thead><tr><th>날짜</th><th>날씨</th><th>기온</th><th>강수확률</th><th>풍속</th></tr></thead>
+      <tbody>${rows}</tbody></table>`;
+  } catch(e) {
+    el.innerHTML = `<span style="color:var(--red);font-size:12px">예보 조회 실패: ${e.message}</span>`;
+  }
+}
+
+// ── 환경설정: 수동 환경값 입력 ───────────────────────────────────────────────
+async function submitManualEnv() {
+  const farmId = $('env-manual-farm')?.value;
+  const resEl  = $('env-manual-result');
+  if (!farmId) { if (resEl) resEl.innerHTML = '<span style="color:var(--yellow)">농장을 선택하세요</span>'; return; }
+  const body = {};
+  const pairs = [['em-temp','temp_internal'],['em-humi','humidity_int'],
+                 ['em-co2','co2_ppm'],['em-ec','ec_dsm'],['em-ph','ph']];
+  pairs.forEach(([id, key]) => { const v = $(id)?.value; if (v !== '' && v != null) body[key] = parseFloat(v); });
+  if (!Object.keys(body).length) { if (resEl) resEl.innerHTML = '<span style="color:var(--yellow)">입력값이 없습니다</span>'; return; }
+  try {
+    await apiFetch(`/api/farms/${farmId}/environment/manual`, {
+      method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body),
+    });
+    if (resEl) resEl.innerHTML = `<span style="color:var(--green)">저장 완료 (${farmId})</span>`;
+    loadCurrentEnv();
+  } catch(e) {
+    if (resEl) resEl.innerHTML = `<span style="color:var(--red)">저장 실패: ${e.message}</span>`;
+  }
+}
+
+// ── 관수관리: 스케줄 예측 ─────────────────────────────────────────────────────
+async function loadIrrigationSchedule() {
+  const farmId  = $('irr-sched-farm')?.value;
+  const trigger = parseFloat($('irr-trigger-mj')?.value || '2.0');
+  const el = $('irr-sched-body');
+  if (!farmId || !el) return;
+  el.innerHTML = '<div class="spinner"></div>';
+  try {
+    const d = await apiFetch(`/api/farms/${farmId}/irrigation/schedule?trigger_mj_m2=${trigger}`);
+    const fmtF = n => n != null ? Number(n).toFixed(1) : '—';
+    el.innerHTML = `
+      <div class="irr-sched-grid">
+        <div class="irr-kpi"><div class="ik-label">관수 횟수</div>
+          <div class="ik-val">${d.n_irrigations ?? '—'}</div><div class="ik-unit">회/일</div></div>
+        <div class="irr-kpi"><div class="ik-label">총 공급량</div>
+          <div class="ik-val">${d.total_supply_ml != null ? Math.round(d.total_supply_ml) : '—'}</div><div class="ik-unit">ml/slab</div></div>
+        <div class="irr-kpi"><div class="ik-label">GSR (전일)</div>
+          <div class="ik-val">${fmtF(d.daily_gsr_mj_m2)}</div><div class="ik-unit">MJ/m²</div></div>
+      </div>
+      <div class="irr-timeline" style="margin-top:12px">
+        <div class="irr-time-dot"></div>
+        <span style="font-weight:700">첫 관수</span>
+        <span style="color:var(--accent);font-size:16px;font-weight:700">${d.first_irrigation ?? '—'}</span>
+        <span style="color:var(--muted)">→</span>
+        <span style="font-weight:700">마지막 관수</span>
+        <span style="color:var(--accent);font-size:16px;font-weight:700">${d.last_irrigation ?? '—'}</span>
+      </div>
+      <div style="margin-top:8px;font-size:11px;color:var(--muted)">
+        📡 ${d.source === 'kma_asos_yesterday' ? 'ASOS 전일 실측 기반' : '계절 평균 기반'} — ${d.note ?? ''}
+      </div>`;
+  } catch(e) {
+    el.innerHTML = `<span style="color:var(--red);font-size:12px">조회 실패: ${e.message}</span>`;
+  }
+}
+
+async function submitIrrigationP4() {
+  const farmId    = $('irri-farm-sel2')?.value;
+  const supply    = parseFloat($('irri-supply')?.value || '0');
+  const drain     = parseFloat($('irri-drain')?.value || '0');
+  const ec        = parseFloat($('irri-ec2')?.value || '0');
+  const maxWt     = parseFloat($('irri-maxwt')?.value || '0');
+  const sunsetWt  = parseFloat($('irri-sunsetwt')?.value || '0');
+  const uptake    = parseFloat($('irri-uptake')?.value || '0');
+  const resEl     = $('irri-result2');
+  if (!farmId) { if(resEl) resEl.innerHTML='<span style="color:var(--yellow)">농장을 선택하세요</span>'; return; }
+  if (!supply) { if(resEl) resEl.innerHTML='<span style="color:var(--yellow)">공급량을 입력하세요</span>'; return; }
+
+  const dateVal = $('irri-date')?.value || new Date().toISOString().slice(0,10);
+  // API에 맞게 periods 형식 구성 (단일 구간으로 요약)
+  const body = {
+    crop: _farmsData.find(f=>f.farm_id===farmId)?.crop_ko || '알 수 없음',
+    date: dateVal,
+    slab_vol_l: 15.0,
+    max_wt_kg:    maxWt   || null,
+    sunset_wt_kg: sunsetWt || null,
+    periods: [{ period: 2, supply_ml: supply, drain_ml: drain, ec: ec||null, slab_wt_kg: null }],
+  };
+  try {
+    const d = await apiFetch(`/api/farms/${farmId}/irrigation`, {
+      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body),
+    });
+    const s = d.summary || {};
+    const drPct = s.dr_pct_mean != null ? s.dr_pct_mean.toFixed(1) : '—';
+    const wcMean= s.wc_mean != null ? s.wc_mean.toFixed(1) : '—';
+    if(resEl) resEl.innerHTML = `<span style="color:var(--green)">저장 완료 — 배액률 ${drPct}%, 함수율 ${wcMean}%</span>`;
+    // 저장 후 서버 분석 결과 자동 로드 (GET /irrigation/analysis)
+    loadIrrigationAnalysis(farmId);
+  } catch(e) {
+    if(resEl) resEl.innerHTML = `<span style="color:var(--red)">저장 실패: ${e.message}</span>`;
+  }
+}
+
+function renderIrrigationAnomalies(metrics) {
+  const el = $('irr-anomaly-body');
+  if (!el) return;
+  const alerts = [];
+  const checks = [
+    { key:'dr_pct_mean',  label:'배액률',  unit:'%',    norm:[20,40], crit:[10,55] },
+    { key:'nl_pct',       label:'야간소실률', unit:'%',  norm:[3,7],  crit:[1,10]  },
+    { key:'uptake_efficiency_ml_j', label:'흡수효율', unit:'ml/J', norm:[1.0,2.5], crit:[0.7,3.0] },
+  ];
+  checks.forEach(c => {
+    const v = metrics[c.key];
+    if (v == null || isNaN(v)) return;
+    let sev = null, dir = '';
+    if (v < c.crit[0] || v > c.crit[1]) { sev = 'critical'; dir = v < c.crit[0] ? '너무 낮음' : '너무 높음'; }
+    else if (v < c.norm[0] || v > c.norm[1]) { sev = 'major'; dir = v < c.norm[0] ? '낮음' : '높음'; }
+    if (sev) alerts.push({ sev, label: c.label, val: v.toFixed(2), unit: c.unit,
+      range: `정상 ${c.norm[0]}~${c.norm[1]}${c.unit}`, dir });
+  });
+  if (!alerts.length) {
+    el.innerHTML = '<div style="color:var(--green);font-size:12px;padding:12px 0;text-align:center">✅ 관수 지표 정상 범위</div>';
+    return;
+  }
+  el.innerHTML = '<div class="irr-anomaly-list">' + alerts.map(a =>
+    `<div class="irr-alert-row ${a.sev}">
+      <span>${a.sev==='critical'?'🔴':'🟡'}</span>
+      <div><strong>${a.label}</strong> ${a.val}${a.unit} — ${a.range} <span style="color:var(--muted)">${a.dir}</span></div>
+    </div>`
+  ).join('') + '</div>';
+}
+
+function checkIrrigationAnomalies() {
+  // 선택된 농장이 있으면 서버 분석 우선, 없으면 로컬 계산
+  const farmId = $('irri-farm-sel2')?.value;
+  if (farmId) { loadIrrigationAnalysis(farmId); return; }
+  const s = parseFloat($('irri-supply')?.value||'0');
+  const d = parseFloat($('irri-drain')?.value||'0');
+  const m = parseFloat($('irri-maxwt')?.value||'0');
+  const sw= parseFloat($('irri-sunsetwt')?.value||'0');
+  renderIrrigationAnomalies({
+    dr_pct_mean: s>0 ? d/s*100 : null,
+    nl_pct: m>0&&sw>0 ? (m-sw)/m*100 : null,
+  });
+}
+
+async function loadIrrigationAnalysis(farmId) {
+  const el = $('irr-anomaly-body');
+  if (!el || !farmId) return;
+  el.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:8px 0">분석 중…</div>';
+  try {
+    const d = await apiFetch(`/api/farms/${farmId}/irrigation/analysis?days=7`);
+    if (!d.data_days) {
+      el.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:12px 0;text-align:center">저장된 관수 데이터 없음</div>';
+      return;
+    }
+    // 알림 표시
+    if (d.alerts && d.alerts.length) {
+      el.innerHTML = '<div class="irr-anomaly-list">' + d.alerts.map(a =>
+        `<div class="irr-alert-row ${a.severity === 'major' ? 'major' : 'minor'}">
+          <span>${a.severity === 'major' ? '🟡' : 'ℹ️'}</span>
+          <div><strong>${a.label_ko}</strong> — ${a.message_ko}</div>
+        </div>`
+      ).join('') + '</div>';
+    } else {
+      el.innerHTML = '<div style="color:var(--green);font-size:12px;padding:8px 0;text-align:center">✅ 최근 7일 관수 지표 정상</div>';
+    }
+    // 요약 지표 표
+    const sm = d.summary || {};
+    const rows = ['wc_mean','dr_pct_mean','ec_drain','nl_pct'].map(k => {
+      const v = sm[k];
+      if (!v) return '';
+      const statusColor = v.status === 'normal' ? 'var(--green)' : v.status === 'high' ? 'var(--red)' : 'var(--yellow)';
+      return `<tr>
+        <td style="color:var(--muted)">${v.label_ko}</td>
+        <td style="text-align:right;font-weight:600;color:${statusColor}">${v.latest}${v.unit}</td>
+        <td style="text-align:right;color:var(--muted);font-size:10px">${v.avg}${v.unit} (7일평균)</td>
+      </tr>`;
+    }).filter(Boolean).join('');
+    if (rows) {
+      el.innerHTML += `<table style="width:100%;border-collapse:collapse;margin-top:8px;font-size:12px">${rows}</table>
+        <div style="font-size:10px;color:var(--muted);margin-top:4px">데이터: ${d.data_days}일 (${d.start}~${d.end})</div>`;
+    }
+  } catch(e) {
+    el.innerHTML = `<div style="color:var(--red);font-size:12px">조회 실패: ${e.message}</div>`;
+  }
+}
+
+// ── 환경: 이상 감지 조회 ──────────────────────────────────────────────────────
+async function loadEnvAnomalies() {
+  const farmId = $('env-anomaly-farm')?.value;
+  const el = $('env-anomaly-body');
+  if (!farmId || !el) return;
+  el.innerHTML = '<div class="spinner"></div>';
+  try {
+    const d = await apiFetch(`/api/farms/${farmId}/environment`);
+    const env = d.current || d.values || {};
+    // summary 탭 상세 패널에서 이상 감지를 재현 (환경섹션 전용)
+    const alerts = d.alerts || d.anomalies || [];
+    if (!alerts.length) {
+      el.innerHTML = '<div style="color:var(--green);font-size:12px;padding:16px 0;text-align:center">✅ 이상 감지 없음 — 모든 환경 지표 정상</div>';
+      return;
+    }
+    el.innerHTML = '<div style="display:flex;flex-direction:column;gap:6px;margin-top:6px">' +
+      alerts.map(a => {
+        const sev = a.severity || 'minor';
+        const cls = sev === 'critical' ? 'var(--red)' : sev === 'major' ? 'var(--yellow)' : 'var(--accent)';
+        return `<div style="padding:8px 12px;border-radius:7px;border-left:3px solid ${cls};background:rgba(255,255,255,.04);font-size:12px">
+          <strong>${a.variable_ko || a.variable}</strong> ${a.current_value}${a.unit} — ${a.message_ko || ''}</div>`;
+      }).join('') + '</div>';
+  } catch(e) {
+    el.innerHTML = `<span style="color:var(--red);font-size:12px">조회 실패: ${e.message}</span>`;
+  }
+}
+
+// ── 생산/유통: KAMIS 가격 현황 ───────────────────────────────────────────────
+async function loadMarketPrices() {
+  const el = $('market-prices-body');
+  if (!el) return;
+  el.innerHTML = '<div class="spinner"></div>';
+  try {
+    const d = await apiFetch('/api/admin/prices/latest');
+    const prices = d.prices || d.data || (Array.isArray(d) ? d : []);
+    if (!prices.length) { el.innerHTML = '<div style="color:var(--muted);text-align:center;padding:16px">가격 데이터 없음</div>'; return; }
+    const rows = prices.map(p => {
+      const chg = p.change_pct ?? p.change_rate ?? null;
+      const chgHtml = chg != null
+        ? `<span class="${chg>=0?'price-up':'price-down'}">${chg>=0?'+':''}${Number(chg).toFixed(1)}%</span>` : '—';
+      return `<tr>
+        <td>${p.crop_ko || p.crop || '—'}</td>
+        <td>${p.price_krw != null ? Math.round(p.price_krw).toLocaleString('ko-KR') : '—'} 원/kg</td>
+        <td>${chgHtml}</td>
+        <td style="color:var(--muted)">${p.date || p.base_date || '—'}</td>
+      </tr>`;
+    }).join('');
+    el.innerHTML = `<table class="price-hist-table">
+      <thead><tr><th>작목</th><th>시세</th><th>전일비</th><th>기준일</th></tr></thead>
+      <tbody>${rows}</tbody></table>`;
+  } catch(e) {
+    el.innerHTML = `<span style="color:var(--red);font-size:12px">조회 실패: ${e.message}</span>`;
+  }
+}
+
+async function loadPriceHistory() {
+  const cropKo = $('price-hist-crop')?.value;
+  const el = $('price-hist-body');
+  if (!el) return;
+  if (!cropKo) { el.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:12px 0;text-align:center">작목을 선택하세요</div>'; return; }
+
+  // farm_id: 내 농장 우선, 없으면 첫 번째 농장
+  const farmId = _myFarmId || _farmsData[0]?.farm_id;
+  if (!farmId) { el.innerHTML = '<div style="color:var(--muted);font-size:12px">농장 정보 로딩 중…</div>'; return; }
+
+  el.innerHTML = '<div class="spinner"></div>';
+  try {
+    const d = await apiFetch(`/api/farms/${farmId}/market/price-history?days=30`);
+    const items = d.history || [];
+    if (!items.length) { el.innerHTML = '<div style="color:var(--muted);text-align:center;padding:12px">이력 없음</div>'; return; }
+
+    const stats = d.stats || {};
+    const trendIcon = {up:'↑', down:'↓', flat:'→'}[d.trend] || '→';
+    const trendColor= {up:'var(--red)', down:'var(--accent)', flat:'var(--muted)'}[d.trend] || 'var(--muted)';
+    const src = d.source === 'kamis_cache' ? 'KAMIS 실시간' : d.source === 'rda_static_estimated' ? '통계 추정' : '통계 기반';
+
+    // SVG 스파크라인
+    const prices = items.map(i => i.price_krw_kg);
+    const minP = Math.min(...prices), maxP = Math.max(...prices);
+    const W = 340, H = 60, pad = 4;
+    const toX = i => pad + (i / (prices.length - 1)) * (W - 2*pad);
+    const toY = p => H - pad - ((p - minP) / (maxP - minP + 1)) * (H - 2*pad);
+    const pts = prices.map((p, i) => `${toX(i).toFixed(1)},${toY(p).toFixed(1)}`).join(' ');
+    const sparkline = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:60px;display:block;margin:8px 0">
+      <polyline points="${pts}" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linejoin="round"/>
+      <circle cx="${toX(prices.length-1)}" cy="${toY(prices[prices.length-1])}" r="3" fill="var(--accent)"/>
+    </svg>`;
+
+    // 최근 14행 표
+    const rows = items.slice(-14).reverse().map((it, i, arr) => {
+      const prev = arr[i+1];
+      const chg  = prev ? ((it.price_krw_kg - prev.price_krw_kg) / prev.price_krw_kg * 100) : null;
+      const chgHtml = chg != null
+        ? `<span class="${chg>=0?'price-up':'price-down'}">${chg>=0?'+':''}${chg.toFixed(1)}%</span>` : '—';
+      return `<tr>
+        <td style="color:var(--muted)">${it.date}</td>
+        <td style="text-align:right;font-weight:600">${it.price_krw_kg.toLocaleString('ko-KR')}원</td>
+        <td style="text-align:right">${chgHtml}</td>
+      </tr>`;
+    }).join('');
+
+    el.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <span style="font-size:12px;font-weight:700">${cropKo} 도매가 추세</span>
+        <span style="font-size:11px;color:${trendColor};font-weight:700">${trendIcon} ${d.trend === 'up' ? '상승세' : d.trend === 'down' ? '하락세' : '보합세'}</span>
+      </div>
+      ${sparkline}
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px">
+        ${[['최신가',stats.latest],['평균',stats.avg],['최고',stats.max],['최저',stats.min]].map(([l,v])=>
+          `<div style="background:#13162a;border-radius:6px;padding:6px 8px;text-align:center">
+            <div style="font-size:9px;color:var(--muted)">${l}</div>
+            <div style="font-size:13px;font-weight:700">${v!=null?v.toLocaleString('ko-KR'):'—'}</div>
+          </div>`).join('')}
+      </div>
+      <table class="price-hist-table">
+        <thead><tr><th>날짜</th><th style="text-align:right">시세(원/kg)</th><th style="text-align:right">전일비</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <div style="font-size:10px;color:var(--muted);margin-top:6px;text-align:right">출처: ${src}</div>`;
+  } catch(e) {
+    el.innerHTML = `<span style="color:var(--red);font-size:12px">조회 실패: ${e.message}</span>`;
+  }
+}
+
+async function loadMarketHarvest() {
+  const farmId = $('market-harvest-farm')?.value;
+  const el = $('market-harvest-body');
+  if (!farmId || !el) return;
+  el.innerHTML = '<div class="spinner"></div>';
+  try {
+    const [harv, rev] = await Promise.allSettled([
+      apiFetch(`/api/farms/${farmId}/harvest`),
+      apiFetch(`/api/farms/${farmId}/revenue`),
+    ]);
+    const h = harv.status==='fulfilled' ? harv.value : null;
+    const r = rev.status ==='fulfilled' ? rev.value  : null;
+    const fmtF = n => n!=null ? Number(n).toFixed(1) : '—';
+    const fmt  = n => n!=null ? Math.round(n).toLocaleString('ko-KR') : '—';
+    el.innerHTML = `
+      <div class="advisor-opt-grid">
+        <div class="advisor-opt-item"><div class="ao-var">예상 수확량</div>
+          <div class="ao-val">${fmtF(h?.yield_kg_forecast)} kg</div>
+          <div class="ao-range">잔여 ${h?.days_to_harvest??'—'}일</div></div>
+        <div class="advisor-opt-item"><div class="ao-var">예상 매출</div>
+          <div class="ao-val" style="font-size:13px">${fmt(r?.revenue_krw)} 원</div>
+          <div class="ao-range">${r?.price_krw_kg!=null?Math.round(r.price_krw_kg).toLocaleString('ko-KR')+'원/kg':''}</div></div>
+        <div class="advisor-opt-item"><div class="ao-var">예상 순이익</div>
+          <div class="ao-val ${(r?.revenue_krw??0)-(r?.cost_krw??0)>=0?'positive':'negative'}" style="font-size:13px">
+            ${fmt((r?.revenue_krw??0)-(r?.cost_krw??0))} 원</div>
+          <div class="ao-range">${r?.price_source==='kamis_live'?'🟢실시간 시세':'📊 평균 시세'}</div></div>
+      </div>`;
+  } catch(e) {
+    el.innerHTML = `<span style="color:var(--red);font-size:12px">조회 실패: ${e.message}</span>`;
+  }
+}
+
+async function loadAdvisorOptimal() {
+  const cropKo = $('advisor-crop-sel')?.value;
+  const el = $('advisor-opt-body');
+  if (!cropKo || !el) return;
+  el.innerHTML = '<div class="spinner"></div>';
+  try {
+    const d = await apiFetch(`/api/admin/advisor/optimal/${encodeURIComponent(cropKo)}`);
+    const opt = d.optimal_env || d.optimal || d;
+    const vars = [
+      { key:'temp_internal',  label:'온도',    unit:'°C'   },
+      { key:'humidity_int',   label:'습도',    unit:'%'    },
+      { key:'co2_ppm',        label:'CO₂',     unit:'ppm'  },
+      { key:'ec_dsm',         label:'EC',      unit:'dS/m' },
+      { key:'solar_rad',      label:'일사량',  unit:'W/m²' },
+    ];
+    el.innerHTML = '<div class="advisor-opt-grid">' +
+      vars.map(v => {
+        const val = opt[v.key];
+        const lo  = opt[`${v.key}_min`] ?? opt[`${v.key}_p25`];
+        const hi  = opt[`${v.key}_max`] ?? opt[`${v.key}_p75`];
+        return `<div class="advisor-opt-item">
+          <div class="ao-var">${v.label}</div>
+          <div class="ao-val">${val!=null?Number(val).toFixed(1):'—'} <span style="font-size:10px;color:var(--muted)">${v.unit}</span></div>
+          <div class="ao-range">${lo!=null&&hi!=null?`${Number(lo).toFixed(1)}~${Number(hi).toFixed(1)}`:'—'}</div>
+        </div>`;
+      }).join('') + '</div>' +
+      (d.note ? `<div style="font-size:11px;color:var(--muted);margin-top:8px">${d.note}</div>` : '');
+  } catch(e) {
+    el.innerHTML = `<span style="color:var(--red);font-size:12px">조회 실패: ${e.message}</span>`;
+  }
+}
+
+// ── AI 상담 플로팅 ──────────────────────────────────────────────────────────
+function toggleChat() {
+  const panel = $('chat-panel');
+  if (!panel) return;
+  panel.classList.toggle('open');
+  if (panel.classList.contains('open')) {
+    populateSelectWithFarms('chat-farm-sel');
+    $('chat-input')?.focus();
+  }
+}
+
+async function sendChat() {
+  const input  = $('chat-input');
+  const sendBtn= $('chat-send');
+  const msgs   = $('chat-messages');
+  const farmId = $('chat-farm-sel')?.value || '';
+  const text   = input?.value.trim();
+  if (!text || !msgs) return;
+
+  // 사용자 메시지 표시
+  const userDiv = document.createElement('div');
+  userDiv.className = 'chat-msg user';
+  userDiv.textContent = text;
+  msgs.appendChild(userDiv);
+  msgs.scrollTop = msgs.scrollHeight;
+
+  input.value = '';
+  if (sendBtn) sendBtn.disabled = true;
+
+  // 로딩 표시
+  const loadDiv = document.createElement('div');
+  loadDiv.className = 'chat-msg ai';
+  loadDiv.innerHTML = '<div class="chat-who">SMART FARM AI</div><div class="spinner" style="width:18px;height:18px;border-width:2px"></div>';
+  msgs.appendChild(loadDiv);
+  msgs.scrollTop = msgs.scrollHeight;
+
+  try {
+    const target = farmId || (_farmsData[0]?.farm_id || 'farm_001');
+    const d = await apiFetch(`/api/farms/${target}/chat`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ message: text }),
+    });
+    const reply = d.reply || d.message || d.response || JSON.stringify(d);
+    // 메타 뱃지 (model_used, referenced_data)
+    const metaHtml = (d.model_used && d.model_used !== 'stub-v1')
+      ? `<div style="font-size:9px;color:var(--muted);margin-top:4px">모델: ${d.model_used}</div>` : '';
+    const refHtml = (d.referenced_data && d.referenced_data.length)
+      ? `<div style="font-size:9px;color:var(--muted)">참조: ${d.referenced_data.join(', ')}</div>` : '';
+    // suggestions 칩 — 클릭 시 해당 질문을 자동 입력
+    const suggs = d.suggestions || [];
+    const suggsHtml = suggs.length
+      ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px">${
+          suggs.map(s => `<button class="chat-sugg-chip" onclick="$('chat-input').value='${s.replace(/'/g,"\\'")}';$('chat-input').focus()">${s}</button>`).join('')
+        }</div>` : '';
+    loadDiv.innerHTML = `<div class="chat-who">SMART FARM AI</div>${reply}${metaHtml}${refHtml}${suggsHtml}`;
+    _refreshChatQuota();
+  } catch(e) {
+    loadDiv.innerHTML = `<div class="chat-who">SMART FARM AI</div><span style="color:var(--red)">오류: ${e.message}</span>`;
+  } finally {
+    if (sendBtn) sendBtn.disabled = false;
+    msgs.scrollTop = msgs.scrollHeight;
+    input?.focus();
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// 빌링 / 티어 접근제어 함수
+// ══════════════════════════════════════════════════════════════════════════════
+
+// ── 플랜 뱃지 로드 ────────────────────────────────────────────────────────────
+async function loadPlanBadge(farmId) {
+  if (!farmId || !_token) return;
+  try {
+    const plan = await apiFetch(`/api/farms/${farmId}/billing/plan`);
+    _planCache = plan;
+    _myTier    = plan.tier;
+    const dot   = $('plan-dot');
+    const name  = $('plan-name');
+    const quota = $('plan-chat-quota');
+    if (dot)   dot.style.background = plan.color || '#8892a4';
+    if (name)  name.textContent     = plan.tier_name_ko || plan.tier;
+    if (quota) {
+      const q = plan.chat_quota;
+      if (!q || q.max === 0)  quota.textContent = 'AI 불가';
+      else if (q.max === -1)  quota.textContent = 'AI 무제한';
+      else quota.textContent = `AI ${q.remaining ?? q.max}/${q.max}`;
+    }
+    const badge = document.querySelector('.plan-badge');
+    if (badge) badge.style.borderColor = (plan.color || '#8892a4') + '55';
+  } catch(e) {
+    console.warn('[loadPlanBadge]', e.message);
+  }
+}
+
+// ── Tier Guard — 섹션 잠금 오버레이 ──────────────────────────────────────────
+async function tierGuard(farmId, sectionName) {
+  if (!farmId || !_token) return;
+  try {
+    const d = await apiFetch(`/api/farms/${farmId}/billing/features?section=${sectionName}`);
+    _featCache[sectionName] = d.features || [];
+    const locked = (d.features || []).filter(f => !f.allowed);
+    _applyLockBanner(sectionName, locked);
+  } catch(e) {
+    console.warn('[tierGuard]', sectionName, e.message);
+  }
+}
+
+function _applyLockBanner(section, lockedFeatures) {
+  const secEl = $(`sec-${section}`);
+  if (!secEl) return;
+  // 기존 배너 제거
+  secEl.querySelectorAll('.tier-lock-banner').forEach(el => el.remove());
+  if (!lockedFeatures.length) return;
+
+  // 가장 낮은 min_tier 찾기
+  const minTier = lockedFeatures.reduce((best, f) =>
+    _tierRankClient(f.min_tier) < _tierRankClient(best) ? f.min_tier : best,
+    lockedFeatures[0].min_tier
+  );
+  const color  = _tierColor(minTier);
+  const labels = lockedFeatures.map(f => f.label_ko || f.feature_code).join(' · ');
+
+  const banner = document.createElement('div');
+  banner.className = 'tier-lock-banner';
+  banner.style.cssText = 'margin-bottom:14px';
+  banner.innerHTML = `
+    <div style="background:${color}18;border:1px solid ${color}44;border-radius:10px;
+                padding:12px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px">
+      <div>
+        <span style="font-size:13px;font-weight:700;color:${color}">🔒 ${_tierNameKo(minTier)} 플랜 이상 필요</span>
+        <div style="font-size:11px;color:var(--muted);margin-top:3px">${labels}</div>
+      </div>
+      <button onclick="openUpgradeModal()"
+              style="flex-shrink:0;padding:7px 16px;background:${color};border:none;
+                     border-radius:7px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;
+                     white-space:nowrap">
+        업그레이드 ↑
+      </button>
+    </div>`;
+  secEl.prepend(banner);
+}
+
+// 클라이언트 측 티어 유틸
+function _tierRankClient(tier) {
+  return {basic:1, smart:2, pro:3, enterprise:4}[tier] || 0;
+}
+function _tierColor(tier) {
+  return {basic:'#8892a4', smart:'#4f8ef7', pro:'#a78bfa', enterprise:'#f9a825'}[tier] || '#8892a4';
+}
+function _tierNameKo(tier) {
+  return {basic:'기본', smart:'스마트', pro:'프로', enterprise:'엔터프라이즈'}[tier] || tier;
+}
+
+// ── 업그레이드 모달 ───────────────────────────────────────────────────────────
+function openUpgradeModal() {
+  const bg = $('upgrade-modal-bg');
+  if (!bg) return;
+  _renderUpgradeCards();
+  bg.style.display = 'flex';
+}
+
+function closeUpgradeModal() {
+  const bg = $('upgrade-modal-bg');
+  if (bg) bg.style.display = 'none';
+  const res = $('upgrade-result');
+  if (res) { res.textContent = ''; res.style.color = ''; }
+}
+
+function _renderUpgradeCards() {
+  const wrap = $('upgrade-tier-list');
+  if (!wrap) return;
+  // planCache가 있으면 실제 upgrade_options 사용, 없으면 기본값
+  const opts = (_planCache?.upgrade_options?.length)
+    ? _planCache.upgrade_options
+    : [
+        {tier:'smart',      name_ko:'스마트',       price_krw_month:79000,  color:'#4f8ef7'},
+        {tier:'pro',        name_ko:'프로',         price_krw_month:199000, color:'#a78bfa'},
+        {tier:'enterprise', name_ko:'엔터프라이즈', price_krw_month:499000, color:'#f9a825'},
+      ];
+
+  wrap.innerHTML = opts.map((o, idx) => `
+    <label class="upgrade-tier-card" style="--tc:${o.color}">
+      <input type="radio" name="upgrade-tier-sel" value="${o.tier}" ${idx === 0 ? 'checked' : ''}>
+      <div class="upgrade-tier-card-inner">
+        <div style="font-size:16px;font-weight:700;color:${o.color}">${o.name_ko}</div>
+        <div style="font-size:24px;font-weight:800;margin:8px 0">
+          ₩${Math.round(o.price_krw_month/1000)}K
+          <span style="font-size:11px;font-weight:400;color:var(--muted)">/월</span>
+        </div>
+        <div style="font-size:11px;color:var(--muted);line-height:1.5">${_tierFeatureHint(o.tier)}</div>
+      </div>
+    </label>`).join('');
+
+  // 현재 플랜 표시
+  const cur = $('upgrade-current-plan');
+  if (cur) cur.textContent = `현재 플랜: ${_tierNameKo(_myTier)}`;
+}
+
+function _tierFeatureHint(tier) {
+  return {
+    smart:      'IoT 센서 실시간 · 기본 AI 채팅 30회/월 · 환경·관수 자동화',
+    pro:        'ML 수확·매출 예측 · AI 채팅 200회/월 · VPD 재배기술 · 시나리오 분석',
+    enterprise: '자동 제어 추천 · AI 무제한 · 전 기능 해제 · 전담 지원',
+  }[tier] || '';
+}
+
+async function submitUpgrade() {
+  const farmId = _myFarmId;
+  if (!farmId) {
+    alert('농장 정보를 불러오는 중입니다. 잠시 후 다시 시도해 주세요.');
+    return;
+  }
+  const tierRadio = document.querySelector('input[name="upgrade-tier-sel"]:checked');
+  if (!tierRadio) { alert('업그레이드할 플랜을 선택해 주세요.'); return; }
+  const pgRadio = document.querySelector('input[name="pg-channel"]:checked');
+  const pg = pgRadio ? pgRadio.value : 'manual';
+
+  const btn = $('upgrade-submit-btn');
+  const res = $('upgrade-result');
+  if (btn) { btn.disabled = true; btn.textContent = '처리 중…'; }
+  if (res) { res.textContent = ''; res.style.color = ''; }
+
+  try {
+    const d = await apiFetch(`/api/farms/${farmId}/billing/upgrade`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ target_tier: tierRadio.value, pg_channel: pg }),
+    });
+    if (res) {
+      res.textContent = d.message_ko || '업그레이드 완료';
+      res.style.color = 'var(--green)';
+    }
+    if (d.status === 'approved') {
+      // 즉시 플랜 갱신 후 모달 닫기
+      _planCache = null;
+      _featCache = {};
+      setTimeout(async () => {
+        await loadPlanBadge(farmId);
+        closeUpgradeModal();
+        // 현재 섹션 잠금 배너도 갱신
+        const activeSec = document.querySelector('.sec.active');
+        if (activeSec) {
+          const secName = activeSec.id.replace('sec-', '');
+          if (SECTION_LOADERS[secName]) tierGuard(farmId, secName);
+        }
+      }, 1400);
+    } else if (d.redirect_url) {
+      if (res) res.textContent += '\n결제 페이지로 이동합니다…';
+      setTimeout(() => window.open(d.redirect_url, '_blank'), 1200);
+    }
+  } catch(e) {
+    if (res) { res.textContent = '오류: ' + e.message; res.style.color = 'var(--red)'; }
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '업그레이드 신청'; }
+  }
+}
+
+// ── AI 채팅 — /chat 엔드포인트 쿼터 소진 처리 (서버측 consume은 farmer.py에서) ──
+// sendChat() 이후 쿼터 UI 갱신만 수행
+function _refreshChatQuota() {
+  if (_myFarmId) {
+    apiFetch(`/api/farms/${_myFarmId}/billing/quota`).then(q => {
+      const quota = $('plan-chat-quota');
+      if (!quota) return;
+      if (q.max === -1) quota.textContent = 'AI 무제한';
+      else if (q.max === 0) quota.textContent = 'AI 불가';
+      else quota.textContent = `AI ${q.remaining}/${q.max}`;
+    }).catch(() => {});
+  }
 }
 
 // 30초 자동갱신
