@@ -18,6 +18,7 @@ timeout /t 2 /nobreak > nul
 REM 재시작
 cd /d %SMART_FARM%
 set PYTHONPATH=%SMART_FARM%
+set DATABASE_URL=postgresql+pg8000://smartfarm:smartfarm@127.0.0.1:5432/smartfarm
 start "smartfarm-api" /MIN %PYTHON% -m uvicorn api.main:app --host 0.0.0.0 --port 8000 --log-level warning
 timeout /t 4 /nobreak > nul
 

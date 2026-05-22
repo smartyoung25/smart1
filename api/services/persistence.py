@@ -48,12 +48,14 @@ def _get_engine():
         return None
     try:
         from sqlalchemy import create_engine
+        # pg8000 순수 Python 드라이버는 connect_timeout을 지원하지 않음 → 제외
+        connect_args = {} if "pg8000" in db_url else {"connect_timeout": 3}
         engine = create_engine(
             db_url,
             pool_pre_ping=True,
             pool_size=5,
             max_overflow=10,
-            connect_args={"connect_timeout": 3},
+            connect_args=connect_args,
         )
         with engine.connect():
             pass
@@ -197,7 +199,7 @@ def get_user_by_username(username: str) -> Optional[dict]:
         from sqlalchemy import text
         with engine.connect() as conn:
             row = conn.execute(
-                text("SELECT id, username, role, hashed_password FROM users WHERE username = :u"),
+                text("SELECT id, username, role, hashed_password, farm_id FROM users WHERE username = :u"),
                 {"u": username},
             ).fetchone()
         return dict(row._mapping) if row else None

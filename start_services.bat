@@ -28,6 +28,7 @@ netstat -ano 2>nul | find ":8000 " | find "LISTENING" > nul
 if errorlevel 1 (
     cd /d %SMART_FARM%
     set PYTHONPATH=%SMART_FARM%
+    set DATABASE_URL=postgresql+pg8000://smartfarm:smartfarm@127.0.0.1:5432/smartfarm
     start "smartfarm-api" /MIN %PYTHON% -m uvicorn api.main:app --host 0.0.0.0 --port 8000 --log-level warning
     timeout /t 4 /nobreak > nul
     echo       포트 8000 시작 완료
