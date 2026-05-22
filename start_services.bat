@@ -23,14 +23,16 @@ if errorlevel 1 (
 )
 
 REM ── 2. FastAPI (uvicorn) ───────────────────────────────────────────────────
-echo [2/4] FastAPI 시작...
-tasklist /FI "IMAGENAME eq python.exe" /FI "WINDOWTITLE eq smartfarm-api*" 2>nul | find "python.exe" > nul
+echo [2/5] FastAPI 시작...
+netstat -ano 2>nul | find ":8000 " | find "LISTENING" > nul
 if errorlevel 1 (
     cd /d %SMART_FARM%
-    start "smartfarm-api" /MIN %PYTHON% -m uvicorn api.main:app --host 0.0.0.0 --port 8000 --log-level info
-    timeout /t 3 /nobreak > nul
+    set PYTHONPATH=%SMART_FARM%
+    start "smartfarm-api" /MIN %PYTHON% -m uvicorn api.main:app --host 0.0.0.0 --port 8000 --log-level warning
+    timeout /t 4 /nobreak > nul
+    echo       포트 8000 시작 완료
 ) else (
-    echo       이미 실행 중
+    echo       이미 실행 중 (포트 8000)
 )
 
 REM ── 3. nginx ──────────────────────────────────────────────────────────────

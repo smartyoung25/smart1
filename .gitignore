@@ -60,6 +60,16 @@ htmlcov/
 ~$*.docx
 ~$*.xlsx
 
+# ── 운영 제외 파일 ────────────────────────────────────────────────────────────
+backups/
+pg17.zip
+*.zip
+etl_data/
+# env/ 는 이미 위에서 제외 (.venv/, venv/, env/)
+
+# ── 민감 데이터 캐시 (API 응답 캐시는 state/ 내부만 허용) ─────────────────────
+api/data/kamis_price_cache.json
+
 # ── Tools ─────────────────────────────────────────────────────────────────────
 .code-review-graph/
 .claude/

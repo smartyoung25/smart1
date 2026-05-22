@@ -3093,11 +3093,13 @@ async function loadMarketPrices() {
       const chg = p.change_pct ?? p.change_rate ?? null;
       const chgHtml = chg != null
         ? `<span class="${chg>=0?'price-up':'price-down'}">${chg>=0?'+':''}${Number(chg).toFixed(1)}%</span>` : '—';
+      const priceVal = p.price_krw_kg ?? p.price_krw ?? p.price;
+      const dateVal  = p.regday || p.base_date || p.date || p.updated_at;
       return `<tr>
         <td>${p.crop_ko || p.crop || '—'}</td>
-        <td>${p.price_krw != null ? Math.round(p.price_krw).toLocaleString('ko-KR') : '—'} 원/kg</td>
+        <td>${priceVal != null ? Math.round(priceVal).toLocaleString('ko-KR') : '—'} 원/kg</td>
         <td>${chgHtml}</td>
-        <td style="color:var(--muted)">${p.date || p.base_date || '—'}</td>
+        <td style="color:var(--muted)">${dateVal ? dateVal.substring(0,10) : '—'}</td>
       </tr>`;
     }).join('');
     el.innerHTML = `<table class="price-hist-table">
@@ -3120,7 +3122,7 @@ async function loadPriceHistory() {
 
   el.innerHTML = '<div class="spinner"></div>';
   try {
-    const d = await apiFetch(`/api/farms/${farmId}/market/price-history?days=30`);
+    const d = await apiFetch(`/api/farms/${farmId}/market/price-history?days=30&crop_ko=${encodeURIComponent(cropKo)}`);
     const items = d.history || [];
     if (!items.length) { el.innerHTML = '<div style="color:var(--muted);text-align:center;padding:12px">이력 없음</div>'; return; }
 

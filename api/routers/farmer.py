@@ -818,6 +818,7 @@ def get_harvest(farm_id: str):
 def get_price_history(
     farm_id: str,
     days: int = Query(30, ge=7, le=90, description="조회 일수 (기본 30일)"),
+    crop_ko: Optional[str] = Query(None, description="조회 작목 (미지정 시 농장 기본 작목)"),
 ):
     """KAMIS 캐시에서 최근 N일 도매가격 이력을 반환합니다.
 
@@ -826,7 +827,7 @@ def get_price_history(
     - 반환: {crop, history: [{date, price_krw_kg, source}], stats: {avg, min, max, latest}}
     """
     meta = _require_farm(farm_id)
-    crop = meta.get("crop", "딸기")
+    crop = crop_ko or meta.get("crop", "딸기")   # 쿼리 파라미터 우선, 없으면 농장 기본 작목
 
     from pipeline.kamis_fetcher import load_cache, get_price_with_fallback
     from api.data.stats_loader import get_price_krw_kg
