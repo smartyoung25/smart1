@@ -14,6 +14,8 @@
   "cv_r2_std": 0.0,
   "cv_mape_mean": 71.3,
   "mape": 45.3,
+  "train_rmse": 8.2402,
+  "train_mae": 5.9167,
   "gate_passed": true,
   "agg_mode": "annual",
   "harvest_lag": 1,

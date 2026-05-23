@@ -20,6 +20,8 @@
     0.214,
     0.454
   ],
+  "train_rmse": 6.1489,
+  "train_mae": 1.8104,
   "gate_passed": true,
   "env_to_growth_lag": 1
 }

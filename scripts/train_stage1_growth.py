@@ -277,15 +277,20 @@ def build_stage1_matrix(
     # ── 글로벌 연구 기반 고급 피처 (EWM·cumGDD·DLI·VPD) ──────────────────────
     # 1) EWM (Exponentially Weighted Mean) 환경 피처 — span=3개월
     #    단순 lag보다 최근 값에 더 높은 가중치 → 빠른 생육 반응 포착
+    #    방울토마토 제외: 2021년 COVID-era 분포이동으로 EWM이 Fold3 불안정 증폭
+    _SKIP_EWM_CROPS = {"cherry_tomato"}
     try:
         df_sorted = df.sort_values(["farm_id", "year", "month"]).copy()
-        for _ecol in env_cols:
-            # lag1 컬럼이 있으면 EWM 계산 가능
-            if f"{_ecol}_lag1" in df_sorted.columns:
-                df_sorted[f"{_ecol}_ewm3"] = (
-                    df_sorted.groupby("farm_id")[f"{_ecol}_lag1"]
-                    .transform(lambda s: s.ewm(span=3, adjust=False).mean())
-                )
+        if config.crop_en not in _SKIP_EWM_CROPS:
+            for _ecol in env_cols:
+                # lag1 컬럼이 있으면 EWM 계산 가능
+                if f"{_ecol}_lag1" in df_sorted.columns:
+                    df_sorted[f"{_ecol}_ewm3"] = (
+                        df_sorted.groupby("farm_id")[f"{_ecol}_lag1"]
+                        .transform(lambda s: s.ewm(span=3, adjust=False).mean())
+                    )
+        else:
+            logger.info("  EWM 피처 비활성화 (%s — 분포이동 보호)", config.crop_en)
         df = df_sorted
     except Exception as _ewm_e:
         logger.debug("  EWM 피처 생성 실패 (무시): %s", _ewm_e)
@@ -358,7 +363,7 @@ def build_stage1_matrix(
 def train_stage1(df: pd.DataFrame, config: CropConfig) -> dict:
     """TimeSeriesSplit + XGB MultiOutput → Ridge 폴백."""
     from sklearn.model_selection import TimeSeriesSplit
-    from sklearn.metrics import r2_score
+    from sklearn.metrics import r2_score, mean_squared_error as _mse_s1, mean_absolute_error as _mae_s1
     from sklearn.impute import SimpleImputer
     from sklearn.multioutput import MultiOutputRegressor
     from sklearn.linear_model import Ridge
@@ -406,12 +411,15 @@ def train_stage1(df: pd.DataFrame, config: CropConfig) -> dict:
         model.fit(X_sc, Y_arr)
         y_pred = model.predict(X_sc)
         cv_r2  = float(r2_score(Y_arr, y_pred, multioutput="uniform_average"))
+        _rmse_fb = float(np.sqrt(_mse_s1(Y_arr, y_pred, multioutput="uniform_average")))
+        _mae_fb  = float(_mae_s1(Y_arr, y_pred, multioutput="uniform_average"))
         return {
             "type": "ridge_fallback",
             "model": model, "imputer": imputer, "scaler": scaler,
             "feature_cols": feature_cols, "target_cols": target_cols,
             "cv_r2_mean": round(cv_r2, 3), "cv_r2_std": 0.0,
             "cv_r2_min": round(cv_r2, 3),
+            "train_rmse": round(_rmse_fb, 4), "train_mae": round(_mae_fb, 4),
             "n_train": n_samples,
         }
 
@@ -531,6 +539,9 @@ def train_stage1(df: pd.DataFrame, config: CropConfig) -> dict:
             final_ridge1 = MultiOutputRegressor(Ridge(alpha=best_r1_alpha))
             final_ridge1.fit(X_sc1, Y_arr)
             _r1_std = float(np.std(best_r1_fold_scores)) if best_r1_fold_scores else 0.0
+            _yp_r1 = final_ridge1.predict(X_sc1)
+            _rmse_r1 = float(np.sqrt(_mse_s1(Y_arr, _yp_r1, multioutput="uniform_average")))
+            _mae_r1  = float(_mae_s1(Y_arr, _yp_r1, multioutput="uniform_average"))
             return {
                 "type": "ridge_stage1",
                 "model": final_ridge1, "imputer": imputer, "scaler": _scaler_r1,
@@ -539,6 +550,7 @@ def train_stage1(df: pd.DataFrame, config: CropConfig) -> dict:
                 "cv_r2_std":  round(_r1_std, 3),
                 "cv_r2_min":  round(best_r1_cv_min, 3),
                 "fold_scores": [round(s, 3) for s in best_r1_fold_scores],
+                "train_rmse": round(_rmse_r1, 4), "train_mae": round(_mae_r1, 4),
                 "n_train": n_samples,
             }
 
@@ -553,6 +565,9 @@ def train_stage1(df: pd.DataFrame, config: CropConfig) -> dict:
                 random_state=42, verbosity=-1, n_jobs=1,
             ))
             final_lgb1.fit(X, Y_arr)
+            _yp_lgb1 = final_lgb1.predict(X)
+            _rmse_lgb1 = float(np.sqrt(_mse_s1(Y_arr, _yp_lgb1, multioutput="uniform_average")))
+            _mae_lgb1  = float(_mae_s1(Y_arr, _yp_lgb1, multioutput="uniform_average"))
             return {
                 "type": "lgb_multioutput",
                 "model": final_lgb1, "imputer": imputer,
@@ -560,6 +575,7 @@ def train_stage1(df: pd.DataFrame, config: CropConfig) -> dict:
                 "cv_r2_mean": round(lgb1_cv_r2_mean, 3),
                 "cv_r2_std":  round(float(np.std(_lgb1_scores)), 3),
                 "cv_r2_min":  round(lgb1_cv_r2_min, 3),
+                "train_rmse": round(_rmse_lgb1, 4), "train_mae": round(_mae_lgb1, 4),
                 "n_train": n_samples,
             }
 
@@ -576,6 +592,9 @@ def train_stage1(df: pd.DataFrame, config: CropConfig) -> dict:
             )
         )
         final_model.fit(X, Y_arr)
+        _yp_xgb = final_model.predict(X)
+        _rmse_xgb = float(np.sqrt(_mse_s1(Y_arr, _yp_xgb, multioutput="uniform_average")))
+        _mae_xgb  = float(_mae_s1(Y_arr, _yp_xgb, multioutput="uniform_average"))
 
         return {
             "type": "xgb_multioutput",
@@ -585,6 +604,7 @@ def train_stage1(df: pd.DataFrame, config: CropConfig) -> dict:
             "cv_r2_std":  round(cv_r2_std,  3),
             "cv_r2_min":  round(cv_r2_min,  3),
             "fold_scores": [round(s, 3) for s in fold_scores_xgb],
+            "train_rmse": round(_rmse_xgb, 4), "train_mae": round(_mae_xgb, 4),
             "n_train": n_samples,
         }
 
@@ -736,6 +756,8 @@ def run_crop(crop_ko: str, use_cache: bool = True) -> dict | None:
         "cv_r2_std":  result.get("cv_r2_std"),
         "cv_r2_min":  result.get("cv_r2_min"),
         "fold_scores": result.get("fold_scores"),   # 개별 fold R² 목록 (진단용)
+        "train_rmse": result.get("train_rmse"),     # 훈련 데이터 RMSE (작목 단위: cm/개/mm)
+        "train_mae":  result.get("train_mae"),      # 훈련 데이터 MAE
         "gate_passed": gate_passed,
         "env_to_growth_lag": config.env_to_growth_lag,
     }

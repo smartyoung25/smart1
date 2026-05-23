@@ -500,29 +500,34 @@ def build_stage2_matrix(
     # ── 수확량 시계열 lag 피처 (DSSAT/APSIM 물리모델 기반 전년도 생산성 반영) ──
     # 전년도·전전년도 수확량 lag → 토양 피로도·농가 관리 수준 장기 패턴 포착
     # 시계열 안전: shift(1)로 현재 값 제외 → 데이터 유출 없음
-    try:
-        _df_lag = df.sort_values(["farm_id", "year", "month"]).copy()
-        for _lag_n in [1, 2, 3]:
-            _df_lag[f"yield_lag{_lag_n}"] = (
-                _df_lag.groupby("farm_id")["yield_per_m2"]
-                .shift(_lag_n)
+    # 소표본(n<150) → yield lag 비활성화: lag shift 후 imputed 값이 과적합 유발
+    _use_yield_lag = len(df) >= 150
+    if not _use_yield_lag:
+        logger.info("  yield lag 비활성화 (n=%d < 150 — 소표본 과적합 방지)", len(df))
+    if _use_yield_lag:
+        try:
+            _df_lag = df.sort_values(["farm_id", "year", "month"]).copy()
+            for _lag_n in [1, 2, 3]:
+                _df_lag[f"yield_lag{_lag_n}"] = (
+                    _df_lag.groupby("farm_id")["yield_per_m2"]
+                    .shift(_lag_n)
+                    .fillna(global_mean)
+                )
+            # 수확량 변화율 (전기 대비)
+            _df_lag["yield_chg_rate"] = (
+                (_df_lag["yield_lag1"] - _df_lag["yield_lag2"]) /
+                (_df_lag["yield_lag2"].clip(lower=0.01))
+            ).clip(-1.0, 1.0).fillna(0.0)
+            # EWM 수확량 트렌드 (span=3 시즌)
+            _df_lag["yield_ewm3"] = (
+                _df_lag.groupby("farm_id")["yield_lag1"]
+                .transform(lambda s: s.ewm(span=3, adjust=False).mean())
                 .fillna(global_mean)
             )
-        # 수확량 변화율 (전기 대비)
-        _df_lag["yield_chg_rate"] = (
-            (_df_lag["yield_lag1"] - _df_lag["yield_lag2"]) /
-            (_df_lag["yield_lag2"].clip(lower=0.01))
-        ).clip(-1.0, 1.0).fillna(0.0)
-        # EWM 수확량 트렌드 (span=3 시즌)
-        _df_lag["yield_ewm3"] = (
-            _df_lag.groupby("farm_id")["yield_lag1"]
-            .transform(lambda s: s.ewm(span=3, adjust=False).mean())
-            .fillna(global_mean)
-        )
-        df = _df_lag
-        logger.info("  yield lag 피처 추가: lag1/lag2/lag3/chg_rate/ewm3")
-    except Exception as _lag_e:
-        logger.debug("  yield lag 피처 생성 실패 (무시): %s", _lag_e)
+            df = _df_lag
+            logger.info("  yield lag 피처 추가: lag1/lag2/lag3/chg_rate/ewm3")
+        except Exception as _lag_e:
+            logger.debug("  yield lag 피처 생성 실패 (무시): %s", _lag_e)
 
     logger.info("  Stage2 행렬: %s", df.shape)
     return df
@@ -1275,7 +1280,7 @@ def train_stage2(
                         모델이 순수 환경→수확량 편차를 학습
     """
     from sklearn.model_selection import TimeSeriesSplit, GroupKFold
-    from sklearn.metrics import r2_score
+    from sklearn.metrics import r2_score, mean_squared_error as _mse_s2, mean_absolute_error as _mae_s2
     from sklearn.impute import SimpleImputer
     from sklearn.linear_model import Ridge
     from sklearn.preprocessing import StandardScaler
@@ -1392,6 +1397,8 @@ def train_stage2(
         y_pred = np.expm1(model.predict(X_sc))
         r2   = float(r2_score(y, y_pred))
         mape = _mape(y, y_pred)
+        _rmse_fb2 = float(np.sqrt(_mse_s2(y, y_pred)))
+        _mae_fb2  = float(_mae_s2(y, y_pred))
         return {
             "type": "ridge_fallback",
             "model": model, "imputer": imputer, "scaler": scaler,
@@ -1399,6 +1406,7 @@ def train_stage2(
             "log_transform": True,
             "cv_r2_mean": round(r2, 3), "cv_r2_std": 0.0,
             "mape": round(mape, 1), "n_train": n_samples,
+            "train_rmse": round(_rmse_fb2, 4), "train_mae": round(_mae_fb2, 4),
             "farm_encoding": farm_encoding,
         }
 
@@ -1624,7 +1632,10 @@ def train_stage2(
             _yp_all = np.expm1(_final_ridge.predict(X_sc_r))
             _tr_r2  = float(r2_score(y, _yp_all))
             _tr_mape = _mape(y, _yp_all)
-            logger.info("  Ridge 훈련 R²=%.3f  MAPE=%.1f%%", _tr_r2, _tr_mape)
+            _tr_rmse_r = float(np.sqrt(_mse_s2(y, _yp_all)))
+            _tr_mae_r  = float(_mae_s2(y, _yp_all))
+            logger.info("  Ridge 훈련 R²=%.3f  MAPE=%.1f%%  RMSE=%.4f  MAE=%.4f",
+                        _tr_r2, _tr_mape, _tr_rmse_r, _tr_mae_r)
             return {
                 "type": "ridge_cv_winner",
                 "model": _final_ridge,
@@ -1637,6 +1648,8 @@ def train_stage2(
                 "cv_mape_mean": round(best_r_cv_mape,  1),
                 "final_r2":     round(_tr_r2,  3),
                 "mape":         round(_tr_mape, 1),
+                "train_rmse":   round(_tr_rmse_r, 4),
+                "train_mae":    round(_tr_mae_r, 4),
                 "n_train": n_samples,
                 "all_feature_cols": feature_cols,
                 "shap_top_n": 0,
@@ -1682,7 +1695,10 @@ def train_stage2(
 
             _tr_r2   = float(r2_score(y, _yp_all))
             _tr_mape = _mape(y, _yp_all)
-            logger.info("  %s 훈련 R²=%.3f  MAPE=%.1f%%", _best_tree_type, _tr_r2, _tr_mape)
+            _tr_rmse_ens = float(np.sqrt(_mse_s2(y, _yp_all)))
+            _tr_mae_ens  = float(_mae_s2(y, _yp_all))
+            logger.info("  %s 훈련 R²=%.3f  MAPE=%.1f%%  RMSE=%.4f  MAE=%.4f",
+                        _best_tree_type, _tr_r2, _tr_mape, _tr_rmse_ens, _tr_mae_ens)
 
             # SHAP 피처 선택은 XGB 모델 기준 (LGB SHAP도 유사)
             top_n = 8 if n_samples < 150 else (10 if n_samples < 300 else 15)
@@ -1758,6 +1774,8 @@ def train_stage2(
                 "cv_mape_mean": round(_sel_mape,  1),
                 "final_r2":     round(_tr_r2,  3),
                 "mape":         round(_tr_mape, 1),
+                "train_rmse":   round(_tr_rmse_ens, 4),
+                "train_mae":    round(_tr_mae_ens, 4),
                 "n_train": n_samples,
                 "all_feature_cols": feature_cols,
                 "shap_top_n": top_n,
@@ -1842,6 +1860,8 @@ def train_stage2(
         y_pred_final = np.expm1(final_sel.predict(X_sel))
         final_r2   = float(r2_score(y, y_pred_final))
         final_mape = _mape(y, y_pred_final)
+        _final_rmse = float(np.sqrt(_mse_s2(y, y_pred_final)))
+        _final_mae  = float(_mae_s2(y, y_pred_final))
 
         return {
             "type": "xgb",
@@ -1857,6 +1877,8 @@ def train_stage2(
             "cv_mape_mean": round(cv_mape_mean, 1),
             "final_r2":    round(final_r2, 3),
             "mape":        round(final_mape, 1),
+            "train_rmse":  round(_final_rmse, 4),
+            "train_mae":   round(_final_mae, 4),
             "n_train": n_samples,
             "all_feature_cols": feature_cols,
             "shap_top_n": top_n,
@@ -2080,6 +2102,8 @@ def run_crop(crop_ko: str, use_cache: bool = True) -> dict | None:
         "cv_r2_std":   result.get("cv_r2_std"),
         "cv_mape_mean": result.get("cv_mape_mean"),
         "mape": result.get("mape"),
+        "train_rmse": result.get("train_rmse"),    # 훈련 데이터 RMSE kg/m²
+        "train_mae":  result.get("train_mae"),     # 훈련 데이터 MAE kg/m²
         "gate_passed": gate_passed,
         "agg_mode": agg_mode,
         "harvest_lag": config.harvest_lag,
