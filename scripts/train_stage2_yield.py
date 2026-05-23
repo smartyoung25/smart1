@@ -445,6 +445,35 @@ def build_stage2_matrix(
     df["month_sin"] = np.sin(2 * np.pi * df["month"].astype(float) / 12)
     df["month_cos"] = np.cos(2 * np.pi * df["month"].astype(float) / 12)
 
+    # ── AquaCrop 물리 피처 (M2용) — 페놀로지·BAI·VPD스트레스 ───────────────────
+    # 수확량 예측에 생육 단계(페놀로지)와 누적 광합성(BAI)이 강한 선행 신호
+    try:
+        _gdd_cs_s2 = (
+            df.sort_values(["farm_id", "year", "month"])
+            .groupby("farm_id")["gdd_monthly"]
+            .transform(lambda s: s.cumsum())
+            if "gdd_monthly" in df.columns else pd.Series(0.0, index=df.index)
+        )
+        _dli_s2 = (df["solar_rad"].clip(lower=0) * 0.0115
+                   if "solar_rad" in df.columns else pd.Series(5.0, index=df.index))
+        _vpd_s2 = df.get("vpd_kpa", pd.Series(0.8, index=df.index))
+
+        from adapters.aquacrop_features import (
+            calc_phenology_stage, calc_bai, calc_vpd_stress_cum,
+            _GDD_FULL_CYCLE, _VPD_OPT_RANGE, _KC_MID,
+        )
+        _gdd_full_s2 = _GDD_FULL_CYCLE.get(config.crop_en, 1500.0)
+        _vpd_opt_s2  = _VPD_OPT_RANGE.get(config.crop_en, (0.7, 1.3))
+        _kc_mid_s2   = _KC_MID.get(config.crop_en, 1.0)
+
+        df["m2_phenology"] = calc_phenology_stage(_gdd_cs_s2, _gdd_full_s2)
+        df["m2_vpd_stress"] = calc_vpd_stress_cum(_vpd_s2, _vpd_opt_s2)
+        _gdd_monthly_s2 = _gdd_cs_s2.diff().fillna(_gdd_cs_s2)
+        df["m2_bai"] = calc_bai(_dli_s2, _gdd_monthly_s2, _kc_mid_s2)
+        logger.info("  M2 AquaCrop 물리 피처 추가: phenology/vpd_stress/bai")
+    except Exception as _aqe2:
+        logger.debug("  M2 AquaCrop 피처 생성 실패 (무시): %s", _aqe2)
+
     # 재배정보 메타 피처 (품종, 온실유형, 정식월) — year_farm_id 복합키 조회
     if cultiv_meta:
         _GREENHOUSE_MAP = {"유리": 1, "플라스틱": 2, "비닐": 3}

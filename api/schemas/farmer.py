@@ -101,6 +101,10 @@ class HarvestForecast(BaseResponse):
     days_to_harvest: Optional[int] = None
     crop_ko: Optional[str] = None
     area_m2: Optional[float] = None
+    # Phase 42: 모델 신뢰도 등급 (농가 화면 표시용)
+    confidence_grade: str = "낮음 (참고용)"     # "높음" | "보통" | "낮음 (참고용)"
+    model_mape_pct: Optional[float] = None      # 학습 MAPE (%)
+    mape_note: str = ""                          # 오차 설명 메시지
 
 
 class RevenueResponse(BaseResponse):

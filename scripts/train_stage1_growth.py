@@ -354,6 +354,29 @@ def build_stage1_matrix(
         except Exception:
             pass
 
+    # ── 6) AquaCrop / FAO-56 물리 피처 — 데이터 부족 보완 핵심 ──────────────────
+    #    50년 작물과학 방정식을 피처로 주입 → ML 학습 부담 경감
+    #    추가 피처: phenology_stage, phenology_stage_sq, light_saturation,
+    #              vpd_stress_cum, bai, bai_cumsum, cwsi
+    #    cherry_tomato 제외: 2021년 COVID-era 분포이동으로 연도 상관 피처 불안정
+    _SKIP_AQUACROP_CROPS = {"cherry_tomato"}
+    if config.crop_en not in _SKIP_AQUACROP_CROPS:
+        try:
+            from adapters.aquacrop_features import add_aquacrop_features
+            df = add_aquacrop_features(
+                df,
+                crop_en=config.crop_en,
+                gdd_cumsum_col="gdd_cumsum",
+                dli_col="dli_est",
+                vpd_col="vpd_kpa",
+                et0_col=None,      # ET0 실측 없음 → VPD 기반 CWSI 근사
+            )
+            logger.info("  AquaCrop 물리 피처 추가: phenology/light_sat/vpd_stress/bai/cwsi")
+        except Exception as _aqe:
+            logger.debug("  AquaCrop 피처 생성 실패 (무시): %s", _aqe)
+    else:
+        logger.info("  AquaCrop 피처 비활성화 (%s — 분포이동 보호)", config.crop_en)
+
     logger.info("  Stage1 행렬: %s", df.shape)
     return df
 

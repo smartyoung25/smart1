@@ -58,6 +58,7 @@ from api.services import persistence
 from api.services.model_loader import predict_revenue_per_m2, get_model_meta, predict_yield_bounds
 from models.m5_disease import env_risk_predict as _env_risk_predict
 from adapters.irrigation_adapter import adapt_irrigation
+from models.crop_config import CROP_CONFIGS
 
 router = APIRouter(prefix="/api/farms/{farm_id}", tags=["farmer"])
 
@@ -840,6 +841,31 @@ def get_harvest(farm_id: str):
         confidence = 0.60
         model_used = "stats_fallback"
 
+    # ── confidence_grade: MAPE 기반 신뢰도 등급 (농가 화면 표시용) ───────────────
+    import json as _json
+    from pathlib import Path as _Path
+    _crop_cfg = CROP_CONFIGS.get(crop)
+    _crop_en  = _crop_cfg.crop_en if _crop_cfg else "strawberry"
+    _meta_path = _Path("models/artifacts") / _crop_en / "stage2_meta.json"
+    _model_mape = None
+    try:
+        if _meta_path.exists():
+            _meta = _json.loads(_meta_path.read_text(encoding="utf-8"))
+            _model_mape = _meta.get("mape")
+    except Exception:
+        pass
+
+    if _model_mape is not None and _model_mape <= 25.0:
+        _conf_grade = "높음 (±25% 이내)"
+        _mape_note  = f"예측 오차 약 ±{_model_mape:.0f}% — 의사결정에 활용 가능"
+    elif _model_mape is not None and _model_mape <= 45.0:
+        _conf_grade = "보통 (±45% 이내)"
+        _mape_note  = f"예측 오차 약 ±{_model_mape:.0f}% — 추세 참고용으로 활용"
+    else:
+        _conf_grade = "낮음 (참고용)"
+        _mape_note  = (f"예측 오차 약 ±{_model_mape:.0f}% — 데이터 추가 수집 필요"
+                       if _model_mape else "모델 정보 없음")
+
     return HarvestForecast(
         farm_id=farm_id,
         updated_at=_now(),
@@ -853,6 +879,10 @@ def get_harvest(farm_id: str):
         days_to_harvest=days_to_harvest,
         crop_ko=crop,
         area_m2=area,
+        # Phase 42: 신뢰도 등급
+        confidence_grade=_conf_grade,
+        model_mape_pct=_model_mape,
+        mape_note=_mape_note,
     )
 
 

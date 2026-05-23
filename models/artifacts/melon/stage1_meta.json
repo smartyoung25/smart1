@@ -2,8 +2,8 @@
   "crop_ko": "참외",
   "crop_en": "melon",
   "stage": 1,
-  "model_type": "xgb_multioutput",
-  "feature_count": 36,
+  "model_type": "ridge_stage1",
+  "feature_count": 43,
   "target_cols": [
     "growth_초장",
     "growth_줄기굵기",
@@ -11,17 +11,17 @@
     "growth_엽폭"
   ],
   "n_train": 596,
-  "cv_r2_mean": 0.241,
-  "cv_r2_std": 0.126,
+  "cv_r2_mean": 0.216,
+  "cv_r2_std": 0.067,
   "cv_r2_min": 0.146,
   "fold_scores": [
-    0.149,
     0.146,
-    0.214,
-    0.454
+    0.183,
+    0.21,
+    0.325
   ],
-  "train_rmse": 6.1489,
-  "train_mae": 1.8104,
+  "train_rmse": 10.0464,
+  "train_mae": 2.897,
   "gate_passed": true,
   "env_to_growth_lag": 1
 }
