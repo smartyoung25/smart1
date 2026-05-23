@@ -232,13 +232,15 @@ def optimize(
 
             # Crop-specific agronomic constants (used by v3 features)
             _BASE_TEMP = {"strawberry": 5.0, "cherry_tomato": 10.0, "tomato": 10.0,
-                          "melon": 10.0, "paprika": 10.0}
+                          "melon": 10.0, "paprika": 10.0, "cucumber": 12.0}
             _OPT_MAX   = {"strawberry": 25.0, "cherry_tomato": 30.0, "tomato": 30.0,
-                          "melon": 30.0, "paprika": 28.0}
+                          "melon": 30.0, "paprika": 28.0, "cucumber": 32.0}
             _CROP_EN   = {"strawberry": "strawberry", "cherry_tomato": "cherry_tomato",
                           "tomato": "tomato", "melon": "melon", "paprika": "paprika",
+                          "cucumber": "cucumber",
                           "딸기": "strawberry", "방울토마토": "cherry_tomato",
-                          "완숙토마토": "tomato", "참외": "melon", "파프리카": "paprika"}
+                          "완숙토마토": "tomato", "참외": "melon", "파프리카": "paprika",
+                          "오이": "cucumber"}
             _crop_en_key = _CROP_EN.get(crop_ko, "tomato")
             _base_t  = _BASE_TEMP.get(_crop_en_key, 10.0)
             _opt_max = _OPT_MAX.get(_crop_en_key, 30.0)
@@ -248,22 +250,25 @@ def optimize(
             _FLOWER_MONTHS = {
                 "strawberry": [11,12,1], "cherry_tomato": [3,4,5],
                 "tomato": [3,4,5], "melon": [4,5], "paprika": [3,4,5],
+                "cucumber": [4,5,6],
             }
             _FRUIT_MONTHS = {
                 "strawberry": [1,2,3], "cherry_tomato": [4,5,6],
                 "tomato": [4,5,6], "melon": [5,6], "paprika": [4,5,6],
+                "cucumber": [5,6,7],
             }
             _COLD_THRESH = {
                 "strawberry": 8.0, "cherry_tomato": 12.0, "tomato": 12.0,
-                "melon": 14.0, "paprika": 12.0,
+                "melon": 14.0, "paprika": 12.0, "cucumber": 12.0,
             }
             _HEAT_THRESH = {
                 "strawberry": 25.0, "cherry_tomato": 32.0, "tomato": 32.0,
-                "melon": 35.0, "paprika": 30.0,
+                "melon": 35.0, "paprika": 30.0, "cucumber": 33.0,
             }
             _VPD_OPT = {
                 "strawberry": (0.6, 1.0), "cherry_tomato": (0.8, 1.4),
                 "tomato": (0.8, 1.4), "melon": (0.7, 1.2), "paprika": (0.8, 1.2),
+                "cucumber": (0.7, 1.3),
             }
             _cold_thr = _COLD_THRESH.get(_crop_en_key, 10.0)
             _heat_thr = _HEAT_THRESH.get(_crop_en_key, 32.0)
@@ -563,3 +568,155 @@ def optimize(
         top[0].profit_delta if top else 0,
     )
     return top
+
+
+# ── Optuna Bayesian 최적화 (글로벌 우수 기법 적용) ──────────────────────────────
+
+def optimize_bayesian(
+    farm_id: str,
+    tier: "FarmTier",
+    current_env: "EnvState",
+    crop_ko: str = "딸기",
+    area_m2: float = 1000.0,
+    horizon_days: int = 30,
+    n_trials: int = 60,
+    month: Optional[int] = None,
+    yield_predict_fn: Optional[Callable] = None,
+    price_forecast_fn: Optional[Callable] = None,
+) -> list["Recommendation"]:
+    """Optuna TPE Sampler 기반 Bayesian 수익 최적화.
+
+    기존 greedy candidate 방식 대신 Bayesian Optimization으로
+    환경 변수 최적값을 탐색한다. 탐색 공간이 넓어 greedy가
+    놓치는 비선형 최적점을 발견할 수 있다.
+
+    Args:
+        n_trials: Optuna 탐색 횟수 (기본 60회, 소요 약 2~5초)
+
+    Returns:
+        Recommendation 리스트 (최대 5개)
+    """
+    try:
+        import optuna
+        optuna.logging.set_verbosity(optuna.logging.WARNING)
+    except ImportError:
+        logger.warning("[optimize_bayesian] optuna 미설치 — greedy 폴백")
+        return optimize(
+            farm_id=farm_id, tier=tier, current_env=current_env,
+            crop_ko=crop_ko, area_m2=area_m2, horizon_days=horizon_days,
+            month=month, yield_predict_fn=yield_predict_fn,
+            price_forecast_fn=price_forecast_fn,
+        )
+
+    import datetime as _dt
+    if month is None:
+        month = _dt.date.today().month
+
+    # 작목별 환경 탐색 범위 (crop_config 최적 범위 ± 여유)
+    from models.crop_config import get_config as _get_cfg
+    _cfg = _get_cfg(crop_ko)
+    t_lo, t_hi   = _cfg.opt_temp_range[0] - 2, _cfg.opt_temp_range[1] + 2
+    rh_lo, rh_hi = _cfg.opt_humid_range[0] - 5, _cfg.opt_humid_range[1] + 5
+    co_lo, co_hi = _cfg.opt_co2_range[0], min(1800.0, _cfg.opt_co2_range[1] + 200)
+
+    # 현재 환경값
+    _env_now = dict(current_env.values) if hasattr(current_env, "values") else dict(current_env)
+    base_temp   = float(_env_now.get("temp_internal", 22.0))
+    base_humid  = float(_env_now.get("humidity_int",  70.0))
+    base_co2    = float(_env_now.get("co2_ppm",      800.0))
+    base_solar  = float(_env_now.get("solar_rad",    100.0))
+    base_soil_t = float(_env_now.get("soil_temp",    18.0))
+
+    # 수익 예측 함수 준비 (optimize()와 동일한 폴백 체인 재활용)
+    if yield_predict_fn is None:
+        _fallback_recs = optimize(
+            farm_id=farm_id, tier=tier, current_env=current_env,
+            crop_ko=crop_ko, area_m2=area_m2, horizon_days=horizon_days,
+            month=month, yield_predict_fn=yield_predict_fn,
+            price_forecast_fn=price_forecast_fn,
+        )
+        # greedy 결과에 Bayesian 태그 추가 후 반환 (M2 없는 경우)
+        for r in _fallback_recs:
+            r.source = "bayesian_fallback_greedy"
+        return _fallback_recs
+
+    # 가격 예측
+    price_krw_kg = 3000.0
+    if price_forecast_fn is not None:
+        try:
+            price_krw_kg = float(price_forecast_fn())
+        except Exception:
+            pass
+
+    baseline_yield, _ = yield_predict_fn(_env_now)
+    baseline_profit   = baseline_yield * area_m2 * price_krw_kg
+
+    # Optuna objective
+    def objective(trial: "optuna.Trial") -> float:
+        env_candidate = {
+            "temp_internal": trial.suggest_float("temp_internal", t_lo, t_hi),
+            "humidity_int":  trial.suggest_float("humidity_int",  rh_lo, rh_hi),
+            "co2_ppm":       trial.suggest_float("co2_ppm",       co_lo, co_hi),
+            "solar_rad":     base_solar,   # 인위 제어 어려움 → 고정
+            "soil_temp":     base_soil_t,
+            "temp_external": _env_now.get("temp_external", 5.0),
+        }
+        try:
+            pred_yield, _ = yield_predict_fn(env_candidate)
+            return -(pred_yield * area_m2 * price_krw_kg)  # minimize negative profit
+        except Exception:
+            return -baseline_profit  # 실패시 기준값 반환
+
+    sampler = optuna.samplers.TPESampler(seed=42, n_startup_trials=10)
+    study = optuna.create_study(sampler=sampler)
+    study.optimize(objective, n_trials=n_trials, show_progress_bar=False)
+
+    best = study.best_params
+    best_env = {**_env_now, **best}
+    best_yield, conf = yield_predict_fn(best_env)
+    best_profit = best_yield * area_m2 * price_krw_kg
+
+    profit_delta = best_profit - baseline_profit
+
+    # Recommendation 객체 생성
+    changes: dict[str, float] = {}
+    for var in ["temp_internal", "humidity_int", "co2_ppm"]:
+        cur_val = float(_env_now.get(var, 0))
+        opt_val = float(best.get(var, cur_val))
+        if abs(opt_val - cur_val) > 0.1:
+            changes[var] = round(opt_val - cur_val, 2)
+
+    if not changes:
+        return []
+
+    # 주요 변경 변수에 따라 action_ko 결정
+    action_parts = []
+    if "temp_internal" in changes:
+        direction = "↑" if changes["temp_internal"] > 0 else "↓"
+        action_parts.append(f"온도{direction}{abs(changes['temp_internal']):.1f}°C")
+    if "humidity_int" in changes:
+        direction = "↑" if changes["humidity_int"] > 0 else "↓"
+        action_parts.append(f"습도{direction}{abs(changes['humidity_int']):.0f}%")
+    if "co2_ppm" in changes:
+        direction = "↑" if changes["co2_ppm"] > 0 else "↓"
+        action_parts.append(f"CO₂{direction}{abs(changes['co2_ppm']):.0f}ppm")
+
+    action_ko = " + ".join(action_parts) if action_parts else "환경 최적화"
+    revenue_delta = (best_yield - baseline_yield) * area_m2 * price_krw_kg
+
+    rec = Recommendation(
+        rank=1,
+        action_ko=f"[Bayesian 최적화] {action_ko}",
+        profit_delta=round(profit_delta, 0),
+        revenue_delta=round(revenue_delta, 0),
+        cost_delta=0.0,
+        confidence=round(conf, 3),
+        canonical_changes=changes,
+        tier_action=_tier_action(tier),
+    )
+
+    logger.info(
+        "[optimize_bayesian] crop=%s best_profit_delta=%.0f원 conf=%.2f (n_trials=%d)",
+        crop_ko, profit_delta, conf, n_trials,
+    )
+    return [rec]

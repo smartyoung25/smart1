@@ -497,6 +497,33 @@ def build_stage2_matrix(
     logger.info("  farm target encoding: %d/%d행 적용 (global_mean=%.3f)",
                 n_enc, len(df), global_mean)
 
+    # ── 수확량 시계열 lag 피처 (DSSAT/APSIM 물리모델 기반 전년도 생산성 반영) ──
+    # 전년도·전전년도 수확량 lag → 토양 피로도·농가 관리 수준 장기 패턴 포착
+    # 시계열 안전: shift(1)로 현재 값 제외 → 데이터 유출 없음
+    try:
+        _df_lag = df.sort_values(["farm_id", "year", "month"]).copy()
+        for _lag_n in [1, 2, 3]:
+            _df_lag[f"yield_lag{_lag_n}"] = (
+                _df_lag.groupby("farm_id")["yield_per_m2"]
+                .shift(_lag_n)
+                .fillna(global_mean)
+            )
+        # 수확량 변화율 (전기 대비)
+        _df_lag["yield_chg_rate"] = (
+            (_df_lag["yield_lag1"] - _df_lag["yield_lag2"]) /
+            (_df_lag["yield_lag2"].clip(lower=0.01))
+        ).clip(-1.0, 1.0).fillna(0.0)
+        # EWM 수확량 트렌드 (span=3 시즌)
+        _df_lag["yield_ewm3"] = (
+            _df_lag.groupby("farm_id")["yield_lag1"]
+            .transform(lambda s: s.ewm(span=3, adjust=False).mean())
+            .fillna(global_mean)
+        )
+        df = _df_lag
+        logger.info("  yield lag 피처 추가: lag1/lag2/lag3/chg_rate/ewm3")
+    except Exception as _lag_e:
+        logger.debug("  yield lag 피처 생성 실패 (무시): %s", _lag_e)
+
     logger.info("  Stage2 행렬: %s", df.shape)
     return df
 
@@ -544,6 +571,13 @@ _CRITICAL_EVENT_CFG: dict[str, dict] = {
         "cold_thresh": 12.0,
         "heat_thresh": 30.0,
         "vpd_opt": (0.8, 1.2),
+    },
+    "오이": {
+        "flowering_months": [4, 5, 6],
+        "fruit_set_months": [5, 6, 7],
+        "cold_thresh": 12.0,
+        "heat_thresh": 33.0,
+        "vpd_opt": (0.7, 1.3),
     },
 }
 

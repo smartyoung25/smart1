@@ -16,6 +16,8 @@
   B2. EPPO Global Database  → 병해충 위험 알림 (EU, 무료)
   B3. FAO FAOSTAT/GAEZ      → 작물 수확량·가격 통계 (무료)
   B4. PlantNet API          → 식물 식별 (1일 500회 무료)
+  B5. NASA POWER API        → 글로벌 태양복사·기온 이력 (1984~현재, 무료)
+  B6. World Bank Commodity  → 국제 농산물 가격지수 (무료)
 
 [키 없음 — 연결 방법 안내]
   C1. Anthropic Claude API  → AI 채팅 (ANTHROPIC_API_KEY)
@@ -746,6 +748,15 @@ def get_api_status_report() -> dict:
         "PlantNet 식물진단 (무료)":    {"key_var": "PLANTNET_API_KEY (선택)",
                                      "status": "available",
                                      "used_for": "식물 식별 (병해 탐지 보조)"},
+        # ── 글로벌 기상·가격 데이터 (신규, 키 불필요) ──────────────────────
+        "NASA POWER 기상이력 (무료)":  {"key_var": "없음 (키 불필요)",
+                                     "status": "available",
+                                     "used_for": "M1 ET₀ 보강·태양복사 이력 (1984~현재)",
+                                     "adapter":  "adapters/nasa_power_adapter.py"},
+        "World Bank 가격지수 (무료)":  {"key_var": "없음 (키 불필요)",
+                                     "status": "available",
+                                     "used_for": "M3 국제 농산물 가격 보정계수",
+                                     "adapter":  "adapters/worldbank_price_adapter.py"},
     }
     return {
         "report_time": datetime.utcnow().isoformat() + "Z",

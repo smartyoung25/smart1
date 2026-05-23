@@ -274,6 +274,81 @@ def build_stage1_matrix(
     _yrange = max(_ymax - _ymin, 1)
     df["year_norm"] = (df["year"].astype(int) - _ymin) / _yrange
 
+    # ── 글로벌 연구 기반 고급 피처 (EWM·cumGDD·DLI·VPD) ──────────────────────
+    # 1) EWM (Exponentially Weighted Mean) 환경 피처 — span=3개월
+    #    단순 lag보다 최근 값에 더 높은 가중치 → 빠른 생육 반응 포착
+    try:
+        df_sorted = df.sort_values(["farm_id", "year", "month"]).copy()
+        for _ecol in env_cols:
+            # lag1 컬럼이 있으면 EWM 계산 가능
+            if f"{_ecol}_lag1" in df_sorted.columns:
+                df_sorted[f"{_ecol}_ewm3"] = (
+                    df_sorted.groupby("farm_id")[f"{_ecol}_lag1"]
+                    .transform(lambda s: s.ewm(span=3, adjust=False).mean())
+                )
+        df = df_sorted
+    except Exception as _ewm_e:
+        logger.debug("  EWM 피처 생성 실패 (무시): %s", _ewm_e)
+
+    # 2) 누적 GDD (gdd_cumsum, gdd_lag1) — 정식 이후 열량 누적량
+    #    AquaCrop/DSSAT 물리모델 핵심 변수로 수확 시기 결정에 필수
+    if "gdd_monthly" in df.columns:
+        try:
+            _df_s = df.sort_values(["farm_id", "year", "month"]).copy()
+            _df_s["gdd_cumsum"] = (
+                _df_s.groupby("farm_id")["gdd_monthly"]
+                .transform(lambda s: s.cumsum())
+            )
+            _df_s["gdd_lag1"]  = _df_s.groupby("farm_id")["gdd_cumsum"].shift(1)
+            _df_s["gdd_lag2"]  = _df_s.groupby("farm_id")["gdd_cumsum"].shift(2)
+            df = _df_s
+        except Exception as _gdd_e:
+            logger.debug("  cumGDD 피처 생성 실패 (무시): %s", _gdd_e)
+
+    # 3) DLI (Daily Light Integral) 파생 피처 — mol/m²/day 추정
+    #    DLI = solar_rad_mean (W/m²) × 0.0036 × photoperiod_hours / 0.217
+    #    스마트팜 DLI 목표: 딸기 8~12, 토마토 20~30, 파프리카 15~25 mol/m²/day
+    if "solar_rad_mean" in df.columns:
+        try:
+            # 간략 추정: 일사량(W/m²) × 3600s × 10h ÷ 1,000,000 × 4.57 (PAR 변환)
+            df["dli_est"] = df["solar_rad_mean"].clip(lower=0) * 0.0115
+        except Exception:
+            pass
+
+    if "solar_rad_mean" in df.columns and f"solar_rad_mean_lag1" in df.columns:
+        try:
+            df["dli_ewm3"] = (
+                df.sort_values(["farm_id", "year", "month"])
+                .groupby("farm_id")["solar_rad_mean_lag1"]
+                .transform(lambda s: s.ewm(span=3, adjust=False).mean())
+                * 0.0115
+            )
+        except Exception:
+            pass
+
+    # 4) VPD (Vapor Pressure Deficit) 파생 피처 — kPa
+    #    VPD = 0.6108 × exp(17.27×T/(T+237.3)) × (1 - RH/100)
+    #    최적 범위: 딸기 0.6~1.0, 토마토·파프리카 0.8~1.4 kPa
+    if "temp_internal_mean" in df.columns and "humidity_int_mean" in df.columns:
+        try:
+            _T = df["temp_internal_mean"].fillna(20.0)
+            _RH = df["humidity_int_mean"].clip(1, 100).fillna(70.0)
+            _es = 0.6108 * np.exp(17.27 * _T / (_T + 237.3))
+            df["vpd_kpa"] = (_es * (1 - _RH / 100.0)).clip(lower=0.0)
+        except Exception:
+            pass
+
+    # 5) 온도×일사량 상호작용 — 광합성 효율 포착
+    #    FAO-56 / GreenLight 모델의 핵심 coupling term
+    if "temp_internal_mean" in df.columns and "solar_rad_mean" in df.columns:
+        try:
+            df["temp_x_solar"] = (
+                df["temp_internal_mean"].fillna(20.0) *
+                df["solar_rad_mean"].clip(lower=0).fillna(100.0) / 1000.0
+            )
+        except Exception:
+            pass
+
     logger.info("  Stage1 행렬: %s", df.shape)
     return df
 
