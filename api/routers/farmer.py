@@ -4,9 +4,10 @@ import logging
 from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 from typing import Optional
+from api.middleware.auth import require_auth
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +61,25 @@ from models.m5_disease import env_risk_predict as _env_risk_predict
 from adapters.irrigation_adapter import adapt_irrigation
 from models.crop_config import CROP_CONFIGS
 
-router = APIRouter(prefix="/api/farms/{farm_id}", tags=["farmer"])
+async def _verify_farm_ownership(
+    farm_id: str, user: dict = Depends(require_auth)
+) -> dict:
+    """URL의 farm_id가 인증된 사용자의 소유인지 확인 (admin/manager는 전체 허용)."""
+    if user.get("role") not in ("admin", "manager", "superadmin"):
+        token_farm = user.get("farm_id", "")
+        if token_farm and token_farm != farm_id:
+            raise HTTPException(
+                status_code=403,
+                detail="해당 농가에 대한 접근 권한이 없습니다.",
+            )
+    return user
+
+
+router = APIRouter(
+    prefix="/api/farms/{farm_id}",
+    tags=["farmer"],
+    dependencies=[Depends(_verify_farm_ownership)],
+)
 
 # ---------------------------------------------------------------------------
 # Farm registry
@@ -1011,12 +1030,15 @@ def get_revenue(farm_id: str):
     model_meta = get_model_meta(crop)
 
     if ml_rev_pm2 is not None and ml_rev_pm2 > 0:
-        # ML 예측값: 원/m²/월 → 시즌 매출 (M3 기반)
-        revenue      = ml_rev_pm2 * area
+        # ML 예측값: 원/m²/월 → 시즌 전체 매출
+        # ml_rev_pm2는 월별 단가이므로 season_months를 곱해 시즌 총 매출로 환산
+        from api.services.model_loader import _SEASON_MONTHS as _sm_map, normalize_crop as _nc
+        _season_m = _sm_map.get(_nc(crop), 8)
+        revenue      = ml_rev_pm2 * area * _season_m
         revenue_src  = "ml_model"
         logger.info(
-            "[get_revenue] farm=%s crop=%s ML예측 %.0f원/m² × %.0fm² = %.0f원",
-            farm_id, crop, ml_rev_pm2, area, revenue,
+            "[get_revenue] farm=%s crop=%s ML예측 %.0f원/m²/월 × %.0fm² × %d개월 = %.0f원",
+            farm_id, crop, ml_rev_pm2, area, _season_m, revenue,
         )
     elif _m2_yield_kg > 0:
         # M2 수확량 × 단가 → 매출 (gate 통과/미통과 무관, blending 이미 적용)
@@ -1407,7 +1429,7 @@ def _stub_reply(farm_id: str, message: str) -> ChatResponse:
     env    = _get_env(farm_id) or {}
     alerts = _build_alerts(farm_id, env) if env else []
     crop   = meta.get("crop", "작물")
-    area   = meta.get("area_m2", 0)
+    area   = float(meta.get("area_m2") or 1000.0)  # 0/None 기본값 방지
 
     referenced: list[str] = []
 

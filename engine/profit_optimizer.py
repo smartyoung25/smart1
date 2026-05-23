@@ -29,11 +29,21 @@ _NL_NORMAL_MAX = 7.0    # 야간소실률 정상 상한 (%)
 
 _INCOME_SURVEY_PATH = Path(__file__).parent.parent / "api" / "data" / "income_survey.json"
 
-_SEASON_DAYS = 150
 _TEMP_RANGE  = 15.0
 _HUM_RANGE   = 50.0
 _CO2_RANGE   = 1600.0
 _EC_RANGE    = 2.0
+
+# 작물별 실제 작기 일수 (season_months × 30)
+_SEASON_DAYS_BY_CROP: dict[str, int] = {
+    "딸기":       180,   # 6개월
+    "방울토마토": 240,   # 8개월
+    "완숙토마토": 240,   # 8개월
+    "참외":       120,   # 4개월
+    "파프리카":   300,   # 10개월
+    "오이":       240,   # 8개월
+}
+_SEASON_DAYS_DEFAULT = 180   # 알 수 없는 작목 기본값
 
 _COST_PER_UNIT_FALLBACK: dict[str, float] = {
     "temp_internal": 800.0,
@@ -57,10 +67,11 @@ def _load_cost_rates(crop_ko: str = "딸기", ref_area_m2: float = 1000.0) -> di
         logger.warning("[profit_optimizer] income_survey.json load failed: %s", e)
         return dict(_COST_PER_UNIT_FALLBACK)
 
+    season_days = _SEASON_DAYS_BY_CROP.get(crop_ko, _SEASON_DAYS_DEFAULT)
     utility    = float(costs.get("utility",    450.0))
     fertilizer = float(costs.get("fertilizer", 180.0))
-    daily_util = utility    * ref_area_m2 / _SEASON_DAYS
-    daily_fert = fertilizer * ref_area_m2 / _SEASON_DAYS
+    daily_util = utility    * ref_area_m2 / season_days
+    daily_fert = fertilizer * ref_area_m2 / season_days
     rates = {
         "temp_internal": round(daily_util / _TEMP_RANGE, 1),
         "humidity_int":  round(daily_util / _HUM_RANGE,  1),
@@ -68,7 +79,8 @@ def _load_cost_rates(crop_ko: str = "딸기", ref_area_m2: float = 1000.0) -> di
         "solar_rad":     0.0,
         "ec_dsm":        round(daily_fert / _EC_RANGE,   1),
     }
-    logger.info("[profit_optimizer] cost rates loaded (crop=%s): %s", crop_ko, rates)
+    logger.info("[profit_optimizer] cost rates loaded (crop=%s, season_days=%d): %s",
+                crop_ko, season_days, rates)
     return rates
 
 
@@ -275,7 +287,12 @@ def optimize(
             _vpd_lo, _vpd_hi = _VPD_OPT.get(_crop_en_key, (0.7, 1.2))
             _n_flower_m = len(_FLOWER_MONTHS.get(_crop_en_key, [3,4,5]))
             _n_fruit_m  = len(_FRUIT_MONTHS.get(_crop_en_key, [4,5,6]))
-            _SEASON_MONTHS = 12.0
+            # 작기 개월 수 — 학습 시 월별 합계 피처(dli_annual, vpd_out_months 등)와 단위 일치
+            _CROP_SEASON_MONTHS = {
+                "strawberry": 6, "cherry_tomato": 8, "tomato": 8,
+                "melon": 4, "paprika": 10, "cucumber": 8,
+            }
+            _SEASON_MONTHS = float(_CROP_SEASON_MONTHS.get(_crop_en_key, 8))
 
             # 논문 기반 과학 피처 상수 (train_stage2_yield._add_science_features와 동일)
             _OPT_TEMP_RANGE = {

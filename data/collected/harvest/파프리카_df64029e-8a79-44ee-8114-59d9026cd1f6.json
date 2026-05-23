@@ -1,0 +1,16 @@
+{
+  "id": "df64029e-8a79-44ee-8114-59d9026cd1f6",
+  "farm_id": "farm_004",
+  "crop_ko": "파프리카",
+  "harvest_date": "2026-06-01",
+  "recorded_at": "2026-05-23T19:30:00.004332+00:00",
+  "source": "api",
+  "yield_kg_m2": 12.5,
+  "area_m2": 300.0,
+  "total_yield_kg": 3750.0,
+  "planting_date": null,
+  "growing_days": null,
+  "season_avg_temp": null,
+  "season_avg_humidity": null,
+  "notes": null
+}

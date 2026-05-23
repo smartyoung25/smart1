@@ -2,7 +2,7 @@
 
 게이트 기준:
   M1: R²   ≥ 0.62
-  M2: MAPE ≤ 25%
+  M2: MAPE ≤ 35%  (STAGE2_MAPE 와 동일)
   M3: 일 오차 ≤ 5일 (별도 평가 필요)
   M4: 오차  ≤ 20%
   M5: F1   ≥ 0.88
@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 GATES: dict[str, dict] = {
     # 기존 단일 모델 게이트 (하위호환 유지)
     "M1": {"metric": "r2",        "threshold": 0.62, "op": "gte",  "display": "R² ≥ 0.62"},
-    "M2": {"metric": "mape",      "threshold": 40.0, "op": "lte",  "display": "MAPE ≤ 40%"},
+    "M2": {"metric": "mape",      "threshold": 35.0, "op": "lte",  "display": "MAPE ≤ 35%"},
     "M3": {"metric": "day_error", "threshold": 5.0,  "op": "lte",  "display": "±5일"},
     "M4": {"metric": "error_pct", "threshold": 20.0, "op": "lte",  "display": "오차 ≤ 20%"},
     "M5": {"metric": "f1",        "threshold": 0.88, "op": "gte",  "display": "F1 ≥ 0.88"},
@@ -36,10 +36,10 @@ GATES: dict[str, dict] = {
                           "display": "생육예측 CV R² ≥ -0.25"},
     "STAGE1_NO_NEG":     {"metric": "cv_r2_min",   "threshold": -0.30, "op": "gte",
                           "display": "생육예측 최악 fold R² ≥ -0.30 (또는 Trimmed Mean PASS)"},
-    "STAGE2_MAPE":       {"metric": "mape",         "threshold": 40.0, "op": "lte",
-                          "display": "수확량 MAPE ≤ 40%"},
-    "STAGE2_R2":         {"metric": "r2",           "threshold": -0.10, "op": "gte",
-                          "display": "수확량 CV R² ≥ -0.10"},
+    "STAGE2_MAPE":       {"metric": "mape",         "threshold": 35.0, "op": "lte",
+                          "display": "수확량 MAPE ≤ 35%"},
+    "STAGE2_R2":         {"metric": "r2",           "threshold": 0.0,  "op": "gte",
+                          "display": "수확량 CV R² ≥ 0.0"},
     "STAGE3_MAPE":       {"metric": "mape",         "threshold": 35.0, "op": "lte",
                           "display": "매출 MAPE ≤ 35%"},
     "STAGE4_COST_VALID": {"metric": "cost_ratio",   "threshold": 0.5,  "op": "lte",

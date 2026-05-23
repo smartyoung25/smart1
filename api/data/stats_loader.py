@@ -154,18 +154,20 @@ def get_yearly_trend(crop: str) -> dict[str, dict]:
 # ── 수확량 조회 ───────────────────────────────────────────────────────────────
 
 _YIELD_DEFAULTS: dict[str, float] = {
-    "딸기":      3.2,   # kg/m²/작기
-    "방울토마토": 15.0,
-    "완숙토마토": 20.0,
-    "참외":      17.0,
-    "오이":      18.0,
+    "딸기":       3.2,   # kg/m²/작기 — RDA 정상 범위 2~12, 통계 중앙값
+    "방울토마토": 12.0,  # RDA 정상 범위 5~25, 보수적 중앙값
+    "완숙토마토": 15.0,  # RDA 정상 범위 8~30, 보수적 중앙값
+    "참외":        7.0,  # RDA 정상 범위 3~12 (구값 17.0은 상한 초과)
+    "파프리카":   12.0,  # RDA 정상 범위 8~20, 중앙값
+    "오이":       18.0,  # RDA 정상 범위 15~50
 }
 
 
-def get_yield_kg_m2(crop: str, percentile: str = "avg") -> float:
+def get_yield_kg_m2(crop: str, percentile: str = "median") -> float:
     """
     품목별 작기당 kg/m² 수확량 반환.
-    percentile: "avg" | "median" | "p25" | "p75"
+    percentile: "median" | "avg" | "p25" | "p75"
+    기본값을 median으로 사용 — avg는 면적 오기록 이상치로 inflate되어 있음
     """
     crop_ko = normalize_crop(crop)
     by_crop = _yield_data().get("by_crop", {})
@@ -179,7 +181,9 @@ def get_yield_kg_m2(crop: str, percentile: str = "avg") -> float:
         "p25":    "p25_kg_m2_season",
         "p75":    "p75_kg_m2_season",
     }
-    return float(stats.get(key_map.get(percentile, "avg_kg_m2_season"), stats["avg_kg_m2_season"]))
+    # median 우선, 없으면 avg로 폴백
+    preferred = key_map.get(percentile, "median_kg_m2_season")
+    return float(stats.get(preferred) or stats.get("avg_kg_m2_season", _YIELD_DEFAULTS.get(crop_ko, 10.0)))
 
 
 def get_yield_stats(crop: str) -> dict:

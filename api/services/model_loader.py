@@ -276,6 +276,20 @@ def load_model(crop_ko: str) -> Optional[dict]:
         return None
 
 
+def clear_model_cache() -> dict[str, int]:
+    """로드된 모델 캐시를 모두 비운다. 재학습 후 새 아티팩트를 바로 반영할 때 사용.
+
+    Returns:
+        {"cleared_4stage": n, "cleared_legacy": n}
+    """
+    n1 = load_4stage_model.cache_info().currsize
+    n2 = load_model.cache_info().currsize
+    load_4stage_model.cache_clear()
+    load_model.cache_clear()
+    logger.info("[model_loader] 캐시 초기화: 4stage=%d, legacy=%d 항목 제거", n1, n2)
+    return {"cleared_4stage": n1, "cleared_legacy": n2}
+
+
 def _predict_from_model(model_info: dict, env_dict: dict, month: int) -> float:
     """구형 모델 dict로 단일 예측값 반환."""
     feat_cols = model_info["feature_cols"]

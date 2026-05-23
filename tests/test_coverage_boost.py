@@ -10569,18 +10569,18 @@ class TestAtWholesaleService:
     """api/services/at_wholesale_service.py 단위 테스트"""
 
     def test_clip_yield_upper_bound(self):
-        """방울토마토 999 kg/m² → 상한 25.0으로 클리핑"""
+        """방울토마토 999 kg/m² → 스마트팜 상한 50.0으로 클리핑"""
         from api.services.at_wholesale_service import clip_yield_prediction
         clipped, was = clip_yield_prediction("방울토마토", 999.0)
         assert was is True
-        assert clipped == 25.0
+        assert clipped == 50.0  # 스마트팜패널 2026 기준 (구: 노지RDA 25.0)
 
     def test_clip_yield_lower_bound(self):
-        """딸기 0.1 kg/m² → 하한 2.0으로 클리핑"""
+        """딸기 0.1 kg/m² → 하한 1.5로 클리핑"""
         from api.services.at_wholesale_service import clip_yield_prediction
         clipped, was = clip_yield_prediction("딸기", 0.1)
         assert was is True
-        assert clipped == 2.0
+        assert clipped == 1.5  # 스마트팜패널 2026 기준 (구: 노지RDA 2.0)
 
     def test_clip_yield_normal_no_change(self):
         """정상 범위 값은 변경 없음"""
@@ -10610,7 +10610,7 @@ class TestAtWholesaleService:
         assert ref is not None
         assert "lower_kg_m2" in ref
         assert "upper_kg_m2" in ref
-        assert ref["lower_kg_m2"] == 2.0
+        assert ref["lower_kg_m2"] == 1.5  # 스마트팜패널 2026 기준 (구: 노지RDA 2.0)
         assert ref["source"] in ("rda_static", "rda_static+usda_nass")
 
     def test_at_wholesale_key_guide(self):
@@ -10994,12 +10994,12 @@ class TestAtWholesaleCoverage:
     def test_clip_low(self):
         from api.services.at_wholesale_service import clip_yield_prediction
         v, c = clip_yield_prediction("딸기", 0.1)
-        assert v == 2.0 and c
+        assert v == 1.5 and c  # 스마트팜패널 2026 기준 하한 1.5 kg/m²
 
     def test_clip_high(self):
         from api.services.at_wholesale_service import clip_yield_prediction
         v, c = clip_yield_prediction("오이", 200.0)
-        assert v == 50.0 and c
+        assert v == 60.0 and c  # 스마트팜패널 2026 기준 오이 상한 60 kg/m²
 
     def test_clip_unknown_crop(self):
         from api.services.at_wholesale_service import clip_yield_prediction

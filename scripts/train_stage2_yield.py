@@ -52,6 +52,21 @@ AREA_DEFAULTS: dict[str, float] = {
     "파프리카":   2500.0,
 }
 
+# RDA 기준 연간 수확량 상한 × 2 (면적 오기록 아웃라이어 제거용 하드 캡)
+# 출처: 농촌진흥청 스마트팜 작물별 표준 수량 (2021~2022)
+# 정상 범위의 2배를 상한으로 설정하여 명백한 면적 오기록만 제거
+_RDA_YIELD_HARD_CAP: dict[str, float] = {
+    "딸기":       24.0,   # 정상 2~12 → 상한 24 kg/m²/년
+    "방울토마토": 50.0,   # 정상 5~25 → 상한 50 kg/m²/년
+    "완숙토마토": 60.0,   # 정상 8~30 → 상한 60 kg/m²/년
+    "참외":       24.0,   # 정상 3~12 → 상한 24 kg/m²/년
+    "파프리카":   40.0,   # 정상 8~20 → 상한 40 kg/m²/년
+}
+
+# 합리적 식부면적 범위 (m²) — 범위 밖이면 오기록 의심
+_AREA_MIN_M2 = 100.0    # 10m × 10m 이하는 비현실적
+_AREA_MAX_M2 = 50000.0  # 5ha 초과는 스마트팜 범위 초과
+
 
 # ── 유틸 (Stage 1과 동일) ─────────────────────────────────────────────────────
 
@@ -384,8 +399,35 @@ def load_production_monthly(crop_ko: str, area_map: dict[str, float],
     n_matched = int((~(year_key.map(area_map).isna())).sum())
     logger.info("  면적 매칭: %d/%d행 (실측), 나머지 기본값=%.0fm²",
                 n_matched, len(prod), default_area)
+
+    # ── 면적 합리성 검증: 비현실적 면적은 기본값으로 교체 ──────────────────────
+    n_tiny = int((prod["area_m2"] < _AREA_MIN_M2).sum())
+    n_huge = int((prod["area_m2"] > _AREA_MAX_M2).sum())
+    if n_tiny > 0:
+        logger.warning("  [면적검증] 비정상 소면적(< %.0fm²): %d행 → 기본값(%.0f) 교체",
+                       _AREA_MIN_M2, n_tiny, default_area)
+        prod.loc[prod["area_m2"] < _AREA_MIN_M2, "area_m2"] = default_area
+    if n_huge > 0:
+        logger.warning("  [면적검증] 비정상 대면적(> %.0fm²): %d행 → 기본값(%.0f) 교체",
+                       _AREA_MAX_M2, n_huge, default_area)
+        prod.loc[prod["area_m2"] > _AREA_MAX_M2, "area_m2"] = default_area
+
     prod["yield_per_m2"] = prod["yield_kg"] / prod["area_m2"].replace(0, default_area)
     prod["yield_per_m2"] = clip_iqr(prod["yield_per_m2"].clip(lower=0))
+
+    # ── RDA 하드 캡: 면적 오기록에 의한 극단 이상치 제거 ──────────────────────
+    # 월별 데이터이므로 연간 캡 ÷ 작목별 작기개월수로 월별 상한 산출
+    _MONTHLY_SEASON_MONTHS: dict[str, int] = {
+        "딸기": 6, "방울토마토": 8, "완숙토마토": 8,
+        "참외": 4, "파프리카": 10, "오이": 8,
+    }
+    _monthly_cap = _RDA_YIELD_HARD_CAP.get(crop_ko, 50.0) / _MONTHLY_SEASON_MONTHS.get(crop_ko, 6)
+    n_cap = int((prod["yield_per_m2"] > _monthly_cap).sum())
+    if n_cap > 0:
+        logger.warning("  [RDA 월별캡] yield_per_m2 > %.2f kg/m²/월: %d행 클리핑 (면적 오기록 의심)",
+                       _monthly_cap, n_cap)
+        prod["yield_per_m2"] = prod["yield_per_m2"].clip(upper=_monthly_cap)
+
     logger.info("  수확량 월집계: %d행 (yield_per_m2 중앙값=%.3f kg/m²)",
                 len(prod), prod["yield_per_m2"].median())
     return prod
@@ -957,15 +999,35 @@ def build_stage2_matrix_annual(
         prod_monthly.groupby(key_annual)
         .agg(
             yield_kg=("yield_kg", "sum"),
-            area_m2=("area_m2", "first"),
+            area_m2=("area_m2", "median"),  # first 대신 median — 월별 면적 기록 변동 시 안정적
             n_harvest_months=("yield_kg", lambda x: (x > 0).sum()),
         )
         .reset_index()
     )
+    # ── 면적 합리성 검증 (연간 집계 전) ────────────────────────────────────────
+    n_tiny_ann = int((prod_ann["area_m2"] < _AREA_MIN_M2).sum())
+    n_huge_ann = int((prod_ann["area_m2"] > _AREA_MAX_M2).sum())
+    if n_tiny_ann > 0:
+        logger.warning("  [연간 면적검증] 비정상 소면적(< %.0fm²): %d행 → 기본값 교체",
+                       _AREA_MIN_M2, n_tiny_ann)
+        prod_ann.loc[prod_ann["area_m2"] < _AREA_MIN_M2, "area_m2"] = config.area_default_m2
+    if n_huge_ann > 0:
+        logger.warning("  [연간 면적검증] 비정상 대면적(> %.0fm²): %d행 → 기본값 교체",
+                       _AREA_MAX_M2, n_huge_ann)
+        prod_ann.loc[prod_ann["area_m2"] > _AREA_MAX_M2, "area_m2"] = config.area_default_m2
+
     prod_ann["yield_per_m2"] = (
         prod_ann["yield_kg"] / prod_ann["area_m2"].replace(0, config.area_default_m2)
     ).clip(lower=0)
     prod_ann["yield_per_m2"] = clip_iqr(prod_ann["yield_per_m2"])
+
+    # ── RDA 연간 하드 캡: 물리적으로 불가능한 극단값 제거 ──────────────────────
+    _annual_cap = _RDA_YIELD_HARD_CAP.get(config.crop_ko, 60.0)
+    n_cap_ann = int((prod_ann["yield_per_m2"] > _annual_cap).sum())
+    if n_cap_ann > 0:
+        logger.warning("  [RDA 연간캡] yield_per_m2 > %.1f kg/m²/년: %d행 클리핑 (면적 오기록 의심)",
+                       _annual_cap, n_cap_ann)
+        prod_ann["yield_per_m2"] = prod_ann["yield_per_m2"].clip(upper=_annual_cap)
 
     # ② 환경: 연간 평균 + 분산 + 계절 편차
     if not env_monthly.empty:
@@ -1363,7 +1425,8 @@ def train_stage2(
     logger.info("  유효 샘플: %d  피처: %d", n_samples, len(feature_cols))
 
     imputer = SimpleImputer(strategy="median")
-    X = imputer.fit_transform(X_raw)
+    X = imputer.fit_transform(X_raw)   # 최종 모델 학습용 (전체 데이터, 누수 없음)
+    X_raw_np = X_raw.values if hasattr(X_raw, "values") else np.array(X_raw)
     y = y_raw.values
 
     # 소샘플에서 fold 수를 줄여 첫 fold 훈련 크기 확보
@@ -1508,11 +1571,22 @@ def train_stage2(
                 return iter(_manual_splits)
             return iter(_cv_splitter.split(X_mat, y_vec, groups=groups))
 
+        # ── 폴드별 imputer를 train-only로 학습 (LOYO 누수 방지) ────────────────
+        # imputer.fit_transform(X_raw) 는 전체 데이터 기반 → 최종 모델에만 사용.
+        # CV 평가에서는 각 fold의 train 집합만으로 imputer를 재학습한다.
+        _all_fold_splits = list(_cv_split_iter(X_raw_np, y, groups=_cv_groups))
+        _fold_X_cv: list[tuple] = []   # [(X_tr_imp, X_val_imp), ...] per fold
+        for _f_tr, _f_vl in _all_fold_splits:
+            _fi = SimpleImputer(strategy="median")
+            _fold_X_cv.append(
+                (_fi.fit_transform(X_raw_np[_f_tr]), _fi.transform(X_raw_np[_f_vl]))
+            )
+
         cv_r2, cv_mape, best_iters = [], [], []
         xgb_val_preds: list[tuple] = []  # (y_true_v, y_xgb_pred) per fold — 앙상블용
 
-        for fold, (tr_idx, val_idx) in enumerate(_cv_split_iter(X, y, groups=_cv_groups)):
-            X_tr, X_val = X[tr_idx], X[val_idx]
+        for fold, (tr_idx, val_idx) in enumerate(_all_fold_splits):
+            X_tr, X_val = _fold_X_cv[fold]
             y_tr, y_val = np.log1p(y[tr_idx]), np.log1p(y[val_idx])
 
             fold_m = xgb.XGBRegressor(
@@ -1560,7 +1634,9 @@ def train_stage2(
             # 소샘플에서는 LGB도 min_data_in_leaf 강화 (xgb_mcw×2)
             _lgb_min_data = max(5, xgb_mcw * 2) if n_samples < 250 else max(5, xgb_mcw)
 
-            for _fold2, (_tr2, _vl2) in enumerate(_cv_split_iter(X, y, groups=_cv_groups)):
+            for _fold2 in range(len(_all_fold_splits)):
+                _X_tr2, _X_vl2 = _fold_X_cv[_fold2]
+                _tr2, _vl2 = _all_fold_splits[_fold2]
                 _lgb_m = _lgb.LGBMRegressor(
                     n_estimators=xgb_n_est, learning_rate=xgb_lr,
                     max_depth=xgb_depth, num_leaves=_num_leaves,
@@ -1571,14 +1647,14 @@ def train_stage2(
                     random_state=42, verbosity=-1, n_jobs=1,
                 )
                 _lgb_m.fit(
-                    X[_tr2], np.log1p(y[_tr2]),
-                    eval_set=[(X[_vl2], np.log1p(y[_vl2]))],
+                    _X_tr2, np.log1p(y[_tr2]),
+                    eval_set=[(_X_vl2, np.log1p(y[_vl2]))],
                     callbacks=[
                         _lgb.early_stopping(xgb_es, verbose=False),
                         _lgb.log_evaluation(-1),
                     ],
                 )
-                _y_lgb = np.expm1(_lgb_m.predict(X[_vl2]))
+                _y_lgb = np.expm1(_lgb_m.predict(_X_vl2))
                 _y_tv, _y_xgb = xgb_val_preds[_fold2]
                 _y_ens = 0.5 * _y_xgb + 0.5 * _y_lgb
 
@@ -1615,6 +1691,7 @@ def train_stage2(
         logger.info("  트리 모델 최우수: %s (CV R²=%.3f)", _best_tree_type, _best_tree_r2)
 
         # ── Ridge CV 비교: XGB early stopping이 너무 이른 경우(소샘플) Ridge가 더 안정적 ──
+        # 최종 Ridge 모델 학습용 scaler/imputer (전체 데이터 기반 — 정상)
         from sklearn.preprocessing import StandardScaler as _StdScaler
         _scaler_r = _StdScaler()
         X_sc_r = _scaler_r.fit_transform(X)
@@ -1623,10 +1700,15 @@ def train_stage2(
 
         for _alpha in _ridge_alphas:
             _fold_r2s, _fold_mapes = [], []
-            for _tr, _vl in _cv_split_iter(X_sc_r, y, groups=_cv_groups):
+            for _f_idx in range(len(_all_fold_splits)):
+                _tr, _vl = _all_fold_splits[_f_idx]
+                _X_tr_imp, _X_vl_imp = _fold_X_cv[_f_idx]   # train-only 기반 imputation
+                _fold_scaler = _StdScaler()
+                _X_tr_sc = _fold_scaler.fit_transform(_X_tr_imp)
+                _X_vl_sc = _fold_scaler.transform(_X_vl_imp)
                 _rm = Ridge(alpha=_alpha)
-                _rm.fit(X_sc_r[_tr], np.log1p(y[_tr]))
-                _yp = np.expm1(_rm.predict(X_sc_r[_vl]))
+                _rm.fit(_X_tr_sc, np.log1p(y[_tr]))
+                _yp = np.expm1(_rm.predict(_X_vl_sc))
                 _yt = y[_vl]
                 _fold_r2s.append(float(r2_score(_yt, _yp)))
                 _fold_mapes.append(_mape(_yt, _yp))

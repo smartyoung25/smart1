@@ -24,6 +24,7 @@ LOG_DIR   = ROOT / "pipeline" / "logs"
 
 STATE_FILE   = STATE_DIR / "new_rows_since_retrain.json"
 RETRAIN_LOG  = STATE_DIR / "retrain_history.json"
+LOCK_FILE    = STATE_DIR / "retrain_trigger.lock"
 
 # 학습 스크립트는 pipeline/train/ 아래에 위치 (Docker 컨테이너 내에서도 동일 경로)
 TRAIN_DIR       = ROOT / "pipeline" / "train"
@@ -198,36 +199,48 @@ def should_trigger(state: dict, env_threshold: int, prod_threshold: int, force: 
 def run(args: argparse.Namespace) -> None:
     from pipeline.notifier import notify_threshold
 
-    state = _load_state()
-    trigger, reason = should_trigger(state, args.env_threshold, args.prod_threshold, args.force)
-
-    if not trigger:
-        logger.info("재학습 불필요: %s", reason)
+    # 동시 실행 방지: 락 파일 획득 (이미 실행 중이면 즉시 종료)
+    STATE_DIR.mkdir(parents=True, exist_ok=True)
+    try:
+        lock_fd = LOCK_FILE.open("x")   # exclusive create — 이미 존재하면 FileExistsError
+    except FileExistsError:
+        logger.warning("[retrain_trigger] 이미 재학습이 실행 중 — 중복 실행 방지로 종료 (lock: %s)", LOCK_FILE)
         return
 
-    logger.info("재학습 트리거 발동: %s", reason)
+    try:
+        state = _load_state()
+        trigger, reason = should_trigger(state, args.env_threshold, args.prod_threshold, args.force)
 
-    # 재학습 시작 전 임계값 초과 알림 (force 제외)
-    if reason != "force":
-        try:
-            notify_threshold(
-                env_rows=state["new_env_rows"],
-                prod_rows=state["new_prod_rows"],
-                env_threshold=args.env_threshold,
-                prod_threshold=args.prod_threshold,
-            )
-        except Exception as e:
-            logger.warning("[notifier] 임계값 알림 오류 (무시): %s", e)
+        if not trigger:
+            logger.info("재학습 불필요: %s", reason)
+            return
 
-    crops = args.crops or ALL_CROPS
-    all_results = {}
+        logger.info("재학습 트리거 발동: %s", reason)
 
-    for crop in crops:
-        all_results[crop] = retrain_crop(crop)
+        # 재학습 시작 전 임계값 초과 알림 (force 제외)
+        if reason != "force":
+            try:
+                notify_threshold(
+                    env_rows=state["new_env_rows"],
+                    prod_rows=state["new_prod_rows"],
+                    env_threshold=args.env_threshold,
+                    prod_threshold=args.prod_threshold,
+                )
+            except Exception as e:
+                logger.warning("[notifier] 임계값 알림 오류 (무시): %s", e)
 
-    _log_retrain(crops, reason, all_results)
-    _reset_state()
-    logger.info("[완료] 재학습 이력 저장: %s", RETRAIN_LOG)
+        crops = args.crops or ALL_CROPS
+        all_results = {}
+
+        for crop in crops:
+            all_results[crop] = retrain_crop(crop)
+
+        _log_retrain(crops, reason, all_results)
+        _reset_state()
+        logger.info("[완료] 재학습 이력 저장: %s", RETRAIN_LOG)
+    finally:
+        lock_fd.close()
+        LOCK_FILE.unlink(missing_ok=True)
 
 
 def main() -> None:

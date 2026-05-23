@@ -285,14 +285,15 @@ def fao_get_price_trend(crop_ko: str) -> Optional[dict]:
 # ④ USDA NASS 수확량 기준 데이터 (M2 클리핑용)
 # ══════════════════════════════════════════════════════════════════════════════
 
-# 한국 수확량 합리적 범위 (FAO/RDA 기준 — USDA 폴백 전 하드코딩 기준)
+# 한국 스마트팜 수확량 합리적 범위 (훈련 RDA 하드캡과 일치 — train_stage2_yield._RDA_YIELD_HARD_CAP)
+# 기존 outdoor RDA 기준(딸기 12, 파프리카 20)은 스마트팜 실측보다 낮아 정상 예측을 모두 클리핑했음
 _KR_YIELD_BOUNDS: dict[str, dict] = {
-    "딸기":       {"lower": 2.0,  "upper": 12.0,  "unit": "kg/m²/시즌", "ref": "RDA 2022"},
-    "방울토마토": {"lower": 5.0,  "upper": 25.0,  "unit": "kg/m²/시즌", "ref": "RDA 2022"},
-    "완숙토마토": {"lower": 8.0,  "upper": 30.0,  "unit": "kg/m²/시즌", "ref": "RDA 2022"},
-    "파프리카":   {"lower": 8.0,  "upper": 20.0,  "unit": "kg/m²/시즌", "ref": "RDA 2021"},
-    "참외":       {"lower": 3.0,  "upper": 12.0,  "unit": "kg/m²/시즌", "ref": "RDA 2022"},
-    "오이":       {"lower": 15.0, "upper": 50.0,  "unit": "kg/m²/시즌", "ref": "RDA 2022"},
+    "딸기":       {"lower": 1.5,  "upper": 24.0,  "unit": "kg/m²/시즌", "ref": "스마트팜패널 2026"},
+    "방울토마토": {"lower": 3.0,  "upper": 50.0,  "unit": "kg/m²/시즌", "ref": "스마트팜패널 2026"},
+    "완숙토마토": {"lower": 4.0,  "upper": 60.0,  "unit": "kg/m²/시즌", "ref": "스마트팜패널 2026"},
+    "파프리카":   {"lower": 5.0,  "upper": 40.0,  "unit": "kg/m²/시즌", "ref": "스마트팜패널 2026"},
+    "참외":       {"lower": 2.0,  "upper": 24.0,  "unit": "kg/m²/시즌", "ref": "스마트팜패널 2026"},
+    "오이":       {"lower": 15.0, "upper": 60.0,  "unit": "kg/m²/시즌", "ref": "스마트팜패널 2026"},
 }
 
 
@@ -394,6 +395,7 @@ def clip_yield_prediction(
     """
     bounds = _KR_YIELD_BOUNDS.get(crop_ko)
     if not bounds:
+        logger.debug("[at_wholesale] clip_yield_prediction: 미등록 작목 '%s' — 클리핑 생략", crop_ko)
         return predicted_kg_m2, False
 
     lower = bounds["lower"]
