@@ -2,8 +2,8 @@
   "crop_ko": "파프리카",
   "crop_en": "paprika",
   "stage": 1,
-  "model_type": "ridge_stage1",
-  "feature_count": 33,
+  "model_type": "xgb_multioutput",
+  "feature_count": 50,
   "target_cols": [
     "growth_초장",
     "growth_생장길이",
@@ -16,14 +16,14 @@
     "growth_착과마디"
   ],
   "n_train": 1144,
-  "cv_r2_mean": -0.054,
-  "cv_r2_std": 0.127,
-  "cv_r2_min": -0.175,
+  "cv_r2_mean": -0.01,
+  "cv_r2_std": 0.186,
+  "cv_r2_min": -0.269,
   "fold_scores": [
-    -0.172,
-    0.005,
-    0.125,
-    -0.175
+    -0.269,
+    -0.063,
+    0.245,
+    0.048
   ],
   "gate_passed": true,
   "env_to_growth_lag": 2

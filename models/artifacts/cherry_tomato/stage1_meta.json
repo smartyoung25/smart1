@@ -3,7 +3,7 @@
   "crop_en": "cherry_tomato",
   "stage": 1,
   "model_type": "ridge_stage1",
-  "feature_count": 33,
+  "feature_count": 50,
   "target_cols": [
     "growth_초장",
     "growth_생장길이",
@@ -16,15 +16,15 @@
     "growth_화방별착과수"
   ],
   "n_train": 1005,
-  "cv_r2_mean": -0.168,
-  "cv_r2_std": 0.235,
-  "cv_r2_min": -0.572,
+  "cv_r2_mean": -0.204,
+  "cv_r2_std": 0.278,
+  "cv_r2_min": -0.684,
   "fold_scores": [
-    -0.067,
-    0.014,
-    -0.572,
-    -0.047
+    -0.076,
+    -0.023,
+    -0.684,
+    -0.032
   ],
-  "gate_passed": true,
+  "gate_passed": false,
   "env_to_growth_lag": 2
 }
