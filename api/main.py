@@ -20,6 +20,7 @@ from api.routers.auth import router as auth_router
 from api.routers.recommend_v2 import router as recommend_v2_router
 from api.routers.ws import router as ws_router, _setup_mqtt_bridge
 from api.routers.billing import farm_router as billing_farm_router, admin_router as billing_admin_router
+from api.routers.data_collection import router as data_collection_router
 from api.middleware.auth import JWTMiddleware
 
 # ── Rate limiter ──────────────────────────────────────────────────────────────
@@ -58,6 +59,8 @@ app.include_router(ws_router)
 # 빌링/구독 라우터
 app.include_router(billing_farm_router,  prefix="/api/farms/{farm_id}")
 app.include_router(billing_admin_router, prefix="/api/admin")
+# 데이터 수집 라우터 (생육 측정값 / 수확량 실측값)
+app.include_router(data_collection_router)
 
 
 @app.on_event("startup")
