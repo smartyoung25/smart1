@@ -17,8 +17,14 @@
   ],
   "n_train": 1144,
   "cv_r2_mean": -0.054,
-  "cv_r2_std": 0.0,
+  "cv_r2_std": 0.127,
   "cv_r2_min": -0.175,
+  "fold_scores": [
+    -0.172,
+    0.005,
+    0.125,
+    -0.175
+  ],
   "gate_passed": true,
   "env_to_growth_lag": 2
 }

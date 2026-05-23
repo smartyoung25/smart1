@@ -170,6 +170,24 @@ CROP_CONFIGS: dict[str, CropConfig] = {
         irrigation_target_mm_day=4.0,
         drain_target_pct=20.0,
     ),
+    "오이": CropConfig(
+        crop_ko="오이",
+        crop_en="cucumber",
+        t_base=12.0,
+        growth_cols=["초장", "마디수", "줄기굵기", "엽장", "엽폭", "엽수"],
+        opt_temp_range=(22.0, 30.0),
+        opt_humid_range=(65.0, 85.0),
+        opt_co2_range=(400.0, 1200.0),
+        env_to_growth_lag=1,   # 오이 생육 빠름
+        harvest_lag=1,
+        area_default_m2=1000.0,
+        season_months=list(range(1, 13)),
+        heating_months=[11, 12, 1, 2, 3],
+        # FAO-56 오이 Kc [Allen et al. 1998, Table 12 — fresh market, greenhouse]
+        kc_stages={"initial": 0.60, "dev": 0.90, "mid": 1.00, "late": 0.75},
+        irrigation_target_mm_day=4.0,
+        drain_target_pct=20.0,
+    ),
 }
 
 # 영문 → 한글 역조회
