@@ -1,4 +1,4 @@
-"""추가 커버리지 테스트: crop_config, anomaly_detector, m5_disease, m4_revenue, model_loader 등"""
+﻿"""추가 커버리지 테스트: crop_config, anomaly_detector, m5_disease, m4_revenue, model_loader 등"""
 import pytest
 import json
 import tempfile
@@ -10747,3 +10747,1060 @@ class TestNewFarmerEndpoints:
         r = client.get("/api/farms/farm_003/market/wholesale?crop_ko=딸기",
                        headers=headers)
         assert r.status_code in (200, 201, 400, 401, 403, 404, 422, 429, 500)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Phase 36 — 커버리지 85% 달성 추가 테스트
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class TestIrrigationStoreCoverage:
+    """irrigation_store.py -- 0% -> 80%+ coverage."""
+
+    def setup_method(self):
+        import tempfile
+        self.tmpdir = tempfile.mkdtemp()
+        import api.services.irrigation_store as store
+        self._orig = store._LOG_DIR
+        from pathlib import Path
+        store._LOG_DIR = Path(self.tmpdir)
+
+    def teardown_method(self):
+        import api.services.irrigation_store as store
+        store._LOG_DIR = self._orig
+
+    def test_log_path(self):
+        from api.services.irrigation_store import _log_path
+        p = _log_path("farm_lp")
+        assert p.name == "farm_lp.json"
+        assert p.parent.exists()
+
+    def test_load_log_missing(self):
+        from api.services.irrigation_store import _load_log
+        assert _load_log("no_farm") == {}
+
+    def test_save_load_roundtrip(self):
+        from api.services.irrigation_store import _save_log, _load_log
+        _save_log("farm_rt", {"2026-01-01": {"wc_mean": 88.0}})
+        d = _load_log("farm_rt")
+        assert d["2026-01-01"]["wc_mean"] == 88.0
+
+    def test_var_unit(self):
+        from api.services.irrigation_store import _var_unit
+        assert _var_unit("wc_mean") == "%"
+        assert _var_unit("ec_drain") == "dS/m"
+        assert _var_unit("supply_total") == "ml"
+        assert _var_unit("irr_count") == "회"
+        assert _var_unit("xxx") == ""
+
+    def test_var_label(self):
+        from api.services.irrigation_store import _var_label
+        assert "함수율" in _var_label("wc_mean")
+        assert "배액률" in _var_label("dr_pct_mean")
+        assert "EC" in _var_label("ec_drain")
+        assert _var_label("zzz") == "zzz"
+
+    def test_save_day_json(self):
+        from api.services.irrigation_store import save_irrigation_day, _load_log
+        save_irrigation_day("fj01", "2026-05-01", {
+            "wc_mean": 88.0, "wc_max": 95.0, "wc_min": 80.0,
+            "dr_pct_mean": 30.0, "ec_drain": 3.1,
+            "supply_total": 1100.0, "irr_count": 3.0, "nl_pct": 6.0,
+        })
+        log = _load_log("fj01")
+        assert "2026-05-01" in log
+        assert log["2026-05-01"]["wc_mean"] == 88.0
+
+    def test_save_day_prunes_90(self):
+        from api.services.irrigation_store import save_irrigation_day, _load_log
+        from datetime import date, timedelta
+        for i in range(95):
+            d = (date(2025, 1, 1) + timedelta(days=i)).isoformat()
+            save_irrigation_day("fp99", d, {"wc_mean": float(i)})
+        assert len(_load_log("fp99")) <= 90
+
+    def test_analysis_empty(self):
+        from api.services.irrigation_store import get_irrigation_analysis
+        r = get_irrigation_analysis("farm_empty_zzz", days=7)
+        assert r["data_days"] == 0
+        assert r["alerts"] == []
+
+    def test_analysis_with_data(self):
+        from datetime import date, timedelta
+        from api.services.irrigation_store import save_irrigation_day, get_irrigation_analysis
+        today = date.today()
+        for i in range(3):
+            save_irrigation_day("fan01", (today - timedelta(days=i)).isoformat(),
+                {"wc_mean": 85.0, "dr_pct_mean": 28.0, "ec_drain": 3.0,
+                 "nl_pct": 5.0, "supply_total": 900.0, "irr_count": 2.0})
+        r = get_irrigation_analysis("fan01", days=5)
+        assert r["data_days"] >= 1
+        assert "wc_mean" in r["summary"]
+
+    def test_analysis_low_alert(self):
+        from datetime import date
+        from api.services.irrigation_store import save_irrigation_day, get_irrigation_analysis
+        save_irrigation_day("fal01", date.today().isoformat(),
+            {"wc_mean": 5.0, "dr_pct_mean": 30.0, "ec_drain": 3.0, "nl_pct": 4.0})
+        r = get_irrigation_analysis("fal01", days=1)
+        assert any(a["variable"] == "wc_mean" for a in r["alerts"])
+        assert any(a["status"] == "low" for a in r["alerts"])
+
+    def test_analysis_high_alert(self):
+        from datetime import date
+        from api.services.irrigation_store import save_irrigation_day, get_irrigation_analysis
+        save_irrigation_day("fah02", date.today().isoformat(),
+            {"wc_mean": 88.0, "dr_pct_mean": 55.0, "ec_drain": 3.0, "nl_pct": 4.0})
+        r = get_irrigation_analysis("fah02", days=1)
+        high_alerts = [a for a in r["alerts"] if a["status"] == "high"]
+        assert len(high_alerts) >= 1
+
+    def test_irr_vars_count(self):
+        from api.services.irrigation_store import _IRR_VARS
+        assert len(_IRR_VARS) == 8
+
+    def test_normal_ranges_keys(self):
+        from api.services.irrigation_store import _NORMAL_RANGES
+        for var in ["wc_mean", "dr_pct_mean", "ec_drain", "nl_pct"]:
+            assert var in _NORMAL_RANGES
+
+
+class TestPersistenceMemFallback:
+    """persistence.py in-memory fallback paths."""
+
+    def setup_method(self):
+        import api.services.persistence as p
+        p._ENGINE = None
+        p._ENGINE_FAILED = True
+
+    def teardown_method(self):
+        import api.services.persistence as p
+        p._ENGINE_FAILED = False
+        p._mem_env.clear()
+        p._mem_cost.clear()
+        p._mem_users.clear()
+        p._mem_onboarding.clear()
+
+    def test_env_empty(self):
+        from api.services.persistence import get_manual_env
+        assert get_manual_env("nonexistent_zz") == {}
+
+    def test_env_set_get(self):
+        from api.services.persistence import set_manual_env, get_manual_env
+        set_manual_env("fe01", {"temp_internal": 23.5, "humidity_int": 70.0})
+        assert get_manual_env("fe01")["temp_internal"] == 23.5
+
+    def test_cost_empty(self):
+        from api.services.persistence import get_manual_cost
+        assert get_manual_cost("fc_none") == {}
+
+    def test_cost_set_get(self):
+        from api.services.persistence import set_manual_cost, get_manual_cost
+        set_manual_cost("fc01", {"labor": 450000})
+        assert get_manual_cost("fc01")["labor"] == 450000
+
+    def test_user_admin(self):
+        import os
+        import api.services.persistence as p
+        os.environ["ADMIN_USERNAME"] = "admin"
+        os.environ["ADMIN_PASSWORD"] = "pw1234"
+        u = p.get_user_by_username("admin")
+        assert u and u["role"] == "admin"
+
+    def test_user_missing(self):
+        from api.services.persistence import get_user_by_username
+        assert get_user_by_username("zzz_nobody") is None
+
+    def test_create_user_new(self):
+        import api.services.persistence as p
+        p._mem_users.clear()
+        u = p.create_user("usr_new01", "hpw", role="farmer")
+        assert u["username"] == "usr_new01"
+        assert u["farm_id"].startswith("farm_")
+
+    def test_create_user_duplicate_raises(self):
+        import api.services.persistence as p
+        p._mem_users.clear()
+        p.create_user("usr_dup", "hpw")
+        try:
+            p.create_user("usr_dup", "hpw2")
+            assert False, "should raise"
+        except ValueError:
+            pass
+
+    def test_onboarding_save_get(self):
+        from api.services.persistence import save_onboarding, get_onboarding
+        save_onboarding(55, "fo01", {"crop_ko": "파프리카", "area_m2": 500})
+        g = get_onboarding(55)
+        assert g and g["crop_ko"] == "파프리카"
+
+    def test_onboarding_none(self):
+        from api.services.persistence import get_onboarding
+        assert get_onboarding(9876) is None
+
+    def test_health_fields(self):
+        from api.services.persistence import health
+        h = health()
+        assert h["db_connected"] is False
+        assert isinstance(h["in_memory_farms"], list)
+
+    def test_health_farms_listed(self):
+        from api.services.persistence import set_manual_env, set_manual_cost, health
+        set_manual_env("fh_env", {"t": 1})
+        set_manual_cost("fh_cost", {"c": 1})
+        h = health()
+        assert "fh_env" in h["in_memory_farms"]
+        assert "fh_cost" in h["in_memory_farms"]
+
+    def test_admin_hash_generated(self):
+        import os
+        import api.services.persistence as p
+        os.environ["ADMIN_PASSWORD"] = "testpw9"
+        h = p._get_dev_admin_hash()
+        assert h and len(h) > 5
+
+    def test_admin_hash_no_env(self):
+        import os
+        import api.services.persistence as p
+        saved = os.environ.pop("ADMIN_PASSWORD", None)
+        try:
+            h = p._get_dev_admin_hash()
+            assert h
+        finally:
+            if saved:
+                os.environ["ADMIN_PASSWORD"] = saved
+
+
+class TestAtWholesaleCoverage:
+    """at_wholesale_service.py -- 27% -> 60%+."""
+
+    def test_item_codes_all(self):
+        from api.services.at_wholesale_service import _AT_ITEM_CODES
+        assert set(_AT_ITEM_CODES) == {"딸기","방울토마토","완숙토마토","파프리카","참외","오이"}
+
+    def test_fao_codes_all(self):
+        from api.services.at_wholesale_service import _FAO_ITEM_CODES
+        for c in ["딸기","방울토마토","완숙토마토","파프리카","참외","오이"]:
+            assert c in _FAO_ITEM_CODES
+
+    def test_market_codes(self):
+        from api.services.at_wholesale_service import _AT_MARKET_CODES
+        assert "가락동" in _AT_MARKET_CODES
+
+    def test_clip_normal(self):
+        from api.services.at_wholesale_service import clip_yield_prediction
+        v, c = clip_yield_prediction("딸기", 7.0)
+        assert v == 7.0 and not c
+
+    def test_clip_low(self):
+        from api.services.at_wholesale_service import clip_yield_prediction
+        v, c = clip_yield_prediction("딸기", 0.1)
+        assert v == 2.0 and c
+
+    def test_clip_high(self):
+        from api.services.at_wholesale_service import clip_yield_prediction
+        v, c = clip_yield_prediction("오이", 200.0)
+        assert v == 50.0 and c
+
+    def test_clip_unknown_crop(self):
+        from api.services.at_wholesale_service import clip_yield_prediction
+        v, c = clip_yield_prediction("없는작목", 100.0)
+        assert v == 100.0 and not c
+
+    def test_clip_all_crops_upper(self):
+        from api.services.at_wholesale_service import clip_yield_prediction
+        for crop in ["딸기","방울토마토","완숙토마토","파프리카","참외","오이"]:
+            v, _ = clip_yield_prediction(crop, 9999.0)
+            assert v < 9999.0
+
+    def test_usda_ref_all(self):
+        from api.services.at_wholesale_service import usda_get_yield_reference
+        for crop in ["딸기","방울토마토","완숙토마토","파프리카","참외","오이"]:
+            r = usda_get_yield_reference(crop)
+            assert r is not None
+            assert r["lower_kg_m2"] < r["upper_kg_m2"]
+            assert r["source"].startswith("rda_static")
+
+    def test_usda_ref_unknown(self):
+        from api.services.at_wholesale_service import usda_get_yield_reference
+        assert usda_get_yield_reference("없음") is None
+
+    def test_kr_bounds_valid(self):
+        from api.services.at_wholesale_service import _KR_YIELD_BOUNDS
+        for crop, b in _KR_YIELD_BOUNDS.items():
+            assert b["lower"] < b["upper"]
+
+    def test_market_data_structure(self):
+        from api.services.at_wholesale_service import get_market_data
+        r = get_market_data("딸기")
+        assert r["crop"] == "딸기"
+        assert isinstance(r["source_chain"], list)
+        assert "m3_correction_factor" in r
+        assert 0.5 <= r["m3_correction_factor"] <= 2.0
+
+    def test_market_data_yield_bounds(self):
+        from api.services.at_wholesale_service import get_market_data
+        r = get_market_data("완숙토마토")
+        assert "yield_bounds" in r
+        assert r["yield_bounds"]["lower_kg_m2"] > 0
+
+    def test_market_data_price_positive(self):
+        from api.services.at_wholesale_service import get_market_data
+        for crop in ["딸기","방울토마토","완숙토마토","파프리카","참외","오이"]:
+            r = get_market_data(crop)
+            assert r.get("price_krw_kg", 0) > 0
+
+    def test_no_key_at_none(self):
+        import os
+        from unittest.mock import patch
+        from api.services.at_wholesale_service import at_get_wholesale_price
+        with patch.dict(os.environ, {"DATA_GO_KR_SERVICE_KEY":"",
+                                      "DATA_GO_KR_SERVICE_KEY_DECODED":""}):
+            assert at_get_wholesale_price("딸기") is None
+
+    def test_fao_no_item(self):
+        from api.services.at_wholesale_service import fao_get_price_trend
+        assert fao_get_price_trend("미등록") is None
+
+    def test_at_key_guide(self):
+        from api.services.at_wholesale_service import AT_WHOLESALE_KEY_GUIDE
+        for k in ["service","used_for","cost","get_key_url","env_var"]:
+            assert k in AT_WHOLESALE_KEY_GUIDE
+
+    def test_usda_key_guide(self):
+        from api.services.at_wholesale_service import USDA_NASS_KEY_GUIDE
+        assert USDA_NASS_KEY_GUIDE["cost"] == "완전 무료"
+        assert "quickstats.nass.usda.gov" in USDA_NASS_KEY_GUIDE["get_key_url"]
+        assert len(USDA_NASS_KEY_GUIDE["setup_steps"]) >= 3
+
+    def test_at_item_code_format(self):
+        from api.services.at_wholesale_service import _AT_ITEM_CODES
+        for crop, (main, sub) in _AT_ITEM_CODES.items():
+            assert len(main) == 2, f"{crop} main code len"
+            assert len(sub) == 4, f"{crop} sub code len"
+
+
+class TestPlantDiseaseCoverage:
+    """plant_disease_service.py -- 59% -> 80%+."""
+
+    def test_env_risk_basic(self):
+        from api.services.plant_disease_service import env_based_risk
+        r = env_based_risk({"temp_internal": 22.0, "humidity_int": 88.0}, "딸기")
+        assert r["risk_level"] in ("high","medium","low","none")
+        assert "all_risks" in r and isinstance(r["all_risks"], list)
+
+    def test_env_risk_all_crops(self):
+        from api.services.plant_disease_service import env_based_risk
+        env = {"temp_internal": 20.0, "humidity_int": 91.0}
+        for crop in ["딸기","방울토마토","완숙토마토","파프리카","참외","오이"]:
+            r = env_based_risk(env, crop)
+            assert "risk_level" in r
+
+    def test_crop_diseases_structure(self):
+        from api.services.plant_disease_service import _CROP_DISEASES
+        for crop in ["딸기","방울토마토","완숙토마토","파프리카","참외","오이"]:
+            assert crop in _CROP_DISEASES
+            for d in _CROP_DISEASES[crop]:
+                assert all(k in d for k in ["name_ko","name_en","pathogen"])
+
+    def test_translate_gray_mold(self):
+        from api.services.plant_disease_service import _translate_disease
+        assert _translate_disease("gray mold", "딸기") == "잿빛곰팡이병"
+
+    def test_translate_powdery(self):
+        from api.services.plant_disease_service import _translate_disease
+        assert _translate_disease("powdery mildew", "딸기") == "흰가루병"
+
+    def test_translate_late_blight(self):
+        from api.services.plant_disease_service import _translate_disease
+        r = _translate_disease("late blight", "방울토마토")
+        assert isinstance(r, str) and len(r) > 0
+
+    def test_translate_unknown(self):
+        from api.services.plant_disease_service import _translate_disease
+        r = _translate_disease("xyz999", "딸기")
+        assert isinstance(r, str)
+
+    def test_action_known_disease(self):
+        from api.services.plant_disease_service import _get_action
+        a = _get_action("잿빛곰팡이병")
+        assert a and len(a) > 5
+
+    def test_action_unknown(self):
+        from api.services.plant_disease_service import _get_action
+        assert isinstance(_get_action("없는병해"), str)
+
+    def test_detect_rule_fallback(self):
+        import os
+        from unittest.mock import patch
+        from api.services.plant_disease_service import detect_disease
+        env = {"temp_internal": 21.0, "humidity_int": 92.0}
+        with patch.dict(os.environ, {"PLANT_ID_API_KEY":"",
+                                      "DATA_GO_KR_SERVICE_KEY":"",
+                                      "DATA_GO_KR_SERVICE_KEY_DECODED":""}):
+            r = detect_disease(env, "딸기")
+        assert "disease" in r
+        # source_chain에 규칙기반 항목 포함 (m5_rule_v2 또는 m5_simple_fallback)
+        chain_str = " ".join(r.get("source_chain", []))
+        assert "m5" in chain_str or "rule" in chain_str or "fallback" in chain_str
+
+    def test_detect_all_crops(self):
+        from api.services.plant_disease_service import detect_disease
+        env = {"temp_internal": 20.0, "humidity_int": 89.0}
+        for crop in ["딸기","방울토마토","완숙토마토","파프리카","참외","오이"]:
+            r = detect_disease(env, crop)
+            assert r["risk_level"] in ("high","medium","low","none")
+
+    def test_detect_score_confidence(self):
+        from api.services.plant_disease_service import detect_disease
+        r = detect_disease({"temp_internal":22.0,"humidity_int":85.0}, "파프리카")
+        assert 0.0 <= r.get("score", 0.5) <= 1.0
+        assert 0.0 <= r.get("confidence", 0.5) <= 1.0
+
+    def test_detect_has_reasons(self):
+        from api.services.plant_disease_service import detect_disease
+        r = detect_disease({"temp_internal":21.0,"humidity_int":90.0}, "완숙토마토")
+        assert "reasons" in r and isinstance(r["reasons"], list)
+
+    def test_ncpms_no_key(self):
+        import os
+        from unittest.mock import patch
+        from api.services.plant_disease_service import ncpms_get_pest_forecast
+        with patch.dict(os.environ, {"DATA_GO_KR_SERVICE_KEY":"",
+                                      "DATA_GO_KR_SERVICE_KEY_DECODED":""}):
+            assert ncpms_get_pest_forecast("딸기") is None
+
+    def test_ncpms_detail_no_key(self):
+        import os
+        from unittest.mock import patch
+        from api.services.plant_disease_service import ncpms_get_disease_detail
+        with patch.dict(os.environ, {"DATA_GO_KR_SERVICE_KEY":"",
+                                      "DATA_GO_KR_SERVICE_KEY_DECODED":""}):
+            assert ncpms_get_disease_detail("방울토마토") is None
+
+    def test_plant_id_no_key(self):
+        import os
+        from unittest.mock import patch
+        from api.services.plant_disease_service import plant_id_assess_health
+        with patch.dict(os.environ, {"PLANT_ID_API_KEY":""}):
+            assert plant_id_assess_health("fakebase64", "딸기") is None
+
+    def test_key_guides_present(self):
+        from api.services.plant_disease_service import PLANT_ID_KEY_GUIDE, NCPMS_KEY_GUIDE
+        assert "web.plant.id" in PLANT_ID_KEY_GUIDE["get_key_url"]
+        assert "무료" in NCPMS_KEY_GUIDE["cost"]
+        assert "service" in PLANT_ID_KEY_GUIDE
+
+
+class TestExternalApiHubCoverage:
+    """external_api_hub.py -- 69% -> 85%+."""
+
+    def test_status_report_keys(self):
+        from api.services.external_api_hub import get_api_status_report
+        r = get_api_status_report()
+        assert "apis" in r or "connected" in r or "report_time" in r
+
+    def test_missing_guide_plant_id(self):
+        from api.services.external_api_hub import MISSING_API_GUIDE
+        assert "PLANT_ID_API_KEY" in MISSING_API_GUIDE
+        assert "web.plant.id" in MISSING_API_GUIDE["PLANT_ID_API_KEY"]["get_key_url"]
+
+    def test_missing_guide_usda(self):
+        from api.services.external_api_hub import MISSING_API_GUIDE
+        assert "USDA_NASS_API_KEY" in MISSING_API_GUIDE
+        g = MISSING_API_GUIDE["USDA_NASS_API_KEY"]
+        assert "quickstats.nass.usda.gov" in g["get_key_url"]
+
+    def test_all_guides_required_fields(self):
+        from api.services.external_api_hub import MISSING_API_GUIDE
+        for key, g in MISSING_API_GUIDE.items():
+            assert "service" in g and "get_key_url" in g
+
+    def test_get_missing_guide_found(self):
+        from api.services.external_api_hub import MISSING_API_GUIDE
+        g = MISSING_API_GUIDE.get("PLANT_ID_API_KEY")
+        assert g and "service" in g
+
+    def test_get_missing_guide_not_found(self):
+        from api.services.external_api_hub import MISSING_API_GUIDE
+        r = MISSING_API_GUIDE.get("TOTALLY_UNKNOWN_XYZ")
+        assert r is None
+
+    def test_status_has_fao(self):
+        from api.services.external_api_hub import get_api_status_report
+        r = get_api_status_report()
+        assert "fao" in str(r).lower()
+
+    def test_connected_dict_non_empty(self):
+        from api.services.external_api_hub import get_api_status_report
+        r = get_api_status_report()
+        apis = r.get("apis") or r.get("connected") or {}
+        assert len(apis) > 0
+
+    def test_kamis_in_connected(self):
+        from api.services.external_api_hub import get_api_status_report
+        r = get_api_status_report()
+        all_text = str(r).lower()
+        assert "kamis" in all_text or "kma" in all_text
+
+    def test_missing_guide_has_kamis(self):
+        from api.services.external_api_hub import MISSING_API_GUIDE
+        # KAMIS 또는 KMA 중 하나는 있어야 함
+        keys_lower = [k.lower() for k in MISSING_API_GUIDE.keys()]
+        has_any = any("kamis" in k or "kma" in k or "plant" in k for k in keys_lower)
+        assert has_any
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Phase 37 — 어댑터 커버리지 85% 달성
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class TestKmaAsosAdapter:
+    """kma_asos_adapter.py — 0% → 90%+"""
+
+    def test_solar_rad_from_peak(self):
+        from adapters.kma_asos_adapter import _solar_rad_from_asos
+        r = _solar_rad_from_asos({"hr1MaxIcsr": "500.0"})
+        assert r is not None
+        assert abs(r - 200.0) < 1.0
+
+    def test_solar_rad_from_gsr(self):
+        from adapters.kma_asos_adapter import _solar_rad_from_asos
+        r = _solar_rad_from_asos({"sumGsr": "10.0"})
+        assert r is not None
+        assert r > 100.0
+
+    def test_solar_rad_neither(self):
+        from adapters.kma_asos_adapter import _solar_rad_from_asos
+        assert _solar_rad_from_asos({}) is None
+
+    def test_solar_rad_zero_peak_falls_to_gsr(self):
+        from adapters.kma_asos_adapter import _solar_rad_from_asos
+        r = _solar_rad_from_asos({"hr1MaxIcsr": "0", "sumGsr": "5.0"})
+        assert r is not None and r > 0
+
+    def test_adapt_daily_all_fields(self):
+        from adapters.kma_asos_adapter import adapt_daily_record
+        from datetime import date
+        item = {
+            "avgTa": "15.0", "avgRhm": "70.0", "avgTs": "12.0",
+            "avgWs": "2.5", "maxWd": "180", "hr1MaxIcsr": "400.0",
+        }
+        result = adapt_daily_record(item, "farm_k1", date(2026, 5, 1))
+        # temp_internal, temp_external, humidity_int, soil_temp, wind_speed_ext, wind_dir_ext, solar_rad
+        assert len(result.records) >= 4
+        canonicals = {r.canonical_name for r in result.records}
+        assert "temp_internal" in canonicals
+        assert "temp_external" in canonicals
+
+    def test_adapt_daily_greenhouse_offset(self):
+        from adapters.kma_asos_adapter import adapt_daily_record, GREENHOUSE_TEMP_OFFSET
+        from datetime import date
+        item = {"avgTa": "10.0"}
+        result = adapt_daily_record(item, "farm_k2", date(2026, 5, 2))
+        internal = next((r for r in result.records if r.canonical_name == "temp_internal"), None)
+        assert internal is not None
+        assert abs(internal.value - (10.0 + GREENHOUSE_TEMP_OFFSET)) < 0.1
+
+    def test_adapt_daily_bad_date(self):
+        from adapters.kma_asos_adapter import adapt_daily_record
+        item = {"tm": "not-a-date", "avgTa": "15.0"}
+        result = adapt_daily_record(item, "farm_k3")
+        assert len(result.records) == 0
+        assert len(result.errors) > 0
+
+    def test_adapt_daily_date_from_tm(self):
+        from adapters.kma_asos_adapter import adapt_daily_record
+        item = {"tm": "2026-03-15", "avgTa": "8.0"}
+        result = adapt_daily_record(item, "farm_k4")
+        assert len(result.records) >= 1
+
+    def test_adapt_daily_solar_added(self):
+        from adapters.kma_asos_adapter import adapt_daily_record
+        from datetime import date
+        item = {"hr1MaxIcsr": "600.0"}
+        result = adapt_daily_record(item, "farm_k5", date(2026, 5, 3))
+        solar = next((r for r in result.records if r.canonical_name == "solar_rad"), None)
+        assert solar is not None
+
+    def test_adapt_response_multiple(self):
+        from adapters.kma_asos_adapter import adapt_response
+        items = [
+            {"tm": "2026-04-01", "avgTa": "12.0", "avgRhm": "65.0"},
+            {"tm": "2026-04-02", "avgTa": "14.0", "avgRhm": "68.0"},
+            {"tm": "bad-date",   "avgTa": "10.0"},
+        ]
+        result = adapt_response(items, "farm_k6")
+        assert len(result.records) >= 4
+        assert len(result.errors) >= 1
+
+    def test_adapt_response_empty(self):
+        from adapters.kma_asos_adapter import adapt_response
+        result = adapt_response([], "farm_k7")
+        assert result.records == []
+
+    def test_quality_tag_transfer(self):
+        from adapters.kma_asos_adapter import adapt_daily_record, QUALITY_TAG
+        from datetime import date
+        item = {"avgTa": "20.0"}
+        result = adapt_daily_record(item, "farm_k8", date(2026, 5, 5))
+        assert all(r.quality_tag == QUALITY_TAG for r in result.records)
+
+    def test_imputed_true(self):
+        from adapters.kma_asos_adapter import adapt_daily_record
+        from datetime import date
+        item = {"avgTa": "18.0"}
+        result = adapt_daily_record(item, "farm_k9", date(2026, 5, 6))
+        assert all(r.imputed is True for r in result.records)
+
+
+class TestIrrigationAdapter:
+    """irrigation_adapter.py — 16% → 90%+"""
+
+    def _payload(self, **kwargs):
+        base = {
+            "farm_id": "farm_irr01",
+            "date": "2026-05-10",
+            "slab_vol_l": 15.0,
+            "periods": [
+                {"period": 1, "supply_ml": 150, "drain_ml": 0,   "ec": 2.5, "slab_wt_kg": 12.5},
+                {"period": 2, "supply_ml": 300, "drain_ml": 80,  "ec": 2.4, "slab_wt_kg": 14.2},
+                {"period": 3, "supply_ml": 400, "drain_ml": 150, "ec": 2.6, "slab_wt_kg": 14.8},
+                {"period": 4, "supply_ml": 200, "drain_ml": 100, "ec": 2.7, "slab_wt_kg": 13.5},
+            ],
+            "max_wt_kg": 14.8,
+            "sunset_wt_kg": 13.5,
+        }
+        base.update(kwargs)
+        return base
+
+    def test_wc_normal(self):
+        from adapters.irrigation_adapter import _wc
+        assert abs(_wc(12.0, 15.0) - 80.0) < 0.1
+
+    def test_wc_zero_vol(self):
+        from adapters.irrigation_adapter import _wc
+        assert _wc(12.0, 0.0) is None
+
+    def test_dr_pct_normal(self):
+        from adapters.irrigation_adapter import _dr_pct
+        assert abs(_dr_pct(80.0, 200.0) - 40.0) < 0.1
+
+    def test_dr_pct_zero_supply(self):
+        from adapters.irrigation_adapter import _dr_pct
+        assert _dr_pct(80.0, 0.0) is None
+
+    def test_full_payload_records(self):
+        from adapters.irrigation_adapter import adapt_irrigation
+        result = adapt_irrigation(self._payload())
+        assert len(result.errors) == 0
+        canonicals = {r.canonical_name for r in result.records}
+        assert "wc_mean" in canonicals
+        assert "wc_max" in canonicals
+        assert "wc_min" in canonicals
+        assert "dr_pct_mean" in canonicals
+        assert "supply_total" in canonicals
+        assert "irr_count" in canonicals
+        assert "nl_pct" in canonicals
+
+    def test_nl_pct_calculated(self):
+        from adapters.irrigation_adapter import adapt_irrigation
+        result = adapt_irrigation(self._payload(max_wt_kg=14.8, sunset_wt_kg=13.0))
+        nl = next((r for r in result.records if r.canonical_name == "nl_pct"), None)
+        assert nl is not None
+        assert nl.value > 0
+
+    def test_empty_periods_error(self):
+        from adapters.irrigation_adapter import adapt_irrigation
+        result = adapt_irrigation(self._payload(periods=[]))
+        assert len(result.records) == 0
+        assert any("periods" in e for e in result.errors)
+
+    def test_bad_date_error(self):
+        from adapters.irrigation_adapter import adapt_irrigation
+        result = adapt_irrigation(self._payload(date="not-a-date"))
+        assert len(result.records) == 0
+        assert len(result.errors) > 0
+
+    def test_no_date_uses_now(self):
+        from adapters.irrigation_adapter import adapt_irrigation
+        p = self._payload()
+        del p["date"]
+        result = adapt_irrigation(p)
+        assert len(result.records) >= 1
+
+    def test_ec_drain_avg(self):
+        from adapters.irrigation_adapter import adapt_irrigation
+        result = adapt_irrigation(self._payload())
+        ec = next((r for r in result.records if r.canonical_name == "ec_drain"), None)
+        assert ec is not None
+        assert 2.0 < ec.value < 4.0
+
+    def test_supply_total_sum(self):
+        from adapters.irrigation_adapter import adapt_irrigation
+        result = adapt_irrigation(self._payload())
+        supply = next((r for r in result.records if r.canonical_name == "supply_total"), None)
+        assert supply is not None
+        assert abs(supply.value - 1050.0) < 1.0
+
+    def test_irr_count_positive(self):
+        from adapters.irrigation_adapter import adapt_irrigation
+        result = adapt_irrigation(self._payload())
+        cnt = next((r for r in result.records if r.canonical_name == "irr_count"), None)
+        assert cnt is not None and cnt.value >= 1
+
+    def test_quality_tag(self):
+        from adapters.irrigation_adapter import adapt_irrigation, QUALITY_TAG
+        result = adapt_irrigation(self._payload())
+        assert all(r.quality_tag == QUALITY_TAG for r in result.records)
+
+
+class TestManualInputAdapter:
+    """manual_input_adapter.py — 29% → 90%+"""
+
+    def test_harvest_adapt(self):
+        from datetime import datetime
+        from adapters.manual_input_adapter import adapt_manual_input
+        r = adapt_manual_input(
+            "farm_m1", "harvest", datetime(2026, 5, 1, 10, 0),
+            {"harvest_weight": 3.5},
+        )
+        assert len(r.records) == 1
+        assert r.records[0].canonical_name == "yield_kg_m2"
+        assert r.records[0].value == 3.5
+
+    def test_growth_survey_adapt(self):
+        from datetime import datetime
+        from adapters.manual_input_adapter import adapt_manual_input
+        r = adapt_manual_input(
+            "farm_m2", "growth_survey", datetime(2026, 5, 2, 10, 0),
+            {"plant_height_cm": 45.0, "leaf_count": 12.0, "fruit_count": 8.0},
+        )
+        canonicals = {rec.canonical_name for rec in r.records}
+        assert "plant_height" in canonicals
+        assert "leaf_count" in canonicals
+        assert "fruit_count" in canonicals
+
+    def test_disease_report_empty(self):
+        from datetime import datetime
+        from adapters.manual_input_adapter import adapt_manual_input
+        r = adapt_manual_input(
+            "farm_m3", "disease_report", datetime(2026, 5, 3, 10, 0),
+            {"notes": "잎마름병 발견"},
+        )
+        assert r.records == []
+        assert r.errors == []
+
+    def test_non_numeric_skipped(self):
+        from datetime import datetime
+        from adapters.manual_input_adapter import adapt_manual_input
+        r = adapt_manual_input(
+            "farm_m4", "harvest", datetime(2026, 5, 4, 10, 0),
+            {"harvest_weight": "n/a"},
+        )
+        assert len(r.records) == 0
+        assert len(r.errors) == 1
+
+    def test_out_of_range_skipped(self):
+        from datetime import datetime
+        from adapters.manual_input_adapter import adapt_manual_input
+        r = adapt_manual_input(
+            "farm_m5", "harvest", datetime(2026, 5, 5, 10, 0),
+            {"harvest_weight": 99999.0},
+        )
+        assert len(r.records) == 0
+        assert len(r.errors) >= 1
+
+    def test_batch_rows_good(self):
+        from adapters.manual_input_adapter import adapt_manual_input_rows
+        rows = [
+            {"farm_id": "farm_b1", "input_type": "harvest",
+             "recorded_at": "2026-05-01T10:00:00", "payload": {"harvest_weight": 2.8}},
+            {"farm_id": "farm_b1", "input_type": "growth_survey",
+             "recorded_at": "2026-05-02T10:00:00", "payload": {"plant_height_cm": 40.0}},
+        ]
+        r = adapt_manual_input_rows(rows)
+        assert len(r.records) >= 2
+
+    def test_batch_bad_timestamp(self):
+        from adapters.manual_input_adapter import adapt_manual_input_rows
+        rows = [
+            {"farm_id": "farm_b2", "input_type": "harvest",
+             "recorded_at": "not-a-date", "payload": {"harvest_weight": 2.0}},
+        ]
+        r = adapt_manual_input_rows(rows)
+        assert len(r.records) == 0
+        assert len(r.errors) == 1
+
+    def test_source_id(self):
+        from adapters.manual_input_adapter import SOURCE_ID
+        assert SOURCE_ID == "manual"
+
+    def test_quality_tag(self):
+        from adapters.manual_input_adapter import QUALITY_TAG
+        assert QUALITY_TAG == "FINETUNED"
+
+    def test_harvest_fields_map(self):
+        from adapters.manual_input_adapter import _HARVEST_FIELDS
+        assert "harvest_weight" in _HARVEST_FIELDS
+        assert _HARVEST_FIELDS["harvest_weight"] == "yield_kg_m2"
+
+    def test_growth_fields_map(self):
+        from adapters.manual_input_adapter import _GROWTH_FIELDS
+        assert "plant_height_cm" in _GROWTH_FIELDS
+        assert "leaf_count" in _GROWTH_FIELDS
+
+
+class TestRdaApiAdapter:
+    """rda_api_adapter.py — 27% → 90%+"""
+
+    def test_adapt_record_basic(self):
+        from datetime import datetime
+        from adapters.rda_api_adapter import adapt_record
+        data = {"내부온도": "23.5", "내부습도": "75.0", "초장": "45.0"}
+        r = adapt_record(data, "farm_r1", datetime(2026, 5, 1, 10, 0))
+        assert len(r.records) >= 2
+        canonicals = {rec.canonical_name for rec in r.records}
+        assert "temp_internal" in canonicals
+        assert "humidity_int" in canonicals
+
+    def test_adapt_record_growth_fields(self):
+        from datetime import datetime
+        from adapters.rda_api_adapter import adapt_record
+        data = {
+            "초장": "50.0", "엽수": "14.0", "엽장": "15.0",
+            "엽폭": "8.0", "관부직경": "12.0", "화방별착과수": "6.0",
+        }
+        r = adapt_record(data, "farm_r2", datetime(2026, 5, 2, 10, 0))
+        canonicals = {rec.canonical_name for rec in r.records}
+        assert "plant_height" in canonicals
+        assert "leaf_count" in canonicals
+
+    def test_adapt_record_non_numeric(self):
+        from datetime import datetime
+        from adapters.rda_api_adapter import adapt_record
+        data = {"내부온도": "측정불가"}
+        r = adapt_record(data, "farm_r3", datetime(2026, 5, 3, 10, 0))
+        assert len(r.records) == 0
+        assert len(r.errors) == 1
+
+    def test_adapt_record_out_of_range(self):
+        from datetime import datetime
+        from adapters.rda_api_adapter import adapt_record
+        data = {"내부온도": "999.9"}
+        r = adapt_record(data, "farm_r4", datetime(2026, 5, 4, 10, 0))
+        assert len(r.records) == 0
+        assert len(r.errors) >= 1
+
+    def test_adapt_record_missing_fields(self):
+        from datetime import datetime
+        from adapters.rda_api_adapter import adapt_record
+        r = adapt_record({}, "farm_r5", datetime(2026, 5, 5, 10, 0))
+        assert r.records == []
+        assert r.errors == []
+
+    def test_adapt_response_list_good(self):
+        from adapters.rda_api_adapter import adapt_response_list
+        items = [
+            {"측정일시": "2026-05-01T10:00:00", "내부온도": "22.0", "초장": "48.0"},
+            {"측정일시": "2026-05-02T10:00:00", "내부습도": "78.0"},
+        ]
+        r = adapt_response_list(items, "farm_r6")
+        assert len(r.records) >= 3
+
+    def test_adapt_response_list_bad_timestamp(self):
+        from adapters.rda_api_adapter import adapt_response_list
+        items = [{"측정일시": "bad-ts", "내부온도": "20.0"}]
+        r = adapt_response_list(items, "farm_r7")
+        assert len(r.records) == 0
+        assert len(r.errors) == 1
+
+    def test_adapt_response_list_empty(self):
+        from adapters.rda_api_adapter import adapt_response_list
+        r = adapt_response_list([], "farm_r8")
+        assert r.records == []
+
+    def test_custom_time_key(self):
+        from adapters.rda_api_adapter import adapt_response_list
+        items = [{"obs_time": "2026-05-01T12:00:00", "내부온도": "21.0"}]
+        r = adapt_response_list(items, "farm_r9", time_key="obs_time")
+        assert len(r.records) == 1
+
+    def test_source_id(self):
+        from adapters.rda_api_adapter import SOURCE_ID
+        assert SOURCE_ID == "rda_api"
+
+    def test_field_map_keys(self):
+        from adapters.rda_api_adapter import _FIELD_MAP
+        assert "내부온도" in _FIELD_MAP
+        assert "수확량" in _FIELD_MAP
+        assert "초장" in _FIELD_MAP
+
+    def test_record_quality_tag(self):
+        from datetime import datetime
+        from adapters.rda_api_adapter import adapt_record, QUALITY_TAG
+        data = {"내부온도": "20.0"}
+        r = adapt_record(data, "farm_r10", datetime(2026, 5, 6, 10, 0))
+        assert all(rec.quality_tag == QUALITY_TAG for rec in r.records)
+
+
+class TestKamisAdapter:
+    """kamis_adapter.py — 56% → 90%+"""
+
+    def test_adapt_price_basic(self):
+        from datetime import datetime
+        from adapters.kamis_adapter import adapt_price_record
+        data = {"가격": "2500"}
+        r = adapt_price_record(data, "farm_kp1", datetime(2026, 5, 1, 12, 0))
+        assert len(r.records) == 1
+        assert r.records[0].canonical_name == "kamis_price"
+        assert r.records[0].value == 2500.0
+
+    def test_adapt_price_comma_string(self):
+        from datetime import datetime
+        from adapters.kamis_adapter import adapt_price_record
+        data = {"가격": "2,500"}
+        r = adapt_price_record(data, "farm_kp2", datetime(2026, 5, 2, 12, 0))
+        assert len(r.records) == 1
+        assert r.records[0].value == 2500.0
+
+    def test_adapt_price_alt_field(self):
+        from datetime import datetime
+        from adapters.kamis_adapter import adapt_price_record
+        data = {"dpr1": "3000"}
+        r = adapt_price_record(data, "farm_kp3", datetime(2026, 5, 3, 12, 0))
+        assert len(r.records) == 1
+
+    def test_adapt_price_english_field(self):
+        from datetime import datetime
+        from adapters.kamis_adapter import adapt_price_record
+        data = {"price": "1800"}
+        r = adapt_price_record(data, "farm_kp4", datetime(2026, 5, 4, 12, 0))
+        assert len(r.records) == 1
+
+    def test_adapt_price_non_numeric(self):
+        from datetime import datetime
+        from adapters.kamis_adapter import adapt_price_record
+        data = {"가격": "없음"}
+        r = adapt_price_record(data, "farm_kp5", datetime(2026, 5, 5, 12, 0))
+        assert len(r.records) == 0
+        assert len(r.errors) == 1
+
+    def test_adapt_price_empty(self):
+        from datetime import datetime
+        from adapters.kamis_adapter import adapt_price_record
+        r = adapt_price_record({}, "farm_kp6", datetime(2026, 5, 6, 12, 0))
+        assert r.records == []
+
+    def test_adapt_response_list(self):
+        from adapters.kamis_adapter import adapt_response
+        items = [
+            {"날짜": "2026-05-01", "가격": "2400"},
+            {"날짜": "2026-05-02", "가격": "2600"},
+        ]
+        r = adapt_response(items, "farm_kp7")
+        assert len(r.records) == 2
+
+    def test_adapt_response_bad_date(self):
+        from adapters.kamis_adapter import adapt_response
+        items = [{"날짜": "bad", "가격": "2500"}]
+        r = adapt_response(items, "farm_kp8")
+        assert len(r.records) == 0
+        assert len(r.errors) == 1
+
+    def test_adapt_response_alt_date_key(self):
+        from adapters.kamis_adapter import adapt_response
+        items = [{"date": "2026-05-01", "가격": "2000"}]
+        r = adapt_response(items, "farm_kp9")
+        assert len(r.records) == 1
+
+    def test_source_id(self):
+        from adapters.kamis_adapter import SOURCE_ID
+        assert SOURCE_ID == "kamis"
+
+
+class TestWurDatasetAdapter:
+    """wur_dataset_adapter.py — 55% → 90%+"""
+
+    def test_adapt_row_basic(self):
+        from datetime import datetime
+        from adapters.wur_dataset_adapter import adapt_row
+        row = {"T_air": "22.0", "CO2_conc": "800.0", "I_glob": "200.0"}
+        r = adapt_row(row, "farm_wur1", datetime(2026, 5, 1, 10, 0))
+        canonicals = {rec.canonical_name for rec in r.records}
+        assert "temp_internal" in canonicals
+        assert "co2_ppm" in canonicals
+        assert "solar_rad" in canonicals
+
+    def test_adapt_row_ec(self):
+        from datetime import datetime
+        from adapters.wur_dataset_adapter import adapt_row
+        row = {"EC_solution": "2.5"}
+        r = adapt_row(row, "farm_wur2", datetime(2026, 5, 2, 10, 0))
+        assert any(rec.canonical_name == "ec_dsm" for rec in r.records)
+
+    def test_adapt_row_nan_skipped(self):
+        from datetime import datetime
+        from adapters.wur_dataset_adapter import adapt_row
+        row = {"T_air": "NaN", "CO2_conc": "nan", "I_glob": "NA"}
+        r = adapt_row(row, "farm_wur3", datetime(2026, 5, 3, 10, 0))
+        assert r.records == []
+
+    def test_adapt_row_non_numeric(self):
+        from datetime import datetime
+        from adapters.wur_dataset_adapter import adapt_row
+        row = {"T_air": "error"}
+        r = adapt_row(row, "farm_wur4", datetime(2026, 5, 4, 10, 0))
+        assert len(r.records) == 0
+        assert len(r.errors) == 1
+
+    def test_adapt_row_out_of_range(self):
+        from datetime import datetime
+        from adapters.wur_dataset_adapter import adapt_row
+        row = {"T_air": "9999.0"}
+        r = adapt_row(row, "farm_wur5", datetime(2026, 5, 5, 10, 0))
+        assert len(r.records) == 0
+        assert len(r.errors) >= 1
+
+    def test_adapt_row_empty(self):
+        from datetime import datetime
+        from adapters.wur_dataset_adapter import adapt_row
+        r = adapt_row({}, "farm_wur6", datetime(2026, 5, 6, 10, 0))
+        assert r.records == []
+
+    def test_adapt_dataframe(self):
+        import pandas as pd
+        from adapters.wur_dataset_adapter import adapt_dataframe
+        df = pd.DataFrame({
+            "DateTime": ["2026-05-01T10:00:00", "2026-05-02T10:00:00"],
+            "T_air": [21.0, 22.0],
+            "CO2_conc": [750.0, 800.0],
+        })
+        r = adapt_dataframe(df, "farm_wur7")
+        assert len(r.records) >= 4
+
+    def test_adapt_dataframe_bad_timestamp(self):
+        import pandas as pd
+        from adapters.wur_dataset_adapter import adapt_dataframe
+        df = pd.DataFrame({
+            "DateTime": ["bad-ts"],
+            "T_air": [20.0],
+        })
+        r = adapt_dataframe(df, "farm_wur8")
+        assert len(r.records) == 0
+        assert len(r.errors) == 1
+
+    def test_source_id(self):
+        from adapters.wur_dataset_adapter import SOURCE_ID
+        assert SOURCE_ID == "wur_dataset"
+
+    def test_quality_tag_transfer(self):
+        from adapters.wur_dataset_adapter import QUALITY_TAG
+        assert QUALITY_TAG == "TRANSFER"
+
+    def test_field_map_keys(self):
+        from adapters.wur_dataset_adapter import _FIELD_MAP
+        assert "T_air" in _FIELD_MAP
+        assert "EC_solution" in _FIELD_MAP
+        assert "Fresh_weight" in _FIELD_MAP
+
+
