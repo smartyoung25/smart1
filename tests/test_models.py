@@ -204,7 +204,8 @@ class TestEnvRiskPredict:
         assert isinstance(r, EnvRiskResult)
 
     def test_normal_env_is_healthy(self):
-        r = self._pred(22.0, 70.0)
+        # v2 8종 모델: 14°C + 55%RH 는 어느 병해 조건도 충족하지 않음
+        r = self._pred(14.0, 55.0)
         assert r.disease == "healthy"
         assert r.risk_level == "none"
         assert r.score == 0.0
@@ -215,7 +216,8 @@ class TestEnvRiskPredict:
         assert r.risk_level in ("medium", "high")
 
     def test_phytophthora_high_temp_high_humidity(self):
-        r = self._pred(27.0, 92.0, co2=1300.0, crop="방울토마토")
+        # temp=22°C: phytophthora(baud_opt=25)가 bacterial_spot(baud_opt=28)보다 온도 근접
+        r = self._pred(22.0, 93.0, co2=800.0, crop="방울토마토")
         assert r.disease == "phytophthora"
         assert r.risk_level in ("medium", "high")
 

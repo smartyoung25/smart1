@@ -49,8 +49,8 @@ def _income_survey() -> dict: return _load("income_survey.json")
 
 # ── 품목명 정규화 ─────────────────────────────────────────────────────────────
 # 대시보드에서 영문 crop 코드를 한글 품목명으로 변환
-# 수익 예측이 통계적으로 유효한 5개 작목 (농진청 5년 패널 n≥60 기준)
-SUPPORTED_CROPS: list[str] = ["딸기", "방울토마토", "완숙토마토", "참외", "오이"]
+# 수익 예측이 통계적으로 유효한 작목 (농진청 5년 패널 n≥60 기준, 파프리카 추가)
+SUPPORTED_CROPS: list[str] = ["딸기", "방울토마토", "완숙토마토", "참외", "오이", "파프리카"]
 
 CROP_KO: dict[str, str] = {
     "strawberry":    "딸기",
@@ -58,9 +58,10 @@ CROP_KO: dict[str, str] = {
     "tomato":        "완숙토마토",
     "melon":         "참외",
     "cucumber":      "오이",
+    "paprika":       "파프리카",
     # 한글 입력도 그대로 통과
     "딸기": "딸기", "방울토마토": "방울토마토", "완숙토마토": "완숙토마토",
-    "참외": "참외", "오이": "오이",
+    "참외": "참외", "오이": "오이", "파프리카": "파프리카",
 }
 
 
@@ -81,13 +82,14 @@ def normalize_crop(crop: str) -> str:
 
 # ── 가격 조회 ─────────────────────────────────────────────────────────────────
 
-# 데이터셋에 없는 품목을 위한 기본값 (원/kg)
+# 데이터셋에 없는 품목을 위한 기본값 (원/kg) — 2024 KAMIS/농진청 트렌드 기반
 _PRICE_DEFAULTS: dict[str, float] = {
-    "딸기":      9800.0,
-    "방울토마토": 4000.0,
-    "완숙토마토": 2800.0,
-    "참외":      3200.0,
-    "오이":      1900.0,
+    "딸기":      12500.0,
+    "방울토마토":  4800.0,
+    "완숙토마토":  3200.0,
+    "참외":       3850.0,
+    "오이":       2200.0,
+    "파프리카":   4100.0,
 }
 
 
@@ -113,8 +115,16 @@ def get_price_krw_kg(crop: str, percentile: str = "mean") -> float:
     except Exception:
         pass   # pipeline 패키지 없는 환경(테스트 등)에서는 무시
 
-    # ② RDA 5년 패널 통계
-    by_crop = _price_data().get("by_crop", {})
+    pdata = _price_data()
+
+    # ② price_stats.json 내 최신 연평균 단일 값 (2024 추정치 — mean 전용)
+    if percentile == "mean":
+        flat = pdata.get("price_krw_kg", {}).get(crop_ko)
+        if flat is not None:
+            return float(flat)
+
+    # ③ RDA 패널 통계 by_crop
+    by_crop = pdata.get("by_crop", {})
     stats = by_crop.get(crop_ko)
     if not stats:
         return _PRICE_DEFAULTS.get(crop_ko, 3000.0)
@@ -207,7 +217,7 @@ def estimate_season_revenue(crop: str, area_m2: float, price_pct: str = "mean") 
         "gross_revenue_krw":   round(gross_revenue, 0),
         "estimated_cost_krw":  round(estimated_cost, 0),
         "net_profit_krw":      round(gross_revenue - estimated_cost, 0),
-        "data_source":         "rda_5yr_panel_2018_2022",
+        "data_source":         "rda_panel_2018_2025_estimated",
     }
 
 

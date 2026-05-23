@@ -62,6 +62,17 @@ class CropConfig:
     season_months:  list[int] = field(default_factory=lambda: list(range(1, 13)))
     heating_months: list[int] = field(default_factory=lambda: [11, 12, 1, 2, 3])
 
+    # ── ET 관수 최적화 필드 (FAO-56 Kc 작물계수) ───────────────────────────
+    # Kc (crop coefficient): ETc = ET₀ × Kc  [FAO-56 Table 12, Allen et al. 1998]
+    # stages: "initial" (정식~뿌리활착), "dev" (생육), "mid" (최성기), "late" (수확말기)
+    kc_stages: dict[str, float] = field(
+        default_factory=lambda: {"initial": 0.3, "dev": 0.7, "mid": 1.05, "late": 0.85}
+    )
+    # 1회 관수 목표량 (mm/day): ETc와 비교하여 부족량 보충 기준
+    irrigation_target_mm_day: float = 3.5
+    # 스마트팜 배액률 목표 (%) — 슬라브/암면 재배시 15~25% 배액이 최적
+    drain_target_pct: float = 20.0
+
 
 CROP_CONFIGS: dict[str, CropConfig] = {
     "딸기": CropConfig(
@@ -77,6 +88,10 @@ CROP_CONFIGS: dict[str, CropConfig] = {
         area_default_m2=1200.0,
         season_months=[10, 11, 12, 1, 2, 3, 4, 5],
         heating_months=[11, 12, 1, 2, 3],
+        # FAO-56 딸기 Kc (암면 슬라브 스마트팜 기준, RDA 농가 측정값 보정)
+        kc_stages={"initial": 0.40, "dev": 0.70, "mid": 0.85, "late": 0.75},
+        irrigation_target_mm_day=2.5,   # 딸기: 1.5~3.5mm/day (암면 소형 슬라브)
+        drain_target_pct=20.0,
     ),
     "방울토마토": CropConfig(
         crop_ko="방울토마토",
@@ -92,6 +107,10 @@ CROP_CONFIGS: dict[str, CropConfig] = {
         area_default_m2=1600.0,
         season_months=list(range(1, 13)),
         heating_months=[11, 12, 1, 2, 3],
+        # FAO-56 토마토(소과) Kc — 유리온실 연속재배 기준 [Marcelis et al.]
+        kc_stages={"initial": 0.45, "dev": 0.85, "mid": 1.15, "late": 0.90},
+        irrigation_target_mm_day=4.0,
+        drain_target_pct=20.0,
     ),
     "완숙토마토": CropConfig(
         crop_ko="완숙토마토",
@@ -107,6 +126,10 @@ CROP_CONFIGS: dict[str, CropConfig] = {
         area_default_m2=1400.0,
         season_months=list(range(1, 13)),
         heating_months=[11, 12, 1, 2, 3],
+        # FAO-56 토마토(대과) Kc — 파이프라인 트레이닝용 유리온실 기준
+        kc_stages={"initial": 0.45, "dev": 0.90, "mid": 1.20, "late": 0.90},
+        irrigation_target_mm_day=4.5,
+        drain_target_pct=20.0,
     ),
     "참외": CropConfig(
         crop_ko="참외",
@@ -123,6 +146,10 @@ CROP_CONFIGS: dict[str, CropConfig] = {
         area_default_m2=3800.0,
         season_months=[3, 4, 5, 6, 7, 8],
         heating_months=[3, 4],
+        # FAO-56 멜론/참외 Kc [Allen et al. 1998, Table 12]
+        kc_stages={"initial": 0.50, "dev": 0.80, "mid": 1.00, "late": 0.75},
+        irrigation_target_mm_day=3.5,
+        drain_target_pct=15.0,  # 토양재배 기준 낮은 배액률
     ),
     "파프리카": CropConfig(
         crop_ko="파프리카",
@@ -138,6 +165,10 @@ CROP_CONFIGS: dict[str, CropConfig] = {
         area_default_m2=2500.0,
         season_months=list(range(1, 13)),
         heating_months=[11, 12, 1, 2, 3],
+        # FAO-56 피망/파프리카 Kc [Allen et al. 1998 + RDA 2022 보정]
+        kc_stages={"initial": 0.40, "dev": 0.80, "mid": 1.10, "late": 0.90},
+        irrigation_target_mm_day=4.0,
+        drain_target_pct=20.0,
     ),
 }
 

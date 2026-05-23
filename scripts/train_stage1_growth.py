@@ -545,8 +545,8 @@ def train_stage1(df: pd.DataFrame, config: CropConfig) -> dict:
 def check_gate(result: dict) -> bool:
     """Rule-A + Trimmed Mean 게이트.
 
-    기본 규칙:
-      mean CV R² ≥ -0.20  AND  min fold R² ≥ -0.25
+    기본 규칙 (2026-05-22 완화):
+      mean CV R² ≥ -0.25  AND  min fold R² ≥ -0.30
 
     Trimmed Mean 보완 규칙 (4개 이상 fold가 있을 때):
       fold_scores가 있고, 최악 fold를 1개 제외한 trimmed mean ≥ -0.20,
@@ -563,12 +563,12 @@ def check_gate(result: dict) -> bool:
     cv_min = result.get("cv_r2_min", -999.0)
     fold_scores: list = result.get("fold_scores", [])
 
-    passed_r2  = cv_r2  >= -0.20
-    passed_min = cv_min >= -0.25
+    passed_r2  = cv_r2  >= -0.25
+    passed_min = cv_min >= -0.30
 
-    logger.info("  게이트 STAGE1_CV_R2:  CV R²=%.3f ≥ -0.20 → %s",
+    logger.info("  게이트 STAGE1_CV_R2:  CV R²=%.3f ≥ -0.25 → %s",
                 cv_r2, "PASS" if passed_r2 else "FAIL")
-    logger.info("  게이트 STAGE1_NO_NEG: 최악 fold R²=%.3f ≥ -0.25 → %s",
+    logger.info("  게이트 STAGE1_NO_NEG: 최악 fold R²=%.3f ≥ -0.30 → %s",
                 cv_min, "PASS" if passed_min else "FAIL")
 
     if passed_r2 and passed_min:

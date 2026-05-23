@@ -187,13 +187,57 @@ def predict_yield(crop_ko: str, season_env: Dict[str, float],
         source  = "m2_dag_retrain"
 
     yield_total = max(yield_total, 0)
+
+    # ── 게이트 미통과 시 통계 기반 블렌딩 ─────────────────────────────────────
+    # gate_pass=False 이고 MAPE > 40% 이면 ML 예측과 통계 기준값을 신뢰도 비중으로 혼합.
+    # 신뢰도 공식: confidence = max(0, 1.0 - (MAPE - 40) / 100)
+    #   MAPE=40% → confidence=0.60  (ML 60% + stats 40%)
+    #   MAPE=70% → confidence=0.30  (ML 30% + stats 70%)
+    #   MAPE=100%→ confidence=0.00  (stats 100%)
+    gate_pass = pkg.get("gate_pass", True) if pkg else True
+    # MAPE > 40% 이면 gate_pass 필드 값에 무관하게 통계 기반 블렌딩 적용
+    # (학습 당시 저장된 gate_pass 가 현재 STAGE2_MAPE≤40% 기준과 다를 수 있음)
+    if mape_cv > 40.0:
+        try:
+            from api.data.stats_loader import get_yield_kg_m2
+            stat_key         = CROP_MAP.get(crop_ko, crop_ko)
+            stat_yield_m2    = get_yield_kg_m2(stat_key)          # kg/m²/작기
+            stat_yield_total = stat_yield_m2 * max(area_m2, 1.0)
+            confidence       = max(0.0, min(0.60, 1.0 - (mape_cv - 40.0) / 100.0))
+            yield_total      = confidence * yield_total + (1.0 - confidence) * stat_yield_total
+            source           = source + "_blended"
+        except Exception:
+            pass  # stats_loader 미설치 환경 등에서는 원래 값 유지
+
+    yield_total = max(yield_total, 0)
+
+    # ── RDA 기준 합리적 범위 클리핑 (과적합 이상값 방지) ─────────────────────────
+    # 방울토마토 CV MAPE=231% 등 과적합 모델이 극단값을 예측할 때 RDA 기준으로 클리핑.
+    # at_wholesale_service.py의 _KR_YIELD_BOUNDS (RDA 2021~2022) 기준 사용.
+    try:
+        from api.services.at_wholesale_service import clip_yield_prediction  # type: ignore
+        _ym_raw = yield_total / max(area_m2, 1)
+        _ym_clipped, _was_clipped = clip_yield_prediction(crop_ko, _ym_raw)
+        if _was_clipped:
+            yield_total = _ym_clipped * max(area_m2, 1)
+            source = source + "_rda_clipped"
+    except Exception:
+        pass
+
+    yield_total = max(yield_total, 0)
     yield_m2    = yield_total / max(area_m2, 1)
+
+    # gate_pass: MAPE≤40% 기준으로 재평가 (저장된 아티팩트 값과 다를 수 있음)
+    # stub 소스(모델 미탑재)일 때만 저장 값을 유지, 나머지는 MAPE 직접 평가
+    _is_stub = (source == "stub")
+    effective_gate_pass = gate_pass if _is_stub else (mape_cv <= 40.0)
 
     return {
         "yield_kg_total": round(yield_total, 1),
         "yield_kg_m2":    round(yield_m2, 4),
         "source":         source,
         "mape_cv":        mape_cv,
+        "gate_pass":      effective_gate_pass,
     }
 
 def get_model_meta(crop_ko: str) -> Dict:
@@ -209,6 +253,7 @@ class YieldPrediction:
     yield_kg_m2:    float = 5.0
     mape_cv:        float = 99.0
     source:         str   = "stub"
+    gate_pass:      Optional[bool] = None
 
 def predict(crop_ko: str, season_env: Dict[str, float],
             area_m2: float = 1000.0,
@@ -218,7 +263,8 @@ def predict(crop_ko: str, season_env: Dict[str, float],
         yield_kg_total=r["yield_kg_total"],
         yield_kg_m2=r["yield_kg_m2"],
         mape_cv=r.get("mape_cv", 99),
-        source=r.get("source", "stub"))
+        source=r.get("source", "stub"),
+        gate_pass=r.get("gate_pass"))
 
 
 # ── 클래스 API (test_models.py 호환) ──────────────────────────────────────────

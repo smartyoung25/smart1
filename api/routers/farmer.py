@@ -42,7 +42,10 @@ from api.schemas.farmer import (
 from engine.farm_tier import FarmTier
 from engine.profit_optimizer import optimize
 from engine.what_if_simulator import EnvState
-from api.services.kma_service import get_weather_summary, FARM_STATION, get_solar_irrigation_schedule
+from api.services.kma_service import (
+    get_weather_summary, FARM_STATION, get_solar_irrigation_schedule,
+    get_forecast_summary, get_forecast_3day,
+)
 from api.services.region_station import find_station, list_sido, list_sigungu
 from api.data.stats_loader import (
     get_price_krw_kg,
@@ -725,13 +728,19 @@ def get_environment(farm_id: str):
 
 @router.get("/environment/weather")
 def get_weather(farm_id: str):
-    """기상청 ASOS 최근 1일 외부 기상 데이터 반환 (캐시 1시간)."""
+    """기상청 ASOS 최근 1일 외부 기상 + 단기예보 3일 요약 반환.
+
+    - asos: 전일 실측 (온도·습도·일사량·토양온도·풍속)
+    - forecast: 향후 3일 단기예보 (최고/최저기온·강수확률·하늘상태·일사량 추정)
+    """
     _require_farm(farm_id)
     try:
-        wx = get_weather_summary(farm_id)
+        wx  = get_weather_summary(farm_id)
+        fcst = get_forecast_summary(farm_id)
         return {
             "farm_id":        farm_id,
             "updated_at":     _now(),
+            # ── ASOS 실황 ──────────────────────────────────────────────────
             "source":         "kma_asos",
             "obs_date":       wx.get("obs_date"),
             "station_id":     wx.get("station_id"),
@@ -740,9 +749,32 @@ def get_weather(farm_id: str):
             "solar_rad_est":  wx.get("solar_rad_est"),
             "soil_temp":      wx.get("soil_temp"),
             "wind_speed_ext": wx.get("wind_speed_ext"),
+            # ── 단기예보 3일 ───────────────────────────────────────────────
+            "forecast":       fcst,
         }
     except Exception as exc:
         raise HTTPException(status_code=503, detail=f"기상청 API 오류: {exc}")
+
+
+@router.get("/environment/forecast")
+def get_forecast(farm_id: str):
+    """기상청 단기예보 3일 일별 상세 반환 (캐시 3시간).
+
+    각 일별 dict:
+      date, temp_max, temp_min, temp_avg, humidity_avg,
+      precip_prob, sky_label, rain_expected, solar_est_wm2
+    """
+    _require_farm(farm_id)
+    try:
+        days = get_forecast_3day(farm_id)
+        return {
+            "farm_id":    farm_id,
+            "updated_at": _now(),
+            "days":       days,
+            "count":      len(days),
+        }
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"단기예보 오류: {exc}")
 
 
 # ---------------------------------------------------------------------------
@@ -757,6 +789,21 @@ def get_harvest(farm_id: str):
     # 현재 내부 온도: IoT/수동 → ASOS 추정값 순으로 가져옴
     env      = _get_env(farm_id)
     temp_now = float((env or {}).get("temp_internal", 18.0))
+
+    # 단기예보 3일 평균 외부온도 → 하우스 내부온도 추정 보정
+    # (외부온도 + 내외 온도차 평균 3°C 반영) → GDD 계산에 사용
+    try:
+        fcst_days = get_forecast_3day(farm_id)
+        if fcst_days:
+            ext_temps = [d["temp_avg"] for d in fcst_days if d.get("temp_avg") is not None]
+            if ext_temps:
+                # 하우스는 외부보다 평균 +3°C 높다고 가정 (겨울 +5, 여름 +1 평균)
+                fcst_temp_avg = sum(ext_temps) / len(ext_temps)
+                indoor_offset = 3.0
+                # 현재 IoT 실내온도와 평균 사용 (50:50 가중치)
+                temp_now = round((temp_now + (fcst_temp_avg + indoor_offset)) / 2, 1)
+    except Exception:
+        pass  # 예보 실패 시 현재 IoT 온도만 사용
 
     days_to_harvest = estimate_harvest_days(crop, temp_now)
     if days_to_harvest >= 999:
@@ -905,7 +952,7 @@ def get_revenue(farm_id: str):
     price       = _price_info["price_krw_kg"]
     _price_src  = _price_info["source"]     # "kamis_cache" | "rda_static"
 
-    # ── ML 모델 예측 (없으면 통계 기반 폴백) ──────────────────────────────────
+    # ── M2 수확량 예측 (confidence-weighted blending 포함) ───────────────────
     env      = _get_env(farm_id)
     import datetime as _dt
     _cur_month = _dt.date.today().month
@@ -917,30 +964,56 @@ def get_revenue(farm_id: str):
         "soil_temp_mean":      float(env.get("soil_temp",     18.0)),
         "gdd_monthly":         max(0.0, float(env.get("temp_internal", 20.0)) - 10.0) * 30.0,
     }
+
+    # M2 직접 호출 → yield_kg_total + gate_pass + mape_cv
+    from models.m2_yield import predict_yield as _m2_predict
+    _m2_result    = _m2_predict(crop, env_feat, area_m2=area, farm_id=farm_id)
+    _m2_yield_kg  = _m2_result.get("yield_kg_total", 0.0)
+    _m2_yield_m2  = _m2_result.get("yield_kg_m2", 0.0)
+    _m2_mape      = float(_m2_result.get("mape_cv", 99.0))
+    _m2_gate      = _m2_result.get("gate_pass", None)
+    _m2_src       = _m2_result.get("source", "stub")
+    # 신뢰도 = 1 - MAPE/100 (0 이상, 최대 0.95)
+    _m2_conf      = round(max(0.0, min(0.95, 1.0 - _m2_mape / 100.0)), 3)
+
+    # ── ML 모델 예측 (없으면 통계 기반 폴백) ──────────────────────────────────
     ml_rev_pm2 = predict_revenue_per_m2(crop, env_feat, month=_cur_month)
     model_meta = get_model_meta(crop)
 
     if ml_rev_pm2 is not None and ml_rev_pm2 > 0:
-        # ML 예측값: 원/m²/월 → 월간 매출
+        # ML 예측값: 원/m²/월 → 시즌 매출 (M3 기반)
         revenue      = ml_rev_pm2 * area
         revenue_src  = "ml_model"
         logger.info(
             "[get_revenue] farm=%s crop=%s ML예측 %.0f원/m² × %.0fm² = %.0f원",
             farm_id, crop, ml_rev_pm2, area, revenue,
         )
+    elif _m2_yield_kg > 0:
+        # M2 수확량 × 단가 → 매출 (gate 통과/미통과 무관, blending 이미 적용)
+        revenue     = _m2_yield_kg * price
+        revenue_src = "m2_yield_x_price"
+        logger.info(
+            "[get_revenue] farm=%s crop=%s M2×가격 yield=%.0fkg × %.0f원/kg = %.0f원",
+            farm_id, crop, _m2_yield_kg, price, revenue,
+        )
     else:
         # 통계 폴백: 수확량 × 단가 × 면적
-        yield_m2 = get_yield_kg_m2(crop)
-        revenue  = yield_m2 * price * area
-        revenue_src = "stats_fallback"
+        _stat_yield_m2 = get_yield_kg_m2(crop)
+        _m2_yield_kg   = _stat_yield_m2 * area
+        _m2_yield_m2   = _stat_yield_m2
+        revenue        = _m2_yield_kg * price
+        revenue_src    = "stats_fallback"
         logger.info(
             "[get_revenue] farm=%s crop=%s 통계폴백 yield=%.2f kg/m² → %.0f원",
-            farm_id, crop, yield_m2, revenue,
+            farm_id, crop, _stat_yield_m2, revenue,
         )
 
     # 비용: _compute_costs 상세 항목 합산 (실단가 반영)
     cb   = _compute_costs(farm_id)
     cost = cb.total_cost_krw
+
+    _profit          = round(revenue - cost, 0)
+    _profit_margin   = round((_profit / revenue * 100) if revenue else 0.0, 1)
 
     return RevenueResponse(
         farm_id=farm_id,
@@ -948,13 +1021,21 @@ def get_revenue(farm_id: str):
         kamis_price_krw_kg=round(price, 0),
         predicted_revenue_krw=round(revenue, 0),
         predicted_cost_krw=round(cost, 0),
-        predicted_profit_krw=round(revenue - cost, 0),
+        predicted_profit_krw=_profit,
         # UI 별칭
         price_krw_kg=round(price, 0),
         revenue_krw=round(revenue, 0),
         cost_krw=round(cost, 0),
-        price_source=_price_src,    # "kamis_cache" | "rda_static"
+        price_source=_price_src,                  # "kamis_cache" | "rda_static"
         crop_ko=crop,
+        # 소득 예측 상세
+        yield_kg_forecast=round(_m2_yield_kg, 1),
+        yield_kg_m2=round(_m2_yield_m2, 4),
+        model_confidence=_m2_conf,
+        model_gate_pass=_m2_gate,
+        revenue_source=revenue_src,
+        area_m2=area,
+        profit_margin_pct=_profit_margin,
     )
 
 
@@ -1534,14 +1615,14 @@ def post_chat(farm_id: str, body: ChatRequest):
     _tier    = quota.get("tier", "basic")
     _use_llm = bool(_api_key) and _tier in ("pro", "enterprise")
 
-    if _use_llm:
-        from api.services.ai_chat import call_claude, build_farm_context
+    if _use_llm or True:  # 멀티프로바이더: 항상 AI 라우팅 시도
+        from api.services.ai_chat import call_ai, build_farm_context
         _meta    = _FARM_META.get(farm_id, {})
         _env     = _get_env(farm_id) or {}
         _alerts  = _build_alerts(farm_id, _env) if _env else []
         _ctx     = build_farm_context(farm_id, _meta, _env, _alerts)
         _history = [{"role": m.role, "content": m.content} for m in body.history]
-        _result  = call_claude(
+        _result  = call_ai(
             farm_id=farm_id,
             message=body.message,
             history=_history,
@@ -1684,6 +1765,7 @@ def get_irrigation_schedule(
     farm_id: str,
     trigger_mj_m2: float = 2.0,
     supply_ml: float = 250.0,
+    growth_stage: str = Query("mid", description="생육단계"),
 ):
     """KMA ASOS 전일 일사량을 기반으로 내일 권장 관수 스케줄을 계산합니다.
 
@@ -1696,9 +1778,546 @@ def get_irrigation_schedule(
     - `supply_ml`: 1회 관수량 (ml/slab, 기본 250ml)
     """
     _require_farm(farm_id)
+    meta = _FARM_META.get(farm_id, {})
+    crop_ko = meta.get("crop", None)
+    for _c in ["딸기", "방울토마토", "완숙토마토", "파프리카", "참외", "오이"]:
+        if crop_ko and _c in crop_ko:
+            crop_ko = _c
+            break
     sched = get_solar_irrigation_schedule(
         farm_id,
         trigger_mj_m2=trigger_mj_m2,
         supply_ml_per_trigger=supply_ml,
+        crop_ko=crop_ko,
+        growth_stage=growth_stage,
     )
-    return IrrigationScheduleResponse(farm_id=farm_id, **sched)
+    return IrrigationScheduleResponse(farm_id=farm_id, **{
+        k: v for k, v in sched.items()
+        if k in IrrigationScheduleResponse.model_fields
+    })
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Priva 관수 최적화 스케줄 (전체 알고리즘)
+# ══════════════════════════════════════════════════════════════════════════════
+
+class PrivaPhase(BaseModel):
+    phase_no: int
+    name_ko: str
+    start_hhmm: str
+    end_hhmm: str
+    supply_ml: float
+    n_max: int
+    drain_target_pct: float
+    note: str = ""
+
+
+class PrivaScheduleOut(BaseModel):
+    farm_id: str
+    crop_ko: str
+    growth_stage: str
+    date_str: str
+    et0_mm: float
+    etc_mm: float
+    kc: float
+    plant_size_pct: float
+    transpiration_mm: float
+    supply_total_ml: float
+    n_irrigations: int
+    phases: list[PrivaPhase]
+    drain_target_pct: float
+    radiation_j_cm2: float
+    trigger_j_cm2: float
+    pi_correction_lm2: float
+    method: str
+    note: str
+
+
+@router.get("/irrigation/schedule/priva", response_model=PrivaScheduleOut,
+            summary="Priva 증산량 기반 관수 스케줄 (ET₀·P/I·3상황)")
+def get_priva_schedule(
+    farm_id: str,
+    growth_stage: str = Query("mid", description="생육단계 initial|dev|mid|late"),
+    plant_size_pct: float = Query(100.0, ge=5, le=1000, description="작물크기계수 %"),
+    drain_actual_pct: Optional[float] = Query(None, description="전날 실측 배액률 (P/I 교정용)"),
+    trigger_j_cm2: float = Query(80.0, ge=10, le=500, description="적산일사 트리거 J/cm²"),
+):
+    """Priva 매뉴얼 5알고리즘 통합 관수 스케줄.
+
+    1. 적산일사 트리거 — trigger_j_cm2 마다 1회 관수
+    2. 증산량 기반 공급량 — ET₀×Kc×증산상수×작물크기계수
+    3. P/I 배액 교정 — drain_actual_pct (자동 또는 수동) 기반 공급량 보정
+    4. 3-상황 스케줄 — Phase1(아침)/Phase2(낮)/Phase3(오후)
+    5. 일사 배액% 증가 — 강한 일사 → 목표 배액률 동적 상향
+
+    drain_actual_pct 미제공 시 irrigation_store의 전일 배액률을 자동으로 사용합니다.
+    P/I 적분항(I-term)은 priva_pi_store에 일간 영속화되어 연속 교정이 가능합니다.
+    """
+    _require_farm(farm_id)
+    meta = _FARM_META.get(farm_id, {})
+    crop_ko = meta.get("crop", "딸기")
+    for _c in ["딸기", "방울토마토", "완숙토마토", "파프리카", "참외", "오이"]:
+        if _c in crop_ko:
+            crop_ko = _c
+            break
+
+    from api.services.external_api_hub import get_weather_forecast_full
+    from api.services.priva_irrigation import (
+        get_default_config, compute_priva_schedule, PIControllerState,
+    )
+    from api.services.kma_service import calc_et0_hargreaves
+    from api.services.priva_pi_store import load_pi_state, save_pi_state
+
+    # ── 기상 데이터 (KMA → Open-Meteo 폴백) ──────────────────────────────────
+    wx = get_weather_forecast_full(farm_id, days=1)
+    et0_mm    = float((wx.get("et0_forecast_mm") or [3.0])[0] or 3.0)
+    gsr_mj    = float((wx.get("daily", {}).get("shortwave_radiation_sum") or [12.0])[0] or 12.0)
+    solar_avg = float((wx.get("daily", {}).get("temperature_2m_mean") or [20.0])[0] or 200.0)
+    try:
+        from api.services.kma_service import get_latest_weather
+        item = get_latest_weather(farm_id)
+        if item:
+            _t_max  = float(item.get("maxTa", 25) or 25)
+            _t_min  = float(item.get("minTa", 15) or 15)
+            _t_mean = (_t_max + _t_min) / 2
+            _gsr    = float(item.get("sumGsr", 0) or 0)
+            if _gsr > 0:
+                gsr_mj    = _gsr
+                solar_avg = round(_gsr * 11.574, 1)
+                et0_mm    = calc_et0_hargreaves(_t_max, _t_min, _t_mean, _gsr)
+    except Exception:
+        pass
+
+    # ── 전일 실측 배액률 자동 조회 (drain_actual_pct 미제공 시) ───────────────
+    _drain_auto: Optional[float] = drain_actual_pct
+    if _drain_auto is None:
+        try:
+            from api.services.irrigation_store import get_irrigation_analysis
+            _analysis = get_irrigation_analysis(farm_id, days=1)
+            _rows = _analysis.get("rows") or _analysis.get("data") or []
+            if _rows:
+                _latest = _rows[-1] if isinstance(_rows, list) else list(_rows.values())[-1]
+                _dr = (_latest.get("dr_pct_mean") if isinstance(_latest, dict) else None)
+                if _dr is not None and 0 < float(_dr) < 100:
+                    _drain_auto = float(_dr)
+        except Exception as _e_irr:
+            logger.debug("[priva] irrigation_store 자동배액 조회 실패: %s", _e_irr)
+
+        # irrigation_store도 없으면 PI 스토어의 마지막 값 사용
+        if _drain_auto is None:
+            _pi_saved = load_pi_state(farm_id)
+            _drain_auto = _pi_saved.get("drain_actual_pct_last")
+
+    # ── PI Controller 상태 복원 ───────────────────────────────────────────────
+    pi_state = PIControllerState()
+    if _drain_auto is not None:
+        _saved = load_pi_state(farm_id)
+        pi_state.i_action_lm2 = float(_saved.get("i_action_lm2", 0.0))
+
+    cfg = get_default_config(crop_ko, growth_stage)
+    cfg.plant_size_pct = plant_size_pct
+    cfg.trigger_j_cm2  = trigger_j_cm2
+
+    result = compute_priva_schedule(
+        et0_mm=et0_mm,
+        daily_gsr_mj_m2=gsr_mj,
+        solar_avg_wm2=solar_avg if solar_avg > 50 else 200.0,
+        config=cfg,
+        pi_state=pi_state if _drain_auto is not None else None,
+        drain_actual_pct=_drain_auto,
+        date_str=str(date.today()),
+    )
+
+    # ── PI 상태 영속화 (다음날 연속 교정을 위해 저장) ────────────────────────
+    save_pi_state(
+        farm_id,
+        i_action_lm2=pi_state.i_action_lm2,
+        drain_actual_pct=_drain_auto,
+        drain_target_pct=result.drain_target_pct,
+    )
+
+    return PrivaScheduleOut(
+        farm_id=farm_id,
+        **{k: v for k, v in result.to_dict().items() if k != "phases"},
+        phases=[PrivaPhase(**ph) for ph in result.to_dict()["phases"]],
+    )
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 기상 예보 풀체인 (KMA + Open-Meteo ET₀)
+# ══════════════════════════════════════════════════════════════════════════════
+
+class WeatherForecastOut(BaseModel):
+    farm_id: str
+    source: str
+    days: int
+    et0_forecast_mm: list
+    summary_7d: dict
+    daily: dict = {}
+
+
+@router.get("/environment/weather/forecast", response_model=WeatherForecastOut,
+            summary="기상 예보 + ET₀ 예측 (KMA + Open-Meteo 폴백)")
+def get_weather_et0_forecast(
+    farm_id: str,
+    days: int = Query(7, ge=1, le=16, description="예보 일수 (최대 16일)"),
+):
+    """KMA ASOS → Open-Meteo(무료) 순서로 기상 예보를 조회합니다.
+    Hargreaves 공식으로 일별 ET₀(증발산량)를 계산해 반환합니다.
+    """
+    _require_farm(farm_id)
+    from api.services.external_api_hub import get_weather_forecast_full
+    result = get_weather_forecast_full(farm_id, days=days)
+    et0_list = result.get("et0_forecast_mm") or [3.0]
+    summary  = result.get("summary_7d") or {}
+    daily    = result.get("daily") or {}
+    if isinstance(daily, list):
+        daily = {"items": daily}
+    return WeatherForecastOut(
+        farm_id=farm_id,
+        source=result.get("source", "unknown"),
+        days=days,
+        et0_forecast_mm=et0_list,
+        summary_7d=summary,
+        daily=daily,
+    )
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 병해 위험도 보강 (M5 + EPPO + RDA)
+# ══════════════════════════════════════════════════════════════════════════════
+
+class DiseaseRiskAugmentedOut(BaseModel):
+    farm_id: str
+    crop: str
+    m5_result: dict
+    eppo_pests: list = []
+    rda_pests: list = []
+    api_sources: list[str] = []
+    updated_at: str
+
+
+@router.get("/disease-risk/augmented", response_model=DiseaseRiskAugmentedOut,
+            summary="병해 위험도 보강 (M5 규칙 + EPPO DB + RDA 병해충)")
+def get_disease_risk_augmented(
+    farm_id: str,
+    include_eppo: bool = Query(True, description="EPPO 병해충 DB 포함 여부"),
+):
+    """M5 환경 기반 병해 위험도에 EPPO 글로벌 병해충 DB와 RDA 농진청 정보를 추가합니다.
+    M5 이미지 모델이 없을 때도 EPPO/RDA 정보로 작목별 주요 병해충을 제공합니다.
+    """
+    _require_farm(farm_id)
+    meta = _FARM_META.get(farm_id, {})
+    crop_ko = meta.get("crop", "딸기")
+    for _c in ["딸기", "방울토마토", "완숙토마토", "파프리카", "참외", "오이"]:
+        if _c in crop_ko:
+            crop_ko = _c
+            break
+
+    env = _get_env(farm_id)
+    env_snap = {
+        "temp_internal": float(env.get("temp_internal", 20.0)),
+        "humidity_int":  float(env.get("humidity_int", 70.0)),
+        "co2_ppm":       float(env.get("co2_ppm", 800.0)),
+    }
+
+    from api.services.external_api_hub import get_disease_risk_augmented as _aug
+    result = _aug(env_snap, crop_ko, include_eppo=include_eppo)
+
+    return DiseaseRiskAugmentedOut(
+        farm_id=farm_id,
+        crop=crop_ko,
+        m5_result=result.get("m5_result", {}),
+        eppo_pests=result.get("eppo_pests", []),
+        rda_pests=result.get("rda_pests", []),
+        api_sources=result.get("api_sources", []),
+        updated_at=_now().isoformat(),
+    )
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 모델 성능 매트릭스 + API 연결 상태
+# ══════════════════════════════════════════════════════════════════════════════
+
+@router.get("/system/model-performance",
+            summary="전체 ML 모델 성능 매트릭스")
+def get_model_performance():
+    """M1~M5 모델 성능 현황 + API 연결 상태를 반환합니다."""
+    import json as _json
+    from pathlib import Path
+
+    artifacts = Path(__file__).resolve().parents[2] / "models" / "artifacts"
+
+    def _read_meta(path: Path) -> dict:
+        try:
+            return _json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            return {}
+
+    crops = ["strawberry", "cherry_tomato", "tomato", "paprika", "melon", "cucumber"]
+    crop_ko_map = {
+        "strawberry": "딸기", "cherry_tomato": "방울토마토", "tomato": "완숙토마토",
+        "paprika": "파프리카", "melon": "참외", "cucumber": "오이",
+    }
+
+    m1_results, m2_results, m3_results = [], [], []
+
+    for c in crops:
+        ko = crop_ko_map.get(c, c)
+        d = artifacts / c
+        if not d.exists():
+            continue
+
+        # M1 생육
+        m1 = _read_meta(d / "m1_meta.json")
+        if m1:
+            targets = m1.get("targets", {})
+            for tgt, tinfo in targets.items():
+                m1_results.append({
+                    "crop": ko, "target": tgt,
+                    "r2": round(tinfo.get("r2_ensemble", 0), 3),
+                    "mae": round(tinfo.get("mae", 0), 2),
+                    "n_train": tinfo.get("n_train", 0),
+                    "gate_pass": tinfo.get("gate_pass", False),
+                    "grade": "⭐⭐⭐" if tinfo.get("r2_ensemble", 0) >= 0.90 else
+                             "⭐⭐"  if tinfo.get("r2_ensemble", 0) >= 0.75 else "⭐",
+                })
+
+        # M2 수확량 (stage2)
+        m2 = _read_meta(d / "stage2_meta.json")
+        if m2:
+            mape = m2.get("cv_mape", m2.get("mape", 999))
+            m2_results.append({
+                "crop": ko,
+                "mape_pct": round(float(mape), 1),
+                "n_samples": m2.get("n_samples", m2.get("n_train", 0)),
+                "grade": "⭐⭐⭐" if mape <= 15 else "⭐⭐" if mape <= 30 else "⭐",
+            })
+
+        # M3 매출 (stage3)
+        m3 = _read_meta(d / "stage3_meta.json")
+        if m3:
+            mape = m3.get("mape", m3.get("cv_mape", 999))
+            m3_results.append({
+                "crop": ko,
+                "mape_pct": round(float(mape), 1),
+                "grade": "⭐⭐⭐" if mape <= 15 else "⭐⭐" if mape <= 20 else "⭐",
+            })
+
+    # API 연결 상태
+    from api.services.external_api_hub import get_api_status_report
+    api_status = get_api_status_report()
+
+    return {
+        "generated_at": _now().isoformat(),
+        "m1_growth": sorted(m1_results, key=lambda x: -x["r2"]),
+        "m2_yield":  sorted(m2_results, key=lambda x: x["mape_pct"]),
+        "m3_revenue": sorted(m3_results, key=lambda x: x["mape_pct"]),
+        "m4_cost": {"status": "parameter_based", "grade": "✅"},
+        "m5_disease": {"status": "rule_based_v2_8diseases", "grade": "⚠️ 이미지모델 미구축"},
+        "priva_irrigation": {"status": "active", "grade": "⭐⭐⭐ 신규"},
+        "api_connections": {k: v["status"] for k, v in api_status["apis"].items()},
+        "missing_guide_url": "/api/farms/{farm_id}/system/api-status",
+    }
+
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 병해 탐지 — Plant.id + NCPMS + M5 규칙기반 (4계층 폴백)
+# ══════════════════════════════════════════════════════════════════════════════
+
+class DiseaseDetectRequest(BaseModel):
+    image_base64: Optional[str] = None   # base64 JPEG/PNG (없으면 환경 기반)
+    region_code: str = "3600000"          # 시도 코드 (발생예보 지역)
+
+
+class DiseaseDetectOut(BaseModel):
+    farm_id:         str
+    crop:            str
+    disease:         str
+    disease_ko:      str
+    risk_level:      str
+    score:           float
+    confidence:      float
+    action_ko:       str
+    reasons:         list[str]
+    source_chain:    list[str]
+    all_risks:       list[dict]
+    ncpms_forecast:  list[dict]
+    ncpms_detail:    list[dict]
+    updated_at:      str
+
+
+@router.post("/disease/detect", response_model=DiseaseDetectOut,
+             summary="병해 탐지 (Plant.id + NCPMS + M5 규칙기반 4계층)")
+def detect_disease_endpoint(farm_id: str, body: DiseaseDetectRequest):
+    """병해 탐지 통합 엔드포인트.
+
+    **계층 우선순위:**
+    1. Plant.id API (이미지 있을 때, PLANT_ID_API_KEY 필요)
+    2. M5 환경기반 규칙 v2 (온습도·VPD 기반 8가지 병해)
+    3. NCPMS 농촌진흥청 병해충 발생 예보 (보강 정보)
+    4. EPPO Global Database (EU 병해충 목록)
+
+    **키 미설정 시:** M5 규칙기반 + NCPMS(DATA_GO_KR_SERVICE_KEY) 자동 사용.
+
+    **Plant.id 키 발급:** https://web.plant.id/ → 무료 100건/월
+    """
+    _require_farm(farm_id)
+    meta    = _FARM_META.get(farm_id, {})
+    crop_ko = meta.get("crop", "딸기")
+    for _c in ["딸기", "방울토마토", "완숙토마토", "파프리카", "참외", "오이"]:
+        if _c in crop_ko:
+            crop_ko = _c
+            break
+
+    env = _get_env(farm_id) or {}
+    env_snap = {
+        "temp_internal": float(env.get("temp_internal", 20.0)),
+        "humidity_int":  float(env.get("humidity_int", 70.0)),
+        "co2_ppm":       float(env.get("co2_ppm", 800.0)),
+        "solar_rad":     float(env.get("solar_rad", 150.0)),
+    }
+
+    # 농장 좌표 (Open-Meteo 좌표 재사용)
+    from api.services.external_api_hub import _FARM_COORDS  # type: ignore
+    lat, lon = _FARM_COORDS.get(farm_id, (36.5, 127.5))
+
+    from api.services.plant_disease_service import detect_disease as _detect  # type: ignore
+    result = _detect(
+        env=env_snap,
+        crop_ko=crop_ko,
+        image_base64=body.image_base64,
+        farm_lat=lat,
+        farm_lon=lon,
+        region_code=body.region_code,
+    )
+
+    logger.info("[disease/detect] farm=%s crop=%s disease=%s risk=%s sources=%s",
+                farm_id, crop_ko, result.get("disease_ko"), result.get("risk_level"),
+                result.get("source_chain"))
+
+    return DiseaseDetectOut(
+        farm_id=farm_id,
+        crop=crop_ko,
+        disease=result.get("disease", "healthy"),
+        disease_ko=result.get("disease_ko", "이상 없음"),
+        risk_level=result.get("risk_level", "none"),
+        score=float(result.get("score", 0.0)),
+        confidence=float(result.get("confidence", result.get("score", 0.0))),
+        action_ko=result.get("action_ko", "현재 환경 유지"),
+        reasons=result.get("reasons", []),
+        source_chain=result.get("source_chain", []),
+        all_risks=result.get("all_risks", []),
+        ncpms_forecast=result.get("ncpms_forecast", []),
+        ncpms_detail=result.get("ncpms_detail", []),
+        updated_at=result.get("updated_at", _now().isoformat()),
+    )
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 도매시장 가격 + 수확량 기준 (M3 보완 + M2 클리핑)
+# ══════════════════════════════════════════════════════════════════════════════
+
+@router.get("/market/wholesale",
+            summary="도매시장 가격 + M2 수확량 기준 (aT + KAMIS + FAO + USDA)")
+def get_wholesale_market(
+    farm_id: str,
+    days: int = Query(30, ge=7, le=90, description="조회 기간 (기본 30일)"),
+    crop_ko: Optional[str] = Query(None, description="조회 작목 (미지정 시 농장 기본 작목)"),
+):
+    """도매시장 가격 통합 조회.
+
+    **데이터 소스 우선순위:**
+    1. aT/KAMIS 도매시장 경락가격 (DATA_GO_KR_SERVICE_KEY — 기존)
+    2. FAO FAOSTAT 국제 가격 (무료, 연간 기준)
+    3. stats_loader 정적 데이터 (최종 폴백)
+
+    **M2 수확량 클리핑 기준:**
+    - RDA 스마트팜 기준 (내장, 키 불필요)
+    - USDA NASS 참고값 (USDA_NASS_API_KEY 선택)
+
+    **완숙토마토 gate 미통과 보완:**
+    M3 예측 오차(cv_mape=31.7%)를 실시간 도매가격으로 보정합니다.
+    """
+    _require_farm(farm_id)
+    meta = _FARM_META.get(farm_id, {})
+    crop = crop_ko or meta.get("crop", "딸기")
+    for _c in ["딸기", "방울토마토", "완숙토마토", "파프리카", "참외", "오이"]:
+        if _c in crop:
+            crop = _c
+            break
+
+    from api.services.at_wholesale_service import get_market_data  # type: ignore
+    data = get_market_data(crop, days_back=days)
+
+    # M2 예측값 클리핑 적용 예시 (현재 수확량 예측에 바로 반영)
+    from api.services.at_wholesale_service import clip_yield_prediction  # type: ignore
+    yield_bounds = data.get("yield_bounds", {})
+
+    logger.info("[market/wholesale] farm=%s crop=%s price=%.0f src=%s",
+                farm_id, crop,
+                data.get("price_krw_kg", 0),
+                data.get("price_source", "?"))
+
+    return {
+        "farm_id":              farm_id,
+        "crop":                 crop,
+        "updated_at":           _now().isoformat(),
+        "price_krw_kg":         data.get("price_krw_kg"),
+        "price_source":         data.get("price_source"),
+        "price_history":        data.get("price_history", [])[-days:],
+        "wholesale_stats":      data.get("wholesale", {}),
+        "fao_ref_price_krw_kg": data.get("fao_ref_price_krw_kg"),
+        "m3_correction_factor": data.get("m3_correction_factor", 1.0),
+        "yield_bounds":         yield_bounds,
+        "yield_clipping_note":  (
+            f"{crop} 수확량 합리적 범위: "
+            f"{yield_bounds.get('lower_kg_m2', '?')}~{yield_bounds.get('upper_kg_m2', '?')} "
+            f"kg/m²/시즌 ({yield_bounds.get('reference', 'RDA')})"
+        ) if yield_bounds else "수확량 기준 없음",
+        "source_chain":         data.get("source_chain", []),
+        "api_guide": {
+            "aT_도매가격": "DATA_GO_KR_SERVICE_KEY 기존 키 사용 중",
+            "USDA_NASS": "https://quickstats.nass.usda.gov/api (무료 키 발급)",
+            "FAO_FAOSTAT": "키 불필요 — 자동 연결",
+        },
+    }
+
+
+def _cfg_check(env_var: str) -> bool:
+    """환경변수 값이 실제로 있는지 확인."""
+    import os
+    v = os.environ.get(env_var, "")
+    return bool(v) and v not in ("none", "None", "", "your_key_here")
+
+
+@router.get("/system/api-status",
+            summary="외부 API 연결 상태 + 미연결 서비스 설정 방법")
+def get_api_status():
+    """연결된/미연결 외부 API 전체 현황과 미연결 서비스 설정 가이드를 반환합니다."""
+    from api.services.external_api_hub import get_api_status_report
+    report = get_api_status_report()
+    # 민감 정보 마스킹
+    safe = {
+        "report_time": report["report_time"],
+        "apis": report["apis"],
+        "missing_keys": {
+            k: {
+                "service": v["service"],
+                "used_for": v["used_for"],
+                "get_key_url": v["get_key_url"],
+                "cost": v.get("cost", ""),
+                "env_var": v["env_var"],
+            }
+            for k, v in report.get("missing_guide", {}).items()
+            if not _cfg_check(v["env_var"])
+        },
+        "mcp_servers": {
+            k: {"name": v["name"], "description": v["description"],
+                "key_required": v.get("key_required", True),
+                "status": v.get("status", "not_connected")}
+            for k, v in report.get("mcp_guide", {}).items()
+        },
+    }
+    return safe

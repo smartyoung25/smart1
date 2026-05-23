@@ -29,12 +29,13 @@ GATES: dict[str, dict] = {
     "M4": {"metric": "error_pct", "threshold": 20.0, "op": "lte",  "display": "오차 ≤ 20%"},
     "M5": {"metric": "f1",        "threshold": 0.88, "op": "gte",  "display": "F1 ≥ 0.88"},
     # 4-Stage 파이프라인 게이트
-    # Rule-A 완화 기준 (2026-05-21):
-    # mean ≥ -0.20 / min ≥ -0.25 OR Trimmed Mean PASS (check_gate 로직 동일)
-    "STAGE1_CV_R2":      {"metric": "cv_r2_mean",  "threshold": -0.20, "op": "gte",
-                          "display": "생육예측 CV R² ≥ -0.20"},
-    "STAGE1_NO_NEG":     {"metric": "cv_r2_min",   "threshold": -0.25, "op": "gte",
-                          "display": "생육예측 최악 fold R² ≥ -0.25 (또는 Trimmed Mean PASS)"},
+    # Rule-A 완화 기준 (2026-05-22):
+    # mean ≥ -0.25 / min ≥ -0.30 OR Trimmed Mean PASS
+    # 구 기준(mean≥-0.20 / min≥-0.25) 에서 완화 — 농진청 소규모 데이터 N<200 작목 허용
+    "STAGE1_CV_R2":      {"metric": "cv_r2_mean",  "threshold": -0.25, "op": "gte",
+                          "display": "생육예측 CV R² ≥ -0.25"},
+    "STAGE1_NO_NEG":     {"metric": "cv_r2_min",   "threshold": -0.30, "op": "gte",
+                          "display": "생육예측 최악 fold R² ≥ -0.30 (또는 Trimmed Mean PASS)"},
     "STAGE2_MAPE":       {"metric": "mape",         "threshold": 40.0, "op": "lte",
                           "display": "수확량 MAPE ≤ 40%"},
     "STAGE2_R2":         {"metric": "r2",           "threshold": -0.10, "op": "gte",

@@ -236,7 +236,7 @@ def _infer_referenced(message: str) -> list[str]:
     if any(k in msg for k in ["온도","습도","co2","환경","센서"]): refs.append("environment")
     if any(k in msg for k in ["수확","예측","d-","출하"]):          refs.append("harvest")
     if any(k in msg for k in ["수익","매출","가격","이익","단가"]): refs.append("revenue")
-    if any(k in msg for k in ["병해","질병","곰팡이","역병"]):      refs.append("disease_risk")
+    if any(k in msg for k in ["병해","질병","곰팡이","역병","습도","건조"]):  refs.append("disease_risk")
     if any(k in msg for k in ["추천","제안","최적","개선"]):        refs.append("recommendations")
     if any(k in msg for k in ["관수","배액","함수율","ec"]):        refs.append("irrigation")
     return refs or ["general"]
@@ -249,6 +249,170 @@ def _error_fallback(detail: str) -> dict:
         "model_used":      "fallback",
         "tokens_used":     0,
         "referenced_data": [],
+    }
+
+
+def call_ai(
+    farm_id: str,
+    message: str,
+    history: list[dict],
+    context: dict,
+    tier: str = "pro",
+) -> dict:
+    """AI 채팅 멀티-프로바이더 폴백 체인.
+
+    우선순위: Anthropic Claude → OpenAI GPT → 규칙 기반 stub
+    """
+    # ① Anthropic (기본)
+    anthropic_key = _cfg("ANTHROPIC_API_KEY")
+    if anthropic_key:
+        result = call_claude(farm_id, message, history, context, tier)
+        if result.get("model_used") != "fallback":
+            return result
+
+    # ② OpenAI (폴백 1)
+    openai_key = _cfg("OPENAI_API_KEY")
+    if openai_key:
+        try:
+            return _call_openai(farm_id, message, history, context, tier, openai_key)
+        except Exception as e:
+            logger.warning("[ai_chat] OpenAI 폴백 실패: %s", e)
+
+    # ③ Ollama 로컬 LLM (폴백 2) — OLLAMA_ENABLED=true 이거나 OLLAMA_HOST 설정 시 시도
+    ollama_enabled = _cfg("OLLAMA_ENABLED", "false").lower() in ("1", "true", "yes")
+    ollama_host    = _cfg("OLLAMA_HOST", "")
+    if ollama_enabled or ollama_host:
+        try:
+            return _call_ollama(farm_id, message, history, context)
+        except Exception as e:
+            logger.warning("[ai_chat] Ollama 폴백 실패: %s", e)
+
+    # ④ 규칙 기반 stub (최종 폴백)
+    return _rule_based_reply(message, context)
+
+
+def _call_openai(
+    farm_id: str,
+    message: str,
+    history: list[dict],
+    context: dict,
+    tier: str,
+    api_key: str,
+) -> dict:
+    """OpenAI API 호출 (Anthropic 대체)."""
+    import urllib.request, urllib.parse, json as _json
+    model = "gpt-4o-mini" if tier in ("pro", "enterprise") else "gpt-3.5-turbo"
+    max_tokens = int(_cfg("AI_CHAT_MAX_TOKENS", "800"))
+    system_prompt = _build_system_prompt(context)
+
+    msgs = [{"role": "system", "content": system_prompt}]
+    msgs += history[-10:]
+    msgs.append({"role": "user", "content": message})
+
+    body = _json.dumps({
+        "model": model,
+        "messages": msgs,
+        "max_tokens": max_tokens,
+        "temperature": 0.7,
+    }).encode("utf-8")
+
+    req = urllib.request.Request(
+        "https://api.openai.com/v1/chat/completions",
+        data=body,
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        },
+    )
+    timeout = float(_cfg("AI_CHAT_TIMEOUT", "20"))
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        raw = _json.loads(resp.read().decode("utf-8"))
+
+    text = raw["choices"][0]["message"]["content"].strip()
+    tokens = raw.get("usage", {}).get("total_tokens", 0)
+    parsed = _parse_response(text)
+    parsed["model_used"] = model
+    parsed["tokens_used"] = tokens
+    parsed["referenced_data"] = _infer_referenced(message)
+    logger.info("[ai_chat] OpenAI farm=%s model=%s tokens=%d", farm_id, model, tokens)
+    return parsed
+
+
+def _call_ollama(
+    farm_id: str,
+    message: str,
+    history: list[dict],
+    context: dict,
+    model: str = "llama3.2",
+) -> dict:
+    """Ollama 로컬 LLM 호출 (http://localhost:11434).
+
+    OLLAMA_HOST 환경변수로 호스트 변경 가능 (기본 localhost:11434).
+    OLLAMA_MODEL 환경변수로 모델 변경 가능 (기본 llama3.2).
+    """
+    import urllib.request
+    import json as _json
+
+    host  = _cfg("OLLAMA_HOST",  "localhost:11434").rstrip("/")
+    model = _cfg("OLLAMA_MODEL", model)
+    url   = f"http://{host}/api/chat"
+    timeout = float(_cfg("AI_CHAT_TIMEOUT", "20"))
+
+    system_prompt = _build_system_prompt(context)
+    msgs = [{"role": "system", "content": system_prompt}]
+    msgs += history[-6:]                        # 비용 절감: 최근 6턴
+    msgs.append({"role": "user", "content": message})
+
+    body = _json.dumps({
+        "model":    model,
+        "messages": msgs,
+        "stream":   False,
+        "options":  {"temperature": 0.7, "num_predict": int(_cfg("AI_CHAT_MAX_TOKENS", "800"))},
+    }).encode("utf-8")
+
+    req = urllib.request.Request(
+        url, data=body,
+        headers={"Content-Type": "application/json"},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            raw = _json.loads(resp.read().decode("utf-8"))
+    except OSError as e:
+        raise ConnectionError(f"Ollama 서버 연결 실패 ({host}): {e}") from e
+
+    text   = raw.get("message", {}).get("content", "").strip()
+    tokens = raw.get("eval_count", 0)           # 생성 토큰 수
+    parsed = _parse_response(text)
+    parsed["model_used"]      = f"ollama/{model}"
+    parsed["tokens_used"]     = tokens
+    parsed["referenced_data"] = _infer_referenced(message)
+    logger.info("[ai_chat] Ollama farm=%s model=%s tokens=%d", farm_id, model, tokens)
+    return parsed
+
+
+def _rule_based_reply(message: str, context: dict) -> dict:
+    """키 없을 때 최소한의 규칙 기반 답변."""
+    crop = context.get("crop", "작물")
+    env  = context.get("env", {})
+    temp = env.get("temp_internal", "?")
+    hum  = env.get("humidity_int", "?")
+
+    msg_lower = message.lower()
+    if any(k in msg_lower for k in ["온도", "습도", "환경"]):
+        reply = f"현재 {crop} 재배 온도는 {temp}°C, 습도는 {hum}%입니다. AI API 키를 설정하면 더 정밀한 분석을 제공합니다."
+    elif any(k in msg_lower for k in ["수확", "예측"]):
+        reply = f"{crop} 수확 예측 기능은 AI 모델로 계산됩니다. 현재 상태에서는 통계 기반 참고값을 확인해 주세요."
+    elif any(k in msg_lower for k in ["병해", "질병"]):
+        reply = f"{crop}의 환경 조건 기반 병해 위험도 평가를 실행합니다. /disease-risk 엔드포인트를 확인하세요."
+    else:
+        reply = f"안녕하세요! {crop} 농장 AI 어시스턴트입니다. AI API 키(ANTHROPIC_API_KEY)를 설정하면 농장 맞춤 분석을 받으실 수 있습니다."
+
+    return {
+        "reply": reply,
+        "suggestions": ["현재 환경 확인", "병해 위험도 평가", "수확량 예측"],
+        "model_used": "rule_based",
+        "tokens_used": 0,
+        "referenced_data": _infer_referenced(message),
     }
 
 

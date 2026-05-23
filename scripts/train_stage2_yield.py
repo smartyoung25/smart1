@@ -929,6 +929,41 @@ def build_stage2_matrix_annual(
             prod_ann["temp_internal_mean"] - config.t_base
         ).clip(lower=0) * 365
 
+    # ④-et ET₀ / ETc 기반 피처 (Hargreaves-Samani 간이식, 온실 내부 온도 기반)
+    # 온실 내부 환경으로 ET₀ 근사: 외기 대신 내부 max/min 추정 (Tmax = avg+3, Tmin = avg-3)
+    # solar_rad_mean (W/m²) → MJ/m²/day: ÷ 1000 × 3600 × 일조 9h ≈ × 0.0324
+    _has_et_inputs = (
+        "temp_internal_mean" in prod_ann.columns
+        and "solar_rad_mean" in prod_ann.columns
+    )
+    if _has_et_inputs:
+        _t_mean = prod_ann["temp_internal_mean"].fillna(20.0)
+        _t_max  = _t_mean + 3.0
+        _t_min  = _t_mean - 3.0
+        _sol_wm2 = prod_ann["solar_rad_mean"].fillna(150.0)
+        _sol_mj  = (_sol_wm2 * 0.0324).clip(lower=0.5)   # W/m² → MJ/m²/day
+        _td      = (_t_max - _t_min).clip(lower=0.0)
+        _Ra      = (_sol_mj / 0.75).clip(lower=1.0)
+        prod_ann["et0_annual_mean"] = (
+            0.0023 * (_t_mean + 17.8) * (_td ** 0.5) * _Ra
+        ).clip(lower=0.0).round(3)
+        # ETc = ET₀ × Kc(mid): 시즌 평균 기준
+        _kc_mid = config.kc_stages.get("mid", 1.0)
+        prod_ann["etc_annual_mean"] = (
+            prod_ann["et0_annual_mean"] * _kc_mid
+        ).round(3)
+        # ET demand ratio: 실제 공급량 proxy (CO₂ 농도 상관 — 기공 저항)
+        # etc_ratio = etc / (solar_rad × 0.0015) → 증산 포화도 지표
+        _et_demand = (_sol_wm2 * 0.0015).clip(lower=0.1)
+        prod_ann["et_demand_ratio"] = (
+            prod_ann["etc_annual_mean"] / _et_demand
+        ).clip(0.1, 10.0)
+        logger.info(
+            "  [ET₀ 피처] et0_annual_mean / etc_annual_mean / et_demand_ratio 추가 "
+            "(Kc_mid=%.2f, mean ET₀=%.2f mm/day)",
+            _kc_mid, prod_ann["et0_annual_mean"].mean(),
+        )
+
     # ④-b 임계 이벤트 피처 (개화기 저온 · 착과기 고온 · DLI · VPD 이탈)
     prod_ann = _add_critical_event_features(
         env_monthly, prod_ann, config.crop_ko
@@ -953,25 +988,19 @@ def build_stage2_matrix_annual(
             lambda r: _meta_get_ann(r, "plant_month", 0), axis=1
         )
 
-        # 품종 평균 yield 인코딩 (전체 데이터셋 기반 — group effect 포착)
-        # hash % 100 방식 대신 품종별 평균 수확량을 직접 피처로 사용
-        variety_mean = (
+        # 품종 평균 yield 인코딩 — LOYO 누수 방지용 시계열 안전 expanding mean
+        # transform("mean") 은 test_year 데이터 포함 → LOYO 환경에서 leakage 발생.
+        # 대신 각 row 이전 데이터만 사용하는 expanding mean + shift(1) 적용.
+        _global_mean_variety = prod_ann["yield_per_m2"].astype(float).mean()
+        prod_ann = prod_ann.sort_values(key_annual).reset_index(drop=True)
+        # 품종별 expanding mean (sort 이미 완료, groupby + shift)
+        prod_ann["variety_yield_mean"] = (
             prod_ann.groupby("_variety_raw")["yield_per_m2"]
-            .transform("mean")
+            .transform(lambda x: x.astype(float).expanding().mean().shift(1))
+            .fillna(_global_mean_variety)
         )
-        prod_ann["variety_yield_mean"] = variety_mean.fillna(
-            prod_ann["yield_per_m2"].mean()
-        )
-        # 품종 순위 (수확량 많은 순): 순위가 낮을수록 고수확 품종
-        variety_rank_map = (
-            prod_ann.groupby("_variety_raw")["yield_per_m2"]
-            .mean()
-            .rank(ascending=False)
-            .to_dict()
-        )
-        prod_ann["variety_rank"] = prod_ann["_variety_raw"].map(variety_rank_map).fillna(
-            len(variety_rank_map) + 1
-        )
+        # 품종 순위: expanding mean 기반 (현재 행 이전 데이터만)
+        # 단순화: expanding mean 값 자체를 피처로 사용 (순위 필드는 leakage 위험 → 제거)
         prod_ann.drop(columns=["_variety_raw"], inplace=True)
 
         # plant_month 사인/코사인 (순환 특성 보존: 12월~1월 연속성)
@@ -1148,8 +1177,28 @@ def build_stage2_matrix_annual(
 # ── SHAP 피처 선택 ────────────────────────────────────────────────────────────
 
 def select_top_features(model, X: np.ndarray, feature_names: list[str],
-                         top_n: int = 15) -> list[str]:
-    """피처 선택: SHAP → 컬럼 순 폴백."""
+                         top_n: int = 15, n_samples: int = 9999) -> list[str]:
+    """피처 선택: SHAP → 컬럼 순 폴백.
+
+    소샘플(n<250) 에서는 top_n을 10으로 자동 제한하여 과적합 방지.
+    피처 수 > 샘플 수 × 0.2 이면 경고 후 축소.
+    """
+    # 소샘플 자동 제한
+    if n_samples < 250:
+        top_n = min(top_n, 10)
+    elif n_samples < 500:
+        top_n = min(top_n, 12)
+
+    # p>n 위험 경고
+    if len(feature_names) > n_samples * 0.2:
+        effective_top_n = max(5, min(top_n, int(n_samples * 0.15)))
+        if effective_top_n < top_n:
+            logger.warning(
+                "  ⚠ 피처수(%d) > n_samples(%d)×0.2 → top_n %d→%d 으로 추가 축소 (과적합 방지)",
+                len(feature_names), n_samples, top_n, effective_top_n,
+            )
+            top_n = effective_top_n
+
     try:
         import shap
         explainer = shap.TreeExplainer(model)
@@ -1323,28 +1372,63 @@ def train_stage2(
         import xgboost as xgb
 
         # 샘플 크기에 따른 하이퍼파라미터 자동 조정
-        # 연간 모드(소샘플)에서 early stopping이 0~1 트리에서 조기 종료하는 문제 방지
-        if n_samples < 250:
-            # 소샘플: 더 빠른 수렴, 덜 복잡한 트리
-            xgb_lr    = 0.15
-            xgb_depth = 3
-            xgb_mcw   = 2
-            xgb_es    = 15
-            xgb_sub   = 0.9
+        # 소샘플 LOYO CV 과적합 방지 목표:
+        #   - train R²>>1 but CV MAPE>>train MAPE 패턴 차단
+        #   - reg_lambda(L2) + reg_alpha(L1) 추가
+        #   - colsample_bytree/subsample 축소 (랜덤성 강화)
+        #   - n<100: 극소샘플 → max_depth=2, 강제 gamma(최소분할이득), 더 강한 L2
+        if n_samples < 100:
+            # 극소샘플: 결정트리 깊이 최소화 + 매우 강한 정규화
+            xgb_lr       = 0.05
+            xgb_depth    = 2     # ↓ 3→2: depth 1단 줄임 (leaf 수 4→ 최대)
+            xgb_mcw      = 8     # ↑ 5→8: 1 fold에서 최소 leaf 4샘플 이상 보장
+            xgb_es       = 15
+            xgb_sub      = 0.6   # ↓ 0.7→0.6
+            xgb_colsamp  = 0.5   # ↓ 0.6→0.5: 50% 컬럼만 사용 (랜덤 강화)
+            xgb_reg_l2   = 5.0   # ↑ 3.0→5.0: 매우 강한 L2
+            xgb_reg_l1   = 1.0   # ↑ 0.5→1.0: 피처 선택성 강화
+            xgb_gamma    = 0.5   # 새 추가: 분기 최소 이득 (0이면 자유분기)
+            xgb_n_est    = 200   # ↓ 500→200: 과적합 전 조기 종료 유도
+        elif n_samples < 250:
+            # 소샘플: 강력한 정규화
+            xgb_lr       = 0.08
+            xgb_depth    = 3
+            xgb_mcw      = 5     # ↑ 2→5: 최소 leaf 크기 확대
+            xgb_es       = 20
+            xgb_sub      = 0.7   # ↓ 0.9→0.7
+            xgb_colsamp  = 0.6   # ↓ 0.8→0.6
+            xgb_reg_l2   = 3.0   # L2 추가
+            xgb_reg_l1   = 0.5   # L1 추가
+            xgb_gamma    = 0.2
+            xgb_n_est    = 300
         elif n_samples < 600:
-            xgb_lr    = 0.1
-            xgb_depth = 3
-            xgb_mcw   = 3
-            xgb_es    = 25
-            xgb_sub   = 0.85
+            xgb_lr       = 0.08
+            xgb_depth    = 3
+            xgb_mcw      = 4     # ↑ 3→4
+            xgb_es       = 30
+            xgb_sub      = 0.75  # ↓ 0.85→0.75
+            xgb_colsamp  = 0.7   # ↓ 0.8→0.7
+            xgb_reg_l2   = 2.0
+            xgb_reg_l1   = 0.3
+            xgb_gamma    = 0.1
+            xgb_n_est    = 400
         else:
-            xgb_lr    = 0.05
-            xgb_depth = 4
-            xgb_mcw   = 5
-            xgb_es    = 50
-            xgb_sub   = 0.8
-        logger.info("  XGB 파라미터: lr=%.2f depth=%d mcw=%d es=%d (n=%d)",
-                    xgb_lr, xgb_depth, xgb_mcw, xgb_es, n_samples)
+            xgb_lr       = 0.05
+            xgb_depth    = 4
+            xgb_mcw      = 5
+            xgb_es       = 50
+            xgb_sub      = 0.8
+            xgb_colsamp  = 0.8
+            xgb_reg_l2   = 1.0
+            xgb_reg_l1   = 0.1
+            xgb_gamma    = 0.0
+            xgb_n_est    = 500
+        logger.info(
+            "  XGB 파라미터: lr=%.2f depth=%d mcw=%d es=%d sub=%.2f "
+            "λ=%.1f α=%.1f γ=%.1f n_est=%d (n=%d)",
+            xgb_lr, xgb_depth, xgb_mcw, xgb_es, xgb_sub,
+            xgb_reg_l2, xgb_reg_l1, xgb_gamma, xgb_n_est, n_samples
+        )
 
         # ── CV split 제공자 (수동 splits / GroupKFold / TimeSeriesSplit 통일) ──────
         def _cv_split_iter(X_mat, y_vec, groups=None):
@@ -1361,11 +1445,14 @@ def train_stage2(
             y_tr, y_val = np.log1p(y[tr_idx]), np.log1p(y[val_idx])
 
             fold_m = xgb.XGBRegressor(
-                n_estimators=500,
+                n_estimators=xgb_n_est,
                 early_stopping_rounds=xgb_es,
                 learning_rate=xgb_lr, max_depth=xgb_depth,
-                subsample=xgb_sub, colsample_bytree=0.8,
-                min_child_weight=xgb_mcw, random_state=42, verbosity=0,
+                subsample=xgb_sub, colsample_bytree=xgb_colsamp,
+                min_child_weight=xgb_mcw,
+                reg_lambda=xgb_reg_l2, reg_alpha=xgb_reg_l1,
+                gamma=xgb_gamma,
+                random_state=42, verbosity=0,
             )
             fold_m.fit(X_tr, y_tr,
                        eval_set=[(X_val, y_val)],
@@ -1384,7 +1471,7 @@ def train_stage2(
 
         cv_r2_mean  = float(np.mean(cv_r2))
         cv_mape_mean = float(np.mean(cv_mape))
-        best_n = max(50, int(np.median(best_iters)))
+        best_n = max(30, int(np.median(best_iters)))
         logger.info("  XGB CV R²=%.3f  MAPE=%.1f%%  best_n=%d",
                     cv_r2_mean, cv_mape_mean, best_n)
 
@@ -1399,13 +1486,17 @@ def train_stage2(
             _lgb_cv_r2, _lgb_cv_mape, _lgb_best_iters = [], [], []
             _ens_cv_r2, _ens_cv_mape = [], []
             _num_leaves = min(31, max(7, 2 ** xgb_depth - 1))
+            # 소샘플에서는 LGB도 min_data_in_leaf 강화 (xgb_mcw×2)
+            _lgb_min_data = max(5, xgb_mcw * 2) if n_samples < 250 else max(5, xgb_mcw)
 
             for _fold2, (_tr2, _vl2) in enumerate(_cv_split_iter(X, y, groups=_cv_groups)):
                 _lgb_m = _lgb.LGBMRegressor(
-                    n_estimators=500, learning_rate=xgb_lr,
+                    n_estimators=xgb_n_est, learning_rate=xgb_lr,
                     max_depth=xgb_depth, num_leaves=_num_leaves,
-                    min_child_samples=max(2, xgb_mcw),
-                    subsample=xgb_sub, colsample_bytree=0.8,
+                    min_child_samples=_lgb_min_data,
+                    min_split_gain=xgb_gamma,          # LGB gamma 상응 파라미터
+                    subsample=xgb_sub, colsample_bytree=xgb_colsamp,
+                    reg_lambda=xgb_reg_l2, reg_alpha=xgb_reg_l1,
                     random_state=42, verbosity=-1, n_jobs=1,
                 )
                 _lgb_m.fit(
@@ -1526,16 +1617,21 @@ def train_stage2(
             # 최종 전체 데이터 학습
             _xgb_final = xgb.XGBRegressor(
                 n_estimators=best_n, learning_rate=xgb_lr, max_depth=xgb_depth,
-                subsample=xgb_sub, colsample_bytree=0.8,
-                min_child_weight=xgb_mcw, random_state=42, verbosity=0,
+                subsample=xgb_sub, colsample_bytree=xgb_colsamp,
+                min_child_weight=xgb_mcw,
+                reg_lambda=xgb_reg_l2, reg_alpha=xgb_reg_l1,
+                gamma=xgb_gamma,
+                random_state=42, verbosity=0,
             )
             _xgb_final.fit(X, np.log1p(y))
 
             _lgb_final = _lgb.LGBMRegressor(
                 n_estimators=lgb_best_n, learning_rate=xgb_lr,
                 max_depth=xgb_depth, num_leaves=_num_leaves,
-                min_child_samples=max(2, xgb_mcw),
-                subsample=xgb_sub, colsample_bytree=0.8,
+                min_child_samples=_lgb_min_data,
+                min_split_gain=xgb_gamma,
+                subsample=xgb_sub, colsample_bytree=xgb_colsamp,
+                reg_lambda=xgb_reg_l2, reg_alpha=xgb_reg_l1,
                 random_state=42, verbosity=-1, n_jobs=1,
             )
             _lgb_final.fit(X, np.log1p(y))
@@ -1556,10 +1652,11 @@ def train_stage2(
 
             # SHAP 피처 선택은 XGB 모델 기준 (LGB SHAP도 유사)
             top_n = 8 if n_samples < 150 else (10 if n_samples < 300 else 15)
-            shap_selected = select_top_features(_xgb_final, X, feature_cols, top_n)
+            shap_selected = select_top_features(_xgb_final, X, feature_cols, top_n,
+                                                n_samples=n_samples)
             _ALWAYS_INCLUDE = [
                 "farm_yield_hist_mean", "farm_yield_hist_cv",
-                "variety_yield_mean", "variety_rank", "log_area_m2",
+                "variety_yield_mean", "log_area_m2",
             ]
             always_in = [f for f in _ALWAYS_INCLUDE if f in feature_cols]
             selected_set = dict.fromkeys(shap_selected)
@@ -1574,16 +1671,21 @@ def train_stage2(
             # 피처 선택 후 최종 재학습
             _xgb_sel = xgb.XGBRegressor(
                 n_estimators=best_n, learning_rate=xgb_lr, max_depth=xgb_depth,
-                subsample=xgb_sub, colsample_bytree=0.8,
-                min_child_weight=xgb_mcw, random_state=42, verbosity=0,
+                subsample=xgb_sub, colsample_bytree=xgb_colsamp,
+                min_child_weight=xgb_mcw,
+                reg_lambda=xgb_reg_l2, reg_alpha=xgb_reg_l1,
+                gamma=xgb_gamma,
+                random_state=42, verbosity=0,
             )
             _xgb_sel.fit(X_sel, np.log1p(y))
 
             _lgb_sel = _lgb.LGBMRegressor(
                 n_estimators=lgb_best_n, learning_rate=xgb_lr,
                 max_depth=xgb_depth, num_leaves=_num_leaves,
-                min_child_samples=max(2, xgb_mcw),
-                subsample=xgb_sub, colsample_bytree=0.8,
+                min_child_samples=_lgb_min_data,
+                min_split_gain=xgb_gamma,
+                subsample=xgb_sub, colsample_bytree=xgb_colsamp,
+                reg_lambda=xgb_reg_l2, reg_alpha=xgb_reg_l1,
                 random_state=42, verbosity=-1, n_jobs=1,
             )
             _lgb_sel.fit(X_sel, np.log1p(y))
@@ -1596,7 +1698,8 @@ def train_stage2(
                         objective="reg:quantileerror", quantile_alpha=_qa,
                         n_estimators=best_n, learning_rate=xgb_lr,
                         max_depth=xgb_depth, subsample=xgb_sub,
-                        colsample_bytree=0.8, min_child_weight=xgb_mcw,
+                        colsample_bytree=xgb_colsamp, min_child_weight=xgb_mcw,
+                        reg_lambda=xgb_reg_l2, gamma=xgb_gamma,
                         random_state=42, verbosity=0,
                     )
                     _qm.fit(X_sel, np.log1p(y))
@@ -1633,21 +1736,24 @@ def train_stage2(
         final_model = xgb.XGBRegressor(
             n_estimators=best_n,
             learning_rate=xgb_lr, max_depth=xgb_depth,
-            subsample=xgb_sub, colsample_bytree=0.8,
-            min_child_weight=xgb_mcw, random_state=42, verbosity=0,
+            subsample=xgb_sub, colsample_bytree=xgb_colsamp,
+            min_child_weight=xgb_mcw,
+            reg_lambda=xgb_reg_l2, reg_alpha=xgb_reg_l1,
+            gamma=xgb_gamma,
+            random_state=42, verbosity=0,
         )
         final_model.fit(X, np.log1p(y))
 
         # SHAP 피처 선택 (폴백: 컬럼 순 top-N)
         top_n = 8 if n_samples < 150 else (10 if n_samples < 300 else 15)
-        shap_selected = select_top_features(final_model, X, feature_cols, top_n)
+        shap_selected = select_top_features(final_model, X, feature_cols, top_n,
+                                            n_samples=n_samples)
 
         # 항상 포함할 고효과 피처 (SHAP 순위와 무관하게 강제 포함)
         _ALWAYS_INCLUDE = [
             "farm_yield_hist_mean", # 농가 이력 평균 (expanding mean, 누수 없음)
             "farm_yield_hist_cv",   # 농가 이력 변동계수 (일관성 지표)
-            "variety_yield_mean",   # 품종 효과
-            "variety_rank",         # 품종 순위
+            "variety_yield_mean",   # 품종 효과 (시계열 안전 expanding mean)
             "log_area_m2",          # 규모 효과
             "year_norm",            # 연도 트렌드 (기술 개선)
         ]
@@ -1670,8 +1776,11 @@ def train_stage2(
 
         final_sel = xgb.XGBRegressor(
             n_estimators=best_n, learning_rate=xgb_lr, max_depth=xgb_depth,
-            subsample=xgb_sub, colsample_bytree=0.8,
-            min_child_weight=xgb_mcw, random_state=42, verbosity=0,
+            subsample=xgb_sub, colsample_bytree=xgb_colsamp,
+            min_child_weight=xgb_mcw,
+            reg_lambda=xgb_reg_l2, reg_alpha=xgb_reg_l1,
+            gamma=xgb_gamma,
+            random_state=42, verbosity=0,
         )
         final_sel.fit(X_sel, np.log1p(y))
 
@@ -1685,7 +1794,8 @@ def train_stage2(
                     quantile_alpha=_qa,
                     n_estimators=best_n, learning_rate=xgb_lr,
                     max_depth=xgb_depth, subsample=xgb_sub,
-                    colsample_bytree=0.8, min_child_weight=xgb_mcw,
+                    colsample_bytree=xgb_colsamp, min_child_weight=xgb_mcw,
+                    reg_lambda=xgb_reg_l2, gamma=xgb_gamma,
                     random_state=42, verbosity=0,
                 )
                 _qm.fit(X_sel, np.log1p(y))

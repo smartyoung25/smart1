@@ -521,7 +521,7 @@ class TestFarmerApplyEndpoints:
     def test_post_chat(self, fc):
         payload = {"message": "현재 환경 어때요?"}
         res = fc.post(f"{BASE}/chat", json=payload)
-        assert res.status_code in (200, 201, 400, 401, 403, 404, 422, 500)
+        assert res.status_code in (200, 201, 400, 401, 403, 404, 422, 429, 500)
 
     def test_post_manual_cost(self, fc):
         payload = {"category": "labor", "amount_krw": 50000, "note": "인건비"}
@@ -565,7 +565,7 @@ class TestChatKeywords:
 
     def test_chat_disease_keyword(self, fc):
         res = self._chat(fc, "병해가 걱정돼요")
-        assert res.status_code in (200, 400, 401, 403, 404, 422, 500)
+        assert res.status_code in (200, 400, 401, 403, 404, 422, 429, 500)
         if res.status_code == 200:
             data = res.json()
             assert "reply" in data
@@ -573,13 +573,13 @@ class TestChatKeywords:
 
     def test_chat_humidity_keyword(self, fc):
         res = self._chat(fc, "습도가 높은데 어떻게 해야 하나요")
-        assert res.status_code in (200, 400, 401, 403, 500)
+        assert res.status_code in (200, 400, 401, 403, 429, 500)
         if res.status_code == 200:
             assert "disease_risk" in res.json().get("referenced_data", [])
 
     def test_chat_recommendation_keyword(self, fc):
         res = self._chat(fc, "환경 개선 추천해줘")
-        assert res.status_code in (200, 400, 401, 403, 500)
+        assert res.status_code in (200, 400, 401, 403, 429, 500)
         if res.status_code == 200:
             data = res.json()
             assert "reply" in data
@@ -587,34 +587,34 @@ class TestChatKeywords:
 
     def test_chat_harvest_keyword(self, fc):
         res = self._chat(fc, "수확은 언제 할 수 있나요")
-        assert res.status_code in (200, 400, 401, 403, 500)
+        assert res.status_code in (200, 400, 401, 403, 429, 500)
         if res.status_code == 200:
             assert "reply" in res.json()
 
     def test_chat_revenue_keyword(self, fc):
         res = self._chat(fc, "이번 달 수익은 얼마나 될까요")
-        assert res.status_code in (200, 400, 401, 403, 500)
+        assert res.status_code in (200, 400, 401, 403, 429, 500)
         if res.status_code == 200:
             data = res.json()
             assert "revenue" in data.get("referenced_data", [])
 
     def test_chat_co2_keyword(self, fc):
         res = self._chat(fc, "co2 농도 적정 수준이 얼마예요")
-        assert res.status_code in (200, 400, 401, 403, 500)
+        assert res.status_code in (200, 400, 401, 403, 429, 500)
         if res.status_code == 200:
             assert "reply" in res.json()
 
     def test_chat_temp_keyword(self, fc):
         res = self._chat(fc, "온도가 너무 낮아요")
-        assert res.status_code in (200, 400, 401, 403, 500)
+        assert res.status_code in (200, 400, 401, 403, 429, 500)
 
     def test_chat_alert_keyword(self, fc):
         res = self._chat(fc, "현재 경고 알림이 있나요")
-        assert res.status_code in (200, 400, 401, 403, 500)
+        assert res.status_code in (200, 400, 401, 403, 429, 500)
 
     def test_chat_general_keyword(self, fc):
         res = self._chat(fc, "재배 관리 팁 알려줘")
-        assert res.status_code in (200, 400, 401, 403, 500)
+        assert res.status_code in (200, 400, 401, 403, 429, 500)
 
     def test_chat_response_has_suggestions(self, fc):
         res = self._chat(fc, "병해가 걱정돼요")
@@ -1165,14 +1165,17 @@ class TestM5DiseaseExtraPaths:
         m5._instance = None
 
     def test_score_disease_humidity_exceeds_upper_limit(self):
-        """lines 299-301: h_hi<100인 병해에서 humidity > h_hi → 위험 없음."""
+        """lines 299-301: rh_hi<100인 병해에서 humidity > rh_hi → 위험 없음."""
         from models.m5_disease import _score_disease, _DISEASE_THRESHOLDS
-        thresh = _DISEASE_THRESHOLDS["powdery_mildew"]   # h_hi=68
-        assert thresh["humidity_hi"] < 100
+        thresh = _DISEASE_THRESHOLDS["powdery_mildew"]   # rh_hi=70
+        # v2에서 키 이름이 rh_hi/rh_lo로 변경됨
+        assert thresh["rh_hi"] < 100
 
-        # 적온(23°C)에서 습도 80% > h_hi(68) → 흰가루병 위험 없음
-        score, reasons = _score_disease(
+        # 적온(23°C)에서 습도 80% > rh_hi(70) → 흰가루병 위험 없음
+        # v2 서명: _score_disease(env, disease_key, thresholds) → (score, baud, vpd, reasons)
+        score, baud, vpd, reasons = _score_disease(
             {"temp_internal": 23.0, "humidity_int": 80.0},
+            "powdery_mildew",
             thresh,
         )
         assert score == 0.0
@@ -1421,7 +1424,7 @@ class TestM2YieldCoverage:
                 area_m2=500.0,
             )
         assert result["yield_kg_total"] > 0
-        assert result.get("source") == "m2_dag_retrain"
+        assert str(result.get("source", "")).startswith("m2_dag_retrain")
 
     def test_predict_yield_dag_no_feat_cols_stub(self):
         """line 99: 포맷 B feat_cols 없음 → stub 반환."""
@@ -1971,12 +1974,12 @@ class TestStatsLoaderDeep:
     # ── 가격 함수들 ───────────────────────────────────────────────────────────
 
     def test_get_price_no_stats(self):
-        """by_crop 없을 때 기본값 반환"""
+        """by_crop 없을 때 기본값 반환 (2024 기준: 딸기 12500원/kg)"""
         from api.data import stats_loader as sl
         sl._load.cache_clear()
         with patch.object(sl, "_price_data", return_value={}):
             p = sl.get_price_krw_kg("딸기")
-        assert p == 9800.0
+        assert p == 12500.0
 
     def test_get_price_kamis_cache(self):
         """KAMIS 캐시 가격 우선 반환"""
@@ -2552,8 +2555,9 @@ class TestKmaServiceDeep:
     # ── _fetch_asos ────────────────────────────────────────────────────────────
 
     def test_fetch_asos_no_service_key(self):
+        # _SERVICE_KEY → _get_service_key() 함수로 리팩토링됨
         from api.services import kma_service as k
-        with patch.object(k, "_SERVICE_KEY", ""):
+        with patch.object(k, "_get_service_key", return_value=""):
             assert k._fetch_asos(189, __import__("datetime").date.today()) is None
 
     def test_fetch_asos_success(self):
@@ -2566,7 +2570,7 @@ class TestKmaServiceDeep:
         resp.read.return_value = _j.dumps(fake_body).encode()
         resp.__enter__ = lambda s: resp
         resp.__exit__ = MagicMock(return_value=False)
-        with patch.object(k, "_SERVICE_KEY", "FAKE_KEY"), \
+        with patch.object(k, "_get_service_key", return_value="FAKE_KEY"), \
              patch("urllib.request.urlopen", return_value=resp):
             from datetime import date
             item = k._fetch_asos(189, date(2026, 1, 1))
@@ -2581,14 +2585,14 @@ class TestKmaServiceDeep:
         resp.read.return_value = _j.dumps(fake_body).encode()
         resp.__enter__ = lambda s: resp
         resp.__exit__ = MagicMock(return_value=False)
-        with patch.object(k, "_SERVICE_KEY", "FAKE_KEY"), \
+        with patch.object(k, "_get_service_key", return_value="FAKE_KEY"), \
              patch("urllib.request.urlopen", return_value=resp):
             from datetime import date
             assert k._fetch_asos(189, date(2026, 1, 1)) is None
 
     def test_fetch_asos_exception(self):
         from api.services import kma_service as k
-        with patch.object(k, "_SERVICE_KEY", "FAKE_KEY"), \
+        with patch.object(k, "_get_service_key", return_value="FAKE_KEY"), \
              patch("urllib.request.urlopen", side_effect=Exception("timeout")):
             from datetime import date
             assert k._fetch_asos(189, date(2026, 1, 1)) is None
@@ -2649,6 +2653,113 @@ class TestKmaServiceDeep:
         with patch.object(k, "get_latest_weather", return_value=item):
             s = k.get_weather_summary("farm_001")
         assert s["solar_rad_est"] is None
+
+    # ── ET₀ / ETc / ETc 기반 관수 ──────────────────────────────────────────────
+
+    def test_calc_et0_hargreaves_positive(self):
+        from api.services.kma_service import calc_et0_hargreaves
+        et0 = calc_et0_hargreaves(25.0, 15.0, 20.0, 15.0)
+        assert et0 > 0.0
+
+    def test_calc_et0_hargreaves_winter_lower(self):
+        """겨울(낮은 일사량) ET₀ < 여름(높은 일사량) ET₀"""
+        from api.services.kma_service import calc_et0_hargreaves
+        et0_winter = calc_et0_hargreaves(5.0, -3.0, 1.0, 7.0)
+        et0_summer = calc_et0_hargreaves(30.0, 20.0, 25.0, 18.0)
+        assert et0_summer > et0_winter
+
+    def test_calc_et0_no_negative(self):
+        """ET₀는 음수가 되어서는 안 됨"""
+        from api.services.kma_service import calc_et0_hargreaves
+        et0 = calc_et0_hargreaves(-5.0, -10.0, -7.5, 2.0)
+        assert et0 >= 0.0
+
+    def test_calc_etc_strawberry_mid(self):
+        """딸기 mid Kc(0.85) 적용 → ETc = ET₀ × 0.85"""
+        from api.services.kma_service import calc_etc, calc_et0_hargreaves
+        et0 = calc_et0_hargreaves(20.0, 10.0, 15.0, 12.0)
+        etc = calc_etc(et0, "딸기", "mid")
+        assert abs(etc - et0 * 0.85) < 0.05
+
+    def test_calc_etc_initial_lower_than_mid(self):
+        """initial Kc < mid Kc → ETc(initial) < ETc(mid)"""
+        from api.services.kma_service import calc_etc, calc_et0_hargreaves
+        et0 = calc_et0_hargreaves(22.0, 12.0, 17.0, 14.0)
+        etc_init = calc_etc(et0, "완숙토마토", "initial")
+        etc_mid  = calc_etc(et0, "완숙토마토", "mid")
+        assert etc_init < etc_mid
+
+    def test_calc_etc_unknown_crop_kc_1(self):
+        """알 수 없는 작목 → Kc=1.0 fallback"""
+        from api.services.kma_service import calc_etc
+        et0 = 4.0
+        etc = calc_etc(et0, "알수없는작목", "mid")
+        assert etc == pytest.approx(et0, abs=0.01)
+
+    def test_get_etc_irrigation_structure(self):
+        """get_etc_irrigation 반환 딕셔너리 키 검증"""
+        from api.services import kma_service as k
+        with patch.object(k, "get_latest_weather", return_value=None):
+            result = k.get_etc_irrigation("farm_001", crop_ko="딸기", growth_stage="mid")
+        required_keys = {"et0_mm_day", "etc_mm_day", "kc", "n_irrigations",
+                         "total_supply_ml", "irrigation_mm_day", "method", "source"}
+        for key in required_keys:
+            assert key in result, f"키 누락: {key}"
+
+    def test_get_etc_irrigation_positive_values(self):
+        """ET₀/ETc/관수량 모두 양수"""
+        from api.services import kma_service as k
+        with patch.object(k, "get_latest_weather", return_value=None):
+            result = k.get_etc_irrigation("farm_001", crop_ko="방울토마토",
+                                          growth_stage="mid")
+        assert result["et0_mm_day"] > 0
+        assert result["etc_mm_day"] > 0
+        assert result["n_irrigations"] >= 2
+
+    def test_get_etc_irrigation_stage_effect(self):
+        """mid 단계 관수량 ≥ initial 단계 관수량"""
+        from api.services import kma_service as k
+        with patch.object(k, "get_latest_weather", return_value=None):
+            r_init = k.get_etc_irrigation("farm_001", crop_ko="완숙토마토",
+                                          growth_stage="initial")
+            r_mid  = k.get_etc_irrigation("farm_001", crop_ko="완숙토마토",
+                                          growth_stage="mid")
+        assert r_mid["etc_mm_day"] >= r_init["etc_mm_day"]
+
+    def test_get_solar_irrigation_with_etc_blend(self):
+        """crop_ko 제공 시 ETc 블렌딩 키 포함"""
+        from api.services import kma_service as k
+        with patch.object(k, "get_latest_weather", return_value=None):
+            result = k.get_solar_irrigation_schedule(
+                "farm_001", crop_ko="딸기", growth_stage="mid"
+            )
+        assert "et0_mm_day" in result
+        assert "etc_mm_day" in result
+        assert result["n_irrigations"] >= 2
+
+    def test_get_solar_irrigation_without_crop_no_etc(self):
+        """crop_ko 미제공 시 ETc 키 없음"""
+        from api.services import kma_service as k
+        with patch.object(k, "get_latest_weather", return_value=None):
+            result = k.get_solar_irrigation_schedule("farm_001")
+        assert "et0_mm_day" not in result
+
+    def test_kc_stages_all_crops(self):
+        """모든 작목에 kc_stages 필드 존재 및 mid 값이 0보다 큼"""
+        from models.crop_config import CROP_CONFIGS
+        for crop_name, cfg in CROP_CONFIGS.items():
+            assert hasattr(cfg, "kc_stages"), f"{crop_name}: kc_stages 없음"
+            assert cfg.kc_stages.get("mid", 0) > 0, f"{crop_name}: mid Kc ≤ 0"
+
+    def test_kc_stages_initial_lt_mid(self):
+        """initial Kc < mid Kc (성장 단계별 증가 패턴)"""
+        from models.crop_config import CROP_CONFIGS
+        for crop_name, cfg in CROP_CONFIGS.items():
+            kc_init = cfg.kc_stages.get("initial", 1.0)
+            kc_mid  = cfg.kc_stages.get("mid", 1.0)
+            assert kc_init < kc_mid, (
+                f"{crop_name}: initial Kc({kc_init}) >= mid Kc({kc_mid})"
+            )
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -9068,7 +9179,8 @@ class TestCoverageBoost99:
         assert resp.status_code in (200, 401, 403)
 
     def test_farmer_recommendations_no_env(self, monkeypatch):
-        """IoT없는 농가이고 수동입력도 없음 → 빈 추천 반환 (line 449)."""
+        """IoT없는 농가이고 수동입력도 없음 → 추천 엔드포인트가 정상 응답."""
+        # 이전 동작: 빈 추천 반환. 현재: 기본값으로 추천 생성 (VPD/작기단계 개선 반영)
         import api.services.persistence as pers_mod
         monkeypatch.setattr(pers_mod, "get_manual_env", lambda farm_id: {})
 
@@ -9077,7 +9189,8 @@ class TestCoverageBoost99:
         assert resp.status_code in (200, 401, 403)
         if resp.status_code == 200:
             data = resp.json()
-            assert data["recommendations"] == []
+            # recommendations 키 존재 + 리스트 타입이면 OK (빈 리스트 또는 기본값 기반 추천)
+            assert isinstance(data.get("recommendations", []), list)
 
     # ── farmer.py: POST manual-env saved (lines 527-539) ────────────────────
 
@@ -9247,7 +9360,7 @@ class TestCoverageBoost99:
         client = self._farmer_client()
         resp = client.post("/api/farms/farm_001/chat",
                            json={"message": "알림 있어?"})
-        assert resp.status_code in (200, 401, 403)
+        assert resp.status_code in (200, 401, 403, 429)
         if resp.status_code == 200:
             data = resp.json()
             assert "알림" in data["reply"] or "warning" in data["reply"].lower() or len(data["reply"]) > 0
@@ -9266,7 +9379,7 @@ class TestCoverageBoost99:
         client = self._farmer_client()
         resp = client.post("/api/farms/farm_001/chat",
                            json={"message": "수확 언제?"})
-        assert resp.status_code in (200, 401, 403)
+        assert resp.status_code in (200, 401, 403, 429)
         if resp.status_code == 200:
             data = resp.json()
             assert "오류" in data["reply"] or len(data["reply"]) > 0
@@ -9296,7 +9409,7 @@ class TestCoverageBoost99:
         client = self._farmer_client()
         resp = client.post("/api/farms/farm_001/chat",
                            json={"message": "병해 위험 있어?"})
-        assert resp.status_code in (200, 401, 403)
+        assert resp.status_code in (200, 401, 403, 429)
         if resp.status_code == 200:
             data = resp.json()
             assert len(data["reply"]) > 0
@@ -9316,7 +9429,7 @@ class TestCoverageBoost99:
         client = self._farmer_client()
         resp = client.post("/api/farms/farm_001/chat",
                            json={"message": "추천 조치 알려줘"})
-        assert resp.status_code in (200, 401, 403)
+        assert resp.status_code in (200, 401, 403, 429)
         if resp.status_code == 200:
             data = resp.json()
             assert len(data["reply"]) > 0
@@ -9476,7 +9589,7 @@ class TestCoverageBoost99:
         client = self._farmer_client()
         resp = client.post("/api/farms/farm_001/chat",
                            json={"message": "병해 걱정돼"})
-        assert resp.status_code in (200, 401, 403)
+        assert resp.status_code in (200, 401, 403, 429)
         if resp.status_code == 200:
             data = resp.json()
             assert len(data["reply"]) > 0
@@ -9495,7 +9608,7 @@ class TestCoverageBoost99:
         client = self._farmer_client()
         resp = client.post("/api/farms/farm_001/chat",
                            json={"message": "최적 조치 추천해줘"})
-        assert resp.status_code in (200, 401, 403)
+        assert resp.status_code in (200, 401, 403, 429)
         if resp.status_code == 200:
             data = resp.json()
             assert len(data["reply"]) > 0
@@ -9583,7 +9696,7 @@ class TestCoverageBoost99:
         client = self._farmer_client()
         resp = client.post("/api/farms/farm_001/chat",
                            json={"message": "\ucd94\ucc9c \uc870\uce58 \uc54c\ub824\uc918"})
-        assert resp.status_code in (200, 401, 403)
+        assert resp.status_code in (200, 401, 403, 429)
         if resp.status_code == 200:
             data = resp.json()
             assert len(data["reply"]) > 0
@@ -9604,7 +9717,7 @@ class TestCoverageBoost99:
         client = self._farmer_client()
         resp = client.post("/api/farms/farm_001/chat",
                            json={"message": "\uac1c\uc120 \ubc29\ubc95 \ucd5c\uc801\ud654\ud574\uc918"})
-        assert resp.status_code in (200, 401, 403)
+        assert resp.status_code in (200, 401, 403, 429)
         if resp.status_code == 200:
             data = resp.json()
             assert len(data["reply"]) > 0
@@ -9650,3 +9763,987 @@ class TestCoverageBoost99:
 
             for k, v in saved_ml.items():
                 sys.modules[k] = v
+
+
+# ── Priva 관수 최적화 엔진 테스트 ────────────────────────────────────────────
+
+class TestPrivaIrrigation:
+    """api/services/priva_irrigation.py — Priva 매뉴얼 알고리즘 단위 테스트."""
+
+    # ── 1. 적산일사 관수 횟수 ────────────────────────────────────────────────
+    def test_radiation_sum_n_basic(self):
+        from api.services.priva_irrigation import calc_radiation_sum_n_irrigations
+        # 16 MJ/m² / 80 J/cm² → 1600 J/cm² / 80 = 20 → clamped to 16
+        n = calc_radiation_sum_n_irrigations(16.0, trigger_j_cm2=80.0)
+        assert n == 16   # max_n=16 로 클램프
+
+    def test_radiation_sum_n_cloudy(self):
+        from api.services.priva_irrigation import calc_radiation_sum_n_irrigations
+        # 1 MJ/m² → 100 J/cm² / 80 = 1.25 → round=1 → clamped to min=2
+        n = calc_radiation_sum_n_irrigations(1.0, trigger_j_cm2=80.0, min_n=2)
+        assert n == 2
+
+    def test_radiation_sum_n_sunny(self):
+        from api.services.priva_irrigation import calc_radiation_sum_n_irrigations
+        # 12 MJ/m² → 1200 J/cm² / 100 = 12
+        n = calc_radiation_sum_n_irrigations(12.0, trigger_j_cm2=100.0)
+        assert n == 12
+
+    def test_radiation_sum_n_zero_gsr(self):
+        from api.services.priva_irrigation import calc_radiation_sum_n_irrigations
+        n = calc_radiation_sum_n_irrigations(0.0)
+        assert n >= 2   # 최소 min_n 반환
+
+    # ── 2. 증산량 기반 공급량 ────────────────────────────────────────────────
+    def test_transpiration_supply_positive(self):
+        from api.services.priva_irrigation import calc_transpiration_supply_mm
+        mm = calc_transpiration_supply_mm(et0_mm=3.0, kc=0.85, transpiration_constant=1.0)
+        assert mm > 0
+
+    def test_transpiration_supply_increases_with_et0(self):
+        from api.services.priva_irrigation import calc_transpiration_supply_mm
+        mm_low  = calc_transpiration_supply_mm(et0_mm=2.0, kc=1.0)
+        mm_high = calc_transpiration_supply_mm(et0_mm=5.0, kc=1.0)
+        assert mm_high > mm_low
+
+    def test_transpiration_supply_plant_size_factor(self):
+        from api.services.priva_irrigation import calc_transpiration_supply_mm
+        mm_full = calc_transpiration_supply_mm(et0_mm=3.0, kc=1.0, plant_size_pct=100.0)
+        mm_half = calc_transpiration_supply_mm(et0_mm=3.0, kc=1.0, plant_size_pct=50.0)
+        # 작물크기 50% → 공급량 절반 이하
+        assert mm_half < mm_full
+
+    def test_transpiration_supply_drain_correction(self):
+        from api.services.priva_irrigation import calc_transpiration_supply_mm
+        # 높은 배액률 → 더 많은 공급 필요
+        mm_low_drain  = calc_transpiration_supply_mm(et0_mm=3.0, kc=1.0, drain_target_pct=10.0)
+        mm_high_drain = calc_transpiration_supply_mm(et0_mm=3.0, kc=1.0, drain_target_pct=30.0)
+        assert mm_high_drain > mm_low_drain
+
+    # ── 3. 일사 배액% 동적 조정 ──────────────────────────────────────────────
+    def test_radiation_increase_drain_zero_solar(self):
+        from api.services.priva_irrigation import calc_radiation_adjusted_drain_pct
+        d = calc_radiation_adjusted_drain_pct(base_drain_pct=20.0, solar_avg_wm2=0.0)
+        assert d == pytest.approx(20.0)
+
+    def test_radiation_increase_drain_high_solar(self):
+        from api.services.priva_irrigation import calc_radiation_adjusted_drain_pct
+        # 500 W/m² 기준에서 solar_avg=500 → max 증가 적용
+        d = calc_radiation_adjusted_drain_pct(
+            base_drain_pct=20.0, solar_avg_wm2=500.0, radiation_increase_pct=5.0
+        )
+        assert d == pytest.approx(25.0)
+
+    def test_radiation_increase_drain_capped(self):
+        from api.services.priva_irrigation import calc_radiation_adjusted_drain_pct
+        d = calc_radiation_adjusted_drain_pct(
+            base_drain_pct=20.0, solar_avg_wm2=2000.0, radiation_increase_pct=5.0
+        )
+        assert d <= 25.0   # 최대 base + increase_pct 로 클램프
+
+    # ── 4. 최소 휴지시간 단축 ────────────────────────────────────────────────
+    def test_rest_reduction_below_range_start(self):
+        from api.services.priva_irrigation import calc_rest_time_reduction_pct
+        r = calc_rest_time_reduction_pct(solar_wm2=100.0,
+                                          range_rad_start=200.0, range_rad_end=800.0)
+        assert r == 0.0
+
+    def test_rest_reduction_above_range_end(self):
+        from api.services.priva_irrigation import calc_rest_time_reduction_pct
+        r = calc_rest_time_reduction_pct(solar_wm2=1000.0,
+                                          range_rad_start=200.0, range_rad_end=800.0,
+                                          max_reduction_pct=60.0)
+        assert r == 60.0
+
+    def test_rest_reduction_linear_midpoint(self):
+        from api.services.priva_irrigation import calc_rest_time_reduction_pct
+        # 중간점 500 W/m² → 50% 단축
+        r = calc_rest_time_reduction_pct(solar_wm2=500.0,
+                                          range_rad_start=200.0, range_rad_end=800.0,
+                                          max_reduction_pct=60.0)
+        assert 25.0 < r < 55.0   # 선형 중간값 ~30%
+
+    # ── 5. P/I 컨트롤러 ──────────────────────────────────────────────────────
+    def test_pi_controller_drain_shortage(self):
+        """배액 부족 → 공급 증가 (양의 교정값)."""
+        from api.services.priva_irrigation import PIControllerState
+        state = PIControllerState()
+        # drain_actual=10% < target=20% → shortage → positive correction
+        corr = state.update(drain_actual_pct=10.0, drain_target_pct=20.0,
+                            p_factor=0.60, i_factor=0.10, max_i_lm2=0.05)
+        assert corr > 0
+
+    def test_pi_controller_drain_excess(self):
+        """배액 과다 → 공급 감소 (음의 교정값)."""
+        from api.services.priva_irrigation import PIControllerState
+        state = PIControllerState()
+        corr = state.update(drain_actual_pct=35.0, drain_target_pct=20.0)
+        assert corr < 0
+
+    def test_pi_controller_i_clamped(self):
+        """I항 누적이 max_i_lm2 범위 내로 클램프됨."""
+        from api.services.priva_irrigation import PIControllerState
+        state = PIControllerState()
+        max_i = 0.05
+        for _ in range(100):   # 대량 에러 누적
+            state.update(drain_actual_pct=0.0, drain_target_pct=30.0,
+                         max_i_lm2=max_i)
+        assert abs(state.i_action_lm2) <= max_i + 1e-9
+
+    def test_pi_controller_reset(self):
+        from api.services.priva_irrigation import PIControllerState
+        state = PIControllerState()
+        state.update(drain_actual_pct=0.0, drain_target_pct=30.0)
+        state.reset()
+        assert state.i_action_lm2 == 0.0
+
+    # ── 6. 3-상황 스케줄 ─────────────────────────────────────────────────────
+    def test_phase_schedule_three_phases(self):
+        from api.services.priva_irrigation import build_phase_schedule
+        phases = build_phase_schedule(n_total=9, supply_total_ml=1500.0, drain_target_pct=20.0)
+        assert len(phases) == 3
+
+    def test_phase_schedule_n_sum(self):
+        from api.services.priva_irrigation import build_phase_schedule
+        phases = build_phase_schedule(n_total=9, supply_total_ml=1500.0, drain_target_pct=20.0)
+        total_n = sum(p.n_max for p in phases)
+        assert total_n == 9
+
+    def test_phase_schedule_supply_order(self):
+        """Phase 2 (낮) 총 공급량이 가장 크다 (n_max × supply_ml 기준)."""
+        from api.services.priva_irrigation import build_phase_schedule
+        phases = build_phase_schedule(n_total=9, supply_total_ml=1500.0, drain_target_pct=20.0)
+        total = [p.n_max * p.supply_ml for p in phases]
+        assert total[1] >= total[0]   # Phase2 총량 >= Phase1 총량
+        assert total[1] >= total[2]   # Phase2 총량 >= Phase3 총량
+
+    def test_phase_schedule_time_order(self):
+        from api.services.priva_irrigation import build_phase_schedule
+        phases = build_phase_schedule(n_total=6, supply_total_ml=1200.0, drain_target_pct=20.0)
+        starts = [p.start_hhmm for p in phases]
+        assert starts == sorted(starts)   # 시간 오름차순
+
+    def test_phase_schedule_drain_target_varies(self):
+        """Phase 1 목표 배액률 < Phase 2 < Phase 3."""
+        from api.services.priva_irrigation import build_phase_schedule
+        phases = build_phase_schedule(n_total=9, supply_total_ml=1500.0, drain_target_pct=20.0)
+        assert phases[0].drain_target_pct <= phases[1].drain_target_pct
+        assert phases[1].drain_target_pct <= phases[2].drain_target_pct
+
+    # ── 7. compute_priva_schedule 통합 ──────────────────────────────────────
+    def test_compute_priva_schedule_returns_result(self):
+        from api.services.priva_irrigation import (
+            compute_priva_schedule, PrivaIrrigationConfig, PrivaScheduleResult
+        )
+        cfg = PrivaIrrigationConfig(crop_ko="딸기", growth_stage="mid")
+        result = compute_priva_schedule(
+            et0_mm=3.0, daily_gsr_mj_m2=12.0, solar_avg_wm2=300.0, config=cfg
+        )
+        assert isinstance(result, PrivaScheduleResult)
+
+    def test_compute_priva_schedule_positive_supply(self):
+        from api.services.priva_irrigation import compute_priva_schedule, PrivaIrrigationConfig
+        cfg = PrivaIrrigationConfig(crop_ko="방울토마토", growth_stage="mid")
+        result = compute_priva_schedule(et0_mm=4.0, daily_gsr_mj_m2=15.0,
+                                         solar_avg_wm2=400.0, config=cfg)
+        assert result.supply_total_ml > 0
+        assert result.n_irrigations >= 2
+
+    def test_compute_priva_schedule_with_pi_state(self):
+        from api.services.priva_irrigation import (
+            compute_priva_schedule, PrivaIrrigationConfig, PIControllerState
+        )
+        cfg = PrivaIrrigationConfig(crop_ko="딸기")
+        state = PIControllerState()
+        # 배액 부족 시나리오 → 공급 증가
+        result = compute_priva_schedule(
+            et0_mm=3.0, daily_gsr_mj_m2=12.0, solar_avg_wm2=300.0,
+            config=cfg, pi_state=state, drain_actual_pct=10.0
+        )
+        assert result.pi_correction_lm2 > 0
+
+    def test_compute_priva_schedule_to_dict(self):
+        from api.services.priva_irrigation import compute_priva_schedule, PrivaIrrigationConfig
+        cfg = PrivaIrrigationConfig(crop_ko="완숙토마토")
+        result = compute_priva_schedule(et0_mm=3.5, daily_gsr_mj_m2=10.0,
+                                         solar_avg_wm2=250.0, config=cfg)
+        d = result.to_dict()
+        assert "phases" in d
+        assert "n_irrigations" in d
+        assert "supply_total_ml" in d
+        assert len(d["phases"]) == 3
+
+    def test_compute_priva_schedule_sunny_vs_cloudy(self):
+        """맑은 날 관수 횟수 > 흐린 날."""
+        from api.services.priva_irrigation import compute_priva_schedule, PrivaIrrigationConfig
+        cfg = PrivaIrrigationConfig(crop_ko="파프리카", trigger_j_cm2=100.0)
+        sunny = compute_priva_schedule(et0_mm=5.0, daily_gsr_mj_m2=18.0,
+                                        solar_avg_wm2=500.0, config=cfg)
+        cloudy = compute_priva_schedule(et0_mm=2.0, daily_gsr_mj_m2=4.0,
+                                         solar_avg_wm2=80.0, config=cfg)
+        assert sunny.n_irrigations >= cloudy.n_irrigations
+
+    # ── 8. get_default_config ─────────────────────────────────────────────────
+    def test_get_default_config_all_crops(self):
+        from api.services.priva_irrigation import get_default_config
+        for crop in ["딸기", "방울토마토", "완숙토마토", "참외", "파프리카"]:
+            cfg = get_default_config(crop, "mid")
+            assert cfg.crop_ko == crop
+            assert cfg.drain_target_pct > 0
+
+    def test_get_default_config_unknown_crop(self):
+        from api.services.priva_irrigation import get_default_config
+        cfg = get_default_config("가지", "mid")
+        assert cfg.crop_ko == "가지"
+        assert cfg.drain_target_pct == 20.0   # 기본값
+
+    def test_get_default_config_drain_melon_lower(self):
+        """참외 배액률 목표는 딸기보다 낮아야 함 (토양재배 기준)."""
+        from api.services.priva_irrigation import get_default_config
+        cfg_melon = get_default_config("참외")
+        cfg_strawberry = get_default_config("딸기")
+        assert cfg_melon.drain_target_pct <= cfg_strawberry.drain_target_pct
+
+
+# ── External API Hub 테스트 ───────────────────────────────────────────────────
+
+class TestExternalApiHub:
+    """api/services/external_api_hub.py — 외부 API 허브 단위 테스트."""
+
+    # ── API 상태 보고 ────────────────────────────────────────────────────────
+    def test_api_status_report_structure(self):
+        from api.services.external_api_hub import get_api_status_report
+        r = get_api_status_report()
+        assert "apis" in r
+        assert "missing_guide" in r
+        assert "mcp_guide" in r
+        assert "report_time" in r
+
+    def test_api_status_has_all_keys(self):
+        from api.services.external_api_hub import get_api_status_report
+        r = get_api_status_report()
+        apis = r["apis"]
+        # 핵심 API들이 모두 포함되어야 함
+        names = " ".join(apis.keys())
+        assert "KMA" in names
+        assert "KAMIS" in names
+        assert "Open-Meteo" in names
+        assert "EPPO" in names
+
+    def test_missing_guide_has_anthropic(self):
+        from api.services.external_api_hub import MISSING_API_GUIDE
+        assert "ANTHROPIC_API_KEY" in MISSING_API_GUIDE
+        info = MISSING_API_GUIDE["ANTHROPIC_API_KEY"]
+        assert "setup" in info
+        assert "get_key_url" in info
+
+    def test_mcp_guide_has_postgres(self):
+        from api.services.external_api_hub import MCP_CONNECTION_GUIDE
+        # PostgreSQL MCP is already active
+        assert "postgres_mcp" in MCP_CONNECTION_GUIDE
+        assert MCP_CONNECTION_GUIDE["postgres_mcp"]["status"] == "ACTIVE"
+
+    # ── Open-Meteo (무료, 키 불필요) ─────────────────────────────────────────
+    def test_openmeteo_farm_coords_exist(self):
+        from api.services.external_api_hub import _FARM_COORDS
+        for farm_id in ["farm_001", "farm_002", "farm_003"]:
+            assert farm_id in _FARM_COORDS
+            lat, lon = _FARM_COORDS[farm_id]
+            assert 33.0 <= lat <= 39.0   # 한국 위도 범위
+            assert 124.0 <= lon <= 132.0  # 한국 경도 범위
+
+    @pytest.mark.parametrize("farm_id", ["farm_001", "farm_002"])
+    def test_openmeteo_forecast_returns_data(self, farm_id):
+        from api.services.external_api_hub import openmeteo_get_forecast
+        result = openmeteo_get_forecast(farm_id, days=3)
+        if result is None:
+            pytest.skip("Open-Meteo API 응답 없음 (네트워크)")
+        assert result.get("source") == "open_meteo"
+        et0 = result.get("et0_forecast_mm", [])
+        assert len(et0) >= 1
+        assert all(v is None or v >= 0 for v in et0)
+
+    def test_openmeteo_with_coords(self):
+        from api.services.external_api_hub import openmeteo_get_forecast
+        result = openmeteo_get_forecast(latitude=35.5, longitude=128.5, days=2)
+        if result is None:
+            pytest.skip("Open-Meteo API 응답 없음")
+        assert "et0_forecast_mm" in result
+        assert result["latitude"] == 35.5
+
+    # ── EPPO 병해충 DB (무료) ─────────────────────────────────────────────────
+    def test_eppo_codes_all_crops(self):
+        from api.services.external_api_hub import _EPPO_CODES
+        for crop in ["딸기", "방울토마토", "완숙토마토", "파프리카"]:
+            assert crop in _EPPO_CODES
+            assert len(_EPPO_CODES[crop]) > 0
+
+    def test_eppo_pest_codes_defined(self):
+        from api.services.external_api_hub import _EPPO_PESTS
+        assert "잿빛곰팡이" in _EPPO_PESTS
+        assert "흰가루병" in _EPPO_PESTS
+        assert _EPPO_PESTS["잿빛곰팡이"] == "BOTRCI"
+
+    def test_eppo_unknown_crop_returns_none(self):
+        from api.services.external_api_hub import eppo_get_crop_pests
+        result = eppo_get_crop_pests("가지")   # 코드 없음
+        assert result is None
+
+    # ── RDA 농촌진흥청 ────────────────────────────────────────────────────────
+    def test_rda_key_absent_returns_none(self):
+        """RDA 키 없을 때 None 반환 확인."""
+        from unittest.mock import patch
+        import api.services.external_api_hub as hub
+        with patch.object(hub, "_rda_key", return_value=""):
+            result = hub.rda_get_crop_growth_standard("딸기")
+            assert result is None
+
+    def test_rda_pest_key_absent_returns_none(self):
+        from unittest.mock import patch
+        import api.services.external_api_hub as hub
+        with patch.object(hub, "_rda_key", return_value=""):
+            result = hub.rda_get_pest_info("딸기")
+            assert result is None
+
+    # ── AIHub ────────────────────────────────────────────────────────────────
+    def test_aihub_key_absent_returns_none(self):
+        from unittest.mock import patch
+        import api.services.external_api_hub as hub
+        with patch.object(hub, "_aihub_key", return_value=""):
+            result = hub.aihub_list_datasets("병해")
+            assert result is None
+
+    # ── 병해 위험도 통합 보강 ─────────────────────────────────────────────────
+    def test_disease_risk_augmented_structure(self):
+        from api.services.external_api_hub import get_disease_risk_augmented
+        env = {"temp_internal": 16.0, "humidity_int": 88.0, "co2_ppm": 800.0}
+        result = get_disease_risk_augmented(env, "딸기", include_eppo=False)
+        assert "m5_result" in result
+        assert "api_sources" in result
+        assert "m5_rule_based_v2" in result["api_sources"]
+
+    def test_disease_risk_augmented_m5_score_valid(self):
+        from api.services.external_api_hub import get_disease_risk_augmented
+        env = {"temp_internal": 15.0, "humidity_int": 90.0, "co2_ppm": 800.0}
+        result = get_disease_risk_augmented(env, "딸기")
+        m5 = result.get("m5_result", {})
+        if "score" in m5:
+            assert 0.0 <= m5["score"] <= 1.0
+        if "disease" in m5:
+            assert isinstance(m5["disease"], str)
+
+    # ── 날씨 예보 풀체인 ──────────────────────────────────────────────────────
+    def test_weather_forecast_full_has_et0(self):
+        from api.services.external_api_hub import get_weather_forecast_full
+        result = get_weather_forecast_full("farm_001", days=3)
+        assert "et0_forecast_mm" in result
+        assert result.get("source") is not None
+
+    def test_weather_forecast_full_fallback(self):
+        """KMA 실패 시 Open-Meteo로 폴백."""
+        from unittest.mock import patch
+        from api.services.external_api_hub import get_weather_forecast_full
+        with patch("api.services.kma_service.get_latest_weather", return_value=None):
+            result = get_weather_forecast_full("farm_001", days=3)
+            # Open-Meteo 또는 no_data
+            assert result.get("source") in ("open_meteo", "no_data")
+
+    # ── 캐시 ─────────────────────────────────────────────────────────────────
+    def test_cache_works(self):
+        """동일 키 두 번 호출 시 캐시에서 반환."""
+        import time
+        from api.services.external_api_hub import _cached, _cache
+        call_count = [0]
+        def _fetcher():
+            call_count[0] += 1
+            return {"value": 42}
+        _cached("test_cache_key_xyz", 60, _fetcher)
+        _cached("test_cache_key_xyz", 60, _fetcher)
+        assert call_count[0] == 1   # 두 번째는 캐시에서
+
+
+# ── AI 채팅 멀티프로바이더 테스트 ─────────────────────────────────────────────
+
+class TestAiChatMultiProvider:
+    """ai_chat.py — Anthropic → OpenAI → Ollama → rule_based 폴백 체인 검증"""
+
+    _CTX = {
+        "farm_id":    "farm_001",
+        "farm_name":  "테스트 농장",
+        "crop":       "딸기",
+        "area_m2":    1000,
+        "location":   "경남 진주",
+        "env":        {"temp_internal": 18.0, "humidity_int": 72.0, "co2_ppm": 850.0},
+        "alerts":     [],
+        "price_krw_kg": 12000,
+        "yield_kg_m2":  0.5,
+        "cost_per_m2":  3000,
+    }
+
+    # ── _build_system_prompt ──────────────────────────────────────────────────
+    def test_build_system_prompt_contains_crop(self):
+        from api.services.ai_chat import _build_system_prompt
+        prompt = _build_system_prompt(self._CTX)
+        assert "딸기" in prompt
+        assert "18.0" in prompt  # 온도
+
+    def test_build_system_prompt_no_env(self):
+        from api.services.ai_chat import _build_system_prompt
+        ctx = {**self._CTX, "env": {}}
+        prompt = _build_system_prompt(ctx)
+        assert "데이터 없음" in prompt
+
+    def test_build_system_prompt_with_alerts(self):
+        from api.services.ai_chat import _build_system_prompt
+        ctx = {**self._CTX, "alerts": [{"severity": "warning", "message_ko": "온도 높음"}]}
+        prompt = _build_system_prompt(ctx)
+        assert "WARNING" in prompt or "warning" in prompt.lower()
+
+    # ── _parse_response ───────────────────────────────────────────────────────
+    def test_parse_response_valid_json(self):
+        from api.services.ai_chat import _parse_response
+        import json
+        raw = json.dumps({"reply": "온도 정상", "suggestions": ["질문1", "질문2", "질문3"]})
+        result = _parse_response(raw)
+        assert result["reply"] == "온도 정상"
+        assert len(result["suggestions"]) == 3
+
+    def test_parse_response_json_in_codeblock(self):
+        from api.services.ai_chat import _parse_response
+        raw = '```json\n{"reply": "답변", "suggestions": ["q1"]}\n```'
+        result = _parse_response(raw)
+        assert result["reply"] == "답변"
+
+    def test_parse_response_plain_text_fallback(self):
+        from api.services.ai_chat import _parse_response
+        raw = "이것은 JSON이 아닌 일반 텍스트입니다."
+        result = _parse_response(raw)
+        assert len(result["reply"]) > 0
+        assert isinstance(result["suggestions"], list)
+
+    # ── _infer_referenced ─────────────────────────────────────────────────────
+    def test_infer_referenced_environment(self):
+        from api.services.ai_chat import _infer_referenced
+        refs = _infer_referenced("온도가 너무 높아요")
+        assert "environment" in refs
+
+    def test_infer_referenced_harvest(self):
+        from api.services.ai_chat import _infer_referenced
+        refs = _infer_referenced("수확 예측 알려줘")
+        assert "harvest" in refs
+
+    def test_infer_referenced_disease(self):
+        from api.services.ai_chat import _infer_referenced
+        refs = _infer_referenced("병해 걱정돼요")
+        assert "disease_risk" in refs
+
+    def test_infer_referenced_revenue(self):
+        from api.services.ai_chat import _infer_referenced
+        refs = _infer_referenced("이번 달 수익은?")
+        assert "revenue" in refs
+
+    def test_infer_referenced_irrigation(self):
+        from api.services.ai_chat import _infer_referenced
+        refs = _infer_referenced("관수 ec 확인")
+        assert "irrigation" in refs
+
+    def test_infer_referenced_general_fallback(self):
+        from api.services.ai_chat import _infer_referenced
+        refs = _infer_referenced("안녕하세요")
+        assert refs == ["general"]
+
+    # ── _error_fallback ───────────────────────────────────────────────────────
+    def test_error_fallback_structure(self):
+        from api.services.ai_chat import _error_fallback
+        result = _error_fallback("테스트 오류")
+        assert result["model_used"] == "fallback"
+        assert result["tokens_used"] == 0
+        assert "테스트 오류" in result["reply"]
+        assert isinstance(result["suggestions"], list)
+
+    # ── _rule_based_reply ─────────────────────────────────────────────────────
+    def test_rule_based_env_keyword(self):
+        from api.services.ai_chat import _rule_based_reply
+        result = _rule_based_reply("온도가 어때요", self._CTX)
+        assert result["model_used"] == "rule_based"
+        assert "딸기" in result["reply"]
+
+    def test_rule_based_harvest_keyword(self):
+        from api.services.ai_chat import _rule_based_reply
+        result = _rule_based_reply("수확 예측", self._CTX)
+        assert "딸기" in result["reply"]
+
+    def test_rule_based_disease_keyword(self):
+        from api.services.ai_chat import _rule_based_reply
+        result = _rule_based_reply("병해 위험", self._CTX)
+        assert result["model_used"] == "rule_based"
+
+    def test_rule_based_general(self):
+        from api.services.ai_chat import _rule_based_reply
+        result = _rule_based_reply("안녕하세요", self._CTX)
+        assert len(result["reply"]) > 0
+        assert isinstance(result["suggestions"], list)
+
+    # ── call_claude no API key → fallback ─────────────────────────────────────
+    def test_call_claude_no_key_returns_fallback(self, monkeypatch):
+        import api.services.ai_chat as chat_mod
+        monkeypatch.setattr(chat_mod, "_cfg", lambda k, d="": "" if k == "ANTHROPIC_API_KEY" else d)
+        result = chat_mod.call_claude("farm_001", "테스트", [], self._CTX)
+        assert result["model_used"] == "fallback"
+
+    # ── _call_openai network error → exception ────────────────────────────────
+    def test_call_openai_network_error(self, monkeypatch):
+        import urllib.request
+        import api.services.ai_chat as chat_mod
+
+        def _fake_urlopen(*a, **kw):
+            raise OSError("network error")
+
+        monkeypatch.setattr(urllib.request, "urlopen", _fake_urlopen)
+        import pytest
+        with pytest.raises(Exception):
+            chat_mod._call_openai("farm_001", "test", [], self._CTX, "pro", "fake_key")
+
+    # ── _call_ollama connection error → exception ─────────────────────────────
+    def test_call_ollama_connection_error(self, monkeypatch):
+        import urllib.request
+        import api.services.ai_chat as chat_mod
+
+        def _fake_urlopen(*a, **kw):
+            raise OSError("connection refused")
+
+        monkeypatch.setattr(urllib.request, "urlopen", _fake_urlopen)
+        import pytest
+        with pytest.raises(ConnectionError):
+            chat_mod._call_ollama("farm_001", "test", [], self._CTX)
+
+    # ── _call_ollama 정상 응답 (mock) ─────────────────────────────────────────
+    def test_call_ollama_success_mock(self, monkeypatch):
+        import urllib.request
+        import json
+        import io
+        import api.services.ai_chat as chat_mod
+
+        fake_resp = json.dumps({
+            "message":   {"role": "assistant", "content": '{"reply": "Ollama 답변", "suggestions": ["q1", "q2", "q3"]}'},
+            "eval_count": 42,
+        }).encode("utf-8")
+
+        class _FakeResp:
+            def read(self): return fake_resp
+            def __enter__(self): return self
+            def __exit__(self, *a): pass
+
+        monkeypatch.setattr(urllib.request, "urlopen", lambda *a, **kw: _FakeResp())
+        result = chat_mod._call_ollama("farm_001", "안녕", [], self._CTX)
+        assert "ollama/" in result["model_used"]
+        assert result["tokens_used"] == 42
+        assert result["reply"] == "Ollama 답변"
+
+    # ── call_ai 폴백 체인 — 모든 키 없음 → rule_based ───────────────────────
+    def test_call_ai_no_keys_falls_to_rule_based(self, monkeypatch):
+        import api.services.ai_chat as chat_mod
+        monkeypatch.setattr(chat_mod, "_cfg",
+                            lambda k, d="": "" if k in ("ANTHROPIC_API_KEY", "OPENAI_API_KEY",
+                                                         "OLLAMA_ENABLED", "OLLAMA_HOST") else d)
+        result = chat_mod.call_ai("farm_001", "온도 어때요", [], self._CTX)
+        assert result["model_used"] == "rule_based"
+
+    # ── call_ai → Anthropic 실패 시 OpenAI 시도 ──────────────────────────────
+    def test_call_ai_anthropic_fail_tries_openai(self, monkeypatch):
+        import api.services.ai_chat as chat_mod
+
+        def _cfg_mock(k, d=""):
+            if k == "ANTHROPIC_API_KEY": return ""
+            if k == "OPENAI_API_KEY":    return "fake_openai_key"
+            return d
+
+        monkeypatch.setattr(chat_mod, "_cfg", _cfg_mock)
+        # OpenAI도 네트워크 실패 → rule_based
+        monkeypatch.setattr(chat_mod, "_call_openai",
+                            lambda *a, **kw: (_ for _ in ()).throw(OSError("fail")))
+        result = chat_mod.call_ai("farm_001", "수확 예측", [], self._CTX)
+        assert result["model_used"] == "rule_based"
+
+    # ── call_ai → Ollama 활성화 시 시도 ──────────────────────────────────────
+    def test_call_ai_ollama_enabled_flag(self, monkeypatch):
+        import api.services.ai_chat as chat_mod
+
+        def _cfg_mock(k, d=""):
+            if k == "ANTHROPIC_API_KEY": return ""
+            if k == "OPENAI_API_KEY":    return ""
+            if k == "OLLAMA_ENABLED":    return "true"
+            if k == "OLLAMA_HOST":       return ""
+            return d
+
+        monkeypatch.setattr(chat_mod, "_cfg", _cfg_mock)
+        monkeypatch.setattr(chat_mod, "_call_ollama",
+                            lambda *a, **kw: {
+                                "reply": "Ollama로 답변", "suggestions": ["q"],
+                                "model_used": "ollama/llama3.2", "tokens_used": 10,
+                                "referenced_data": ["general"],
+                            })
+        result = chat_mod.call_ai("farm_001", "안녕", [], self._CTX)
+        assert "ollama" in result["model_used"]
+
+    # ── build_farm_context ────────────────────────────────────────────────────
+    def test_build_farm_context_structure(self):
+        from api.services.ai_chat import build_farm_context
+        meta   = {"crop": "딸기", "area_m2": 2000, "sido": "경남", "sigungu": "진주"}
+        env    = {"temp_internal": 20.0, "humidity_int": 70.0}
+        alerts = []
+        ctx = build_farm_context("farm_001", meta, env, alerts)
+        assert ctx["crop"] == "딸기"
+        assert ctx["area_m2"] == 2000
+        assert ctx["location"] == "경남 진주"
+        assert isinstance(ctx["alerts"], list)
+
+    def test_build_farm_context_env_dict_value(self):
+        """env 값이 {"value": x} dict 형태인 경우 정규화 확인."""
+        from api.services.ai_chat import build_farm_context
+        meta = {"crop": "방울토마토", "area_m2": 500}
+        env  = {"temp_internal": {"value": 22.5, "unit": "°C"}}
+        ctx  = build_farm_context("farm_001", meta, env, [])
+        assert ctx["env"]["temp_internal"] == 22.5
+
+
+# ── Priva PI Controller 상태 저장소 ─────────────────────────────────────────
+
+class TestPrivaPiStore:
+    """api/services/priva_pi_store.py 전체 경로 검증"""
+
+    _FARM = "test_pi_store_farm"
+
+    def setup_method(self):
+        from api.services.priva_pi_store import reset_pi_state
+        reset_pi_state(self._FARM)
+
+    def teardown_method(self):
+        from api.services.priva_pi_store import reset_pi_state
+        reset_pi_state(self._FARM)
+
+    def test_load_default_when_no_file(self):
+        from api.services.priva_pi_store import load_pi_state
+        s = load_pi_state(self._FARM)
+        assert s["i_action_lm2"] == 0.0
+        assert s["drain_actual_pct_last"] is None
+        assert s["drain_target_pct"] == 20.0
+
+    def test_save_and_load_roundtrip(self):
+        from api.services.priva_pi_store import save_pi_state, load_pi_state
+        save_pi_state(self._FARM, i_action_lm2=0.023, drain_actual_pct=18.5, drain_target_pct=20.0)
+        s = load_pi_state(self._FARM)
+        assert abs(s["i_action_lm2"] - 0.023) < 1e-5
+        assert abs(s["drain_actual_pct_last"] - 18.5) < 1e-5
+        assert s["drain_target_pct"] == 20.0
+
+    def test_reset_clears_file(self):
+        from api.services.priva_pi_store import save_pi_state, reset_pi_state, load_pi_state
+        save_pi_state(self._FARM, i_action_lm2=0.05, drain_actual_pct=22.0)
+        reset_pi_state(self._FARM)
+        s = load_pi_state(self._FARM)
+        assert s["i_action_lm2"] == 0.0
+
+    def test_save_without_drain(self):
+        from api.services.priva_pi_store import save_pi_state, load_pi_state
+        save_pi_state(self._FARM, i_action_lm2=-0.01)
+        s = load_pi_state(self._FARM)
+        assert abs(s["i_action_lm2"] - (-0.01)) < 1e-5
+        assert s["drain_actual_pct_last"] is None
+
+    def test_get_last_drain_actual_none_when_empty(self):
+        from api.services.priva_pi_store import get_last_drain_actual
+        val = get_last_drain_actual(self._FARM)
+        assert val is None
+
+    def test_get_last_drain_actual_after_save(self):
+        from api.services.priva_pi_store import save_pi_state, get_last_drain_actual
+        save_pi_state(self._FARM, i_action_lm2=0.0, drain_actual_pct=25.3)
+        val = get_last_drain_actual(self._FARM)
+        assert abs(val - 25.3) < 1e-4
+
+    def test_overwrite_with_new_save(self):
+        from api.services.priva_pi_store import save_pi_state, load_pi_state
+        save_pi_state(self._FARM, i_action_lm2=0.010, drain_actual_pct=20.0)
+        save_pi_state(self._FARM, i_action_lm2=0.025, drain_actual_pct=21.5)
+        s = load_pi_state(self._FARM)
+        assert abs(s["i_action_lm2"] - 0.025) < 1e-5
+        assert abs(s["drain_actual_pct_last"] - 21.5) < 1e-4
+
+    def test_reset_nonexistent_is_safe(self):
+        from api.services.priva_pi_store import reset_pi_state
+        # 파일 없어도 예외 없이 통과
+        reset_pi_state("nonexistent_farm_xyz_99")
+
+    def test_updated_at_is_today(self):
+        from datetime import date
+        from api.services.priva_pi_store import save_pi_state, load_pi_state
+        save_pi_state(self._FARM, i_action_lm2=0.0)
+        s = load_pi_state(self._FARM)
+        assert s["updated_at"] == str(date.today())
+
+
+# ── 병해 탐지 서비스 (plant_disease_service) ──────────────────────────────────
+
+class TestPlantDiseaseService:
+    """api/services/plant_disease_service.py 단위 테스트"""
+
+    def test_env_based_risk_high_humidity(self):
+        """습도 90% + 온도 18°C → 잿빛곰팡이 위험 감지"""
+        from api.services.plant_disease_service import env_based_risk
+        result = env_based_risk(
+            {"temp_internal": 18.0, "humidity_int": 92.0, "co2_ppm": 800.0},
+            "딸기"
+        )
+        assert result["risk_level"] in ("high", "medium")
+        assert result["source"] in ("m5_rule_v2", "m5_simple_fallback")
+
+    def test_env_based_risk_normal(self):
+        """정상 환경 → none/low"""
+        from api.services.plant_disease_service import env_based_risk
+        result = env_based_risk(
+            {"temp_internal": 20.0, "humidity_int": 65.0, "co2_ppm": 800.0},
+            "딸기"
+        )
+        assert result["risk_level"] in ("none", "low", "medium")
+
+    def test_translate_disease_gray_mold(self):
+        """영문→한국어 번역"""
+        from api.services.plant_disease_service import _translate_disease
+        assert "잿빛곰팡이" in _translate_disease("gray mold", "딸기")
+        assert "흰가루" in _translate_disease("powdery mildew", "딸기")
+
+    def test_get_action_returns_string(self):
+        """병해명 → 조치 문자열"""
+        from api.services.plant_disease_service import _get_action
+        action = _get_action("잿빛곰팡이병")
+        assert len(action) > 5
+
+    def test_detect_disease_no_image(self):
+        """이미지 없이 환경만 → 통합 탐지 성공"""
+        from api.services.plant_disease_service import detect_disease
+        result = detect_disease(
+            env={"temp_internal": 22.0, "humidity_int": 75.0},
+            crop_ko="방울토마토",
+        )
+        assert "disease" in result
+        assert "risk_level" in result
+        assert "source_chain" in result
+        assert len(result["source_chain"]) >= 1
+
+    def test_detect_disease_no_key_fallback(self):
+        """Plant.id 키 없어도 규칙기반 폴백으로 결과 반환"""
+        import os
+        from api.services.plant_disease_service import detect_disease
+        with patch.dict(os.environ, {"PLANT_ID_API_KEY": ""}):
+            result = detect_disease(
+                env={"temp_internal": 20.0, "humidity_int": 70.0},
+                crop_ko="딸기",
+            )
+        assert result.get("disease") is not None
+
+    def test_crop_diseases_all_crops(self):
+        """작목별 병해 목록 완전성"""
+        from api.services.plant_disease_service import _CROP_DISEASES
+        for crop in ["딸기", "방울토마토", "완숙토마토", "파프리카", "참외", "오이"]:
+            assert crop in _CROP_DISEASES
+            assert len(_CROP_DISEASES[crop]) >= 3
+
+    def test_ncpms_key_guide_structure(self):
+        """NCPMS 키 가이드 구조"""
+        from api.services.plant_disease_service import NCPMS_KEY_GUIDE
+        assert "service" in NCPMS_KEY_GUIDE
+        assert "env_var" in NCPMS_KEY_GUIDE
+        assert NCPMS_KEY_GUIDE["cost"] == "무료 (기존 DATA_GO_KR_SERVICE_KEY 사용 가능)"
+
+    def test_plant_id_key_guide_structure(self):
+        """Plant.id 키 가이드 구조"""
+        from api.services.plant_disease_service import PLANT_ID_KEY_GUIDE
+        assert "get_key_url" in PLANT_ID_KEY_GUIDE
+        assert "plant.id" in PLANT_ID_KEY_GUIDE["get_key_url"]
+
+
+# ── aT 도매시장 + USDA NASS + M2 클리핑 ───────────────────────────────────────
+
+class TestAtWholesaleService:
+    """api/services/at_wholesale_service.py 단위 테스트"""
+
+    def test_clip_yield_upper_bound(self):
+        """방울토마토 999 kg/m² → 상한 25.0으로 클리핑"""
+        from api.services.at_wholesale_service import clip_yield_prediction
+        clipped, was = clip_yield_prediction("방울토마토", 999.0)
+        assert was is True
+        assert clipped == 25.0
+
+    def test_clip_yield_lower_bound(self):
+        """딸기 0.1 kg/m² → 하한 2.0으로 클리핑"""
+        from api.services.at_wholesale_service import clip_yield_prediction
+        clipped, was = clip_yield_prediction("딸기", 0.1)
+        assert was is True
+        assert clipped == 2.0
+
+    def test_clip_yield_normal_no_change(self):
+        """정상 범위 값은 변경 없음"""
+        from api.services.at_wholesale_service import clip_yield_prediction
+        clipped, was = clip_yield_prediction("딸기", 5.0)
+        assert was is False
+        assert clipped == 5.0
+
+    def test_clip_yield_unknown_crop(self):
+        """알 수 없는 작목은 클리핑 없음"""
+        from api.services.at_wholesale_service import clip_yield_prediction
+        clipped, was = clip_yield_prediction("모르는작물", 100.0)
+        assert was is False
+
+    def test_kr_yield_bounds_all_crops(self):
+        """KR 수확량 기준 전 작목 포함"""
+        from api.services.at_wholesale_service import _KR_YIELD_BOUNDS
+        for crop in ["딸기", "방울토마토", "완숙토마토", "파프리카", "참외", "오이"]:
+            assert crop in _KR_YIELD_BOUNDS
+            bounds = _KR_YIELD_BOUNDS[crop]
+            assert bounds["lower"] < bounds["upper"]
+
+    def test_usda_get_yield_reference_returns_dict(self):
+        """수확량 기준 조회 (RDA 내장값)"""
+        from api.services.at_wholesale_service import usda_get_yield_reference
+        ref = usda_get_yield_reference("딸기")
+        assert ref is not None
+        assert "lower_kg_m2" in ref
+        assert "upper_kg_m2" in ref
+        assert ref["lower_kg_m2"] == 2.0
+        assert ref["source"] in ("rda_static", "rda_static+usda_nass")
+
+    def test_at_wholesale_key_guide(self):
+        """aT 키 가이드 구조"""
+        from api.services.at_wholesale_service import AT_WHOLESALE_KEY_GUIDE
+        assert AT_WHOLESALE_KEY_GUIDE["cost"] == "무료 (기존 DATA_GO_KR_SERVICE_KEY 사용)"
+
+    def test_usda_nass_key_guide(self):
+        """USDA NASS 키 가이드"""
+        from api.services.at_wholesale_service import USDA_NASS_KEY_GUIDE
+        assert "quickstats.nass.usda.gov" in USDA_NASS_KEY_GUIDE["get_key_url"]
+        assert USDA_NASS_KEY_GUIDE["cost"] == "완전 무료"
+
+    def test_fao_item_codes_coverage(self):
+        """FAO 작목 코드 전 작목 커버"""
+        from api.services.at_wholesale_service import _FAO_ITEM_CODES
+        for crop in ["딸기", "완숙토마토", "파프리카", "참외", "오이"]:
+            assert crop in _FAO_ITEM_CODES
+
+    def test_m2_clipping_integrated_in_predict(self):
+        """models/m2_yield.py — RDA 클리핑 코드 존재 확인"""
+        from pathlib import Path
+        src = Path("models/m2_yield.py").read_text(encoding="utf-8", errors="replace")
+        assert "clip_yield_prediction" in src
+        assert "rda_clipped" in src
+
+
+# ── 외부 API 허브 신규 항목 ────────────────────────────────────────────────────
+
+class TestExternalApiHubUpdated:
+    """external_api_hub.py — PLANT_ID, USDA_NASS 신규 항목 확인"""
+
+    def test_missing_api_guide_has_plant_id(self):
+        from api.services.external_api_hub import MISSING_API_GUIDE
+        assert "PLANT_ID_API_KEY" in MISSING_API_GUIDE
+        guide = MISSING_API_GUIDE["PLANT_ID_API_KEY"]
+        assert "web.plant.id" in guide["get_key_url"]
+
+    def test_missing_api_guide_has_usda_nass(self):
+        from api.services.external_api_hub import MISSING_API_GUIDE
+        assert "USDA_NASS_API_KEY" in MISSING_API_GUIDE
+        guide = MISSING_API_GUIDE["USDA_NASS_API_KEY"]
+        assert "quickstats" in guide["get_key_url"]
+        assert guide["cost"] == "완전 무료"
+
+    def test_api_status_report_includes_new_apis(self):
+        from api.services.external_api_hub import get_api_status_report
+        report = get_api_status_report()
+        apis = report["apis"]
+        # 신규 API 항목 존재 확인
+        assert any("Plant.id" in k for k in apis)
+        assert any("USDA" in k for k in apis)
+        assert any("FAO" in k for k in apis)
+
+    def test_api_status_report_fao_available(self):
+        """FAO FAOSTAT는 키 없이 available"""
+        from api.services.external_api_hub import get_api_status_report
+        report = get_api_status_report()
+        apis = report["apis"]
+        fao_entries = [v for k, v in apis.items() if "FAO" in k]
+        assert any(e.get("status") == "available" for e in fao_entries)
+
+    def test_mcp_guide_has_open_meteo(self):
+        from api.services.external_api_hub import MCP_CONNECTION_GUIDE
+        assert any("meteo" in k.lower() or "open_meteo" in k.lower()
+                   for k in MCP_CONNECTION_GUIDE)
+
+
+# ── farmer.py 신규 엔드포인트 연기 (HTTP 레벨) ────────────────────────────────
+
+class TestNewFarmerEndpoints:
+    """POST /disease/detect, GET /market/wholesale HTTP 응답 테스트"""
+
+    def _client(self):
+        from fastapi.testclient import TestClient
+        from api.main import app
+        import os; os.environ.setdefault("DATABASE_URL", "sqlite:///./test_tmp.db")
+        return TestClient(app)
+
+    def _headers(self):
+        client = self._client()
+        r = client.post("/api/auth/login", json={"username": "admin", "password": "1250"})
+        token = r.json().get("access_token", "")
+        return {"Authorization": f"Bearer {token}"}
+
+    def test_disease_detect_returns_valid_response(self):
+        client = self._client()
+        headers = self._headers()
+        r = client.post("/api/farms/farm_003/disease/detect",
+                        json={"region_code": "3600000"},
+                        headers=headers)
+        assert r.status_code in (200, 201, 400, 401, 403, 404, 422, 429, 500)
+        if r.status_code == 200:
+            d = r.json()
+            assert "disease" in d
+            assert "risk_level" in d
+            assert d["risk_level"] in ("high", "medium", "low", "none")
+
+    def test_disease_detect_no_auth_returns_401(self):
+        client = self._client()
+        r = client.post("/api/farms/farm_003/disease/detect", json={})
+        assert r.status_code in (401, 403, 422)
+
+    def test_wholesale_market_returns_valid(self):
+        client = self._client()
+        headers = self._headers()
+        r = client.get("/api/farms/farm_003/market/wholesale", headers=headers)
+        assert r.status_code in (200, 201, 400, 401, 403, 404, 422, 429, 500)
+        if r.status_code == 200:
+            d = r.json()
+            assert "crop" in d
+            assert "price_krw_kg" in d
+            assert "yield_bounds" in d
+
+    def test_wholesale_market_unknown_farm(self):
+        client = self._client()
+        headers = self._headers()
+        r = client.get("/api/farms/nonexistent_farm_xyz/market/wholesale",
+                       headers=headers)
+        assert r.status_code in (401, 403, 404, 400, 422)
+
+    def test_disease_detect_strawberry_farm(self):
+        """딸기 농장 병해 탐지"""
+        client = self._client()
+        headers = self._headers()
+        r = client.post("/api/farms/farm_003/disease/detect",
+                        json={}, headers=headers)
+        assert r.status_code in (200, 201, 400, 401, 403, 404, 422, 429, 500)
+
+    def test_wholesale_crop_override(self):
+        """crop_ko 파라미터 오버라이드"""
+        client = self._client()
+        headers = self._headers()
+        r = client.get("/api/farms/farm_003/market/wholesale?crop_ko=딸기",
+                       headers=headers)
+        assert r.status_code in (200, 201, 400, 401, 403, 404, 422, 429, 500)

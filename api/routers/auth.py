@@ -1,20 +1,24 @@
-"""인증 라우터 — JWT 토큰 발급.
+"""인증 라우터 — JWT 토큰 발급 / 회원가입 / 온보딩.
 
-POST /api/v1/auth/token
-    Body: {username, password}
-    Returns: {access_token, token_type}
+POST /api/v1/auth/token              JWT 액세스 토큰 발급
+POST /api/v1/auth/register           신규 회원가입
+POST /api/v1/auth/onboarding         농장 프로필 온보딩 저장
+GET  /api/v1/auth/onboarding/status  온보딩 완료 여부 조회
 """
 from __future__ import annotations
 
 import logging
 import os
+from typing import List, Optional
 
-from fastapi import APIRouter, HTTPException, status
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
+
+# ── 스키마 ────────────────────────────────────────────────────────────────────
 
 class TokenRequest(BaseModel):
     username: str
@@ -25,58 +29,180 @@ class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     expires_in: int
-    tier: str = "basic"                 # UI가 JWT 디코딩 없이 바로 읽을 수 있도록 포함
-    chat_quota_max: int = 0             # UI 쿼터 표시용
+    tier: str = "basic"
+    chat_quota_max: int = 0
+    onboarding_required: bool = False   # 최초 로그인 온보딩 필요 여부
 
+
+class RegisterRequest(BaseModel):
+    username: str = Field(..., min_length=3, max_length=32)
+    password: str = Field(..., min_length=4, max_length=64)
+    name: str = Field("", max_length=64)
+    email: str = Field("", max_length=128)
+
+
+class OnboardingRequest(BaseModel):
+    farm_id: str = ""
+    crop_ko: str = ""
+    facility_type: str = ""
+    area_m2: Optional[float] = None
+    cultivation_method: str = "토경"
+    region: str = ""
+    season_start: str = ""
+    season_end: str = ""
+    growing_year: int = 1
+    pain_points: List[str] = []
+    kpi_yield_kg: Optional[float] = None
+    kpi_revenue_wan: Optional[float] = None
+    kpi_energy_save: Optional[float] = None
+    kpi_drain_rate: Optional[float] = None
+
+
+# ── 내부 유틸 ─────────────────────────────────────────────────────────────────
 
 def _verify_password(plain: str, hashed: str) -> bool:
     try:
         import bcrypt
         return bcrypt.checkpw(plain.encode(), hashed.encode())
     except ImportError:
-        # fallback: plain text compare (개발 전용, 절대 운영 사용 금지)
         logger.warning("[auth] bcrypt 미설치 — 평문 비교 사용 (개발 전용)")
         return plain == hashed
 
 
-@router.post("/token", response_model=TokenResponse, summary="JWT 액세스 토큰 발급")
-async def issue_token(req: TokenRequest):
-    """사용자명/패스워드 검증 후 JWT 토큰 반환."""
-    from api.services.persistence import get_user_by_username
+def _hash_password(plain: str) -> str:
+    try:
+        import bcrypt
+        return bcrypt.hashpw(plain.encode(), bcrypt.gensalt()).decode()
+    except ImportError:
+        return plain   # 개발 전용 평문 폴백
+
+
+def _build_token_response(user: dict, onboarding_required: bool = False) -> TokenResponse:
+    """user dict → TokenResponse 조립 헬퍼."""
     from api.middleware.auth import create_access_token
-
-    user = get_user_by_username(req.username)
-    if not user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="인증 실패")
-
-    if not _verify_password(req.password, user.get("hashed_password", "")):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="인증 실패")
+    from api.services.billing import get_farm_tier, _AI_QUOTAS
 
     expire_minutes = int(os.environ.get("JWT_EXPIRE_MINUTES", "60"))
+    role    = user.get("role", "farmer")
+    farm_id = user.get("farm_id") or ""
 
-    # 농장 ID 결정
-    # admin/manager 역할은 farm_id 없음(전체 농장 관리자) → 빈 문자열
-    role = user.get("role", "viewer")
     if role in ("admin", "manager"):
-        farm_id = user.get("farm_id") or ""   # 명시적 farm_id 있으면 사용, 없으면 공백
+        tier = get_farm_tier(farm_id) if farm_id else "admin"
     else:
-        # farmer/viewer: 본인 농장 ID (없으면 farm_001 기본값)
-        farm_id = user.get("farm_id") or "farm_001"
+        tier = get_farm_tier(farm_id) if farm_id else "basic"
 
-    # 티어 조회 → JWT 클레임 포함
-    from api.services.billing import get_farm_tier, _AI_QUOTAS
-    tier = get_farm_tier(farm_id) if farm_id else "admin"
     chat_quota_max = _AI_QUOTAS.get(tier, 0)
 
     token = create_access_token({
-        "sub":      user["username"],
-        "role":     user.get("role", "viewer"),
-        "farm_id":  farm_id,
-        "tier":     tier,
+        "sub":     user["username"],
+        "role":    role,
+        "farm_id": farm_id,
+        "tier":    tier,
+        "user_id": user.get("id", 0),
     })
     return TokenResponse(
         access_token=token,
         expires_in=expire_minutes * 60,
         tier=tier,
         chat_quota_max=chat_quota_max,
+        onboarding_required=onboarding_required,
     )
+
+
+# ── 로그인 (토큰 발급) ────────────────────────────────────────────────────────
+
+@router.post("/token", response_model=TokenResponse, summary="JWT 액세스 토큰 발급")
+async def issue_token(req: TokenRequest):
+    """사용자명/패스워드 검증 후 JWT 토큰 반환."""
+    from api.services.persistence import get_user_by_username
+
+    user = get_user_by_username(req.username)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="인증 실패")
+    if not _verify_password(req.password, user.get("hashed_password", "")):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="인증 실패")
+
+    # farmer/viewer는 farm_id 기본값 보정
+    role = user.get("role", "viewer")
+    if role not in ("admin", "manager") and not user.get("farm_id"):
+        user["farm_id"] = "farm_001"
+
+    # admin/manager는 온보딩 불필요
+    if role in ("admin", "manager"):
+        onboarding_required = False
+    else:
+        onboarding_required = not bool(user.get("onboarding_completed", False))
+    return _build_token_response(user, onboarding_required=onboarding_required)
+
+
+# ── 회원가입 ──────────────────────────────────────────────────────────────────
+
+@router.post("/register", response_model=TokenResponse, summary="신규 회원가입")
+async def register(req: RegisterRequest):
+    """사용자명·패스워드·이름·이메일 검증 후 계정 생성 및 JWT 반환."""
+    from api.services.persistence import create_user
+
+    try:
+        user = create_user(
+            username=req.username,
+            hashed_password=_hash_password(req.password),
+            name=req.name,
+            email=req.email,
+            role="farmer",
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
+    except Exception as e:
+        logger.error("[auth] register 오류: %s", e)
+        raise HTTPException(status_code=500, detail="회원가입 처리 중 오류가 발생했습니다.")
+
+    return _build_token_response(user, onboarding_required=True)
+
+
+# ── 온보딩 저장 ───────────────────────────────────────────────────────────────
+
+@router.post("/onboarding", summary="농장 프로필 온보딩 저장")
+async def save_onboarding(
+    req: OnboardingRequest,
+    token_user: dict = Depends(__import__("api.middleware.auth", fromlist=["require_auth"]).require_auth),
+):
+    """온보딩 5단계 데이터 저장. JWT 인증 필요."""
+    from api.services.persistence import save_onboarding as _save
+
+    user_id = token_user.get("user_id") or 0
+    farm_id = req.farm_id or token_user.get("farm_id") or ""
+
+    if not user_id:
+        raise HTTPException(status_code=400, detail="user_id를 JWT에서 확인할 수 없습니다.")
+
+    try:
+        _save(user_id=int(user_id), farm_id=farm_id, data=req.model_dump())
+    except Exception as e:
+        logger.error("[auth] save_onboarding 오류: %s", e)
+        raise HTTPException(status_code=500, detail="온보딩 저장 중 오류가 발생했습니다.")
+
+    return {"status": "ok", "message": "온보딩 데이터가 저장되었습니다."}
+
+
+# ── 온보딩 상태 조회 ──────────────────────────────────────────────────────────
+
+@router.get("/onboarding/status", summary="온보딩 완료 여부 조회")
+async def get_onboarding_status(
+    token_user: dict = Depends(__import__("api.middleware.auth", fromlist=["require_auth"]).require_auth),
+):
+    """현재 사용자의 온보딩 완료 여부와 기존 데이터 반환."""
+    from api.services.persistence import get_user_by_username, get_onboarding
+
+    user = get_user_by_username(token_user.get("sub", ""))
+    if not user:
+        raise HTTPException(status_code=404, detail="사용자 정보를 찾을 수 없습니다.")
+
+    user_id  = user.get("id", 0)
+    completed = bool(user.get("onboarding_completed", False))
+    onboarding_data = get_onboarding(int(user_id)) if user_id else None
+
+    return {
+        "completed": completed,
+        "user_id":   user_id,
+        "data":      onboarding_data,
+    }

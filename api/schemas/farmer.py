@@ -115,6 +115,14 @@ class RevenueResponse(BaseResponse):
     cost_krw: float = 0.0
     price_source: str = "stats_avg"    # "kamis_live" | "stats_avg"
     crop_ko: Optional[str] = None
+    # 소득 예측 상세 (대시보드 소득 카드용)
+    yield_kg_forecast: Optional[float] = None   # M2 수확량 예측 (전체 kg)
+    yield_kg_m2: Optional[float] = None          # M2 수확량 예측 (kg/m²)
+    model_confidence: float = 0.5                # M2 신뢰도 (0~1, MAPE 기반)
+    model_gate_pass: Optional[bool] = None       # M2 게이트 통과 여부
+    revenue_source: str = "stats_fallback"       # "ml_model" | "stats_fallback"
+    area_m2: Optional[float] = None              # 재배 면적
+    profit_margin_pct: Optional[float] = None    # 이익률 (%)
 
 
 class CostItem(BaseModel):
