@@ -1,4 +1,4 @@
-# 스마트팜 AI 플랫폼 — 전체 아키텍처 (2026-05-22)
+# 스마트팜 AI 플랫폼 — 전체 아키텍처 (2026-05-23)
 
 ## 6계층 구조 개요
 
@@ -37,6 +37,10 @@
 │     GET      /api/farms/{farm_id}/disease-risk  M5 질병 위험   │
 │     GET      /api/farms/{farm_id}/disease-risk/augmented        │
 │              └─ M5 + EPPO EU 해충 DB + RDA 농진청 통합          │
+│     POST     /api/farms/{farm_id}/disease/detect  이미지 진단  │
+│              └─ Plant.id→NCPMS→M5규칙기반→EPPO 4계층 폴백     │
+│     GET      /api/farms/{farm_id}/market/wholesale  도매시장가 │
+│              └─ aT/KAMIS→FAO→USDA NASS + RDA 수확량 클리핑    │
 │     POST     /api/farms/{farm_id}/irrigation   P4 관수 수신     │
 │     GET      /api/farms/{farm_id}/irrigation/schedule           │
 │              └─ KMA 일사량 기반 + Priva ETc 혼합 스케줄         │
@@ -116,16 +120,17 @@
 │    Open-Meteo API        → ET₀ 예보 → Priva 관수 공급량 계산   │
 │    EPPO / RDA            → M5 병해 위험 보강 (rule-based 보정) │
 │                                                                  │
-│  ── 모델 게이트 현황 (2026-05-21) ──────────────────────────   │
-│  M1 전작목 ✅ (2026-05-21 Trimmed Mean 게이트 적용, 5/5 PASS)  │
-│     cherry_tomato: fold_scores=[-0.067,0.014,-0.572,-0.047]   │
-│     Fold3(2021 분포이동) 제외 trimmed_mean=-0.033 → PASS      │
-│  M2 전작목 ✅ (tomato cv_mape=123.4% 과적합 의심, quantile 활용)│
-│  M3 전작목 ✅                                                   │
+│  ── 모델 게이트 현황 (2026-05-23) ──────────────────────────   │
+│  M1 전작목 ✅ (6/6 PASS — 오이 신규 추가)                      │
+│     딸기 cv_r2=0.249 / 방울토마토 -0.168 / 완숙토마토 -0.025  │
+│     파프리카 -0.054 / 참외 0.268 / 오이 0.025 (Ridge)         │
+│  M2 전작목 ✅ (6/6 PASS — 오이 신규: cv_r2=0.812, MAPE=39.1%)│
+│     방울토마토 MAPE: RDA 수확량 클리핑 적용 (2~25 kg/m²)      │
+│  M3 전작목 ✅ (오이 포함 6/6: 오이 MAPE=3.44%, n=200)         │
 │  M4 파라미터 기반 ✅                                            │
-│  M5 전작목 ❌ stub 모드 (m5_efficientnet.pt 없음)              │
+│  M5 4계층 폴백 ⚠️ (Plant.id→NCPMS→규칙기반→EPPO, 모델 stub)  │
 │                                                                  │
-│  deployment_gate.py    Rule-A: mean ≥ -0.20, min ≥ -0.25      │
+│  deployment_gate.py    Rule-A: mean ≥ -0.25, min ≥ -0.30      │
 │  model_loader.py       게이트 실패 시 baseline 폴백            │
 └────────────────────────┬────────────────────────────────────────┘
                          │ MQTT pub/sub
@@ -248,7 +253,7 @@ IoT 센서 → MQTT :1883
 
 ---
 
-## 배포 현황 (2026-05-22)
+## 배포 현황 (2026-05-23)
 
 | 서비스 | 상태 | 위치 |
 |--------|------|------|
@@ -261,6 +266,9 @@ IoT 센서 → MQTT :1883
 | EPPO 해충 DB | ✅ 연결됨 | 무료, 키 불필요 |
 | RDA 농진청 API | ✅ 키 보유 | `.env` RDA_API_KEY |
 | AIHub API | ✅ 키 보유 | `.env` AIHUB_API_KEY |
+| Plant.id 병해탐지 | ⚠️ 키 필요 | `.env` PLANT_ID_API_KEY |
+| NCPMS 농작물보호 | ⚠️ 키 필요 | `.env` NCPMS_API_KEY |
+| aT/KAMIS 도매가격 | ⚠️ 키 필요 | `.env` DATA_GO_KR_SERVICE_KEY |
 | Priva 관수 엔진 | ✅ 활성 | `api/services/priva_irrigation.py` |
 | ET₀ / ETc 계산 | ✅ 활성 | `api/services/kma_service.py` |
 | AI 채팅 (Anthropic) | ⚠️ 키 확인 필요 | `.env` ANTHROPIC_API_KEY |
@@ -270,24 +278,25 @@ IoT 센서 → MQTT :1883
 
 ---
 
-## 테스트 현황 (2026-05-22)
+## 테스트 현황 (2026-05-23)
 
 | 항목 | 수치 |
 |------|------|
-| 전체 테스트 수 | 965개 |
-| PASS | 965 (100%) |
+| 전체 테스트 수 | 982개 |
+| PASS | 982 (100%) |
 | FAIL | 0 |
-| 커버리지 | **81.65%** (요구 60%) |
-| 신규 모듈 커버리지 | priva_irrigation.py 97%, ai_chat.py 73%, external_api_hub.py 69% |
+| 커버리지 | **85.35%** (요구 85% 달성) |
+| 주요 모듈 커버리지 | priva_irrigation.py 97%, irrigation_store.py 80%, ai_chat.py 73%, external_api_hub.py 85% |
 
 ## 잔여 이슈
 
 | 항목 | 우선순위 | 조치 |
 |------|---------|------|
-| M1 cherry_tomato Fold3 분포이동 | 낮 | 2023+ 데이터 추가 시 자연 해소 예정 |
-| M2 tomato cv_mape=123.4% (standalone) | 낮 | 실제 서비스 pipeline_meta cv_mape=44.1% 정상 |
-| M5 stub 모드 (전작목) | 낮 | EfficientNet-B0 전이학습, 작목별 질병 이미지 500장/클래스 필요 |
+| M1 cherry_tomato 음수 R² (-0.168) | 낮 | 2023+ 데이터 추가 시 자연 해소 예정 |
+| M2 방울토마토 CV MAPE 높음 (RDA 클리핑 적용) | 낮 | 실 농가 수확 데이터 확보 후 재학습 |
+| M5 EfficientNet 미학습 (4계층 폴백 운영 중) | 중 | AIHub #535 파프리카 신청 + 질병 이미지 500장/클래스 |
 | AI 채팅 Anthropic 키 소진 | 중 | `.env` ANTHROPIC_API_KEY 갱신 또는 OPENAI_API_KEY 설정 |
 | Ollama 로컬 LLM | 선택 | `OLLAMA_ENABLED=true` + `ollama pull llama3.2` 실행 |
 | WSL2/Docker 비활성 | 낮 | `deploy/enable_wsl2_admin.ps1` (관리자) → 재부팅 |
 | DuckDNS/HTTPS 미설정 | 낮 | `deploy/setup_duckdns.ps1 -Domain <name> -Token <token>` |
+| CoolSMS/Slack 알림 미연결 | 낮 | `.env` COOLSMS_API_KEY / SLACK_WEBHOOK_URL |
