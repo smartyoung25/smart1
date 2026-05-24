@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Test Environ</title></head>
+<body style="background:#0f1117;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:12px">
+<div id="msg">로그인 중...</div>
+<script>
+(async() => {
+  const msg = document.getElementById('msg');
+  try {
+    const res = await fetch('http://localhost:8000/api/v1/auth/token', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({username:'admin', password:'1250'})
+    });
+    const d = await res.json();
+    const token = d.access_token;
+    const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+    sessionStorage.setItem('sf_token', token);
+    sessionStorage.setItem('sf_api', 'http://localhost:8000');
+    sessionStorage.setItem('sf_farm_id', payload.farm_id||'');
+    sessionStorage.setItem('sf_tier', payload.tier||'admin');
+    msg.textContent = '로그인 완료 → 환경 섹션으로 이동';
+    setTimeout(() => window.location.replace('http://localhost:8000/#environ'), 400);
+  } catch(e) {
+    msg.textContent = '실패: ' + e.message;
+  }
+})();
+</script>
+</body></html>

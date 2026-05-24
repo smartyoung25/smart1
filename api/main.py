@@ -96,4 +96,8 @@ if _DASHBOARD.exists():
 
     @app.get("/", include_in_schema=False)
     def serve_index():
-        return FileResponse(str(_DASHBOARD / "index.html"))
+        resp = FileResponse(str(_DASHBOARD / "index.html"))
+        resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        resp.headers["Pragma"] = "no-cache"
+        resp.headers["Expires"] = "0"
+        return resp

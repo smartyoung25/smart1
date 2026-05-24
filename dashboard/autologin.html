@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>Smart Farm — 자동 로그인</title>
+<style>
+  body { margin:0; background:#0f1117; color:#94a3b8; font-family:sans-serif;
+         display:flex; align-items:center; justify-content:center; height:100vh; flex-direction:column; gap:16px; }
+  .spinner { width:40px; height:40px; border:3px solid #1e293b; border-top-color:#3b82f6;
+             border-radius:50%; animation:spin .8s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  p { font-size:14px; }
+</style>
+</head>
+<body>
+<div class="spinner"></div>
+<p id="msg">관리자 계정으로 자동 로그인 중...</p>
+<script>
+(async () => {
+  const API = 'http://localhost:8000';
+  const msg = document.getElementById('msg');
+  try {
+    const res = await fetch(`${API}/api/v1/auth/token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: 'admin', password: '1250' })
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    const token = data.access_token;
+
+    // JWT 디코드
+    const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+
+    // sessionStorage 세팅
+    sessionStorage.setItem('sf_token',   token);
+    sessionStorage.setItem('sf_api',     API);
+    sessionStorage.setItem('sf_farm_id', payload.farm_id || '');
+    sessionStorage.setItem('sf_tier',    payload.tier    || 'admin');
+
+    msg.textContent = '로그인 완료. 대시보드로 이동 중...';
+    // replace()로 이동해 뒤로가기 시 autologin 루프 방지
+    setTimeout(() => {
+      window.location.replace('/#dashboard');
+    }, 400);
+  } catch(e) {
+    msg.textContent = `로그인 실패: ${e.message}`;
+  }
+})();
+</script>
+</body>
+</html>

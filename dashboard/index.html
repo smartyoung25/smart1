@@ -12,7 +12,9 @@
     --font: 'Segoe UI', 'Malgun Gothic', sans-serif;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: var(--bg); color: var(--text); font-family: var(--font); font-size: 14px; }
+  html, body { height: 100%; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font); font-size: 14px;
+         display: flex; flex-direction: column; overflow: hidden; }
 
   /* ── 로그인 오버레이 ── */
   #login-overlay {
@@ -359,7 +361,8 @@
   /* ── 사이드바 레이아웃 ── */
   #app-layout {
     display: flex;
-    min-height: calc(100vh - 49px);
+    flex: 1;
+    min-height: 0;
     overflow: hidden;
   }
   #sidebar {
@@ -375,12 +378,10 @@
   }
   #content-area {
     flex: 1;
-    overflow-y: auto;
+    min-height: 0;
     min-width: 0;
-    padding: 18px 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
+    position: relative;
+    overflow: hidden;
   }
   .nav-group-label {
     font-size: 9.5px; color: var(--muted); text-transform: uppercase;
@@ -399,7 +400,8 @@
   .nav-item.active { background: rgba(79,142,247,.15); color: var(--accent); font-weight: 700; }
   .nav-icon { font-size: 14px; }
   /* 섹션 전환 */
-  .sec { display: none; flex-direction: column; gap: 14px; }
+  .sec { display: none; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+         flex-direction: column; gap: 14px; padding: 18px 20px; overflow-y: auto; }
   .sec.active { display: flex; }
   /* 모바일 — 모바일 반응형 (Phase 29) ───────────────────────────────────────────── */
   @media (max-width: 900px) {
@@ -410,7 +412,7 @@
       border-top: 1px solid var(--border);
       position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
     }
-    #content-area { padding: 10px; padding-bottom: 60px; }
+    .sec { padding: 10px; padding-bottom: 60px; }
     .nav-group-label { display: none; }
     .nav-item { flex-direction: column; gap: 1px; padding: 4px 8px; font-size: 9px; }
     .nav-icon { font-size: 17px; }
@@ -800,7 +802,7 @@
       <button id="btn-login" class="auth-btn" onclick="doLogin()">로그인</button>
       <div class="login-cfg">
         <label>API 서버 URL</label>
-        <input id="login-api-url" value="http://localhost" placeholder="http://localhost">
+        <input id="login-api-url" value="http://localhost:8000" placeholder="http://localhost:8000">
       </div>
     </div>
     <!-- 회원가입 패널 -->
@@ -829,7 +831,7 @@
       <button id="btn-reg" class="auth-btn" onclick="doRegister()">가입하기</button>
       <div class="login-cfg">
         <label>API 서버 URL</label>
-        <input id="reg-api-url" value="http://localhost" placeholder="http://localhost">
+        <input id="reg-api-url" value="http://localhost:8000" placeholder="http://localhost:8000">
       </div>
     </div>
   </div>
@@ -935,7 +937,7 @@
 <div id="content-area">
 
 <!-- ══════════════ 대시보드 ══════════════ -->
-<div id="sec-dashboard" class="sec active">
+<div id="sec-dashboard" class="sec active" style="display:flex">
   <div class="row row-4">
     <div class="card kpi">
       <div class="card-title">API 상태</div>
@@ -1754,7 +1756,9 @@
 <script>
 // ── 상태 ──────────────────────────────────────────────────────────────────────
 let _token   = sessionStorage.getItem('sf_token') || '';
-let _apiBase = sessionStorage.getItem('sf_api')   || 'http://localhost';
+// 서버에서 서빙될 때 자동으로 현재 origin 사용 (file:// 인 경우 localhost:8000 폴백)
+let _apiBase = sessionStorage.getItem('sf_api') ||
+  (location.protocol !== 'file:' ? location.origin : 'http://localhost:8000');
 
 // ── 빌링 상태 ──────────────────────────────────────────────────────────────────
 let _myFarmId  = sessionStorage.getItem('sf_farm_id') || '';
@@ -1791,6 +1795,21 @@ if (_token) {
   }
   refreshAll();
   if (_myFarmId) loadPlanBadge(_myFarmId);
+  // URL 해시로 초기 섹션 자동 전환 (예: /#environ, /#growth)
+  // showSection()이 _farmsData 미적재 시 자동 로드 처리하므로 300ms면 충분
+  const _initHash = location.hash.slice(1);
+  const _VALID_SECTIONS = ['dashboard','environ','control','irrigation','growth','market','energy','system'];
+  if (_initHash && _VALID_SECTIONS.includes(_initHash)) {
+    setTimeout(() => showSection(_initHash), 300);
+  }
+  // hashchange 이벤트로 브라우저 뒤로/앞으로 탐색 지원 (중복 등록 방지)
+  if (!window._hashListenerRegistered) {
+    window._hashListenerRegistered = true;
+    window.addEventListener('hashchange', () => {
+      const h = location.hash.slice(1);
+      if (_VALID_SECTIONS.includes(h)) showSection(h);
+    });
+  }
 }
 
 // ── 인증 탭 전환 ─────────────────────────────────────────────────────────────
@@ -1821,6 +1840,21 @@ function _applyAuthSuccess(data, username, api) {
   } else {
     refreshAll();
     if (_myFarmId) loadPlanBadge(_myFarmId);
+    // 로그인 후에도 URL 해시가 있으면 해당 섹션으로 이동
+    // (세션 만료 후 재로그인 시 이전 섹션 복원)
+    const _VALID = ['dashboard','environ','control','irrigation','growth','market','energy','system'];
+    const h = location.hash.slice(1);
+    if (h && _VALID.includes(h) && h !== 'dashboard') {
+      setTimeout(() => showSection(h), 400);
+    }
+    // hashchange 이벤트 리스너 등록 (최초 로그인 시 미등록 방지)
+    if (!window._hashListenerRegistered) {
+      window._hashListenerRegistered = true;
+      window.addEventListener('hashchange', () => {
+        const hh = location.hash.slice(1);
+        if (_VALID.includes(hh)) showSection(hh);
+      });
+    }
   }
 }
 
@@ -3035,16 +3069,24 @@ const SECTION_LOADERS = {
     populateAllFarmSels();
     const fid = _defaultFarm();
     if (fid) {
-      _autoSel('env-view-farm', fid);
+      _autoSel('env-view-farm',    fid);
       _autoSel('env-anomaly-farm', fid);
       _autoSel('weather-farm-sel', fid);
-      _autoSel('env-manual-farm', fid);
+      _autoSel('env-manual-farm',  fid);
       loadCurrentEnv();
+      loadWeatherForecast();   // 기상예보 자동 로드
+      loadEnvAnomalies();      // 이상감지 자동 로드
     }
     if (_myFarmId) tierGuard(_myFarmId, 'environ');
   },
 
   control: () => {
+    populateAllFarmSels();
+    const fid = _defaultFarm();
+    if (fid) {
+      _autoSel('ctrl-farm-sel', fid);
+      loadCtrlRecommendations();   // AI 권고 자동 로드
+    }
     loadAdvisoryHistory();
     loadAdvisorySummary();
     if (_myFarmId) tierGuard(_myFarmId, 'control');
@@ -3056,7 +3098,7 @@ const SECTION_LOADERS = {
     if (fid) {
       _autoSel('irr-sched-farm', fid);
       _autoSel('priva-farm-sel', fid);
-      _autoSel('irri-farm-sel', fid);
+      _autoSel('irri-farm-sel',  fid);
       _autoSel('irri-farm-sel2', fid);
       loadIrrigationAnalysis(fid);
       loadIrrigationSchedule();
@@ -3078,6 +3120,7 @@ const SECTION_LOADERS = {
   },
 
   market: () => {
+    populateAllFarmSels();
     loadMarketPrices();
     const fid = _defaultFarm();
     if (fid) {
@@ -3085,18 +3128,21 @@ const SECTION_LOADERS = {
       const sel = $('price-hist-crop');
       if (sel && !sel.value) sel.value = '딸기';
       loadPriceHistory();
+      loadMarketHarvest();     // 출하예측 자동 로드
     }
     if (_myFarmId) tierGuard(_myFarmId, 'market');
   },
 
   energy: () => {
     loadPricesLatest();
+    populateAllFarmSels();
     const fid = _defaultFarm();
     if (fid) {
-      _autoSel('cost-farm-sel', fid);
-      _autoSel('profit-farm-sel', fid);
+      _autoSel('cost-farm-sel',    fid);
+      _autoSel('profit-farm-sel',  fid);
       _autoSel('cost-manual-farm', fid);
       loadProfitForecast();
+      loadCostBreakdown();     // 비용내역 자동 로드
     }
     if (_myFarmId) tierGuard(_myFarmId, 'energy');
   },
@@ -3109,10 +3155,31 @@ const SECTION_LOADERS = {
 };
 
 function showSection(name) {
+  // 유효하지 않은 섹션명 보호 — 대시보드로 폴백
+  const secEl = document.getElementById(`sec-${name}`);
+  if (!secEl) { console.warn('[showSection] 섹션 없음:', name); name = 'dashboard'; }
+
+  // nav 활성화
   document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
   document.querySelectorAll(`[onclick="showSection('${name}')"]`).forEach(b => b.classList.add('active'));
-  document.querySelectorAll('.sec').forEach(s => s.classList.remove('active'));
-  $(`sec-${name}`)?.classList.add('active');
+
+  // 모든 섹션 숨기기 (inline style + class 이중 처리 — CSS 의존성 제거)
+  document.querySelectorAll('.sec').forEach(s => {
+    s.classList.remove('active');
+    s.style.display = 'none';
+  });
+
+  // 대상 섹션 표시
+  const target = document.getElementById(`sec-${name}`);
+  if (target) {
+    target.classList.add('active');
+    target.style.display = 'flex';
+  }
+
+  // 섹션 전환 시 스크롤 맨 위로 초기화
+  const _ca = document.getElementById('content-area');
+  if (_ca) _ca.scrollTop = 0;
+  if (target) target.scrollTop = 0;
 
   const runLoader = () => { if (SECTION_LOADERS[name]) SECTION_LOADERS[name](); };
 
