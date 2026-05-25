@@ -903,6 +903,36 @@ def get_harvest(farm_id: str):
     area           = meta["area_m2"]
     total_kg       = round(yield_m2 * area, 1)
 
+    # ── LegacyModelAdapter (RDA 5000행, R²≥0.75) — 딸기 등 우선 사용 ─────
+    try:
+        from api.engine.legacy_model_adapter import (
+            LegacyModelAdapter, build_iot_features_from_env,
+        )
+        from datetime import datetime as _dt
+        _la = LegacyModelAdapter()
+        if _la.supports(crop):
+            _plant_m = meta.get("plant_month")
+            _days_elapsed = (
+                (_dt.now().month - int(_plant_m)) % 12 * 30
+                if _plant_m else 75
+            )
+            _iot_feats = build_iot_features_from_env(
+                env or {},
+                month=_dt.now().month,
+                days_since_planting=_days_elapsed,
+                crop_ko=crop,
+            )
+            _la_res = _la.predict(crop, _iot_feats)
+            if _la_res["cv_r2"] >= 0.60:
+                yield_m2   = _la_res["yield_per_m2"]
+                total_kg   = round(yield_m2 * area, 1)
+                confidence = min(0.92, _la_res["cv_r2"])
+                model_used = "rda_legacy"
+                logger.info("[harvest] LegacyAdapter 사용 crop=%s R²=%.3f y=%.3f kg/m²",
+                            crop, _la_res["cv_r2"], yield_m2)
+    except Exception as _la_err:
+        logger.debug("[harvest] LegacyAdapter 미사용: %s", _la_err)
+
     # ── M2 모델 실제 Q10/Q90 신뢰구간 ──────────────────────────────────────
     env_feat_for_bounds = {
         "temp_internal_mean": float((env or {}).get("temp_internal", 20.0)),

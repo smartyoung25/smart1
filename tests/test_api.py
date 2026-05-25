@@ -108,9 +108,13 @@ class TestFarmerEndpoints:
         assert "kamis_price_krw_kg" in data
         assert "predicted_profit_krw" in data
 
-    def test_unknown_farm_returns_404(self, farmer_client: TestClient):
+    def test_unknown_farm_returns_summary_with_defaults(self, farmer_client: TestClient):
+        """미등록 farm_id 는 온보딩 지원을 위해 임시 메타로 200 반환 (farm_id 온보딩 흐름)."""
         res = farmer_client.get("/api/farms/farm_999/summary")
-        assert res.status_code == 404
+        # _require_farm 3단계 폴백: 미등록 농장 → 임시 메타 자동 생성 → 200
+        assert res.status_code == 200
+        data = res.json()
+        assert "farm_id" in data
 
 
 # ── Admin 엔드포인트 (JWT admin 필요) ─────────────────────────────────────────
