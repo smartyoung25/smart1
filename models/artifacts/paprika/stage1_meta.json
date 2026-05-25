@@ -3,7 +3,7 @@
   "crop_en": "paprika",
   "stage": 1,
   "model_type": "xgb_multioutput",
-  "feature_count": 57,
+  "feature_count": 69,
   "target_cols": [
     "growth_초장",
     "growth_생장길이",
@@ -16,17 +16,17 @@
     "growth_착과마디"
   ],
   "n_train": 1144,
-  "cv_r2_mean": 0.003,
-  "cv_r2_std": 0.186,
-  "cv_r2_min": -0.239,
+  "cv_r2_mean": 0.066,
+  "cv_r2_std": 0.164,
+  "cv_r2_min": -0.136,
   "fold_scores": [
-    -0.239,
-    -0.082,
-    0.264,
-    0.069
+    -0.136,
+    -0.043,
+    0.282,
+    0.161
   ],
-  "train_rmse": 12.5934,
-  "train_mae": 4.9957,
+  "train_rmse": 11.7812,
+  "train_mae": 4.7214,
   "gate_passed": true,
   "env_to_growth_lag": 2
 }

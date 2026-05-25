@@ -377,6 +377,22 @@ def build_stage1_matrix(
     else:
         logger.info("  AquaCrop 피처 비활성화 (%s — 분포이동 보호)", config.crop_en)
 
+    # ── 7) ERA5 기상 피처 (SFROP v2.0 Phase 45) ──────────────────────────────────
+    #    추가 피처: GDD정규화, CU_norm, ET0_mm, DIF, NDVI_proxy, 누적일사량_MJm2
+    #    ERA5 CSV 없으면 NASA POWER → 합성 순으로 자동 폴백
+    try:
+        from adapters.era5_features import add_era5_features
+        before_era5 = len(df.columns)
+        df = add_era5_features(df, crop_ko=config.crop_ko)
+        added_era5 = len(df.columns) - before_era5
+        if added_era5 > 0:
+            logger.info("  ERA5 기상 피처 추가: +%d컬럼 (GDD정규화/CU_norm/ET0_mm/DIF/NDVI_proxy/누적일사량)",
+                        added_era5)
+        else:
+            logger.info("  ERA5 피처: 이미 존재하거나 추가 없음")
+    except Exception as _era5e:
+        logger.warning("  ERA5 피처 추가 실패 (무시): %s", _era5e)
+
     logger.info("  Stage1 행렬: %s", df.shape)
     return df
 
