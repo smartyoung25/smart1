@@ -2055,6 +2055,110 @@ def check_gate(result: dict) -> bool:
     return gate_passed
 
 
+# ── RDA 농진청 보조 학습 데이터 로더 ────────────────────────────────────────────
+
+# RDA CSV → 내부 컬럼 매핑 (smartfarm-mvp 학습 데이터 포맷 기준)
+_RDA_CSV_MAP: dict[str, dict] = {
+    "딸기": {
+        "path": ROOT / "data" / "training" / "strawberry_rda_5000.csv",
+        "target_col": "수확량_kg_10a",
+        "target_unit": "kg_10a",   # ÷ 1000 → kg/m²
+        "feature_map": {
+            "기온_C":     "rda_temp",
+            "야간기온_C": "rda_temp_night",
+            "DIF":        "rda_dif",
+            "EC_dS_m":    "rda_ec",
+            "일사량_Wm2": "rda_solar",
+            "관수량":     "rda_irrig",
+            "경과일":     "rda_das",
+            "GDD정규화":  "rda_gdd_norm",
+            "GDD정규화_sq": "rda_gdd_norm_sq",
+            "CU_norm":    "rda_cu_norm",
+            "NDVI":       "rda_ndvi",
+            "ET0_mm":     "rda_et0",
+            "누적일사량": "rda_cum_solar",
+            "관부직경_mm": "rda_crown_diam",
+            "과실수대리": "rda_fruit_count",
+            "줄기굵기_실측": "rda_stem_diam",
+            "엽장_실측":  "rda_leaf_len",
+            "꽃수":       "rda_flower_count",
+            "조사월":     "month",    # 조사 월 → month 피처
+        },
+    },
+}
+
+
+def load_rda_supplemental(crop_ko: str) -> pd.DataFrame:
+    """농진청(RDA) 사전 엔지니어링된 학습 CSV를 로드해 내부 학습 행렬과 호환 가능한
+    DataFrame으로 반환한다.
+
+    반환 컬럼:
+      yield_per_m2   : 수확량 kg/m²  (target)
+      farm_id        : 'rda_{i}'  (가상 농가 ID)
+      year           : 2020  (고정, 기존 모델과 연도 충돌 회피)
+      month          : 조사월 1~12
+      rda_*          : RDA 전용 피처 (기존 피처와 구분)
+    """
+    info = _RDA_CSV_MAP.get(crop_ko)
+    if info is None:
+        return pd.DataFrame()
+    csv_path = Path(info["path"])
+    if not csv_path.exists():
+        logger.warning("  RDA 보조 데이터 없음: %s", csv_path)
+        return pd.DataFrame()
+
+    df = pd.read_csv(csv_path, encoding="utf-8-sig", low_memory=False)
+    if df.empty:
+        return pd.DataFrame()
+
+    target_col = info["target_col"]
+    if target_col not in df.columns:
+        logger.warning("  RDA CSV에 타겟 컬럼(%s) 없음", target_col)
+        return pd.DataFrame()
+
+    # 타겟 변환 (kg/10a → kg/m²)
+    if info["target_unit"] == "kg_10a":
+        df["yield_per_m2"] = pd.to_numeric(df[target_col], errors="coerce") / 1000.0
+    else:
+        df["yield_per_m2"] = pd.to_numeric(df[target_col], errors="coerce")
+
+    df = df.dropna(subset=["yield_per_m2"])
+    df = df[df["yield_per_m2"] > 0].copy()
+
+    # 피처 이름 매핑
+    fmap = info.get("feature_map", {})
+    renamed = {}
+    for src, dst in fmap.items():
+        if src in df.columns:
+            renamed[src] = dst
+    df = df.rename(columns=renamed)
+
+    # 수치 변환 + 이상치 제거
+    for col in df.columns:
+        if col not in ("farm_id", "year"):
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+
+    # yield IQR 클리핑 (이상치 제거)
+    df["yield_per_m2"] = clip_iqr(df["yield_per_m2"].clip(lower=0))
+
+    # 가상 농가 ID / 연도 부여
+    n = len(df)
+    df["farm_id"] = [f"rda_{i}" for i in range(n)]
+    df["year"]    = pd.array([2020] * n, dtype="Int64")
+    df["month"]   = df["month"].fillna(6).astype("Int64") if "month" in df.columns \
+                    else pd.array([6] * n, dtype="Int64")
+
+    # 기본 farm target encoding 피처 (전체 평균으로 초기화)
+    global_mean = float(df["yield_per_m2"].mean())
+    df["farm_yield_hist_mean"] = global_mean
+    df["farm_yield_hist_cv"]   = 0.0
+    df["farm_obs_count"]       = 0.0
+
+    logger.info("  RDA 보조 데이터 로드: %d행 (작목=%s, yield 중앙값=%.3f kg/m²)",
+                len(df), crop_ko, df["yield_per_m2"].median())
+    return df
+
+
 # ── 메인 ──────────────────────────────────────────────────────────────────────
 
 def run_crop(crop_ko: str, use_cache: bool = True) -> dict | None:
@@ -2091,6 +2195,16 @@ def run_crop(crop_ko: str, use_cache: bool = True) -> dict | None:
 
     logger.info("[4b] Stage2 행렬 구성 — 연간(작기) 모드")
     df_annual  = build_stage2_matrix_annual(env_m, growth_m, prod_m, config, cultiv_meta=cultiv_meta)
+
+    # ── [4d] RDA 농진청 보조 데이터 병합 (작목별 대용량 사전 검증 데이터) ─────────
+    # RDA CSV가 있으면 월별 행렬에 concat → 학습 데이터 대폭 확대
+    logger.info("[4d] RDA 보조 데이터 병합 시도")
+    df_rda = load_rda_supplemental(crop_ko)
+    if not df_rda.empty:
+        # 공통 컬럼만 병합 (RDA 전용 피처는 기존 행에 NaN → XGBoost가 자동 처리)
+        df_monthly = pd.concat([df_monthly, df_rda], ignore_index=True, sort=False)
+        df_annual  = pd.concat([df_annual,  df_rda], ignore_index=True, sort=False)
+        logger.info("  RDA 병합 후: monthly=%d행, annual=%d행", len(df_monthly), len(df_annual))
 
     # 두 모드 중 MAPE가 낮은 모델 선택
     result_monthly = train_stage2(df_monthly, config, target_mode="absolute") if not df_monthly.empty else None

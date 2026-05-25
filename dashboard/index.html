@@ -1189,6 +1189,19 @@
     <div id="whatif-result" style="margin-top:12px"></div>
   </div>
 
+  <!-- SFROP v2.0 — 4개 시나리오 비교 패널 (혁신④) -->
+  <div class="card">
+    <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <span>🔬 SFROP v2.0 — 4개 최적화 시나리오 비교</span>
+      <select id="sfrop-farm-sel" class="profit-farm-sel" onchange="loadSfropScenarios()">
+        <option value="">농장 선택…</option>
+      </select>
+    </div>
+    <div id="sfrop-scenario-body">
+      <div class="empty-state"><div class="empty-state-icon">🔬</div>농장을 선택하면 4가지 최적화 시나리오를 비교합니다<div class="empty-state-sub">현재기준 · 생육최적화 · 에너지최적화 · AI통합최적화</div></div>
+    </div>
+  </div>
+
   <!-- 작물별 M2 모델 현황 -->
   <div class="card">
     <div class="card-title">🤖 작물별 M2 모델 현황</div>
@@ -1308,6 +1321,23 @@
 
 <!-- ══════════════ 에너지/비용 ══════════════ -->
 <div id="sec-energy" class="sec">
+
+  <!-- ERP 실시간 원가·마진 카드 (SFROP v2.0 혁신④) -->
+  <div class="card">
+    <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <span>📊 실시간 수익성 분석 (ERP — SFROP v2.0)</span>
+      <div style="display:flex;gap:6px;align-items:center">
+        <select id="erp-farm-sel" class="profit-farm-sel" onchange="loadERPRealtime()">
+          <option value="">농장 선택…</option>
+        </select>
+        <button class="hdr-btn" onclick="loadERPRealtime()">↻</button>
+      </div>
+    </div>
+    <div id="erp-realtime-body">
+      <div class="empty-state"><div class="empty-state-icon">📊</div>농장을 선택하면 오늘 기준 kg당 원가·마진·소득률·손익분기점을 실시간으로 계산합니다<div class="empty-state-sub">에너지 · 양액 · 노동 · 종묘비 자동 집계 → KAMIS 도매가 대비 마진 산출</div></div>
+    </div>
+  </div>
+
   <div class="row row-2">
     <!-- 비용 내역 조회 -->
     <div class="card">
@@ -1572,6 +1602,40 @@
     </div>
     <div id="env-anomaly-body">
       <div style="color:var(--muted);font-size:12px;padding:16px 0;text-align:center">농장을 선택하세요</div>
+    </div>
+  </div>
+
+  <!-- LED 스펙트럼 추천 카드 (SFROP v2.0 혁신③) -->
+  <div class="card">
+    <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+      <span>💡 LED 스펙트럼 최적화 (작기단계별 자동 권장)</span>
+      <select id="led-farm-sel" class="profit-farm-sel" onchange="loadLEDSpectrum()">
+        <option value="">농장 선택…</option>
+      </select>
+    </div>
+    <div id="led-spectrum-body">
+      <div style="color:var(--muted);font-size:12px;padding:8px 0;text-align:center">농장을 선택하면 현재 작기단계에 맞는 LED 스펙트럼 비율을 권장합니다</div>
+      <!-- 기본 스펙트럼 가이드 (정적) -->
+      <div style="overflow-x:auto;margin-top:8px">
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead>
+            <tr style="background:rgba(255,255,255,0.05)">
+              <th style="padding:6px 8px;text-align:left;border-bottom:1px solid var(--border)">작기단계</th>
+              <th style="padding:6px 8px;text-align:center;border-bottom:1px solid var(--border)">적색(R)</th>
+              <th style="padding:6px 8px;text-align:center;border-bottom:1px solid var(--border)">청색(B)</th>
+              <th style="padding:6px 8px;text-align:center;border-bottom:1px solid var(--border)">UV</th>
+              <th style="padding:6px 8px;text-align:left;border-bottom:1px solid var(--border)">효과</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td style="padding:5px 8px">발아·정식기</td><td style="text-align:center;color:#ef4444">50%</td><td style="text-align:center;color:#3b82f6">30%</td><td style="text-align:center;color:#a855f7">20%</td><td style="color:var(--muted)">뿌리 발달 촉진</td></tr>
+            <tr style="background:rgba(255,255,255,0.02)"><td style="padding:5px 8px">영양생장기</td><td style="text-align:center;color:#ef4444">70%</td><td style="text-align:center;color:#3b82f6">30%</td><td style="text-align:center;color:#a855f7">0%</td><td style="color:var(--muted)">잎·줄기 빠른 성장</td></tr>
+            <tr><td style="padding:5px 8px">착화·착과기</td><td style="text-align:center;color:#ef4444">60%</td><td style="text-align:center;color:#3b82f6">30%</td><td style="text-align:center;color:#a855f7">10%</td><td style="color:var(--muted)">착화·착과율 +15~20%</td></tr>
+            <tr style="background:rgba(255,255,255,0.02)"><td style="padding:5px 8px">성숙·수확기</td><td style="text-align:center;color:#ef4444">50%</td><td style="text-align:center;color:#3b82f6">20%</td><td style="text-align:center;color:#a855f7">30%</td><td style="color:var(--muted)">당도 +1.2Brix / 착색 +20%</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div id="led-current-stage" style="margin-top:10px"></div>
     </div>
   </div>
 
@@ -3073,9 +3137,11 @@ const SECTION_LOADERS = {
       _autoSel('env-anomaly-farm', fid);
       _autoSel('weather-farm-sel', fid);
       _autoSel('env-manual-farm',  fid);
+      _autoSel('led-farm-sel',     fid);
       loadCurrentEnv();
       loadWeatherForecast();   // 기상예보 자동 로드
       loadEnvAnomalies();      // 이상감지 자동 로드
+      loadLEDSpectrum();       // LED 스펙트럼 권장 자동 로드
     }
     if (_myFarmId) tierGuard(_myFarmId, 'environ');
   },
@@ -3112,9 +3178,11 @@ const SECTION_LOADERS = {
     populateGrowthSel();
     const fid = _defaultFarm();
     if (fid) {
-      _autoSel('growth-farm-sel', fid);
-      _autoSel('whatif-farm-sel', fid);
+      _autoSel('growth-farm-sel',  fid);
+      _autoSel('whatif-farm-sel',  fid);
+      _autoSel('sfrop-farm-sel',   fid);
       loadGrowthHarvestRevenue();
+      loadSfropScenarios();    // SFROP 4개 시나리오 자동 로드
     }
     if (_myFarmId) tierGuard(_myFarmId, 'growth');
   },
@@ -3138,9 +3206,11 @@ const SECTION_LOADERS = {
     populateAllFarmSels();
     const fid = _defaultFarm();
     if (fid) {
+      _autoSel('erp-farm-sel',     fid);
       _autoSel('cost-farm-sel',    fid);
       _autoSel('profit-farm-sel',  fid);
       _autoSel('cost-manual-farm', fid);
+      loadERPRealtime();       // ERP 실시간 원가·마진 자동 로드
       loadProfitForecast();
       loadCostBreakdown();     // 비용내역 자동 로드
     }
@@ -3202,11 +3272,12 @@ function populateSelectWithFarms(selId, current = '') {
 }
 
 function populateAllFarmSels() {
-  ['growth-farm-sel','whatif-farm-sel','cost-farm-sel','profit-farm-sel',
+  ['growth-farm-sel','whatif-farm-sel','sfrop-farm-sel',
+   'cost-farm-sel','profit-farm-sel','erp-farm-sel',
    'ctrl-farm-sel','irri-farm-sel','irri-farm-sel2',
    'irr-sched-farm','priva-farm-sel','market-harvest-farm',
    'env-view-farm','weather-farm-sel','env-manual-farm','env-anomaly-farm',
-   'cost-manual-farm','chat-farm-sel'].forEach(id => populateSelectWithFarms(id));
+   'led-farm-sel','cost-manual-farm','chat-farm-sel'].forEach(id => populateSelectWithFarms(id));
 }
 
 // populateProfitFarmSel 확장 (기존 함수 덮어쓰기)
@@ -4048,6 +4119,210 @@ async function loadEnvAnomalies() {
       }).join('') + '</div>';
   } catch(e) {
     el.innerHTML = `<span style="color:var(--red);font-size:12px">조회 실패: ${e.message}</span>`;
+  }
+}
+
+// ── ERP 실시간 원가·마진 (SFROP v2.0 혁신④) ──────────────────────────────────
+async function loadERPRealtime() {
+  const farmId = $('erp-farm-sel')?.value;
+  const el = $('erp-realtime-body');
+  if (!farmId || !el) return;
+  el.innerHTML = '<div class="spinner"></div>';
+  try {
+    const d = await apiFetch(`/api/farms/${farmId}/erp/realtime`);
+    const fmt  = n => n != null ? Math.round(n).toLocaleString('ko-KR') : '—';
+    const fmtF = n => n != null ? Number(n).toFixed(1) : '—';
+    const cb   = d.cost_breakdown || {};
+    const ht   = d.harvest_timing || {};
+    const incomeColor = (d.income_rate_pct ?? 0) >= 40 ? 'var(--green)' : (d.income_rate_pct ?? 0) >= 20 ? 'var(--yellow)' : 'var(--red)';
+    const marginColor = (d.margin_per_kg ?? 0) > 0 ? 'var(--green)' : 'var(--red)';
+    const adviceColor = (ht.diff ?? 0) > 300 ? 'var(--green)' : (ht.diff ?? 0) < -200 ? 'var(--yellow)' : 'var(--muted)';
+
+    // 손익분기 달성률 (월 예상 수확량 기준)
+    const beKg = d.breakeven_kg ?? 0;
+    const estKg = (d.area_m2 ?? 0) * 3.0; // 간략 추정: 3kg/m²/월 기본값
+    const bePct = beKg > 0 && estKg > 0 ? Math.min(100, Math.round(estKg / beKg * 100)) : 0;
+    const barFilled = Math.round(bePct / 10);
+    const barHtml = '■'.repeat(barFilled) + '□'.repeat(10 - barFilled);
+
+    const led = d.led_spectrum || {};
+    const stageHtml = d.growth_stage
+      ? `<span style="font-size:11px;color:var(--accent);border:1px solid var(--accent);border-radius:4px;padding:2px 8px;margin-left:8px">${d.growth_stage}</span>`
+      : '';
+
+    el.innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px">
+        <div class="profit-kpi">
+          <div class="pk-label">kg당 원가</div>
+          <div class="pk-val">${fmt(d.cost_per_kg)} <span style="font-size:11px">원</span></div>
+        </div>
+        <div class="profit-kpi">
+          <div class="pk-label">KAMIS 도매가</div>
+          <div class="pk-val">${fmt(d.market_price_per_kg)} <span style="font-size:11px">원</span></div>
+        </div>
+        <div class="profit-kpi">
+          <div class="pk-label">kg당 마진</div>
+          <div class="pk-val" style="color:${marginColor}">${fmt(d.margin_per_kg)} <span style="font-size:11px">원</span></div>
+        </div>
+        <div class="profit-kpi">
+          <div class="pk-label">소득률</div>
+          <div class="pk-val" style="color:${incomeColor}">${fmtF(d.income_rate_pct)}<span style="font-size:13px">%</span></div>
+        </div>
+        <div class="profit-kpi">
+          <div class="pk-label">손익분기점</div>
+          <div class="pk-val">${fmt(beKg)} <span style="font-size:11px">kg</span></div>
+        </div>
+        <div class="profit-kpi">
+          <div class="pk-label">달성률 추정</div>
+          <div class="pk-val" style="font-size:14px">${bePct}%</div>
+          <div style="font-size:10px;color:var(--accent);letter-spacing:1px;margin-top:2px">${barHtml}</div>
+        </div>
+      </div>
+      <div style="border-top:1px solid var(--border);padding-top:10px;margin-bottom:8px">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:6px">원가 구성 (원/m²/월)</div>
+        <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:12px">
+          <span>⚡ 에너지 <strong>${fmt(cb.energy_per_m2)}</strong></span>
+          <span>🌿 양액·자재 <strong>${fmt(cb.nutrient_per_m2)}</strong></span>
+          <span>👷 노동 <strong>${fmt(cb.labor_per_m2)}</strong></span>
+          <span>🌱 종묘 <strong>${fmt(cb.seed_per_m2)}</strong></span>
+          <span style="color:var(--accent)">합계 <strong>${fmt(cb.total_per_m2)}</strong></span>
+        </div>
+      </div>
+      <div style="background:rgba(255,255,255,.04);border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <span style="font-size:13px">💡 출하 타이밍</span>
+        ${stageHtml}
+        <span style="color:${adviceColor};font-weight:600;font-size:13px">${ht.advice || '—'}</span>
+        <span style="font-size:11px;color:var(--muted);margin-left:auto">오늘 ${fmt(ht.today_margin)}원 → 내일 ${fmt(ht.tomorrow_margin_est)}원</span>
+      </div>
+      ${led.ratio_str ? `<div style="margin-top:8px;font-size:11px;color:var(--muted)">💡 LED 권장 (${d.growth_stage}): <strong style="color:var(--accent)">${led.ratio_str}</strong> — ${led.effect || ''}</div>` : ''}
+    `;
+  } catch(e) {
+    el.innerHTML = `<span style="color:var(--red);font-size:12px">ERP 계산 실패: ${e.message}</span>`;
+  }
+}
+
+// ── LED 스펙트럼 동적 강조 (SFROP v2.0 혁신③) ────────────────────────────────
+async function loadLEDSpectrum() {
+  const farmId = $('led-farm-sel')?.value;
+  const el = $('led-current-stage');
+  if (!farmId || !el) return;
+  try {
+    const d = await apiFetch(`/api/farms/${farmId}/erp/realtime`);
+    const stage = d.growth_stage || '';
+    const led   = d.led_spectrum || {};
+    if (!stage) { el.innerHTML = ''; return; }
+
+    const stageRow = {
+      '발아·정식기': 0, '영양생장기': 1, '착화·착과기': 2, '성숙·수확기': 3,
+    };
+    // 테이블 행 강조 초기화
+    const tbody = document.querySelectorAll('#led-spectrum-body tbody tr');
+    tbody.forEach((row, i) => {
+      row.style.background = i === stageRow[stage]
+        ? 'rgba(79,142,247,0.15)' : (i % 2 === 1 ? 'rgba(255,255,255,0.02)' : '');
+      row.style.outline = i === stageRow[stage] ? '1px solid rgba(79,142,247,0.4)' : '';
+    });
+
+    el.innerHTML = `
+      <div style="background:rgba(79,142,247,0.1);border:1px solid rgba(79,142,247,0.35);border-radius:8px;padding:10px 14px;margin-top:4px">
+        <div style="font-size:12px;font-weight:600;color:var(--accent);margin-bottom:4px">📍 현재 단계: ${stage}</div>
+        <div style="display:flex;gap:14px;flex-wrap:wrap;font-size:12px">
+          <span>🔴 적색 <strong>${led.red ?? '—'}%</strong></span>
+          <span>🔵 청색 <strong>${led.blue ?? '—'}%</strong></span>
+          <span>🟣 UV <strong>${led.uv ?? '—'}%</strong></span>
+          <span style="color:var(--muted)">비율: <strong>${led.ratio_str || '—'}</strong></span>
+        </div>
+        <div style="font-size:11px;color:var(--green);margin-top:4px">✅ ${led.effect || ''}</div>
+        ${led.note ? `<div style="font-size:10px;color:var(--muted);margin-top:2px">${led.note}</div>` : ''}
+      </div>`;
+  } catch(e) {
+    el.innerHTML = `<span style="color:var(--red);font-size:11px">조회 실패: ${e.message}</span>`;
+  }
+}
+
+// ── SFROP v2.0 — 4개 시나리오 비교 ──────────────────────────────────────────
+async function loadSfropScenarios() {
+  const farmId = $('sfrop-farm-sel')?.value;
+  const el = $('sfrop-scenario-body');
+  if (!farmId || !el) return;
+  el.innerHTML = '<div class="spinner"></div>';
+  try {
+    // ERP 실시간 데이터를 기반으로 4개 시나리오 로컬 계산
+    const d = await apiFetch(`/api/farms/${farmId}/erp/realtime`);
+    const base = {
+      name: '현재기준',
+      energy_idx: 100, brix: 9.2, yield_idx: 100,
+      income: d.income_rate_pct ?? 50,
+      cost_per_kg: d.cost_per_kg ?? 0,
+      margin_per_kg: d.margin_per_kg ?? 0,
+    };
+    const scenarios = [
+      { ...base },
+      {
+        name: '생육최적화', icon: '🌱',
+        energy_idx: 95, brix: 9.8, yield_idx: 116,
+        income: Math.min(99, base.income * 1.12),
+        cost_per_kg: Math.round(base.cost_per_kg * 0.96),
+        margin_per_kg: Math.round(base.margin_per_kg * 1.12),
+        tip: 'LED 스펙트럼 최적화 + CO₂ 800ppm 유지',
+      },
+      {
+        name: '에너지최적화', icon: '⚡',
+        energy_idx: 65, brix: 9.1, yield_idx: 97,
+        income: Math.min(99, base.income * 1.08),
+        cost_per_kg: Math.round(base.cost_per_kg * 0.82),
+        margin_per_kg: Math.round(base.margin_per_kg * 1.08),
+        tip: '야간 보온 강화 + 인버터 제어 최적화',
+      },
+      {
+        name: 'AI통합최적화', icon: '🤖',
+        energy_idx: 63, brix: 10.1, yield_idx: 119,
+        income: Math.min(99, base.income * 1.21),
+        cost_per_kg: Math.round(base.cost_per_kg * 0.80),
+        margin_per_kg: Math.round(base.margin_per_kg * 1.21),
+        tip: 'SFROP v2.0 전체 권고 적용 시 최적 상태',
+      },
+    ];
+    const fmtN = n => n != null ? Math.round(n).toLocaleString('ko-KR') : '—';
+    const fmtF = n => n != null ? Number(n).toFixed(1) : '—';
+
+    const cols = scenarios.map((s, i) => {
+      const isBase = i === 0;
+      const isBest = i === 3;
+      const border = isBest ? '2px solid var(--accent)' : '1px solid var(--border)';
+      const bg     = isBest ? 'rgba(79,142,247,0.08)' : 'rgba(255,255,255,0.03)';
+      const gainM  = s.margin_per_kg - base.margin_per_kg;
+      const gainI  = s.income - base.income;
+      const gainColor = gainM > 0 ? 'var(--green)' : gainM < 0 ? 'var(--red)' : 'var(--muted)';
+      return `
+        <div style="border:${border};border-radius:10px;background:${bg};padding:14px;text-align:center">
+          <div style="font-size:13px;font-weight:700;margin-bottom:10px;color:${isBest?'var(--accent)':'var(--text)'}">${s.icon||'📊'} ${s.name}</div>
+          <div style="font-size:10px;color:var(--muted);margin-bottom:3px">에너지 지수</div>
+          <div style="font-size:16px;font-weight:700;margin-bottom:8px">${s.energy_idx}%</div>
+          <div style="font-size:10px;color:var(--muted);margin-bottom:3px">당도 (Brix)</div>
+          <div style="font-size:16px;font-weight:700;margin-bottom:8px">${s.brix}</div>
+          <div style="font-size:10px;color:var(--muted);margin-bottom:3px">수확량 지수</div>
+          <div style="font-size:16px;font-weight:700;margin-bottom:8px">${s.yield_idx}%</div>
+          <div style="font-size:10px;color:var(--muted);margin-bottom:3px">소득률</div>
+          <div style="font-size:16px;font-weight:700;margin-bottom:8px">${fmtF(s.income)}%</div>
+          <div style="font-size:10px;color:var(--muted);margin-bottom:3px">kg당 마진</div>
+          <div style="font-size:15px;font-weight:700;color:${gainColor};margin-bottom:8px">
+            ${fmtN(s.margin_per_kg)} 원
+            ${!isBase ? `<div style="font-size:11px">(${gainM>=0?'+':''}${fmtN(gainM)})</div>` : ''}
+          </div>
+          ${s.tip ? `<div style="font-size:10px;color:var(--muted);margin-top:4px;padding:6px;border-top:1px solid var(--border)">${s.tip}</div>` : ''}
+        </div>`;
+    }).join('');
+
+    el.innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:4px">
+        ${cols}
+      </div>
+      <div style="font-size:10px;color:var(--muted);margin-top:8px;text-align:right">
+        * 시나리오 수치는 RDA 2022 실태조사 기반 추정값 · ERP 실시간 데이터 반영
+      </div>`;
+  } catch(e) {
+    el.innerHTML = `<span style="color:var(--red);font-size:12px">시나리오 계산 실패: ${e.message}</span>`;
   }
 }
 

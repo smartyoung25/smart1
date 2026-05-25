@@ -2344,6 +2344,69 @@ def _cfg_check(env_var: str) -> bool:
     return bool(v) and v not in ("none", "None", "", "your_key_here")
 
 
+@router.get("/erp/realtime",
+            summary="ERP 실시간 원가·마진·소득률 (SFROP v2.0 혁신4)")
+def get_erp_realtime(
+    farm_id: str = Depends(require_auth),
+):
+    """수확 시마다 kg당 원가·마진·소득률·출하 타이밍을 실시간으로 산출합니다.
+
+    응답 예시:
+    ```json
+    {
+      "cost_per_kg": 2380,
+      "market_price_per_kg": 8500,
+      "margin_per_kg": 6120,
+      "income_rate_pct": 72.0,
+      "breakeven_kg": 140,
+      "harvest_timing": {
+        "today_margin": 6120,
+        "tomorrow_margin_est": 6440,
+        "advice": "내일 출하 유리 (+320원/kg 예상)",
+        "diff": 320
+      },
+      "growth_stage": "성숙·수확기",
+      "led_spectrum": { "red": 50, "blue": 20, "uv": 30, ... }
+    }
+    ```
+    """
+    from datetime import datetime
+    from api.engine.erp_calculator import calc_erp
+
+    # 농장 메타 조회
+    try:
+        from api.data_access import get_farm_meta
+        meta = get_farm_meta(farm_id) or {}
+    except Exception:
+        meta = {}
+
+    crop_ko   = meta.get("crop", "딸기")
+    area_m2   = float(meta.get("plant_area_m2", meta.get("area_m2", 1200.0)) or 1200.0)
+    current_m = datetime.now().month
+    plant_m   = meta.get("plant_month")
+
+    # 최근 수확량 추정 (M2 예측 또는 메타 기본값)
+    try:
+        from models.m2_yield import predict_yield
+        yres = predict_yield(farm_id)
+        yield_per_m2 = yres.get("yield_per_m2", 0.8)
+    except Exception:
+        # 작목별 월 평균 수확량 기본값 (RDA 실측 기준)
+        _Y_DEFAULT = {"딸기": 0.95, "방울토마토": 2.5, "완숙토마토": 3.0,
+                      "참외": 1.1, "파프리카": 1.5, "오이": 4.0}
+        yield_per_m2 = _Y_DEFAULT.get(crop_ko, 1.0)
+
+    result = calc_erp(
+        farm_id=farm_id,
+        crop_ko=crop_ko,
+        area_m2=area_m2,
+        yield_per_m2=yield_per_m2,
+        current_month=current_m,
+        plant_month=plant_m,
+    )
+    return result.to_dict()
+
+
 @router.get("/system/api-status",
             summary="외부 API 연결 상태 + 미연결 서비스 설정 방법")
 def get_api_status():
