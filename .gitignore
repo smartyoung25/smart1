@@ -59,12 +59,18 @@ htmlcov/
 기초자료/
 ~$*.docx
 ~$*.xlsx
+*.docx
+*.hwpx
 
 # ── 운영 제외 파일 ────────────────────────────────────────────────────────────
 backups/
 pg17.zip
 *.zip
 etl_data/
+# 런타임 수집 IoT 데이터 (누적 성장, 수확 JSON)
+data/collected/growth/
+data/collected/harvest/
+data/collected/retrain_state.json
 # env/ 는 이미 위에서 제외 (.venv/, venv/, env/)
 
 # ── 임시·디버그·민감 파일 ─────────────────────────────────────────────────────
