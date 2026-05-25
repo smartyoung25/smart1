@@ -531,13 +531,30 @@ def get_recommendations(farm_id: str):
     meta = _require_farm(farm_id)
     env_values = _get_env(farm_id)
 
-    # IoT 미구축이고 수동 입력값이 없으면 빈 추천 반환
-    if not meta["iot_available"] and not env_values:
-        return RecommendationsResponse(
-            farm_id=farm_id,
-            updated_at=_now(),
-            recommendations=[],
-        )
+    # IoT 미구축 + 수동입력 없음 → _FARM_ENV에 합성 시뮬레이션값 있으면 활용
+    # (/environment 호출 후 _FARM_ENV[farm_id]가 채워진 경우 포함)
+    if not env_values:
+        env_values = _FARM_ENV.get(farm_id, {})
+
+    # 여전히 없으면 crop_ko 기준 작목 표준값 사용 (빈 권고 방지)
+    if not env_values:
+        _CROP_SIM_REC: dict[str, dict] = {
+            "딸기":      {"temp_internal": 17.6, "humidity_int": 82.0, "co2_ppm": 860.0,
+                          "solar_rad": 185.0, "ec_dsm": 1.3, "soil_temp": 14.4},
+            "방울토마토": {"temp_internal": 25.3, "humidity_int": 67.0, "co2_ppm": 1120.0,
+                          "solar_rad": 490.0, "ec_dsm": 2.9, "soil_temp": 21.2},
+            "완숙토마토": {"temp_internal": 23.5, "humidity_int": 68.0, "co2_ppm": 950.0,
+                          "solar_rad": 480.0, "ec_dsm": 2.8, "soil_temp": 20.0},
+            "오이":      {"temp_internal": 23.0, "humidity_int": 76.0, "co2_ppm": 850.0,
+                          "solar_rad": 320.0, "ec_dsm": 2.0, "soil_temp": 19.0},
+            "파프리카":  {"temp_internal": 22.0, "humidity_int": 70.0, "co2_ppm": 900.0,
+                          "solar_rad": 350.0, "ec_dsm": 2.5, "soil_temp": 18.5},
+            "참외":      {"temp_internal": 25.0, "humidity_int": 65.0, "co2_ppm": 800.0,
+                          "solar_rad": 400.0, "ec_dsm": 2.2, "soil_temp": 22.0},
+        }
+        crop_key = meta.get("crop", "딸기")
+        env_values = _CROP_SIM_REC.get(crop_key, _CROP_SIM_REC["딸기"])
+        _FARM_ENV[farm_id] = dict(env_values)
 
     # 수동 입력값이 부분적일 수 있으므로 기본값(farm_001 기준)으로 채움
     base = _FARM_ENV.get(farm_id, _FARM_ENV["farm_001"])
@@ -714,6 +731,44 @@ def get_environment(farm_id: str):
     for pt in all_pts:
         flat.setdefault(pt.canonical_name, pt.value)
 
+    # ── IoT·수동입력·ASOS 모두 없을 때 작목별 합성 시뮬레이션 값 주입 ──────────
+    # (대시보드 빈 화면 방지 — 실측값 없는 신규 농가에도 참고 데이터 표시)
+    _CROP_SIM: dict[str, dict[str, float]] = {
+        "딸기":      {"temp_internal": 17.6, "humidity_int": 82.0, "co2_ppm": 860.0,
+                      "solar_rad": 185.0, "ec_dsm": 1.3,  "soil_temp": 14.4, "ph": 6.0},
+        "딸기(설향)": {"temp_internal": 17.6, "humidity_int": 82.0, "co2_ppm": 860.0,
+                      "solar_rad": 185.0, "ec_dsm": 1.3,  "soil_temp": 14.4, "ph": 6.0},
+        "방울토마토": {"temp_internal": 25.3, "humidity_int": 67.0, "co2_ppm": 1120.0,
+                      "solar_rad": 490.0, "ec_dsm": 2.9,  "soil_temp": 21.2, "ph": 6.2},
+        "완숙토마토": {"temp_internal": 23.5, "humidity_int": 68.0, "co2_ppm": 950.0,
+                      "solar_rad": 480.0, "ec_dsm": 2.8,  "soil_temp": 20.0, "ph": 6.2},
+        "오이":      {"temp_internal": 23.0, "humidity_int": 76.0, "co2_ppm": 850.0,
+                      "solar_rad": 320.0, "ec_dsm": 2.0,  "soil_temp": 19.0, "ph": 6.0},
+        "파프리카":  {"temp_internal": 22.0, "humidity_int": 70.0, "co2_ppm": 900.0,
+                      "solar_rad": 350.0, "ec_dsm": 2.5,  "soil_temp": 18.5, "ph": 6.1},
+        "참외":      {"temp_internal": 25.0, "humidity_int": 65.0, "co2_ppm": 800.0,
+                      "solar_rad": 400.0, "ec_dsm": 2.2,  "soil_temp": 22.0, "ph": 6.3},
+    }
+    _sim_needed = not any(flat.get(k) for k in ("temp_internal", "humidity_int", "co2_ppm"))
+    if _sim_needed:
+        crop_key = meta.get("crop", "딸기")
+        _sim_vals = _CROP_SIM.get(crop_key, _CROP_SIM["딸기"])
+        flat.update(_sim_vals)
+        # in-memory 환경값으로도 등록 (recommendations 등 동일 흐름에서 활용)
+        if farm_id not in _FARM_ENV:
+            _FARM_ENV[farm_id] = dict(_sim_vals)
+        # indoor 섹션도 합성값으로 채워서 UI 표시
+        indoor_pts = [
+            EnvPoint(canonical_name=name, value=round(val, 2),
+                     unit=_ENV_UNITS.get(name, ""), quality_tag="SIMULATED", imputed=True)
+            for name, val in _sim_vals.items()
+        ]
+        indoor_section = EnvironmentSection(
+            source="simulated", label_ko="환경 참고값 (작목 표준 시뮬레이션)",
+            editable=True, has_data=True, measurements=indoor_pts,
+        )
+        all_pts = indoor_pts + outdoor_pts
+
     # 이상 감지 결과 — loadEnvAnomalies() JS가 d.alerts 로 접근
     from api.services.anomaly_detector import detect_anomalies
     anomaly_list: list[dict] = []
@@ -749,6 +804,7 @@ def get_environment(farm_id: str):
         solar_rad=flat.get("solar_rad"),
         ec_dsm=flat.get("ec_dsm"),
         soil_temp=flat.get("soil_temp"),
+        ph=flat.get("ph"),
         timestamp=_now().isoformat(),
         # 이상 감지
         alerts=anomaly_list,
