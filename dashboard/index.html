@@ -825,7 +825,7 @@
       <button id="btn-login" class="auth-btn" onclick="doLogin()">로그인</button>
       <div class="login-cfg">
         <label>API 서버 URL</label>
-        <input id="login-api-url" value="http://localhost:8000" placeholder="http://localhost:8000">
+        <input id="login-api-url" placeholder="http://localhost:8000">
       </div>
     </div>
     <!-- 회원가입 패널 -->
@@ -1861,6 +1861,10 @@ function _decodeJwt(token) {
 }
 
 const $ = id => document.getElementById(id);
+
+// 로그인 폼 API URL을 현재 origin으로 초기화 (sessionStorage 우선)
+// nginx(:80)로 접속 시 → http://localhost, 직접(:8000)으로 접속 시 → http://localhost:8000
+{ const _el = document.getElementById('login-api-url'); if (_el) _el.value = _apiBase; }
 
 // ── 폼 결과 메시지 헬퍼 ────────────────────────────────────────────────────────
 // _setResult('some-result-el-id', 'ok'|'err'|'warn', '메시지')
