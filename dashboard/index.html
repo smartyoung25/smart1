@@ -380,7 +380,10 @@
     flex: 1;
     min-height: 0;
     min-width: 0;
-    position: relative;
+    position: relative;  /* 하위 position:absolute 요소의 기준점 유지 */
+    /* flex container — 활성 .sec 이 flex:1 로 전체 높이 채움 */
+    display: flex;
+    flex-direction: column;
     overflow: hidden;
   }
   .nav-group-label {
@@ -399,9 +402,10 @@
   .nav-item:hover { background: rgba(255,255,255,.05); color: var(--text); }
   .nav-item.active { background: rgba(79,142,247,.15); color: var(--accent); font-weight: 700; }
   .nav-icon { font-size: 14px; }
-  /* 섹션 전환 */
-  .sec { display: none; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-         flex-direction: column; gap: 14px; padding: 18px 20px; overflow-y: auto; }
+  /* 섹션 전환 — position:absolute 대신 flex:1 방식 (브라우저 호환성 ↑) */
+  .sec { display: none; flex: 1; flex-direction: column;
+         gap: 14px; padding: 18px 20px; overflow-y: auto;
+         min-height: 0; width: 100%; }
   .sec.active { display: flex; }
   /* 모바일 — 모바일 반응형 (Phase 29) ───────────────────────────────────────────── */
   @media (max-width: 900px) {
