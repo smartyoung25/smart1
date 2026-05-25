@@ -7,8 +7,10 @@ GET  /api/v1/auth/onboarding/status  온보딩 완료 여부 조회
 """
 from __future__ import annotations
 
+import json
 import logging
 import os
+from pathlib import Path
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -16,6 +18,9 @@ from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
+
+# farm_registry.json 경로 (프로젝트 루트 기준)
+_FARM_REGISTRY_PATH = Path(__file__).parent.parent / "data" / "farm_registry.json"
 
 
 # ── 스키마 ────────────────────────────────────────────────────────────────────
@@ -109,6 +114,73 @@ def _build_token_response(user: dict, onboarding_required: bool = False) -> Toke
     )
 
 
+# ── 농장 자동 등록 헬퍼 ───────────────────────────────────────────────────────
+
+def _register_farm_from_onboarding(farm_id: str, req: "OnboardingRequest") -> None:
+    """온보딩 데이터로 신규 농장을 _FARM_META 및 farm_registry.json에 등록한다.
+
+    - 이미 등록된 farm_id는 덮어쓰지 않는다 (중복 안전).
+    - JSON 파일 갱신 실패 시에도 in-memory 등록은 성공으로 처리한다.
+    """
+    # 1) in-memory _FARM_META에 동적 등록
+    try:
+        from api.routers.farmer import _FARM_META
+        from engine.farm_tier import FarmTier
+
+        if farm_id not in _FARM_META:
+            crop = req.crop_ko or "미상"
+            # region 예: "경북 성주" / "충남 논산" / "전북 익산" …
+            region_parts = (req.region or "").split()
+            sido     = region_parts[0] if len(region_parts) > 0 else None
+            sigungu  = region_parts[1] if len(region_parts) > 1 else None
+
+            _FARM_META[farm_id] = {
+                "tier":           FarmTier.MANUAL,
+                "area_m2":        float(req.area_m2) if req.area_m2 else 1000.0,
+                "iot_available":  False,
+                "name":           f"{crop} 농장 ({farm_id})",
+                "crop":           crop,
+                "sido":           sido,
+                "sigungu":        sigungu,
+                "address_detail": "",
+            }
+            logger.info("[auth] _FARM_META 동적 등록: %s (작목=%s)", farm_id, crop)
+    except Exception as e:
+        logger.warning("[auth] _FARM_META 동적 등록 실패: %s", e)
+
+    # 2) farm_registry.json 갱신 (영속화)
+    try:
+        registry: dict = {}
+        if _FARM_REGISTRY_PATH.exists():
+            with open(_FARM_REGISTRY_PATH, encoding="utf-8") as f:
+                registry = json.load(f)
+
+        farms = registry.setdefault("farms", {})
+        if farm_id not in farms:
+            crop = req.crop_ko or "미상"
+            region_parts = (req.region or "").split()
+            sido    = region_parts[0] if len(region_parts) > 0 else "—"
+            sigungu = region_parts[1] if len(region_parts) > 1 else "—"
+
+            farms[farm_id] = {
+                "crop":           crop,
+                "crop_ko":        crop,
+                "sido":           sido,
+                "sigungu":        sigungu,
+                "area_m2":        float(req.area_m2) if req.area_m2 else 1000.0,
+                "name":           f"{crop} 농장 ({farm_id})",
+                "iot_available":  False,
+                "onboarding":     True,
+            }
+            registry["total_farms"] = len(farms)
+
+            with open(_FARM_REGISTRY_PATH, "w", encoding="utf-8") as f:
+                json.dump(registry, f, ensure_ascii=False, indent=2)
+            logger.info("[auth] farm_registry.json 갱신 완료: %s", farm_id)
+    except Exception as e:
+        logger.warning("[auth] farm_registry.json 갱신 실패 (무시): %s", e)
+
+
 # ── 로그인 (토큰 발급) ────────────────────────────────────────────────────────
 
 @router.post("/token", response_model=TokenResponse, summary="JWT 액세스 토큰 발급")
@@ -181,7 +253,14 @@ async def save_onboarding(
         logger.error("[auth] save_onboarding 오류: %s", e)
         raise HTTPException(status_code=500, detail="온보딩 저장 중 오류가 발생했습니다.")
 
-    return {"status": "ok", "message": "온보딩 데이터가 저장되었습니다."}
+    # ── farm_registry.json 및 _FARM_META에 신규 농장 자동 등록 ─────────────────
+    if farm_id:
+        try:
+            _register_farm_from_onboarding(farm_id, req)
+        except Exception as _fe:
+            logger.warning("[auth] 농장 자동 등록 실패(무시): %s", _fe)
+
+    return {"status": "ok", "farm_id": farm_id, "message": "온보딩 데이터가 저장됐습니다."}
 
 
 # ── 온보딩 상태 조회 ──────────────────────────────────────────────────────────

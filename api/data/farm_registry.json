@@ -1,6 +1,6 @@
 {
   "generated_at": "2026-05-10T10:48:35.173501",
-  "total_farms": 706,
+  "total_farms": 713,
   "area_stats_by_crop": {
     "가지": {
       "avg_m2": 1930.0,
@@ -9221,6 +9221,76 @@
       "greenhouse_type": "비닐",
       "variety": "설향",
       "year": 2018
+    },
+    "farm_testenv73720": {
+      "crop": "딸기",
+      "crop_ko": "딸기",
+      "sido": "충남",
+      "sigungu": "논산",
+      "area_m2": 1200.0,
+      "name": "딸기 농장 (farm_testenv73720)",
+      "iot_available": false,
+      "onboarding": true
+    },
+    "farm_testenv273737": {
+      "crop": "딸기",
+      "crop_ko": "딸기",
+      "sido": "충남",
+      "sigungu": "논산",
+      "area_m2": 1200.0,
+      "name": "딸기 농장 (farm_testenv273737)",
+      "iot_available": false,
+      "onboarding": true
+    },
+    "farm_testenv373752": {
+      "crop": "딸기",
+      "crop_ko": "딸기",
+      "sido": "충남",
+      "sigungu": "논산",
+      "area_m2": 1200.0,
+      "name": "딸기 농장 (farm_testenv373752)",
+      "iot_available": false,
+      "onboarding": true
+    },
+    "farm_envtest73871": {
+      "crop": "딸기",
+      "crop_ko": "딸기",
+      "sido": "충남",
+      "sigungu": "논산",
+      "area_m2": 1200.0,
+      "name": "딸기 농장 (farm_envtest73871)",
+      "iot_available": false,
+      "onboarding": true
+    },
+    "farm_rectest73937": {
+      "crop": "딸기",
+      "crop_ko": "딸기",
+      "sido": "충남",
+      "sigungu": "논산",
+      "area_m2": 1200.0,
+      "name": "딸기 농장 (farm_rectest73937)",
+      "iot_available": false,
+      "onboarding": true
+    },
+    "farm_ovtest74004": {
+      "crop": "딸기",
+      "crop_ko": "딸기",
+      "sido": "충남",
+      "sigungu": "논산",
+      "area_m2": 1500.0,
+      "name": "딸기 농장 (farm_ovtest74004)",
+      "iot_available": false,
+      "onboarding": true
+    },
+    "farm_metafarm74117": {
+      "crop": "딸기",
+      "crop_ko": "딸기",
+      "sido": "충남",
+      "sigungu": "논산",
+      "area_m2": 1500.0,
+      "name": "딸기 농장 (farm_metafarm74117)",
+      "iot_available": false,
+      "onboarding": true
     }
   }
 }

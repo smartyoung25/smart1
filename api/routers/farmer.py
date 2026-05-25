@@ -354,7 +354,20 @@ def _require_farm(farm_id: str) -> dict[str, Any]:
         except Exception:
             pass
     if meta is None:
-        raise HTTPException(status_code=404, detail=f"Farm '{farm_id}' not found")
+        # 3단계 폴백: 온보딩 미완료 사용자를 위한 임시 메타 자동 생성
+        # (farm_{username} 패턴 또는 온보딩 등록 전 최초 API 접근 시)
+        logger.warning("[farmer] 미등록 farm_id '%s' — 임시 메타 생성 후 등록", farm_id)
+        meta = {
+            "tier":           FarmTier.MANUAL,
+            "area_m2":        1000.0,
+            "iot_available":  False,
+            "name":           f"농장 ({farm_id})",
+            "crop":           "미상",
+            "sido":           None,
+            "sigungu":        None,
+            "address_detail": "",
+        }
+        _FARM_META[farm_id] = meta  # in-memory 캐시 등록 (재요청 시 빠른 응답)
     return meta
 
 

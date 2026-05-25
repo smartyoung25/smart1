@@ -2387,7 +2387,23 @@ async function loadFarmsOverview() {
     populateAllFarmSels();
   } catch(e) {
     const tb = $('farms-tbody');
-    if (tb) tb.innerHTML = `<tr><td colspan="10" style="color:var(--red);text-align:center">로드 실패: ${e.message}</td></tr>`;
+    if (tb) tb.innerHTML = `<tr><td colspan="10" style="color:var(--muted);text-align:center;font-size:12px">내 농장 데이터 로드 중…</td></tr>`;
+    // farmer 역할은 admin/overview 403 → 본인 농장만 단독 구성
+    if (_myFarmId && !_farmsData.length) {
+      try {
+        const meta = await apiFetch(`/api/farms/${_myFarmId}/meta`);
+        _farmsData = [{
+          farm_id:  _myFarmId,
+          crop_ko:  meta.crop_ko || meta.crop || '—',
+          sido:     meta.sido    || '—',
+          sigungu:  meta.sigungu || '—',
+          online:   false,
+          anomaly:  false,
+        }];
+        populateProfitFarmSel(_farmsData);
+        populateAllFarmSels();
+      } catch(_) { /* 메타 없으면 무시 */ }
+    }
   }
 }
 
@@ -3110,14 +3126,18 @@ function renderHeatmap(d) {
 
 // ── 섹션 내비게이션 ─────────────────────────────────────────────────────────
 
-/** 현재 로그인 농가 ID (존재하고 _farmsData에 실제로 있는 경우만),
- *  없으면 _farmsData 첫 번째 농가로 자동 선택
+/** 현재 로그인 농가 ID.
+ *  우선순위: ① _farmsData에 내 farm_id가 있으면 반환
+ *           ② _farmsData 첫 번째 농가 (admin/manager)
+ *           ③ _myFarmId 직접 반환 (farmer이지만 _farmsData 아직 미적재)
  *  admin/manager 계정은 farm_id='' 이므로 항상 첫 번째 농가 반환 */
 function _defaultFarm() {
   if (_myFarmId && _farmsData.some(f => f.farm_id === _myFarmId)) {
     return _myFarmId;
   }
-  return _farmsData.length ? _farmsData[0].farm_id : '';
+  if (_farmsData.length) return _farmsData[0].farm_id;
+  // _farmsData 미적재 시에도 본인 농장 ID로 직접 API 호출 허용
+  return _myFarmId || '';
 }
 
 /** select 요소를 farmId로 지정하고, 아직 값이 없을 때만 적용 */
