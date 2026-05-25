@@ -1,0 +1,16 @@
+{
+  "id": "8c1d4e0a-68c6-46a8-83b9-e4d8f1f16869",
+  "farm_id": "farm_003",
+  "crop_ko": "오이",
+  "harvest_date": "2026-04-01",
+  "recorded_at": "2026-05-25T00:47:36.923273+00:00",
+  "source": "api",
+  "yield_kg_m2": 8.5,
+  "area_m2": null,
+  "total_yield_kg": null,
+  "planting_date": null,
+  "growing_days": null,
+  "season_avg_temp": null,
+  "season_avg_humidity": null,
+  "notes": null
+}

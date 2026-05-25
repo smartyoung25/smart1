@@ -67,6 +67,11 @@ pg17.zip
 etl_data/
 # env/ 는 이미 위에서 제외 (.venv/, venv/, env/)
 
+# ── 임시·디버그·민감 파일 ─────────────────────────────────────────────────────
+cols_check.txt
+pdf_extract*.txt
+/env
+
 # ── 민감 데이터 캐시 (API 응답 캐시는 state/ 내부만 허용) ─────────────────────
 api/data/kamis_price_cache.json
 

@@ -1,6 +1,6 @@
 {
   "generated_at": "2026-05-10T10:48:35.173501",
-  "total_farms": 713,
+  "total_farms": 721,
   "area_stats_by_crop": {
     "가지": {
       "avg_m2": 1930.0,
@@ -9289,6 +9289,86 @@
       "sigungu": "논산",
       "area_m2": 1500.0,
       "name": "딸기 농장 (farm_metafarm74117)",
+      "iot_available": false,
+      "onboarding": true
+    },
+    "farm_finaltest74153": {
+      "crop": "딸기",
+      "crop_ko": "딸기",
+      "sido": "충남",
+      "sigungu": "논산",
+      "area_m2": 1500.0,
+      "name": "딸기 농장 (farm_finaltest74153)",
+      "iot_available": false,
+      "onboarding": true
+    },
+    "farm_viewtest75061": {
+      "crop": "딸기",
+      "crop_ko": "딸기",
+      "sido": "충남",
+      "sigungu": "논산",
+      "area_m2": 1500.0,
+      "name": "딸기 농장 (farm_viewtest75061)",
+      "iot_available": false,
+      "onboarding": true
+    },
+    "farm_filltest75187": {
+      "crop": "딸기",
+      "crop_ko": "딸기",
+      "sido": "충남",
+      "sigungu": "논산",
+      "area_m2": 1200.0,
+      "name": "딸기 농장 (farm_filltest75187)",
+      "iot_available": false,
+      "onboarding": true
+    },
+    "farm_recfill75208": {
+      "crop": "strawberry",
+      "crop_ko": "strawberry",
+      "sido": "test",
+      "sigungu": "region",
+      "area_m2": 1200.0,
+      "name": "strawberry 농장 (farm_recfill75208)",
+      "iot_available": false,
+      "onboarding": true
+    },
+    "farm_fullcheck75230": {
+      "crop": "strawberry",
+      "crop_ko": "strawberry",
+      "sido": "Chungnam",
+      "sigungu": "Nonsan",
+      "area_m2": 1200.0,
+      "name": "strawberry 농장 (farm_fullcheck75230)",
+      "iot_available": false,
+      "onboarding": true
+    },
+    "farm_dashcheck75277": {
+      "crop": "tomato",
+      "crop_ko": "tomato",
+      "sido": "Chungbuk",
+      "sigungu": "Cheongju",
+      "area_m2": 800.0,
+      "name": "tomato 농장 (farm_dashcheck75277)",
+      "iot_available": false,
+      "onboarding": true
+    },
+    "farm_phtest75326": {
+      "crop": "딸기",
+      "crop_ko": "딸기",
+      "sido": "충남",
+      "sigungu": "논산",
+      "area_m2": 1200.0,
+      "name": "딸기 농장 (farm_phtest75326)",
+      "iot_available": false,
+      "onboarding": true
+    },
+    "farm_growthtest75372": {
+      "crop": "딸기",
+      "crop_ko": "딸기",
+      "sido": "충남",
+      "sigungu": "논산",
+      "area_m2": 1200.0,
+      "name": "딸기 농장 (farm_growthtest75372)",
       "iot_available": false,
       "onboarding": true
     }
