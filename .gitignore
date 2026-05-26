@@ -86,3 +86,5 @@ api/data/kamis_price_cache.json
 .claude/
 .superpowers/
 .mcp.json
+
+dashboard/test_*.html
