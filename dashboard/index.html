@@ -4267,8 +4267,7 @@ async function loadCurrentEnv() {
       </div>
       ${ts?`<div style="font-size:10px;color:var(--muted);margin-top:6px;text-align:right">측정시각: ${ts}</div>`:''}`;
 
-    // G2 헤더 KPI 업데이트
-    const fmtF = (n, dd=1) => n != null ? Number(n).toFixed(dd) : '—';
+    // G2 헤더 KPI 업데이트 (fmtF는 위에서 선언됨)
     setText('env-kpi-temp', fmtF(d.temp_internal));
     // VPD 계산 (Magnus 공식 간략)
     if (d.temp_internal != null && d.humidity_int != null) {
