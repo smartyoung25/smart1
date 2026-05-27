@@ -714,27 +714,44 @@ def get_api_status_report() -> dict:
                                      "used_for": "NCPMS 병해충예보 + aT 도매가격",
                                      "get_key_url": "https://data.go.kr"},
         # ── AI / 알림 ────────────────────────────────────────────────────────
+        # Anthropic: 키 없으면 AI 채팅 기능 실제 제한 → MISSING 유지
         "Anthropic Claude":           {"key_var": "ANTHROPIC_API_KEY",
-                                     "status": "connected" if _has("ANTHROPIC_API_KEY") else "MISSING — AI채팅 규칙기반 폴백 중",
-                                     "used_for": "AI 채팅 1순위",
+                                     "status": "connected" if _has("ANTHROPIC_API_KEY") else "MISSING",
+                                     "note": "" if _has("ANTHROPIC_API_KEY") else "AI채팅 규칙기반 폴백 중 — console.anthropic.com 에서 발급",
+                                     "used_for": "AI 채팅 1순위 (미설정 시 규칙기반 응답)",
                                      "get_key_url": "https://console.anthropic.com"},
+        # OpenAI: Anthropic 폴백으로 실제 동작은 가능 → fallback_active
         "OpenAI GPT":                 {"key_var": "OPENAI_API_KEY",
-                                     "status": "connected" if _has("OPENAI_API_KEY") else "미설정 (Anthropic→Ollama→규칙기반 폴백)",
+                                     "status": "connected" if _has("OPENAI_API_KEY") else "fallback_active",
+                                     "note": "" if _has("OPENAI_API_KEY") else "Anthropic→Ollama→규칙기반 자동 폴백 중",
                                      "used_for": "AI 채팅 2순위 폴백"},
+        # Slack: 키 없으면 알림 완전 비활성 → MISSING 유지
         "Slack 알림":                 {"key_var": "SLACK_WEBHOOK_URL",
-                                     "status": "connected" if _has("SLACK_WEBHOOK_URL") else "MISSING — 알림 비활성",
-                                     "used_for": "이상감지·병해 경보 알림",
+                                     "status": "connected" if _has("SLACK_WEBHOOK_URL") else "MISSING",
+                                     "note": "" if _has("SLACK_WEBHOOK_URL") else "알림 비활성 — api.slack.com → Incoming Webhooks 에서 발급",
+                                     "used_for": "이상감지·병해 경보 알림 채널",
                                      "get_key_url": "https://api.slack.com/messaging/webhooks"},
         # ── 이미지 병해 탐지 ─────────────────────────────────────────────────
+        # Plant.id: 미설정 시 NCPMS→M5규칙→EPPO 폴백 체인 동작 → fallback_active
         "Plant.id 병해 탐지":         {"key_var": "PLANT_ID_API_KEY",
-                                     "status": "connected" if _has("PLANT_ID_API_KEY") else "MISSING — 환경기반 폴백 중 (무료 100건/월)",
-                                     "used_for": "M5 이미지 병해 탐지 (EfficientNet 대체)",
+                                     "status": "connected" if _has("PLANT_ID_API_KEY") else "fallback_active",
+                                     "note": "" if _has("PLANT_ID_API_KEY") else "NCPMS→M5규칙기반→EPPO 폴백 체인 동작 중 (web.plant.id 에서 무료 100건/월 발급 가능)",
+                                     "used_for": "M5 이미지 병해 탐지 (미설정 시 환경센서 기반 규칙)",
                                      "get_key_url": "https://web.plant.id/"},
         # ── 수확량 기준 ──────────────────────────────────────────────────────
+        # USDA NASS: RDA 내장 기준값이 한국 스마트팜에 더 적합 → available
         "USDA NASS 수확량기준":        {"key_var": "USDA_NASS_API_KEY",
-                                     "status": "connected" if _has("USDA_NASS_API_KEY") else "미설정 (RDA 내장 기준값 사용 중)",
-                                     "used_for": "M2 과적합 예측값 클리핑",
+                                     "status": "connected" if _has("USDA_NASS_API_KEY") else "available",
+                                     "note": "" if _has("USDA_NASS_API_KEY") else "RDA 한국 스마트팜 내장 기준값 사용 중 (quickstats.nass.usda.gov 에서 무료 발급)",
+                                     "used_for": "M2 과적합 예측값 클리핑 (RDA 내장 기준값으로 동작)",
                                      "get_key_url": "https://quickstats.nass.usda.gov/api"},
+        # ── 농협 유통정보 ────────────────────────────────────────────────────
+        # NAAS: DATA_GO_KR + KAMIS로 이미 완전 폴백 → available
+        "농협 유통정보 API":           {"key_var": "NAAS_API_KEY",
+                                     "status": "connected" if _has("NAAS_API_KEY") else "available",
+                                     "note": "" if _has("NAAS_API_KEY") else "DATA_GO_KR + KAMIS 자동 폴백 사용 중 (data.nonghyup.com 에서 신청, 2~5일 심사)",
+                                     "used_for": "산지·도매 경락가격 (미설정 시 KAMIS 자동 사용)",
+                                     "get_key_url": "https://data.nonghyup.com"},
         # ── 무료 API (키 불필요) ─────────────────────────────────────────────
         "Open-Meteo 기상예보 (무료)":  {"key_var": "없음 (키 불필요)",
                                      "status": "available",

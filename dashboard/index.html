@@ -4460,13 +4460,16 @@ async function loadApiStatus() {
     const rows = Object.entries(apis).map(([name, info]) => {
       const st = (info?.status || info || '').toString();
       const isOk = st === 'connected' || st === 'available';
-      const isMissing = st.includes('MISSING') || st.includes('미설정');
-      const color = isOk ? 'var(--green)' : isMissing ? 'var(--red)' : 'var(--yellow)';
-      const icon  = isOk ? '✅' : isMissing ? '❌' : '⚠️';
+      const isFallback = st === 'fallback_active';
+      const isMissing = st === 'MISSING' || st.startsWith('MISSING —');
+      const color = isOk ? 'var(--green)' : isFallback ? 'var(--yellow)' : isMissing ? 'var(--red)' : 'var(--yellow)';
+      const icon  = isOk ? '✅' : isFallback ? '⚠️' : isMissing ? '❌' : '⚠️';
+      const stLabel = isOk ? (st === 'available' ? '사용 가능' : '연결됨') : isFallback ? '폴백 동작 중' : '미설정';
+      const note = info?.note ? `<br><span style="font-size:10px;color:var(--muted)">${info.note}</span>` : '';
       const usedFor = info?.used_for ? `<br><span style="font-size:10px;color:var(--muted)">${info.used_for}</span>` : '';
       return `<tr>
         <td>${name}${usedFor}</td>
-        <td style="color:${color};font-size:11px">${icon} ${st.replace('MISSING — ','').replace('MISSING','미설정')}</td>
+        <td style="color:${color};font-size:11px">${icon} ${stLabel}${note}</td>
       </tr>`;
     }).join('');
 
@@ -4512,12 +4515,16 @@ async function loadApiStatus() {
     const allApis = Object.values(apis);
     const connectedCount = allApis.filter(a => {
       const s = (a?.status || a || '').toString();
+      return s === 'connected' || s === 'available' || s === 'fallback_active';
+    }).length;
+    const fullCount = allApis.filter(a => {
+      const s = (a?.status || a || '').toString();
       return s === 'connected' || s === 'available';
     }).length;
     const totalCount = allApis.length || 1;
-    const connPct = Math.round(connectedCount / totalCount * 100);
+    const connPct = Math.round(fullCount / totalCount * 100);
     setText('sys-api-conn', connPct + '%');
-    setText('sys-api-hint', `${connectedCount}/${totalCount} 연결`);
+    setText('sys-api-hint', `${fullCount}/${totalCount} 연결 (폴백포함 ${connectedCount}개)`);
     setText('sys-ctrl-success', '97%');
     setText('sys-sensor-conn', '—');
 
