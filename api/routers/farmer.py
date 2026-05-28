@@ -1469,7 +1469,7 @@ def _compute_costs(farm_id: str) -> CostBreakdownResponse:
         items=items,
         total_cost_krw=round(total),
         total_krw=round(total),           # UI 별칭
-        cost_per_m2=round(total / meta["area_m2"], 1),
+        cost_per_m2=round(total / max(meta["area_m2"], 1.0), 1),
         electricity_kwh_month=kwh_m,
         water_m3_month=m3_m,
         has_manual_input=has_manual,
@@ -1635,8 +1635,8 @@ def _stub_reply(farm_id: str, message: str) -> ChatResponse:
     # ── 온도 관련 ─────────────────────────────────────────────────────────────
     if any(kw in msg_lower for kw in ["온도", "기온", "더워", "추워", "냉방", "난방"]):
         referenced.append("environment")
-        temp_val = env.get("temp_internal", {})
-        val_str  = f"{temp_val.get('value', '?')}°C" if isinstance(temp_val, dict) else "?"
+        temp_val = env.get("temp_internal")
+        val_str  = f"{temp_val}°C" if temp_val is not None else "?"
         return ChatResponse(
             reply=f"현재 내부 온도는 {val_str} 입니다.\n\n"
                   f"{crop} 의 최적 온도 범위는 낮 18~22°C, 밤 12~15°C 입니다. "
@@ -2081,7 +2081,7 @@ def _get_priva_schedule_impl(
     wx = get_weather_forecast_full(farm_id, days=1)
     et0_mm    = float((wx.get("et0_forecast_mm") or [3.0])[0] or 3.0)
     gsr_mj    = float((wx.get("daily", {}).get("shortwave_radiation_sum") or [12.0])[0] or 12.0)
-    solar_avg = float((wx.get("daily", {}).get("temperature_2m_mean") or [20.0])[0] or 200.0)
+    solar_avg = round(gsr_mj * 11.574, 1) if gsr_mj > 0 else 200.0
     try:
         from api.services.kma_service import get_latest_weather
         item = get_latest_weather(farm_id)
