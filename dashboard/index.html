@@ -3274,10 +3274,10 @@ function _renderRecoItems(items, farmId) {
     // RecommendationItem: rank, action_ko, profit_delta, revenue_delta, cost_delta, confidence, tier_action, canonical_changes
     const profitCls = (r.profit_delta ?? 0) >= 0 ? 'positive' : 'negative';
     const sign = (r.profit_delta ?? 0) >= 0 ? '+' : '';
-    const tierTxt = TIER_BADGE[r.tier_action] || r.tier_action || '';
+    const tierTxt = _esc(TIER_BADGE[r.tier_action] || r.tier_action || '');
     const changes = r.canonical_changes || {};
     const changeSummary = Object.entries(changes)
-      .map(([k, v]) => `${RECO_FIELD_LABELS[k]||k} ${v>=0?'+':''}${v}`)
+      .map(([k, v]) => `${_esc(RECO_FIELD_LABELS[k]||k)} ${v>=0?'+':''}${Number(v).toFixed(1)}`)
       .join(', ');
     // 구버전 호환 (field/side/action 구조 혼용)
     const action = r.action_ko || r.action || r.message || '—';
@@ -3315,7 +3315,7 @@ async function loadFarmRecommendations(farmId) {
     el.innerHTML = `
       <div class="reco-list">${listHtml}</div>
       ${gainHtml}
-      <button class="reco-apply-btn" onclick="applyRecommendations('${farmId}')">✅ 권고 적용 요청</button>`;
+      <button class="reco-apply-btn" data-farmid="${_esc(farmId)}" onclick="applyRecommendations(this.dataset.farmid)">✅ 권고 적용 요청</button>`;
   } catch(e) {
     el.innerHTML = `<div style="color:var(--red);padding:12px">권고 조회 실패: ${_esc(e.message)}</div>`;
   }
@@ -3631,14 +3631,14 @@ function renderAdvisoryFeed() {
       const optStr = `최적 ${a.optimal[0]}–${a.optimal[1]}`;
       const arrow  = a.side === 'high' ? '↑' : a.side === 'low' ? '↓' : '↕';
       return `<div class="adv-item">
-        <span class="adv-field">${arrow} ${fname}</span>
+        <span class="adv-field">${arrow} ${_esc(fname)}</span>
         <span class="adv-action">${_esc(a.action)}</span>
-        <span class="adv-val">(현재 ${_esc(String(a.value??''))} / ${optStr})</span>
+        <span class="adv-val">(현재 ${_esc(String(a.value??''))} / ${_esc(optStr)})</span>
       </div>`;
     }).join('');
 
     const chHtml = (entry.channels || []).map(ch =>
-      `<span class="adv-ch-badge ${ch}">${CH_LABEL[ch] || ch}</span>`
+      `<span class="adv-ch-badge ${_esc(ch)}">${_esc(CH_LABEL[ch] || ch)}</span>`
     ).join('');
 
     return `<div class="adv-entry ${sideClass}">
@@ -3748,7 +3748,7 @@ function renderHeatmap(d) {
   }
 
   thead.innerHTML = '<th>농장</th>' +
-    fields.map(f => `<th>${FIELD_SHORT[f] || f}</th>`).join('') +
+    fields.map(f => `<th>${_esc(FIELD_SHORT[f] || f)}</th>`).join('') +
     '<th>합계</th>';
 
   tbody.innerHTML = farms.map(fid => {
@@ -4281,7 +4281,7 @@ async function loadCtrlRecommendations() {
     const { listHtml, gainHtml } = _renderRecoItems(items, farmId);
     el.innerHTML = `<div class="reco-list">${listHtml}</div>
       ${gainHtml}
-      <button class="reco-apply-btn" style="margin-top:10px" onclick="applyCtrlRecommendations('${farmId}')">✅ 권고 적용</button>`;
+      <button class="reco-apply-btn" style="margin-top:10px" data-farmid="${_esc(farmId)}" onclick="applyCtrlRecommendations(this.dataset.farmid)">✅ 권고 적용</button>`;
   } catch(e) {
     el.innerHTML = `<span style="color:var(--red);font-size:12px">조회 실패: ${_esc(e.message)}</span>`;
   }
