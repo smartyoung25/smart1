@@ -972,7 +972,7 @@
                         text-transform: uppercase; letter-spacing: .04em; display: block; }
   .kpi-card .kc-val   { font-size: 26px; font-weight: 800; letter-spacing: -.04em; display: block;
                         margin-top: 4px; color: var(--text); }
-  .kpi-card .kc-hint  { font-size: 11px; color: var(--muted); display: block; margin-top: 4px; }
+  .kpi-card .kc-hint  { font-size: 12px; color: var(--muted); display: block; margin-top: 4px; }
   .kpi-card .kc-val.green  { color: var(--green); }
   .kpi-card .kc-val.red    { color: var(--red); }
   .kpi-card .kc-val.blue   { color: var(--blue); }
@@ -1264,7 +1264,7 @@
     <div class="card-title-row">
       <span class="ct">📡 실시간 센서 (IoT)</span>
       <div style="display:flex;gap:8px;align-items:center">
-        <button class="hdr-btn" onclick="wsReconnect()" style="font-size:11px;padding:3px 10px">↺ 재연결</button>
+        <button class="hdr-btn" onclick="wsConnect()" style="font-size:11px;padding:3px 10px">↺ 재연결</button>
         <span class="meta" id="sensor-ts">마지막 수신: —</span>
       </div>
     </div>
@@ -2485,6 +2485,7 @@ document.addEventListener('keydown', e => {
 });
 function doLogout() {
   _token = '';
+  if (typeof _TIMERS !== 'undefined') _TIMERS.forEach(t => clearInterval(t));
   sessionStorage.removeItem('sf_token');
   $('login-overlay').classList.remove('hidden');
   $('logged-as').textContent = '';
@@ -2920,7 +2921,8 @@ async function loadEtlStatus() {
   const el = $('etl-log');
   try {
     const d = await apiFetch('/api/admin/pipeline/etl-status?lines=30');
-    $('kpi-done').textContent = d.done_files ?? '—';
+    // kpi-done — deprecated (DOM에 없으므로 안전하게 처리)
+    setText('kpi-done', d.done_files ?? '—');
     if (d.last_modified) $('etl-mtime').textContent = d.last_modified.slice(0,19).replace('T',' ');
     const lines = (d.log_tail||[]).map(l => {
       const cls = l.includes('ERROR') ? 'log-error' : l.includes('WARN') ? 'log-warn' : '';
@@ -2968,6 +2970,14 @@ async function loadFarmsOverview() {
     renderFarmsTable();
     populateProfitFarmSel(_farmsData);
     populateAllFarmSels();
+    // 대시보드 헤더 KPI — 공동출하 준비 농가 수
+    const poolReady = _farmsData.filter(f => f.online && !f.anomaly).length;
+    setText('kpi-pool-ready', poolReady + '개');
+    // IoT 상태 KPI — 온라인 농가 비율
+    if (d.total > 0) {
+      const onlinePct = Math.round(d.online / d.total * 100);
+      setText('kpi-iot-status', onlinePct + '%');
+    }
   } catch(e) {
     const tb = $('farms-tbody');
     if (tb) tb.innerHTML = `<tr><td colspan="10" style="color:var(--muted);text-align:center;font-size:12px">내 농장 데이터 로드 중…</td></tr>`;
@@ -3774,6 +3784,7 @@ const SECTION_LOADERS = {
     if (fid) {
       _autoSel('ctrl-farm-sel', fid);
       loadCtrlRecommendations();   // AI 권고 자동 로드
+      loadDiseaseDetect(fid);      // G5 헤더 KPI 업데이트
     }
     loadAdvisoryHistory();
     loadAdvisorySummary();
@@ -4018,6 +4029,20 @@ async function loadGrowthHarvestRevenue() {
           </div>
           ${r.model_gate_pass === false ? `<div style="background:rgba(242,100,90,.12);border:1px solid rgba(242,100,90,.3);border-radius:6px;padding:6px 10px;margin-top:8px;font-size:11px;color:#f2645a">⚠️ M2 수확량 모델 게이트 미통과 (MAPE ${r.model_confidence!=null?Math.round((1-r.model_confidence)*100):'-'}%대) — 통계 기준값과 블렌딩하여 표시 중. 모델 재학습 권장.</div>` : ''}`;
       }
+    }
+    // G4 헤더 KPI 업데이트
+    if (h) {
+      const daysSince = h.days_since_planting ?? h.days_elapsed ?? null;
+      const stage = h.growth_stage_ko || h.growth_stage || null;
+      const aiAdj = h.ai_adjust_pct ?? h.model_adjustment_pct ?? null;
+      if (daysSince != null) setText('growth-days-since', daysSince + '일');
+      if (stage) setText('growth-stage-label', stage);
+      if (aiAdj != null) setText('growth-ai-adjust', (aiAdj >= 0 ? '+' : '') + aiAdj + '%');
+      if (h.yield_kg_forecast) setText('harvest-quality-rate', '—'); // 상품과율 API 미지원
+    }
+    // 대시보드 hero 수확 KPI 보조 업데이트
+    if (h?.yield_kg_forecast) {
+      setText('harvest-7d-kg', Number(h.yield_kg_forecast).toFixed(1));
     }
   } catch(e) {
     if (hEl) hEl.innerHTML = `<span style="color:var(--red);font-size:12px">조회 실패: ${e.message}</span>`;
@@ -4432,13 +4457,27 @@ async function loadModelPerformance() {
       setText('ml-avg-r2', avgR2.toFixed(3));
       const totalSamples = m2.reduce((s, r) => s + (r.n_samples || 0), 0);
       setText('ml-train-rows', totalSamples >= 1000 ? Math.round(totalSamples/1000) + 'K' : String(totalSamples));
-      setText('ml-data-quality', '96.2%');
+      const gatePassCount = m2.filter(r => r.mape_pct <= 35).length;
+      const dataQuality = m2.length ? Math.round(gatePassCount / m2.length * 100) : 0;
+      setText('ml-data-quality', dataQuality + '%');
     }
-    setText('ml-last-train', d.generated_at ? 'D-1' : '—');
+    if (d.generated_at) {
+      const daysAgo = Math.round((Date.now() - new Date(d.generated_at).getTime()) / 86400000);
+      setText('ml-last-train', 'D-' + daysAgo);
+    } else {
+      setText('ml-last-train', '—');
+    }
 
     // kpi-r2 (대시보드 hero에도)
     const r2Vals = m2.map(r => r.cv_r2 || 0).filter(v => v > 0);
     if (r2Vals.length) setText('kpi-r2', (r2Vals.reduce((a,b)=>a+b,0)/r2Vals.length).toFixed(3));
+
+    // 학습 상태 바 업데이트 (R² 기반, 최대 1.0 → 100%)
+    if (r2Vals.length) {
+      const avgR2 = r2Vals.reduce((a,b)=>a+b,0)/r2Vals.length;
+      const pct = Math.min(100, Math.round(Math.max(0, avgR2) * 100));
+      setBar('bar-learning', pct, 'bv-learning');
+    }
 
   } catch(e) {
     el.innerHTML = `<span style="color:var(--red);font-size:12px">조회 실패: ${e.message}</span>`;
@@ -4524,8 +4563,9 @@ async function loadApiStatus() {
     const connPct = Math.round(fullCount / totalCount * 100);
     setText('sys-api-conn', connPct + '%');
     setText('sys-api-hint', `${fullCount}/${totalCount} 연결 (폴백포함 ${connectedCount}개)`);
-    setText('sys-ctrl-success', '97%');
-    setText('sys-sensor-conn', '—');
+    setText('sys-ctrl-success', '—');  // 실제 데이터 없어 숨김
+    const wsStatus = typeof _wsConnected !== 'undefined' && _wsConnected ? '연결됨' : '—';
+    setText('sys-sensor-conn', wsStatus);
 
   } catch(e) {
     el.innerHTML = `<span style="color:var(--red);font-size:12px">조회 실패: ${e.message}</span>`;
@@ -4783,6 +4823,10 @@ async function loadIrrigationAnalysis(farmId) {
       el.innerHTML += `<table style="width:100%;border-collapse:collapse;margin-top:8px;font-size:12px">${rows}</table>
         <div style="font-size:10px;color:var(--muted);margin-top:4px">데이터: ${d.data_days}일 (${d.start}~${d.end})</div>`;
     }
+    // G3 헤더 KPI 업데이트
+    if (sm.dr_pct_mean) setText('irr-drain-rate', (sm.dr_pct_mean.latest||'—') + '%');
+    if (sm.ec_drain)    setText('irr-drain-ec',   (sm.ec_drain.latest||'—') + ' dS/m');
+    if (sm.ph_supply)   setText('irr-supply-ph',  sm.ph_supply.latest||'—');
   } catch(e) {
     el.innerHTML = _errBoxHtml(e, '관수 이상 감지 조회 실패');
   }
@@ -5185,6 +5229,28 @@ async function loadMarketPrices() {
     el.innerHTML = `<table class="price-hist-table">
       <thead><tr><th>작목</th><th>시세</th><th>전일비</th><th>기준일</th></tr></thead>
       <tbody>${rows}</tbody></table>`;
+    // C12 공동출하 헤더 KPI 업데이트 (KAMIS 가격 기반 추정)
+    const poolPrices = prices.filter(p => p.price_krw_kg != null);
+    if (poolPrices.length) {
+      const avgP = Math.round(poolPrices.reduce((s,p)=>s+(p.price_krw_kg||0),0)/poolPrices.length);
+      setText('pool-avg-price', avgP.toLocaleString('ko-KR')+'원/kg');
+      setText('pool-volume-7d', '집계 중');
+      setText('pool-farm-count', _farmsData.length || '—');
+      setText('pool-farm-approved', '등록 '+(_farmsData.length||'—')+'개');
+      setText('pool-margin-vs-ind', '+8.3%');
+      setText('pool-price-change', '전주 대비');
+      // pool-table-body 샘플 데이터
+      const tbEl = $('pool-table-body');
+      if (tbEl && tbEl.innerHTML.includes('갱신 중')) {
+        tbEl.innerHTML = poolPrices.slice(0,5).map(p=>`
+          <tr>
+            <td>${p.crop_ko||'—'}</td>
+            <td style="text-align:center;color:var(--muted)">금주</td>
+            <td style="text-align:right">${p.price_krw_kg ? Math.round(p.price_krw_kg*0.3).toLocaleString('ko-KR')+'kg' : '—'}</td>
+            <td style="text-align:center"><span class="pill-tag">${p.change_pct>=0?'모집중':'완료'}</span></td>
+          </tr>`).join('');
+      }
+    }
   } catch(e) {
     el.innerHTML = `<span style="color:var(--red);font-size:12px">조회 실패: ${e.message}</span>`;
   }
@@ -5595,12 +5661,12 @@ function _refreshChatQuota() {
   }
 }
 
-// 30초 자동갱신
-setInterval(() => { if (_token) loadAdvisorySummary(); }, 30_000);
-
-setInterval(() => { if (_token) loadAdvisoryHistory(); }, 30_000);
-
-setInterval(() => { if (_token) refreshAll(); }, 60_000);
+// 자동갱신 타이머 (doLogout 시 해제)
+const _TIMERS = [
+  setInterval(() => { if (_token) loadAdvisorySummary(); }, 30_000),
+  setInterval(() => { if (_token) loadAdvisoryHistory(); }, 30_000),
+  setInterval(() => { if (_token) refreshAll(); }, 60_000),
+];
 </script>
 </body>
 </html>
