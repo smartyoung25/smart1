@@ -2380,7 +2380,7 @@ function _setResult(elId, status, msg) {
   const el = $(elId);
   if (!el) return;
   const cls = status === 'ok' ? 'result-ok' : status === 'err' ? 'result-err' : 'result-warn';
-  el.innerHTML = `<span class="${cls}">${msg}</span>`;
+  el.innerHTML = `<span class="${cls}">${_esc(msg)}</span>`;
 }
 
 if (_token) {
@@ -5363,7 +5363,7 @@ async function loadPriceHistory() {
     const prices = items.map(i => i.price_krw_kg);
     const minP = Math.min(...prices), maxP = Math.max(...prices);
     const W = 340, H = 60, pad = 4;
-    const toX = i => pad + (i / (prices.length - 1)) * (W - 2*pad);
+    const toX = i => prices.length > 1 ? pad + (i / (prices.length - 1)) * (W - 2*pad) : W / 2;
     const toY = p => H - pad - ((p - minP) / (maxP - minP + 1)) * (H - 2*pad);
     const pts = prices.map((p, i) => `${toX(i).toFixed(1)},${toY(p).toFixed(1)}`).join(' ');
     const sparkline = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:60px;display:block;margin:8px 0">
