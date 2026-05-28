@@ -3632,8 +3632,8 @@ function renderAdvisoryFeed() {
       const arrow  = a.side === 'high' ? '↑' : a.side === 'low' ? '↓' : '↕';
       return `<div class="adv-item">
         <span class="adv-field">${arrow} ${fname}</span>
-        <span class="adv-action">${a.action}</span>
-        <span class="adv-val">(현재 ${a.value} / ${optStr})</span>
+        <span class="adv-action">${_esc(a.action)}</span>
+        <span class="adv-val">(현재 ${_esc(String(a.value??''))} / ${optStr})</span>
       </div>`;
     }).join('');
 
@@ -3644,8 +3644,8 @@ function renderAdvisoryFeed() {
     return `<div class="adv-entry ${sideClass}">
       <div class="adv-entry-hdr">
         <div style="display:flex;gap:6px;align-items:center">
-          <span class="adv-farm-tag">${entry.farm_id}</span>
-          <span class="adv-crop-tag">${entry.crop_ko}</span>
+          <span class="adv-farm-tag">${_esc(entry.farm_id)}</span>
+          <span class="adv-crop-tag">${_esc(entry.crop_ko)}</span>
         </div>
         <span class="adv-ts">${ts}</span>
       </div>
@@ -3689,7 +3689,7 @@ async function loadProfitForecast() {
         <div class="profit-kpi"><div class="pk-label">예상 순이익</div>
           <div class="pk-val ${profitClass}">${sign}${fmt(profit)} <span style="font-size:11px">원</span></div></div>
       </div>
-      <div class="profit-note">${d.crop_ko || ''} · ${d.season_months || '—'}개월 시즌 · 이익률 ${marginPct}% · ${d.note || ''}</div>
+      <div class="profit-note">${_esc(d.crop_ko || '')} · ${d.season_months || '—'}개월 시즌 · 이익률 ${marginPct}% · ${_esc(d.note || '')}</div>
     `;
   } catch(e) {
     body.innerHTML = `<div style="color:var(--muted);font-size:12px;padding:8px">조회 실패: ${_esc(e.message)}</div>`;
