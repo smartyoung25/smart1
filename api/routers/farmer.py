@@ -654,7 +654,7 @@ def get_environment(farm_id: str):
     iot_ok = meta["iot_available"]
 
     # ── 실내 환경 변수 ──────────────────────────────────────────────────────────
-    _INDOOR_VARS = {"temp_internal", "humidity_int", "co2_ppm", "solar_rad", "ec_dsm", "soil_temp"}
+    _INDOOR_VARS = {"temp_internal", "humidity_int", "co2_ppm", "solar_rad", "ec_dsm", "soil_temp", "ph"}
 
     if iot_ok:
         indoor_raw     = dict(_FARM_ENV.get(farm_id, {}))

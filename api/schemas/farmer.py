@@ -214,6 +214,7 @@ class ManualEnvInput(BaseModel):
     solar_rad:     Optional[float] = Field(None, ge=0,   le=1200, description="일사량 (W/m²)")
     ec_dsm:        Optional[float] = Field(None, ge=0.5, le=5.0,  description="EC (dS/m)")
     soil_temp:     Optional[float] = Field(None, ge=5,   le=35,   description="지온 (°C)")
+    ph:            Optional[float] = Field(None, ge=4.0, le=8.5,  description="pH")
 
 
 class ManualEnvResponse(BaseModel):
