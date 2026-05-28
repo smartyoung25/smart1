@@ -2017,6 +2017,11 @@
         <input id="em-ph" type="number" step="0.1" class="env-input" placeholder="예: 6.2" style="width:100%">
         <div class="field-hint">권장 5.8~6.5</div>
       </div>
+      <div>
+        <div style="font-size:10px;color:var(--muted);margin-bottom:3px">지온 (°C)</div>
+        <input id="em-soil" type="number" step="0.1" class="env-input" placeholder="예: 20.0" style="width:100%">
+        <div class="field-hint">권장 18~25°C</div>
+      </div>
     </div>
     <button class="reco-apply-btn" onclick="submitManualEnv()">💾 환경값 저장</button>
     <div id="env-manual-result" style="margin-top:8px;font-size:12px"></div>
@@ -4729,7 +4734,8 @@ async function submitManualEnv() {
   if (!farmId) { _setResult('env-manual-result', 'warn', '농장을 선택하세요'); return; }
   const body = {};
   const pairs = [['em-temp','temp_internal'],['em-humi','humidity_int'],
-                 ['em-co2','co2_ppm'],['em-ec','ec_dsm'],['em-ph','ph']];
+                 ['em-co2','co2_ppm'],['em-ec','ec_dsm'],['em-ph','ph'],
+                 ['em-soil','soil_temp']];
   pairs.forEach(([id, key]) => { const v = $(id)?.value; if (v !== '' && v != null) body[key] = parseFloat(v); });
   if (!Object.keys(body).length) { _setResult('env-manual-result', 'warn', '입력값이 없습니다'); return; }
   try {
