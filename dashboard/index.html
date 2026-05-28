@@ -3925,9 +3925,12 @@ function showSection(name) {
 function populateSelectWithFarms(selId, current = '') {
   const sel = $(selId);
   if (!sel || !_farmsData.length) return;
+  // 기존 선택값 보존 (명시적으로 current가 전달되지 않은 경우)
+  const prevVal = current || sel.value;
+  const defaultFid = prevVal || _myFarmId || (_farmsData[0]?.farm_id) || '';
   sel.innerHTML = '<option value="">선택…</option>' +
     _farmsData.map(f =>
-      `<option value="${f.farm_id}" ${f.farm_id === current ? 'selected' : ''}>${f.farm_id} (${f.crop_ko||''})</option>`
+      `<option value="${f.farm_id}" ${f.farm_id === defaultFid ? 'selected' : ''}>${f.farm_id} (${f.crop_ko||''})</option>`
     ).join('');
 }
 
