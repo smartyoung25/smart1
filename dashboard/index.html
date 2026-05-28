@@ -385,8 +385,8 @@
   #farm-chart-canvas { width: 100% !important; height: 300px !important; }
   .chart-no-data { text-align: center; color: var(--muted); padding: 60px 0; font-size: 13px; }
   #farms-table tbody tr { cursor: pointer; }
-  #farms-table tbody tr:hover td { background: rgba(79,142,247,.06); }
-  #farms-table tbody tr.selected td { background: rgba(79,142,247,.1); }
+  #farms-table tbody tr:hover td { background: var(--blue-soft); }
+  #farms-table tbody tr.selected td { background: var(--blue-soft); }
 
   /* ── 재배 권고 이력 피드 ──────────────────────────────────────────────────── */
   .advisor-feed { display:flex; flex-direction:column; gap:8px; max-height:340px; overflow-y:auto; }
@@ -789,7 +789,7 @@
   .irr-alert-row { display:flex; align-items:flex-start; gap:8px; padding:7px 10px; border-radius:7px; font-size:12px; }
   .irr-alert-row.critical { background:rgba(242,100,90,.12); border-left:3px solid var(--red); }
   .irr-alert-row.major    { background:rgba(245,200,66,.10); border-left:3px solid var(--yellow); }
-  .irr-alert-row.minor    { background:rgba(79,142,247,.08); border-left:3px solid var(--accent); }
+  .irr-alert-row.minor    { background:var(--blue-soft); border-left:3px solid var(--accent); }
 
   /* ── 생산/유통 섹션 ── */
   .price-hist-table { width:100%; border-collapse:collapse; font-size:12px; margin-top:8px; }
@@ -2052,7 +2052,7 @@
       <div style="overflow-x:auto;margin-top:8px">
         <table style="width:100%;border-collapse:collapse;font-size:12px">
           <thead>
-            <tr style="background:rgba(255,255,255,0.05)">
+            <tr style="background:var(--card-soft)">
               <th style="padding:6px 8px;text-align:left;border-bottom:1px solid var(--border)">작기단계</th>
               <th style="padding:6px 8px;text-align:center;border-bottom:1px solid var(--border)">적색(R)</th>
               <th style="padding:6px 8px;text-align:center;border-bottom:1px solid var(--border)">청색(B)</th>
@@ -2781,7 +2781,14 @@ async function apiFetch(path, opts = {}) {
   }
   if (r.status === 401) { doLogout(); const e = new Error('인증 만료'); e.code = 401; throw e; }
   if (!r.ok) {
-    const e = new Error(`HTTP ${r.status}`);
+    // Try to extract server-side error detail from JSON body
+    let detail = '';
+    try {
+      const errBody = await r.json();
+      detail = errBody.detail || errBody.message || errBody.msg || '';
+      if (Array.isArray(detail)) detail = detail.map(d => d.msg || JSON.stringify(d)).join('; ');
+    } catch (_) {}
+    const e = new Error(detail ? `HTTP ${r.status}: ${detail}` : `HTTP ${r.status}`);
     e.code = r.status;
     throw e;
   }
@@ -4152,7 +4159,7 @@ async function loadCostBreakdown() {
       const pct   = it.pct_of_total != null ? Math.round(it.pct_of_total * 100) : null;
       const manualBadge = it.is_manual ? ' <span style="font-size:9px;color:var(--accent);border:1px solid var(--accent);border-radius:3px;padding:0 3px">실제입력</span>' : '';
       const barHtml = pct != null
-        ? `<div style="height:3px;background:rgba(255,255,255,.08);border-radius:2px;margin-top:3px">
+        ? `<div style="height:3px;background:var(--border);border-radius:2px;margin-top:3px">
             <div style="height:3px;background:var(--accent);border-radius:2px;width:${pct}%"></div></div>` : '';
       return `<div class="cost-row" style="flex-direction:column;align-items:stretch;gap:2px">
         <div style="display:flex;justify-content:space-between">
@@ -4169,7 +4176,7 @@ async function loadCostBreakdown() {
       <div class="cost-section">
         <div class="cost-section-title">월간 비용 분석 ${hasManualBadge}</div>
         ${rows}
-        <div class="cost-row" style="margin-top:6px;border-top:1px solid rgba(255,255,255,.08);padding-top:8px">
+        <div class="cost-row" style="margin-top:6px;border-top:1px solid var(--border);padding-top:8px">
           <span style="font-weight:600">월간 합계</span>
           <span class="cost-total">${fmt(total)} 원</span>
         </div>
@@ -4927,7 +4934,7 @@ async function loadEnvAnomalies() {
         const sev = a.severity || 'minor';
         const cls = sev === 'critical' ? 'var(--red)' : sev === 'major' ? 'var(--yellow)' : 'var(--accent)';
         const valStr = a.current_value != null ? (Number(a.current_value) % 1 === 0 ? Number(a.current_value) : Number(a.current_value).toFixed(2)) : '—';
-        return `<div style="padding:8px 12px;border-radius:7px;border-left:3px solid ${cls};background:rgba(255,255,255,.04);font-size:12px">
+        return `<div style="padding:8px 12px;border-radius:7px;border-left:3px solid ${cls};background:var(--card-soft);font-size:12px">
           <div style="font-weight:600;margin-bottom:2px">${a.variable_ko || a.variable} <span style="color:${cls}">${valStr}${a.unit||''}</span></div>
           <div style="color:var(--muted)">${a.message_ko || ''}</div></div>`;
       }).join('') + '</div>';
@@ -5133,7 +5140,7 @@ async function loadERPRealtime() {
           <span style="color:var(--accent)">합계 <strong>${fmt(cb.total_per_m2)}</strong></span>
         </div>
       </div>
-      <div style="background:rgba(255,255,255,.04);border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <div style="background:var(--green-soft);border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
         <span style="font-size:13px">💡 출하 타이밍</span>
         ${stageHtml}
         <span style="color:${adviceColor};font-weight:600;font-size:13px">${ht.advice || '—'}</span>
@@ -5165,7 +5172,7 @@ async function loadLEDSpectrum() {
     const tbody = document.querySelectorAll('#led-spectrum-body tbody tr');
     tbody.forEach((row, i) => {
       row.style.background = i === stageRow[stage]
-        ? 'rgba(79,142,247,0.15)' : (i % 2 === 1 ? 'rgba(255,255,255,0.02)' : '');
+        ? 'rgba(79,142,247,0.12)' : (i % 2 === 1 ? 'var(--card-soft)' : '');
       row.style.outline = i === stageRow[stage] ? '1px solid rgba(79,142,247,0.4)' : '';
     });
 
