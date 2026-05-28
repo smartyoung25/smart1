@@ -302,7 +302,7 @@ def get_data_sources():
 
     # IoT 센서: IoT 구축 농가 비율
     iot_farms = sum(1 for m in _FARM_META.values() if m["iot_available"])
-    iot_pct   = round(iot_farms / len(_FARM_META) * 100)
+    iot_pct   = round(iot_farms / max(len(_FARM_META), 1) * 100)
 
     # KAMIS: 실제 단가 조회 성공 여부
     try:
@@ -316,11 +316,11 @@ def get_data_sources():
         1 for fid in _FARM_META
         if persistence.get_manual_env(fid) or persistence.get_manual_cost(fid)
     )
-    manual_pct = round(manual_count / len(_FARM_META) * 100)
+    manual_pct = round(manual_count / max(len(_FARM_META), 1) * 100)
 
     # 학습 데이터: 로드된 JSON 메타 수
     meta_count = sum(1 for f in ARTIFACTS_DIR.glob("*_pipeline_meta.json"))
-    rda_pct    = round(meta_count / len(_CROP_META_FILES) * 100)
+    rda_pct    = round(meta_count / max(len(_CROP_META_FILES), 1) * 100)
 
     sources = [
         DataSourceStatus(source_id="iot_sensor",  label_ko="IoT 센서",
