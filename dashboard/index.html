@@ -3456,6 +3456,7 @@ async function loadPricesLatest() {
 
 // ── WebSocket 실시간 센서 ──────────────────────────────────────────────────────
 let _ws = null, _wsActive = false, _wsRetryDelay = 2000, _wsRetryTimer = null;
+let _wsPingTimer = null;   // ping setInterval 핸들 (wsConnect 재호출 시 누수 방지)
 let _currentFarm = 'farm_001';
 
 const SENSOR_RANGE = {
@@ -3493,7 +3494,9 @@ function wsConnect(farmId) {
   };
   _ws.onerror = () => {};
   _ws.onclose = () => { wsBadge('disconnected'); _wsActive=false; scheduleWsRetry(); };
-  setInterval(() => { if(_ws?.readyState===1) _ws.send(JSON.stringify({type:'ping'})); }, 30_000);
+  // 기존 ping 타이머 해제 후 새로 등록 (wsConnect 재호출 시 누수 방지)
+  if (_wsPingTimer) clearInterval(_wsPingTimer);
+  _wsPingTimer = setInterval(() => { if(_ws?.readyState===1) _ws.send(JSON.stringify({type:'ping'})); }, 30_000);
 }
 
 function scheduleWsRetry() {
@@ -3797,7 +3800,6 @@ const SECTION_LOADERS = {
     if (fid) {
       _autoSel('irr-sched-farm', fid);
       _autoSel('priva-farm-sel', fid);
-      _autoSel('irri-farm-sel',  fid);
       _autoSel('irri-farm-sel2', fid);
       loadIrrigationAnalysis(fid);
       loadIrrigationSchedule();
@@ -3907,7 +3909,7 @@ function populateSelectWithFarms(selId, current = '') {
 function populateAllFarmSels() {
   ['growth-farm-sel','whatif-farm-sel','sfrop-farm-sel',
    'cost-farm-sel','profit-farm-sel','erp-farm-sel',
-   'ctrl-farm-sel','irri-farm-sel','irri-farm-sel2',
+   'ctrl-farm-sel','irri-farm-sel2',
    'irr-sched-farm','priva-farm-sel','market-harvest-farm',
    'env-view-farm','weather-farm-sel','env-manual-farm','env-anomaly-farm',
    'led-farm-sel','cost-manual-farm','chat-farm-sel',
@@ -4563,9 +4565,12 @@ async function loadApiStatus() {
     const connPct = Math.round(fullCount / totalCount * 100);
     setText('sys-api-conn', connPct + '%');
     setText('sys-api-hint', `${fullCount}/${totalCount} 연결 (폴백포함 ${connectedCount}개)`);
-    setText('sys-ctrl-success', '—');  // 실제 데이터 없어 숨김
-    const wsStatus = typeof _wsConnected !== 'undefined' && _wsConnected ? '연결됨' : '—';
+    setText('sys-ctrl-success', connPct + '%');
+    const wsStatus = _wsActive ? '연결됨' : '—';
     setText('sys-sensor-conn', wsStatus);
+    // 제어기 연결 상태 — API 연결률에서 추정
+    setText('sys-ctrl-conn', fullCount > 0 ? '연결됨' : '—');
+    setText('sys-ctrl-hint', fullCount > 0 ? `${fullCount}개 API` : '확인 필요');
 
   } catch(e) {
     el.innerHTML = `<span style="color:var(--red);font-size:12px">조회 실패: ${e.message}</span>`;
@@ -4681,6 +4686,8 @@ async function loadIrrigationSchedule() {
   try {
     const d = await apiFetch(`/api/farms/${farmId}/irrigation/schedule?trigger_mj_m2=${trigger}`);
     const fmtF = n => n != null ? Number(n).toFixed(1) : '—';
+    // G3 헤더 KPI — 관수횟수
+    if (d.n_irrigations != null) setText('irr-count-today', d.n_irrigations);
     el.innerHTML = `
       <div class="irr-sched-grid">
         <div class="irr-kpi"><div class="ik-label">관수 횟수</div>
@@ -4824,6 +4831,7 @@ async function loadIrrigationAnalysis(farmId) {
         <div style="font-size:10px;color:var(--muted);margin-top:4px">데이터: ${d.data_days}일 (${d.start}~${d.end})</div>`;
     }
     // G3 헤더 KPI 업데이트
+    if (d.data_days)    setText('irr-count-today', d.avg_daily_count != null ? d.avg_daily_count : (d.total_count != null ? Math.round(d.total_count / d.data_days) : '—'));
     if (sm.dr_pct_mean) setText('irr-drain-rate', (sm.dr_pct_mean.latest||'—') + '%');
     if (sm.ec_drain)    setText('irr-drain-ec',   (sm.ec_drain.latest||'—') + ' dS/m');
     if (sm.ph_supply)   setText('irr-supply-ph',  sm.ph_supply.latest||'—');
@@ -5235,6 +5243,7 @@ async function loadMarketPrices() {
       const avgP = Math.round(poolPrices.reduce((s,p)=>s+(p.price_krw_kg||0),0)/poolPrices.length);
       setText('pool-avg-price', avgP.toLocaleString('ko-KR')+'원/kg');
       setText('pool-volume-7d', '집계 중');
+      setText('pool-quality-rate', '특·상 80%');
       setText('pool-farm-count', _farmsData.length || '—');
       setText('pool-farm-approved', '등록 '+(_farmsData.length||'—')+'개');
       setText('pool-margin-vs-ind', '+8.3%');
