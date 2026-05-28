@@ -903,6 +903,38 @@ def get_harvest(farm_id: str):
     area           = meta["area_m2"]
     total_kg       = round(yield_m2 * area, 1)
 
+    # ── 생육단계(growth_stage_ko) / 정식 경과일 계산 ──────────────────────
+    _plant_month_raw = meta.get("plant_month") or meta.get("season_start")
+    _days_since = None
+    _growth_stage_ko = None
+    try:
+        if _plant_month_raw:
+            _pm = int(str(_plant_month_raw).split("-")[0])  # "3" 또는 "2024-03" 형식 지원
+            _now_month = date.today().month
+            _months_elapsed = (_now_month - _pm) % 12
+            _days_since = _months_elapsed * 30
+        if _days_since is None:
+            # 정식 정보 없으면 days_to_harvest 역산으로 추정
+            _crop_total_days = {"딸기": 150, "완숙토마토": 120, "방울토마토": 90,
+                                "파프리카": 180, "참외": 90, "오이": 60}.get(crop, 120)
+            _days_since = max(0, _crop_total_days - days_to_harvest)
+        # 생육단계 결정
+        _total_est = {"딸기": 150, "완숙토마토": 120, "방울토마토": 90,
+                      "파프리카": 180, "참외": 90, "오이": 60}.get(crop, 120)
+        _ratio = _days_since / _total_est
+        if days_to_harvest <= 14:
+            _growth_stage_ko = "수확기"
+        elif _ratio < 0.20:
+            _growth_stage_ko = "초기 (정식기)"
+        elif _ratio < 0.50:
+            _growth_stage_ko = "영양생장기"
+        elif _ratio < 0.75:
+            _growth_stage_ko = "착과·개화기"
+        else:
+            _growth_stage_ko = "성숙·수확기"
+    except Exception:
+        _growth_stage_ko = "생육중"
+
     # ── LegacyModelAdapter (RDA 5000행, R²≥0.75) — 딸기 등 우선 사용 ─────
     try:
         from api.engine.legacy_model_adapter import (
@@ -997,6 +1029,8 @@ def get_harvest(farm_id: str):
         days_to_harvest=days_to_harvest,
         crop_ko=crop,
         area_m2=area,
+        growth_stage_ko=_growth_stage_ko,
+        days_since_planting=_days_since,
         # Phase 42: 신뢰도 등급
         confidence_grade=_conf_grade,
         model_mape_pct=_model_mape,
@@ -2416,6 +2450,7 @@ def get_wholesale_market(
     return {
         "farm_id":              farm_id,
         "crop":                 crop,
+        "crop_ko":              crop,   # JS 편의 별칭
         "updated_at":           _now().isoformat(),
         "price_krw_kg":         data.get("price_krw_kg"),
         "price_source":         data.get("price_source"),

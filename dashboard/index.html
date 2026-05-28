@@ -4280,7 +4280,7 @@ async function applyCtrlRecommendations(farmId) {
 
 // ── 제어최적화: 관수 데이터 입력 ─────────────────────────────────────────────
 async function submitIrrigation() {
-  const farmId = $('irri-farm-sel')?.value;
+  const farmId = $('irri-farm-sel2')?.value || $('irri-farm-sel')?.value;
   if (!farmId) { alert('농장을 선택하세요'); return; }
   const el = $('irri-result');
   const body = {
@@ -4360,16 +4360,30 @@ async function loadWeatherForecast() {
   loadWeatherEt0(farmId);
   try {
     const d = await apiFetch(`/api/farms/${farmId}/environment/weather`);
-    const days = d.forecast || d.days || [];
+    // API 응답 구조: forecast가 배열이거나 {days:[...]} 형태이거나 d.days 배열
+    const _fc = d.forecast;
+    const days = Array.isArray(_fc) ? _fc
+               : (_fc && Array.isArray(_fc.days) ? _fc.days
+               : (Array.isArray(d.days) ? d.days : []));
     if (!days.length) { el.innerHTML = '<div style="color:var(--muted);text-align:center;padding:20px">예보 데이터 없음</div>'; return; }
     const rows = days.map(day => {
-      const dt  = day.date ? new Date(day.date).toLocaleDateString('ko-KR',{month:'numeric',day:'numeric',weekday:'short'}) : day.date;
-      const icon= (day.sky||'').includes('맑') ? '☀️' : (day.sky||'').includes('구름') ? '⛅' : '🌧️';
+      // 날짜: ISO 형식 또는 YYYYMMDD 형식 처리
+      let dtStr = '—';
+      if (day.date) {
+        const raw = String(day.date);
+        // YYYYMMDD → YYYY-MM-DD 변환
+        const normalized = raw.length === 8 ? `${raw.slice(0,4)}-${raw.slice(4,6)}-${raw.slice(6,8)}` : raw;
+        try { dtStr = new Date(normalized).toLocaleDateString('ko-KR',{month:'numeric',day:'numeric',weekday:'short'}); }
+        catch(e) { dtStr = raw; }
+      }
+      const sky = day.sky || day.sky_label || '';
+      const icon = sky.includes('맑') ? '☀️' : sky.includes('구름') ? '⛅' : '🌧️';
+      const windSpd = day.wind_spd ?? day.wind_speed;
       return `<tr>
-        <td>${dt}</td><td>${icon} ${day.sky||'—'}</td>
+        <td>${dtStr}</td><td>${icon} ${sky||'—'}</td>
         <td>${day.temp_min!=null?day.temp_min+'°':''} / ${day.temp_max!=null?day.temp_max+'°':'—'}</td>
         <td>${day.precip_prob!=null?day.precip_prob+'%':'—'}</td>
-        <td>${day.wind_spd!=null?day.wind_spd+' m/s':'—'}</td>
+        <td>${windSpd!=null?Number(windSpd).toFixed(1)+' m/s':'—'}</td>
       </tr>`;
     }).join('');
     el.innerHTML = `<table class="weather-tbl">
@@ -4909,8 +4923,10 @@ async function loadEnvAnomalies() {
       alerts.map(a => {
         const sev = a.severity || 'minor';
         const cls = sev === 'critical' ? 'var(--red)' : sev === 'major' ? 'var(--yellow)' : 'var(--accent)';
+        const valStr = a.current_value != null ? (Number(a.current_value) % 1 === 0 ? Number(a.current_value) : Number(a.current_value).toFixed(2)) : '—';
         return `<div style="padding:8px 12px;border-radius:7px;border-left:3px solid ${cls};background:rgba(255,255,255,.04);font-size:12px">
-          <strong>${a.variable_ko || a.variable}</strong> ${a.current_value}${a.unit} — ${a.message_ko || ''}</div>`;
+          <div style="font-weight:600;margin-bottom:2px">${a.variable_ko || a.variable} <span style="color:${cls}">${valStr}${a.unit||''}</span></div>
+          <div style="color:var(--muted)">${a.message_ko || ''}</div></div>`;
       }).join('') + '</div>';
   } catch(e) {
     el.innerHTML = _errBoxHtml(e, '환경 이상감지 조회 실패');

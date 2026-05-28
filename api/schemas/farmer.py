@@ -101,6 +101,8 @@ class HarvestForecast(BaseResponse):
     days_to_harvest: Optional[int] = None
     crop_ko: Optional[str] = None
     area_m2: Optional[float] = None
+    growth_stage_ko: Optional[str] = None       # 한국어 생육단계 (초기|생육중|착과기|수확기)
+    days_since_planting: Optional[int] = None   # 정식 후 경과일
     # Phase 42: 모델 신뢰도 등급 (농가 화면 표시용)
     confidence_grade: str = "낮음 (참고용)"     # "높음" | "보통" | "낮음 (참고용)"
     model_mape_pct: Optional[float] = None      # 학습 MAPE (%)
