@@ -4774,10 +4774,10 @@ async function loadIrrigationSchedule() {
       <div class="irr-timeline" style="margin-top:12px">
         <div class="irr-time-dot"></div>
         <span style="font-weight:700">첫 관수</span>
-        <span style="color:var(--accent);font-size:16px;font-weight:700">${d.first_irrigation ?? '—'}</span>
+        <span style="color:var(--accent);font-size:16px;font-weight:700">${_esc(d.first_irrigation ?? '—')}</span>
         <span style="color:var(--muted)">→</span>
         <span style="font-weight:700">마지막 관수</span>
-        <span style="color:var(--accent);font-size:16px;font-weight:700">${d.last_irrigation ?? '—'}</span>
+        <span style="color:var(--accent);font-size:16px;font-weight:700">${_esc(d.last_irrigation ?? '—')}</span>
       </div>
       <div style="margin-top:8px;font-size:11px;color:var(--muted)">
         📡 ${d.source === 'kma_asos_yesterday' ? 'ASOS 전일 실측 기반' : '계절 평균 기반'} — ${_esc(d.note ?? '')}
@@ -5736,18 +5736,22 @@ function _renderUpgradeCards() {
         {tier:'enterprise', name_ko:'엔터프라이즈', price_krw_month:499000, color:'#f9a825'},
       ];
 
-  wrap.innerHTML = opts.map((o, idx) => `
-    <label class="upgrade-tier-card" style="--tc:${o.color}">
+  const _safeColor = c => (c && /^#[0-9a-fA-F]{3,8}$/.test(c)) ? c : '#8892a4';
+  wrap.innerHTML = opts.map((o, idx) => {
+    const clr = _safeColor(o.color);
+    return `
+    <label class="upgrade-tier-card" style="--tc:${clr}">
       <input type="radio" name="upgrade-tier-sel" value="${_esc(o.tier)}" ${idx === 0 ? 'checked' : ''}>
       <div class="upgrade-tier-card-inner">
-        <div style="font-size:16px;font-weight:700;color:${o.color}">${_esc(o.name_ko)}</div>
+        <div style="font-size:16px;font-weight:700;color:${clr}">${_esc(o.name_ko)}</div>
         <div style="font-size:24px;font-weight:800;margin:8px 0">
           ₩${Math.round(o.price_krw_month/1000)}K
           <span style="font-size:11px;font-weight:400;color:var(--muted)">/월</span>
         </div>
         <div style="font-size:11px;color:var(--muted);line-height:1.5">${_tierFeatureHint(o.tier)}</div>
       </div>
-    </label>`).join('');
+    </label>`;
+  }).join('');
 
   // 현재 플랜 표시
   const cur = $('upgrade-current-plan');
@@ -5802,7 +5806,7 @@ async function submitUpgrade() {
           if (SECTION_LOADERS[secName]) tierGuard(farmId, secName);
         }
       }, 1400);
-    } else if (d.redirect_url) {
+    } else if (d.redirect_url && /^https?:\/\//.test(d.redirect_url)) {
       if (res) res.textContent += '\n결제 페이지로 이동합니다…';
       setTimeout(() => window.open(d.redirect_url, '_blank'), 1200);
     }
