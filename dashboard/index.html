@@ -4902,7 +4902,7 @@ async function loadIrrigationAnalysis(farmId) {
     }).filter(Boolean).join('');
     if (rows) {
       el.innerHTML += `<table style="width:100%;border-collapse:collapse;margin-top:8px;font-size:12px">${rows}</table>
-        <div style="font-size:10px;color:var(--muted);margin-top:4px">데이터: ${d.data_days}일 (${d.start}~${d.end})</div>`;
+        <div style="font-size:10px;color:var(--muted);margin-top:4px">데이터: ${d.data_days}일 (${_esc(d.start||'')}~${_esc(d.end||'')})</div>`;
     }
     // G3 헤더 KPI 업데이트
     if (d.data_days)    setText('irr-count-today', d.avg_daily_count != null ? d.avg_daily_count : (d.total_count != null ? Math.round(d.total_count / d.data_days) : '—'));
