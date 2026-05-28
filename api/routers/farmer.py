@@ -2043,6 +2043,25 @@ def get_priva_schedule(
     drain_actual_pct 미제공 시 irrigation_store의 전일 배액률을 자동으로 사용합니다.
     P/I 적분항(I-term)은 priva_pi_store에 일간 영속화되어 연속 교정이 가능합니다.
     """
+    try:
+        return _get_priva_schedule_impl(
+            farm_id, growth_stage, plant_size_pct, drain_actual_pct, trigger_j_cm2
+        )
+    except HTTPException:
+        raise
+    except Exception as _exc:
+        logger.error("[priva] farm=%s 500 error: %s", farm_id, _exc, exc_info=True)
+        raise HTTPException(status_code=500, detail=f"관수 스케줄 계산 실패: {_exc}")
+
+
+def _get_priva_schedule_impl(
+    farm_id: str,
+    growth_stage: str,
+    plant_size_pct: float,
+    drain_actual_pct: Optional[float],
+    trigger_j_cm2: float,
+) -> "PrivaScheduleOut":
+    """Priva 스케줄 계산 구현체 (예외 로깅을 위해 분리)."""
     _require_farm(farm_id)
     meta = _FARM_META.get(farm_id, {})
     crop_ko = meta.get("crop", "딸기")

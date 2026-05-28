@@ -3303,7 +3303,10 @@ async function loadFarmRecommendations(farmId) {
 async function applyRecommendations(farmId) {
   if (!confirm(`${farmId}의 AI 권고를 적용하시겠습니까?`)) return;
   try {
-    await apiFetch(`/api/farms/${farmId}/apply`, { method:'POST', headers:{'Content-Type':'application/json'}, body:'{}' });
+    await apiFetch(`/api/farms/${farmId}/apply`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ rank: 1, confirmed: false }),
+    });
     alert('권고가 적용 요청되었습니다.');
     loadFarmRecommendations(farmId);
   } catch(e) { alert('적용 실패: ' + e.message); }
@@ -4279,8 +4282,12 @@ async function loadCtrlRecommendations() {
 async function applyCtrlRecommendations(farmId) {
   if (!confirm(`${farmId} 권고를 적용하시겠습니까?`)) return;
   try {
-    await apiFetch(`/api/farms/${farmId}/apply`, { method:'POST', headers:{'Content-Type':'application/json'}, body:'{}' });
+    await apiFetch(`/api/farms/${farmId}/apply`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ rank: 1, confirmed: false }),
+    });
     alert('권고 적용 요청 완료');
+    loadCtrlRecommendations();
   } catch(e) { alert('적용 실패: ' + e.message); }
 }
 
