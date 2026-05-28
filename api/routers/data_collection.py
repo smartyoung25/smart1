@@ -95,8 +95,14 @@ def _get_counts(crop_ko: str) -> dict[str, int]:
 
 # ── DB 저장 (persistence 패턴과 동일) ────────────────────────────────────────
 
+_ALLOWED_TABLES = {"growth_records", "harvest_records"}
+
+
 def _save_to_db(table: str, record: dict) -> Optional[str]:
     """PostgreSQL에 레코드 저장. 실패 시 None 반환 (JSON 폴백 사용)."""
+    if table not in _ALLOWED_TABLES:
+        logger.error("[data_collection] 허용되지 않은 테이블: %s", table)
+        return None
     try:
         from api.services.persistence import _get_engine
         engine = _get_engine()
