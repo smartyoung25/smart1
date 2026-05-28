@@ -2835,6 +2835,22 @@ async function refreshAll() {
   ]);
   $('last-refresh').textContent = '갱신: ' + new Date().toLocaleTimeString('ko-KR');
   if (_token && !_wsActive) wsConnect($('sensor-farm-sel').value);
+  // 농장 데이터 로드 완료 후 셀렉트 채우기 + 현재 활성 섹션 갱신
+  populateAllFarmSels();
+  const _activeSec = document.querySelector('.sec.active');
+  const _activeName = _activeSec?.id?.replace('sec-', '');
+  if (_activeName === 'dashboard') {
+    // Hero 대시보드: 데이터 로드 후 자동 표시 (admin 포함)
+    const heroFid = $('hero-farm-sel')?.value || _defaultFarm();
+    if (heroFid) {
+      _autoSel('hero-farm-sel', heroFid);
+      loadHeroDashboard(heroFid);
+    }
+  } else if (_activeName && SECTION_LOADERS[_activeName] &&
+             _activeName !== 'system') {
+    // 현재 비대시보드 섹션도 갱신 (중복 호출 방지 위해 system 제외)
+    // system 탭은 무거운 로드가 많으므로 사용자가 직접 트리거할 때만
+  }
 }
 
 // ── Health ────────────────────────────────────────────────────────────────────
@@ -3755,7 +3771,16 @@ function _autoSel(selId, farmId) {
 
 const SECTION_LOADERS = {
   dashboard: () => {
-    loadFarmsOverview();
+    // _farmsData가 없으면 loadFarmsOverview 후 Hero 재시도
+    if (!_farmsData.length) {
+      loadFarmsOverview().then(() => {
+        populateAllFarmSels();
+        const fid2 = _defaultFarm();
+        if (fid2) { _autoSel('hero-farm-sel', fid2); loadHeroDashboard(fid2); }
+      });
+    } else {
+      loadFarmsOverview(); // 백그라운드 갱신
+    }
     populateAllFarmSels();
     const fid = _defaultFarm();
     if (fid) {
@@ -3889,7 +3914,7 @@ function showSection(name) {
   const runLoader = () => { if (SECTION_LOADERS[name]) SECTION_LOADERS[name](); };
 
   // _farmsData가 아직 로드 안 됐으면 먼저 로드 후 섹션 로더 실행
-  if (!_farmsData.length && name !== 'dashboard' && name !== 'system') {
+  if (!_farmsData.length && name !== 'system') {
     loadFarmsOverview().then(runLoader).catch(runLoader);
   } else {
     runLoader();
@@ -5389,23 +5414,42 @@ async function loadAdvisorOptimal() {
   el.innerHTML = '<div class="spinner"></div>';
   try {
     const d = await apiFetch(`/api/admin/advisor/optimal/${encodeURIComponent(cropKo)}`);
-    const opt = d.optimal_env || d.optimal || d;
-    const vars = [
-      { key:'temp_internal',  label:'온도',    unit:'°C'   },
-      { key:'humidity_int',   label:'습도',    unit:'%'    },
-      { key:'co2_ppm',        label:'CO₂',     unit:'ppm'  },
-      { key:'ec_dsm',         label:'EC',      unit:'dS/m' },
-      { key:'solar_rad',      label:'일사량',  unit:'W/m²' },
-    ];
+    // API 응답 구조: { crop_ko, ranges: [{field, optimal_lo, optimal_hi, ...}] }
+    // 또는 구버전: { optimal_env: {temp_internal, ...} }
+    const LABELS = { temp_internal:'온도', humidity_int:'습도', co2_ppm:'CO₂', ec_dsm:'EC', solar_rad:'일사량' };
+    const UNITS  = { temp_internal:'°C',  humidity_int:'%',   co2_ppm:'ppm', ec_dsm:'dS/m', solar_rad:'W/m²' };
+    let items = [];
+    if (d.ranges && d.ranges.length) {
+      // 신규 구조: ranges[]
+      items = d.ranges.map(r => ({
+        label: LABELS[r.field] || r.field,
+        unit:  UNITS[r.field]  || '',
+        val:   null,  // 중앙값 없음
+        lo:    r.optimal_lo,
+        hi:    r.optimal_hi,
+        action_high: r.high_action,
+        action_low:  r.low_action,
+      }));
+    } else {
+      // 구버전 flat 구조
+      const opt = d.optimal_env || d.optimal || d;
+      items = Object.keys(LABELS).map(k => ({
+        label: LABELS[k], unit: UNITS[k],
+        val:   opt[k] ?? null,
+        lo:    opt[`${k}_min`] ?? opt[`${k}_p25`] ?? null,
+        hi:    opt[`${k}_max`] ?? opt[`${k}_p75`] ?? null,
+      }));
+    }
     el.innerHTML = '<div class="advisor-opt-grid">' +
-      vars.map(v => {
-        const val = opt[v.key];
-        const lo  = opt[`${v.key}_min`] ?? opt[`${v.key}_p25`];
-        const hi  = opt[`${v.key}_max`] ?? opt[`${v.key}_p75`];
+      items.map(it => {
+        const mid = it.val != null ? Number(it.val).toFixed(1) :
+                    (it.lo != null && it.hi != null ? ((it.lo+it.hi)/2).toFixed(1) : '—');
+        const range = (it.lo != null && it.hi != null)
+          ? `${Number(it.lo).toFixed(1)}~${Number(it.hi).toFixed(1)}` : '—';
         return `<div class="advisor-opt-item">
-          <div class="ao-var">${v.label}</div>
-          <div class="ao-val">${val!=null?Number(val).toFixed(1):'—'} <span style="font-size:10px;color:var(--muted)">${v.unit}</span></div>
-          <div class="ao-range">${lo!=null&&hi!=null?`${Number(lo).toFixed(1)}~${Number(hi).toFixed(1)}`:'—'}</div>
+          <div class="ao-var">${it.label}</div>
+          <div class="ao-val">${mid} <span style="font-size:10px;color:var(--muted)">${it.unit}</span></div>
+          <div class="ao-range">최적 ${range}</div>
         </div>`;
       }).join('') + '</div>' +
       (d.note ? `<div style="font-size:11px;color:var(--muted);margin-top:8px">${d.note}</div>` : '');
