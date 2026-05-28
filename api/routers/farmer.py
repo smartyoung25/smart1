@@ -2237,10 +2237,12 @@ def get_model_performance():
         # M2 수확량 (stage2)
         m2 = _read_meta(d / "stage2_meta.json")
         if m2:
-            mape = m2.get("cv_mape", m2.get("mape", 999))
+            mape = m2.get("cv_mape_mean") or m2.get("cv_mape") or m2.get("mape") or 999
+            cv_r2 = m2.get("cv_r2_mean") or m2.get("cv_r2") or 0.0
             m2_results.append({
                 "crop": ko,
                 "mape_pct": round(float(mape), 1),
+                "cv_r2": round(float(cv_r2), 3),
                 "n_samples": m2.get("n_samples", m2.get("n_train", 0)),
                 "grade": "⭐⭐⭐" if mape <= 15 else "⭐⭐" if mape <= 30 else "⭐",
             })
@@ -2446,7 +2448,8 @@ def _cfg_check(env_var: str) -> bool:
 @router.get("/erp/realtime",
             summary="ERP 실시간 원가·마진·소득률 (SFROP v2.0 혁신4)")
 def get_erp_realtime(
-    farm_id: str = Depends(require_auth),
+    farm_id: str,
+    _user: dict = Depends(require_auth),
 ):
     """수확 시마다 kg당 원가·마진·소득률·출하 타이밍을 실시간으로 산출합니다.
 

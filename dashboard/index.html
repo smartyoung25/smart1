@@ -4032,14 +4032,21 @@ async function loadGrowthHarvestRevenue() {
           ${r.model_gate_pass === false ? `<div style="background:rgba(242,100,90,.12);border:1px solid rgba(242,100,90,.3);border-radius:6px;padding:6px 10px;margin-top:8px;font-size:11px;color:#f2645a">⚠️ M2 수확량 모델 게이트 미통과 (MAPE ${r.model_confidence!=null?Math.round((1-r.model_confidence)*100):'-'}%대) — 통계 기준값과 블렌딩하여 표시 중. 모델 재학습 권장.</div>` : ''}`;
       }
     }
-    // G4 헤더 KPI 업데이트
+    // G4 헤더 KPI 업데이트 (실제 /harvest 응답 필드 사용)
     if (h) {
+      // days_to_harvest: 남은 수확일 (있으면 표시, 없으면 planting 계산 시도)
+      const daysLeft = h.days_to_harvest ?? null;
       const daysSince = h.days_since_planting ?? h.days_elapsed ?? null;
-      const stage = h.growth_stage_ko || h.growth_stage || null;
-      const aiAdj = h.ai_adjust_pct ?? h.model_adjustment_pct ?? null;
       if (daysSince != null) setText('growth-days-since', daysSince + '일');
+      else if (daysLeft != null) setText('growth-days-since', 'D-' + daysLeft);
+      // growth_stage: harvest 응답에 없으면 confidence_grade 기반으로 추정
+      const stage = h.growth_stage_ko || h.growth_stage ||
+        (h.confidence_grade ? (daysLeft != null && daysLeft < 14 ? '수확기' : '생육중') : null);
       if (stage) setText('growth-stage-label', stage);
+      // ai_adjust: model_mape_pct 기반 정확도 표시
+      const aiAdj = h.ai_adjust_pct ?? h.model_adjustment_pct ?? null;
       if (aiAdj != null) setText('growth-ai-adjust', (aiAdj >= 0 ? '+' : '') + aiAdj + '%');
+      else if (h.model_mape_pct != null) setText('growth-ai-adjust', 'MAPE ' + h.model_mape_pct.toFixed(0) + '%');
       if (h.yield_kg_forecast) setText('harvest-quality-rate', '—'); // 상품과율 API 미지원
     }
     // 대시보드 hero 수확 KPI 보조 업데이트
@@ -4304,9 +4311,14 @@ async function loadCurrentEnv() {
       setText('env-kpi-vpd', vpd.toFixed(2));
     }
     setText('env-kpi-co2', fmtF(d.co2_ppm, 0));
-    const dli = d.solar_radiation != null ? (d.solar_radiation * 3600 / 1e6 * 8).toFixed(1) : '—';
+    const solarVal = d.solar_rad ?? d.solar_radiation ?? d.solar_rad_est ?? null;
+    const dli = solarVal != null ? (solarVal * 3600 / 1e6 * 8).toFixed(1) : '—';
     setText('env-kpi-dli', dli);
-    setText('env-kpi-energy', '확인 중');
+    // 에너지 KPI: ERP 엔드포인트에서 비동기 업데이트
+    apiFetch(`/api/farms/${farmId}/erp/realtime`).then(erp => {
+      const energyW = erp?.cost_breakdown?.energy_per_m2;
+      setText('env-kpi-energy', energyW != null ? Math.round(energyW) + 'W/m²' : '—');
+    }).catch(() => setText('env-kpi-energy', '—'));
 
   } catch(e) {
     el.innerHTML = `<span style="color:var(--red);font-size:12px">조회 실패: ${e.message}</span>`;
