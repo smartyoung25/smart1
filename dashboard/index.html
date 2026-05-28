@@ -2922,7 +2922,7 @@ async function loadCropModels() {
         return `<span class="gate-badge ${cls}">${label}${txt}</span>`;
       };
       return `<tr>
-        <td>${st} ${c.crop_ko||c.crop}</td>
+        <td>${st} ${_esc(c.crop_ko||c.crop)}</td>
         <td>${mape!=null?Number(mape).toFixed(1)+'%':'—'}${gateBadge(m2Gate,'M2')}</td>
         <td>${r2!=null?Number(r2).toFixed(3):'—'}${gateBadge(m1Gate,'M1')}</td>
       </tr>`;
@@ -2963,7 +2963,7 @@ async function loadEtlStatus() {
     if (d.last_modified) $('etl-mtime').textContent = d.last_modified.slice(0,19).replace('T',' ');
     const lines = (d.log_tail||[]).map(l => {
       const cls = l.includes('ERROR') ? 'log-error' : l.includes('WARN') ? 'log-warn' : '';
-      return `<div class="log-line ${cls}">${l}</div>`;
+      return `<div class="log-line ${cls}">${_esc(l)}</div>`;
     }).join('');
     el.innerHTML = `<div class="log-box">${lines||'<span style="color:var(--muted)">로그 없음</span>'}</div>`;
     el.querySelector('.log-box').scrollTop = 9999;
@@ -2980,10 +2980,10 @@ async function loadRetrainHistory() {
       const icon = ev.fail_count > 0 ? '❌' : '✅';
       return `<div class="event-item">
         <div style="display:flex;justify-content:space-between">
-          <span>${icon} ${ev.crops?.join(', ')||'—'}</span>
+          <span>${icon} ${_esc(ev.crops?.join(', ')||'—')}</span>
           <span style="color:var(--muted);font-size:11px">${(ev.timestamp||'').slice(0,16).replace('T',' ')}</span>
         </div>
-        <div style="font-size:11px;color:var(--muted)">성공 ${ev.success_count} / 실패 ${ev.fail_count} · ${ev.triggered_by||'—'}</div>
+        <div style="font-size:11px;color:var(--muted)">성공 ${ev.success_count} / 실패 ${ev.fail_count} · ${_esc(ev.triggered_by||'—')}</div>
       </div>`;
     }).join('');
   } catch(e) { el.innerHTML = _errBoxHtml(e, '재학습 이력 조회 실패'); }
@@ -3090,10 +3090,10 @@ function renderFarmsTable() {
   tbody.innerHTML = rows.map((f, idx) => {
     const stCls  = f.anomaly?'anomaly': f.online?'online':'offline';
     const stText = f.anomaly?'🔴 이상': f.online?'🟢 온라인':'⚫ 오프라인';
-    return `<tr data-farmid="${f.farm_id}" onclick="openChartPanel('${f.farm_id}',this)">
-      <td style="font-family:monospace;font-size:11px">${f.farm_id}</td>
-      <td>${f.crop_ko}</td>
-      <td>${f.sido} ${f.sigungu}</td>
+    return `<tr data-farmid="${_esc(f.farm_id)}" onclick="openChartPanel(this.dataset.farmid,this)">
+      <td style="font-family:monospace;font-size:11px">${_esc(f.farm_id)}</td>
+      <td>${_esc(f.crop_ko)}</td>
+      <td>${_esc(f.sido)} ${_esc(f.sigungu)}</td>
       <td class="${tempCls(f.temp_internal)}">${fmt(f.temp_internal)}</td>
       <td class="${humiCls(f.humidity_int)}">${fmt(f.humidity_int)}</td>
       <td class="${co2Cls(f.co2_ppm)}">${fmt(f.co2_ppm,0)}</td>
@@ -3380,7 +3380,7 @@ async function loadFarmHarvestRevenue(farmId) {
         </div>
       </div>
       <div class="harvest-note">
-        ${r?.crop_ko || ''} · 시세 ${r?.price_krw_kg != null ? Math.round(r.price_krw_kg).toLocaleString('ko-KR')+'원/kg' : '—'}
+        ${_esc(r?.crop_ko || '')} · 시세 ${r?.price_krw_kg != null ? Math.round(r.price_krw_kg).toLocaleString('ko-KR')+'원/kg' : '—'}
         ${r?.price_source === 'kamis_live' ? ' 🟢실시간' : ' 📊평균'}
         · 면적 ${h?.area_m2 != null ? h.area_m2.toLocaleString('ko-KR')+' m²' : '—'}
       </div>
@@ -3391,8 +3391,8 @@ async function loadFarmHarvestRevenue(farmId) {
         const badgeColor = isHigh ? '#22c55e' : isMid ? '#f59e0b' : '#94a3b8';
         const badgeBg    = isHigh ? 'rgba(34,197,94,.12)' : isMid ? 'rgba(245,158,11,.12)' : 'rgba(148,163,184,.10)';
         return `<div style="margin-top:6px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-          <span style="background:${badgeBg};color:${badgeColor};border:1px solid ${badgeColor}33;border-radius:4px;padding:2px 7px;font-size:10px;font-weight:600">모델 신뢰도: ${grade}</span>
-          ${h.mape_note ? `<span style="font-size:10px;color:var(--muted)">${h.mape_note}</span>` : ''}
+          <span style="background:${badgeBg};color:${badgeColor};border:1px solid ${badgeColor}33;border-radius:4px;padding:2px 7px;font-size:10px;font-weight:600">모델 신뢰도: ${_esc(grade)}</span>
+          ${h.mape_note ? `<span style="font-size:10px;color:var(--muted)">${_esc(h.mape_note)}</span>` : ''}
         </div>`;
       })() : ''}`;
     // ── null 값 원인 분석 ──────────────────────────────────────────────────
@@ -3484,7 +3484,7 @@ async function loadPricesLatest() {
       const srcCls   = p.source === 'kamis_live' ? 'live' : 'avg';
       const srcTxt   = p.source === 'kamis_live' ? '실시간' : '평균';
       return `<span class="price-chip">
-        <span class="pc-crop">${p.crop_ko || p.crop || '—'}</span>
+        <span class="pc-crop">${_esc(p.crop_ko || p.crop || '—')}</span>
         <span class="pc-val">${fmtPrice}원/kg</span>
         ${chgHtml}
         <span class="pc-src ${srcCls}">${srcTxt}</span>
@@ -3757,7 +3757,7 @@ function renderHeatmap(d) {
       const n = lookup[`${fid}||${f}`] || 0;
       return `<td><span class="hm-cell ${hmClass(n)}">${n || ''}</span></td>`;
     }).join('');
-    return `<tr><td style="font-size:11px;white-space:nowrap">${fid}</td>${cells}<td style="font-weight:600">${total}</td></tr>`;
+    return `<tr><td style="font-size:11px;white-space:nowrap">${_esc(fid)}</td>${cells}<td style="font-weight:600">${total}</td></tr>`;
   }).join('');
 }
 
@@ -3944,7 +3944,7 @@ function populateSelectWithFarms(selId, current = '') {
   const defaultFid = prevVal || _myFarmId || (_farmsData[0]?.farm_id) || '';
   sel.innerHTML = '<option value="">선택…</option>' +
     _farmsData.map(f =>
-      `<option value="${f.farm_id}" ${f.farm_id === defaultFid ? 'selected' : ''}>${f.farm_id} (${f.crop_ko||''})</option>`
+      `<option value="${_esc(f.farm_id)}" ${f.farm_id === defaultFid ? 'selected' : ''}>${_esc(f.farm_id)} (${_esc(f.crop_ko||'')})</option>`
     ).join('');
 }
 
@@ -3961,7 +3961,7 @@ function populateAllFarmSels() {
   if (sfSel && _farmsData.length) {
     const cur = sfSel.value;
     sfSel.innerHTML = _farmsData.map(f =>
-      `<option value="${f.farm_id}" ${f.farm_id === cur ? 'selected' : ''}>${f.farm_id}</option>`
+      `<option value="${_esc(f.farm_id)}" ${f.farm_id === cur ? 'selected' : ''}>${_esc(f.farm_id)}</option>`
     ).join('');
   }
 }
@@ -4014,7 +4014,7 @@ async function loadGrowthHarvestRevenue() {
         <div class="harvest-kpi"><div class="hk-label">잔여 재배일</div>
           <div class="hk-val">${h?.days_to_harvest ?? '—'} <span style="font-size:12px;color:var(--muted)">일</span></div></div>
       </div>
-      <div class="harvest-note">${h?.crop_ko||''} · 면적 ${h?.area_m2!=null?h.area_m2.toLocaleString('ko-KR')+' m²':'—'}</div>
+      <div class="harvest-note">${_esc(h?.crop_ko||'')} · 면적 ${h?.area_m2!=null?h.area_m2.toLocaleString('ko-KR')+' m²':'—'}</div>
       ${h?.confidence_grade ? (() => {
         const grade = h.confidence_grade;
         const isHigh = grade.startsWith('높음');
@@ -4022,8 +4022,8 @@ async function loadGrowthHarvestRevenue() {
         const badgeColor = isHigh ? '#22c55e' : isMid ? '#f59e0b' : '#94a3b8';
         const badgeBg    = isHigh ? 'rgba(34,197,94,.12)' : isMid ? 'rgba(245,158,11,.12)' : 'rgba(148,163,184,.10)';
         return `<div style="margin-top:5px;display:flex;align-items:center;gap:5px;flex-wrap:wrap">
-          <span style="background:${badgeBg};color:${badgeColor};border:1px solid ${badgeColor}33;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:600">모델 신뢰도: ${grade}</span>
-          ${h.mape_note ? `<span style="font-size:10px;color:var(--muted)">${h.mape_note}</span>` : ''}
+          <span style="background:${badgeBg};color:${badgeColor};border:1px solid ${badgeColor}33;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:600">모델 신뢰도: ${_esc(grade)}</span>
+          ${h.mape_note ? `<span style="font-size:10px;color:var(--muted)">${_esc(h.mape_note)}</span>` : ''}
         </div>`;
       })() : ''}`;
 
@@ -4054,7 +4054,7 @@ async function loadGrowthHarvestRevenue() {
             <div class="harvest-kpi">
               <div class="hk-label">시세 ${priceLabel}</div>
               <div class="hk-val">${fmt(r.price_krw_kg)} <span style="font-size:11px;color:var(--muted)">원/kg</span></div>
-              <div style="font-size:9px;color:var(--muted);margin-top:1px">${r.crop_ko||''} · ${r.area_m2!=null?r.area_m2.toLocaleString('ko-KR')+' m²':''}</div>
+              <div style="font-size:9px;color:var(--muted);margin-top:1px">${_esc(r.crop_ko||'')} · ${r.area_m2!=null?r.area_m2.toLocaleString('ko-KR')+' m²':''}</div>
             </div>
             <div class="harvest-kpi">
               <div class="hk-label">예상 매출</div>
@@ -4133,7 +4133,7 @@ async function runWhatIf() {
           const sg = s.profit_gain_krw ?? s.revenue_change ?? 0;
           const sCls = sg >= 0 ? 'pos' : 'neg';
           return `<div class="wi-result-item">
-            <div class="wi-label">${s.label || JSON.stringify(s.env||{})}</div>
+            <div class="wi-label">${_esc(s.label || JSON.stringify(s.env||{}))}</div>
             <div class="wi-val ${sCls}">${sg>=0?'+':''}${fmt(sg)} 원</div>
           </div>`;
         }).join('') + '</div></div>';
@@ -4174,10 +4174,10 @@ async function loadCostBreakdown() {
             <div style="height:3px;background:var(--accent);border-radius:2px;width:${pct}%"></div></div>` : '';
       return `<div class="cost-row" style="flex-direction:column;align-items:stretch;gap:2px">
         <div style="display:flex;justify-content:space-between">
-          <span>${label}${manualBadge}</span>
+          <span>${_esc(label)}${manualBadge}</span>
           <span style="font-weight:600">${fmt(it.amount_krw??it.amount)} 원${pct!=null?` <span style="font-size:10px;color:var(--muted)">(${pct}%)</span>`:''}</span>
         </div>
-        ${it.unit_label ? `<div style="font-size:10px;color:var(--muted)">${it.unit_label}</div>` : ''}
+        ${it.unit_label ? `<div style="font-size:10px;color:var(--muted)">${_esc(it.unit_label)}</div>` : ''}
         ${barHtml}
       </div>`;
     }).join('');
@@ -4401,7 +4401,7 @@ async function loadWeatherForecast() {
       const icon = sky.includes('맑') ? '☀️' : sky.includes('구름') ? '⛅' : '🌧️';
       const windSpd = day.wind_spd ?? day.wind_speed;
       return `<tr>
-        <td>${dtStr}</td><td>${icon} ${sky||'—'}</td>
+        <td>${dtStr}</td><td>${icon} ${_esc(sky||'—')}</td>
         <td>${day.temp_min!=null?day.temp_min+'°':''} / ${day.temp_max!=null?day.temp_max+'°':'—'}</td>
         <td>${day.precip_prob!=null?day.precip_prob+'%':'—'}</td>
         <td>${windSpd!=null?Number(windSpd).toFixed(1)+' m/s':'—'}</td>
@@ -4437,7 +4437,7 @@ async function loadWeatherEt0(farmId) {
     el.innerHTML = `
       <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
         <span style="font-size:11px;font-weight:700;color:var(--green)">💧 ET₀ 예보 (mm/일)</span>
-        <span style="font-size:10px;color:var(--muted)">Hargreaves · ${d.source || 'open_meteo'}</span>
+        <span style="font-size:10px;color:var(--muted)">Hargreaves · ${_esc(d.source || 'open_meteo')}</span>
       </div>
       <div style="display:flex;gap:4px;align-items:flex-end">${bars}</div>`;
   } catch(e) { el.innerHTML = ''; }
@@ -4460,7 +4460,7 @@ async function loadPrivaSchedule() {
     const phaseColors = ['#4f8ef7','#3ecf8e','#f5c842'];
     const phases = (d.phases || []).map((ph, i) => `
       <div style="background:rgba(${i===0?'79,142,247':i===1?'62,207,142':'245,200,66'},.1);border-radius:8px;padding:10px;border:1px solid rgba(${i===0?'79,142,247':i===1?'62,207,142':'245,200,66'},.3)">
-        <div style="font-size:11px;font-weight:700;color:${phaseColors[i]};margin-bottom:6px">${ph.name_ko || 'Phase'+(i+1)} <span style="color:var(--muted);font-weight:400">${ph.start_hhmm}~${ph.end_hhmm}</span></div>
+        <div style="font-size:11px;font-weight:700;color:${phaseColors[i]};margin-bottom:6px">${_esc(ph.name_ko || 'Phase'+(i+1))} <span style="color:var(--muted);font-weight:400">${_esc(ph.start_hhmm)}~${_esc(ph.end_hhmm)}</span></div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:11px">
           <div style="color:var(--muted)">횟수</div><div style="font-weight:700">${ph.n_max}회</div>
           <div style="color:var(--muted)">회당공급</div><div style="font-weight:700">${fmt0(ph.supply_ml)} ml</div>
@@ -4492,8 +4492,8 @@ async function loadPrivaSchedule() {
         </div>
       </div>
       <div style="margin-top:8px;font-size:10px;color:var(--muted)">
-        🌱 ${d.crop_ko || ''} · ${d.growth_stage || stage} · 작물크기 ${d.plant_size_pct || size}%
-        ${d.note ? '· ' + d.note.slice(0,80) : ''}
+        🌱 ${_esc(d.crop_ko || '')} · ${_esc(d.growth_stage || stage)} · 작물크기 ${d.plant_size_pct || size}%
+        ${d.note ? '· ' + _esc(d.note.slice(0,80)) : ''}
       </div>`;
   } catch(e) {
     el.innerHTML = `<span style="color:var(--red);font-size:12px">조회 실패: ${_esc(e.message)}</span>`;
@@ -4510,9 +4510,9 @@ async function loadModelPerformance() {
     const d = await apiFetch(`/api/farms/${farmId}/system/model-performance`);
     const gradeColor = g => g === '⭐⭐⭐' ? 'var(--green)' : g === '⭐⭐' ? 'var(--yellow)' : 'var(--muted)';
     const m2rows = (d.m2_yield || []).map(r =>
-      `<tr><td>${r.crop}</td><td style="color:${r.mape_pct<=15?'var(--green)':r.mape_pct<=30?'var(--yellow)':'var(--red)'}">${r.mape_pct}%</td><td>${r.n_samples||'?'}건</td><td style="color:${gradeColor(r.grade)}">${r.grade}</td></tr>`
+      `<tr><td>${_esc(r.crop)}</td><td style="color:${r.mape_pct<=15?'var(--green)':r.mape_pct<=30?'var(--yellow)':'var(--red)'}">${r.mape_pct}%</td><td>${r.n_samples||'?'}건</td><td style="color:${gradeColor(r.grade)}">${_esc(r.grade)}</td></tr>`
     ).join('');
-    const m5status = `<tr><td colspan="4" style="color:var(--muted);font-size:11px">M5 질병진단: ${d.m5_disease?.status || 'stub모드 (이미지모델 없음)'}</td></tr>`;
+    const m5status = `<tr><td colspan="4" style="color:var(--muted);font-size:11px">M5 질병진단: ${_esc(d.m5_disease?.status || 'stub모드 (이미지모델 없음)')}</td></tr>`;
     el.innerHTML = `
       <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:8px">M2 수확량 예측 (MAPE)</div>
       <table class="weather-tbl" style="margin-bottom:12px">
@@ -4577,28 +4577,29 @@ async function loadApiStatus() {
       const color = isOk ? 'var(--green)' : isFallback ? 'var(--yellow)' : isMissing ? 'var(--red)' : 'var(--yellow)';
       const icon  = isOk ? '✅' : isFallback ? '⚠️' : isMissing ? '❌' : '⚠️';
       const stLabel = isOk ? (st === 'available' ? '사용 가능' : '연결됨') : isFallback ? '폴백 동작 중' : '미설정';
-      const note = info?.note ? `<br><span style="font-size:10px;color:var(--muted)">${info.note}</span>` : '';
-      const usedFor = info?.used_for ? `<br><span style="font-size:10px;color:var(--muted)">${info.used_for}</span>` : '';
+      const note = info?.note ? `<br><span style="font-size:10px;color:var(--muted)">${_esc(info.note)}</span>` : '';
+      const usedFor = info?.used_for ? `<br><span style="font-size:10px;color:var(--muted)">${_esc(info.used_for)}</span>` : '';
       return `<tr>
-        <td>${name}${usedFor}</td>
+        <td>${_esc(name)}${usedFor}</td>
         <td style="color:${color};font-size:11px">${icon} ${stLabel}${note}</td>
       </tr>`;
     }).join('');
 
     // 미설정 API 키 발급 안내
     const missing = d.missing_keys || {};
+    const _safeUrl = u => (u && /^https?:\/\//.test(u)) ? _esc(u) : '#';
     const missRows = Object.entries(missing).map(([k, v]) =>
       `<tr>
-        <td style="color:var(--yellow);font-size:11px">⚠️ ${v.service}</td>
-        <td style="font-size:10px">${v.used_for}</td>
-        <td><a href="${v.get_key_url}" target="_blank" style="color:var(--accent);font-size:10px">${v.cost || '발급'}</a></td>
+        <td style="color:var(--yellow);font-size:11px">⚠️ ${_esc(v.service)}</td>
+        <td style="font-size:10px">${_esc(v.used_for)}</td>
+        <td><a href="${_safeUrl(v.get_key_url)}" target="_blank" style="color:var(--accent);font-size:10px">${_esc(v.cost || '발급')}</a></td>
       </tr>`
     ).join('');
 
     // MCP 서버 안내
     const mcp = d.mcp_servers || {};
     const mcpRows = Object.entries(mcp).slice(0,4).map(([k, v]) =>
-      `<tr><td style="font-size:11px">${v.name}</td><td style="font-size:10px;color:var(--muted)">${v.description}</td><td style="font-size:10px;color:${v.status==='ACTIVE'?'var(--green)':'var(--muted)'}">${v.status||'미연결'}</td></tr>`
+      `<tr><td style="font-size:11px">${_esc(v.name)}</td><td style="font-size:10px;color:var(--muted)">${_esc(v.description)}</td><td style="font-size:10px;color:${v.status==='ACTIVE'?'var(--green)':'var(--muted)'}">${_esc(v.status||'미연결')}</td></tr>`
     ).join('');
 
     el.innerHTML = `
@@ -4662,7 +4663,7 @@ async function loadDiseaseDetect(farmId) {
     const risk = d.risk_level || 'none';
     const riskColor = risk==='high'?'var(--red)':risk==='medium'?'var(--yellow)':'var(--green)';
     const riskTxt   = {high:'🔴 높음',medium:'🟡 중간',low:'🟢 낮음',none:'✅ 정상'}[risk]||risk;
-    const srcBadges = (d.source_chain||[]).map(s=>`<span class="badge badge-info" style="font-size:9px">${s}</span>`).join(' ');
+    const srcBadges = (d.source_chain||[]).map(s=>`<span class="badge badge-info" style="font-size:9px">${_esc(s)}</span>`).join(' ');
     const allRisks  = (d.all_risks||[]).slice(0,4).map(r=>`
       <div style="display:flex;justify-content:space-between;padding:3px 0;font-size:11px">
         <span>${_esc(r.disease_ko||r.disease)}</span>
@@ -4714,10 +4715,10 @@ async function loadWholesaleMarket(farmId) {
     const boundsHtml = bounds ? `
       <div style="background:var(--card-soft);border:1px solid var(--border);border-radius:6px;padding:8px;margin-top:8px;font-size:11px">
         <div style="font-weight:700;color:var(--muted);margin-bottom:4px">📊 수확량 합리적 범위 (M2 클리핑)</div>
-        <div>${d.crop}: <span style="color:var(--green)">${bounds.lower_kg_m2}~${bounds.upper_kg_m2} kg/m²/시즌</span></div>
-        <div style="color:var(--muted);font-size:10px">${bounds.reference} · ${d.yield_clipping_note||''}</div>
+        <div>${_esc(d.crop)}: <span style="color:var(--green)">${bounds.lower_kg_m2}~${bounds.upper_kg_m2} kg/m²/시즌</span></div>
+        <div style="color:var(--muted);font-size:10px">${_esc(bounds.reference)} · ${_esc(d.yield_clipping_note||'')}</div>
       </div>` : '';
-    const srcBadges = (d.source_chain||[]).map(s=>`<span class="badge badge-info" style="font-size:9px">${s}</span>`).join(' ');
+    const srcBadges = (d.source_chain||[]).map(s=>`<span class="badge badge-info" style="font-size:9px">${_esc(s)}</span>`).join(' ');
     el.innerHTML = `
       <div style="font-size:20px;font-weight:700;color:var(--green)">${price}</div>
       <div style="font-size:11px;color:var(--muted);margin:4px 0">${faoRef}${faoRef&&corr?' · ':''}${corr}</div>
@@ -4779,7 +4780,7 @@ async function loadIrrigationSchedule() {
         <span style="color:var(--accent);font-size:16px;font-weight:700">${d.last_irrigation ?? '—'}</span>
       </div>
       <div style="margin-top:8px;font-size:11px;color:var(--muted)">
-        📡 ${d.source === 'kma_asos_yesterday' ? 'ASOS 전일 실측 기반' : '계절 평균 기반'} — ${d.note ?? ''}
+        📡 ${d.source === 'kma_asos_yesterday' ? 'ASOS 전일 실측 기반' : '계절 평균 기반'} — ${_esc(d.note ?? '')}
       </div>`;
   } catch(e) {
     el.innerHTML = `<span style="color:var(--red);font-size:12px">조회 실패: ${_esc(e.message)}</span>`;
@@ -4881,7 +4882,7 @@ async function loadIrrigationAnalysis(farmId) {
       el.innerHTML = '<div class="irr-anomaly-list">' + d.alerts.map(a =>
         `<div class="irr-alert-row ${a.severity === 'major' ? 'major' : 'minor'}">
           <span>${a.severity === 'major' ? '🟡' : 'ℹ️'}</span>
-          <div><strong>${a.label_ko}</strong> — ${a.message_ko}</div>
+          <div><strong>${_esc(a.label_ko)}</strong> — ${_esc(a.message_ko)}</div>
         </div>`
       ).join('') + '</div>';
     } else {
@@ -4894,9 +4895,9 @@ async function loadIrrigationAnalysis(farmId) {
       if (!v) return '';
       const statusColor = v.status === 'normal' ? 'var(--green)' : v.status === 'high' ? 'var(--red)' : 'var(--yellow)';
       return `<tr>
-        <td style="color:var(--muted)">${v.label_ko}</td>
-        <td style="text-align:right;font-weight:600;color:${statusColor}">${v.latest}${v.unit}</td>
-        <td style="text-align:right;color:var(--muted);font-size:10px">${v.avg}${v.unit} (7일평균)</td>
+        <td style="color:var(--muted)">${_esc(v.label_ko)}</td>
+        <td style="text-align:right;font-weight:600;color:${statusColor}">${_esc(String(v.latest))}${_esc(v.unit)}</td>
+        <td style="text-align:right;color:var(--muted);font-size:10px">${_esc(String(v.avg))}${_esc(v.unit)} (7일평균)</td>
       </tr>`;
     }).filter(Boolean).join('');
     if (rows) {
@@ -4947,8 +4948,8 @@ async function loadEnvAnomalies() {
         const cls = sev === 'critical' ? 'var(--red)' : sev === 'major' ? 'var(--yellow)' : 'var(--accent)';
         const valStr = a.current_value != null ? (Number(a.current_value) % 1 === 0 ? Number(a.current_value) : Number(a.current_value).toFixed(2)) : '—';
         return `<div style="padding:8px 12px;border-radius:7px;border-left:3px solid ${cls};background:var(--card-soft);font-size:12px">
-          <div style="font-weight:600;margin-bottom:2px">${a.variable_ko || a.variable} <span style="color:${cls}">${valStr}${a.unit||''}</span></div>
-          <div style="color:var(--muted)">${a.message_ko || ''}</div></div>`;
+          <div style="font-weight:600;margin-bottom:2px">${_esc(a.variable_ko || a.variable)} <span style="color:${cls}">${_esc(valStr)}${_esc(a.unit||'')}</span></div>
+          <div style="color:var(--muted)">${_esc(a.message_ko || '')}</div></div>`;
       }).join('') + '</div>';
   } catch(e) {
     el.innerHTML = _errBoxHtml(e, '환경 이상감지 조회 실패');
@@ -5101,7 +5102,7 @@ async function loadERPRealtime() {
 
     const led = d.led_spectrum || {};
     const stageHtml = d.growth_stage
-      ? `<span style="font-size:11px;color:var(--accent);border:1px solid var(--accent);border-radius:4px;padding:2px 8px;margin-left:8px">${d.growth_stage}</span>`
+      ? `<span style="font-size:11px;color:var(--accent);border:1px solid var(--accent);border-radius:4px;padding:2px 8px;margin-left:8px">${_esc(d.growth_stage)}</span>`
       : '';
 
     // ── null 값 원인 분석 ──────────────────────────────────────────────────
@@ -5155,10 +5156,10 @@ async function loadERPRealtime() {
       <div style="background:var(--green-soft);border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
         <span style="font-size:13px">💡 출하 타이밍</span>
         ${stageHtml}
-        <span style="color:${adviceColor};font-weight:600;font-size:13px">${ht.advice || '—'}</span>
+        <span style="color:${adviceColor};font-weight:600;font-size:13px">${_esc(ht.advice || '—')}</span>
         <span style="font-size:11px;color:var(--muted);margin-left:auto">오늘 ${fmt(ht.today_margin)}원 → 내일 ${fmt(ht.tomorrow_margin_est)}원</span>
       </div>
-      ${led.ratio_str ? `<div style="margin-top:8px;font-size:11px;color:var(--muted)">💡 LED 권장 (${d.growth_stage}): <strong style="color:var(--accent)">${led.ratio_str}</strong> — ${led.effect || ''}</div>` : ''}
+      ${led.ratio_str ? `<div style="margin-top:8px;font-size:11px;color:var(--muted)">💡 LED 권장 (${_esc(d.growth_stage)}): <strong style="color:var(--accent)">${_esc(led.ratio_str)}</strong> — ${_esc(led.effect || '')}</div>` : ''}
       ${_nullReasonHtml(nullReasons)}
     `;
   } catch(e) {
@@ -5190,15 +5191,15 @@ async function loadLEDSpectrum() {
 
     el.innerHTML = `
       <div style="background:rgba(79,142,247,0.1);border:1px solid rgba(79,142,247,0.35);border-radius:8px;padding:10px 14px;margin-top:4px">
-        <div style="font-size:12px;font-weight:600;color:var(--accent);margin-bottom:4px">📍 현재 단계: ${stage}</div>
+        <div style="font-size:12px;font-weight:600;color:var(--accent);margin-bottom:4px">📍 현재 단계: ${_esc(stage)}</div>
         <div style="display:flex;gap:14px;flex-wrap:wrap;font-size:12px">
           <span>🔴 적색 <strong>${led.red ?? '—'}%</strong></span>
           <span>🔵 청색 <strong>${led.blue ?? '—'}%</strong></span>
           <span>🟣 UV <strong>${led.uv ?? '—'}%</strong></span>
-          <span style="color:var(--muted)">비율: <strong>${led.ratio_str || '—'}</strong></span>
+          <span style="color:var(--muted)">비율: <strong>${_esc(led.ratio_str || '—')}</strong></span>
         </div>
-        <div style="font-size:11px;color:var(--green);margin-top:4px">✅ ${led.effect || ''}</div>
-        ${led.note ? `<div style="font-size:10px;color:var(--muted);margin-top:2px">${led.note}</div>` : ''}
+        <div style="font-size:11px;color:var(--green);margin-top:4px">✅ ${_esc(led.effect || '')}</div>
+        ${led.note ? `<div style="font-size:10px;color:var(--muted);margin-top:2px">${_esc(led.note)}</div>` : ''}
       </div>`;
   } catch(e) {
     el.innerHTML = `<span style="color:var(--red);font-size:11px">조회 실패: ${_esc(e.message)}</span>`;
@@ -5307,7 +5308,7 @@ async function loadMarketPrices() {
       const priceVal = p.price_krw_kg ?? p.price_krw ?? p.price;
       const dateVal  = p.regday || p.base_date || p.date || p.updated_at;
       return `<tr>
-        <td>${p.crop_ko || p.crop || '—'}</td>
+        <td>${_esc(p.crop_ko || p.crop || '—')}</td>
         <td>${priceVal != null ? Math.round(priceVal).toLocaleString('ko-KR') : '—'} 원/kg</td>
         <td>${chgHtml}</td>
         <td style="color:var(--muted)">${dateVal ? dateVal.substring(0,10) : '—'}</td>
@@ -5332,7 +5333,7 @@ async function loadMarketPrices() {
       if (tbEl && tbEl.innerHTML.includes('갱신 중')) {
         tbEl.innerHTML = poolPrices.slice(0,5).map(p=>`
           <tr>
-            <td>${p.crop_ko||'—'}</td>
+            <td>${_esc(p.crop_ko||'—')}</td>
             <td style="text-align:center;color:var(--muted)">금주</td>
             <td style="text-align:right">${p.price_krw_kg ? Math.round(p.price_krw_kg*0.3).toLocaleString('ko-KR')+'kg' : '—'}</td>
             <td style="text-align:center"><span class="pill-tag">${p.change_pct>=0?'모집중':'완료'}</span></td>
@@ -5384,7 +5385,7 @@ async function loadPriceHistory() {
       const chgHtml = chg != null
         ? `<span class="${chg>=0?'price-up':'price-down'}">${chg>=0?'+':''}${chg.toFixed(1)}%</span>` : '—';
       return `<tr>
-        <td style="color:var(--muted)">${it.date}</td>
+        <td style="color:var(--muted)">${_esc(it.date)}</td>
         <td style="text-align:right;font-weight:600">${it.price_krw_kg.toLocaleString('ko-KR')}원</td>
         <td style="text-align:right">${chgHtml}</td>
       </tr>`;
@@ -5485,12 +5486,12 @@ async function loadAdvisorOptimal() {
         const range = (it.lo != null && it.hi != null)
           ? `${Number(it.lo).toFixed(1)}~${Number(it.hi).toFixed(1)}` : '—';
         return `<div class="advisor-opt-item">
-          <div class="ao-var">${it.label}</div>
-          <div class="ao-val">${mid} <span style="font-size:10px;color:var(--muted)">${it.unit}</span></div>
-          <div class="ao-range">최적 ${range}</div>
+          <div class="ao-var">${_esc(it.label)}</div>
+          <div class="ao-val">${_esc(mid)} <span style="font-size:10px;color:var(--muted)">${_esc(it.unit)}</span></div>
+          <div class="ao-range">최적 ${_esc(range)}</div>
         </div>`;
       }).join('') + '</div>' +
-      (d.note ? `<div style="font-size:11px;color:var(--muted);margin-top:8px">${d.note}</div>` : '');
+      (d.note ? `<div style="font-size:11px;color:var(--muted);margin-top:8px">${_esc(d.note)}</div>` : '');
   } catch(e) {
     el.innerHTML = `<span style="color:var(--red);font-size:12px">조회 실패: ${_esc(e.message)}</span>`;
   }
@@ -5684,8 +5685,8 @@ function _applyLockBanner(section, lockedFeatures) {
     <div style="background:${color}18;border:1px solid ${color}44;border-radius:10px;
                 padding:12px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px">
       <div>
-        <span style="font-size:13px;font-weight:700;color:${color}">🔒 ${_tierNameKo(minTier)} 플랜 이상 필요</span>
-        <div style="font-size:11px;color:var(--muted);margin-top:3px">${labels}</div>
+        <span style="font-size:13px;font-weight:700;color:${color}">🔒 ${_esc(_tierNameKo(minTier))} 플랜 이상 필요</span>
+        <div style="font-size:11px;color:var(--muted);margin-top:3px">${_esc(labels)}</div>
       </div>
       <button onclick="openUpgradeModal()"
               style="flex-shrink:0;padding:7px 16px;background:${color};border:none;
@@ -5737,9 +5738,9 @@ function _renderUpgradeCards() {
 
   wrap.innerHTML = opts.map((o, idx) => `
     <label class="upgrade-tier-card" style="--tc:${o.color}">
-      <input type="radio" name="upgrade-tier-sel" value="${o.tier}" ${idx === 0 ? 'checked' : ''}>
+      <input type="radio" name="upgrade-tier-sel" value="${_esc(o.tier)}" ${idx === 0 ? 'checked' : ''}>
       <div class="upgrade-tier-card-inner">
-        <div style="font-size:16px;font-weight:700;color:${o.color}">${o.name_ko}</div>
+        <div style="font-size:16px;font-weight:700;color:${o.color}">${_esc(o.name_ko)}</div>
         <div style="font-size:24px;font-weight:800;margin:8px 0">
           ₩${Math.round(o.price_krw_month/1000)}K
           <span style="font-size:11px;font-weight:400;color:var(--muted)">/월</span>
