@@ -3455,8 +3455,9 @@ async function loadFarmDiseaseRisk(farmId) {
     }).join('');
     // env_snapshot 표시
     const snap = d.env_snapshot;
+    const snapFmt = v => v != null && !isNaN(Number(v)) ? Number(v).toFixed(1) : '—';
     const snapHtml = snap ? `<div style="font-size:10px;color:var(--muted);margin-top:8px">
-      판단근거: 온도 ${snap.temp_internal??'—'}°C / 습도 ${snap.humidity_int??'—'}% / CO₂ ${snap.co2_ppm??'—'}ppm</div>` : '';
+      판단근거: 온도 ${snapFmt(snap.temp_internal)}°C / 습도 ${snapFmt(snap.humidity_int)}% / CO₂ ${snapFmt(snap.co2_ppm)}ppm</div>` : '';
     // 조치 권고
     const actionHtml = d.action_ko ? `<div style="font-size:11px;color:var(--accent);margin-top:6px">💊 ${_esc(d.action_ko)}</div>` : '';
     el.innerHTML = `<div class="disease-grid">${cards}</div>${snapHtml}${actionHtml}`;
@@ -4395,15 +4396,17 @@ async function loadWeatherForecast() {
         // YYYYMMDD → YYYY-MM-DD 변환
         const normalized = raw.length === 8 ? `${raw.slice(0,4)}-${raw.slice(4,6)}-${raw.slice(6,8)}` : raw;
         try { dtStr = new Date(normalized).toLocaleDateString('ko-KR',{month:'numeric',day:'numeric',weekday:'short'}); }
-        catch(e) { dtStr = raw; }
+        catch(e) { dtStr = _esc(raw); }
       }
       const sky = day.sky || day.sky_label || '';
       const icon = sky.includes('맑') ? '☀️' : sky.includes('구름') ? '⛅' : '🌧️';
       const windSpd = day.wind_spd ?? day.wind_speed;
+      const fmtNum = v => v != null && !isNaN(Number(v)) ? Number(v) : null;
+      const tMin = fmtNum(day.temp_min), tMax = fmtNum(day.temp_max), pProb = fmtNum(day.precip_prob);
       return `<tr>
         <td>${dtStr}</td><td>${icon} ${_esc(sky||'—')}</td>
-        <td>${day.temp_min!=null?day.temp_min+'°':''} / ${day.temp_max!=null?day.temp_max+'°':'—'}</td>
-        <td>${day.precip_prob!=null?day.precip_prob+'%':'—'}</td>
+        <td>${tMin!=null?tMin+'°':''} / ${tMax!=null?tMax+'°':'—'}</td>
+        <td>${pProb!=null?pProb+'%':'—'}</td>
         <td>${windSpd!=null?Number(windSpd).toFixed(1)+' m/s':'—'}</td>
       </tr>`;
     }).join('');
