@@ -3283,7 +3283,7 @@ function _renderRecoItems(items, farmId) {
     const action = r.action_ko || r.action || r.message || '—';
     return `<div class="reco-item">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px">
-        <span class="reco-action">${r.rank != null ? `#${r.rank} ` : ''}${action}</span>
+        <span class="reco-action">${r.rank != null ? `#${r.rank} ` : ''}${_esc(action)}</span>
         <span style="white-space:nowrap">${tierTxt}</span>
       </div>
       ${changeSummary ? `<div style="font-size:10px;color:var(--muted);margin-top:2px">조정: ${changeSummary}</div>` : ''}
@@ -3444,13 +3444,13 @@ async function loadFarmDiseaseRisk(farmId) {
       const lvlTxt= pct < 30 ? '낮음' : pct < 60 ? '중간' : '높음';
       const badge = pct < 30 ? 'ok' : pct < 60 ? 'warn' : 'fail';
       return `<div class="disease-card">
-        <div class="disease-name">${r.disease_ko || r.disease || '—'}
+        <div class="disease-name">${_esc(r.disease_ko || r.disease || '—')}
           <span class="badge ${badge}" style="float:right">${lvlTxt}</span>
         </div>
         <div class="disease-risk-bar">
           <div class="disease-risk-fill disease-risk-${lvl}" style="width:${pct}%"></div>
         </div>
-        <div class="disease-pct">${pct}% · ${r.note || r.description || r.action_ko || ''}</div>
+        <div class="disease-pct">${pct}% · ${_esc(r.note || r.description || r.action_ko || '')}</div>
       </div>`;
     }).join('');
     // env_snapshot 표시
@@ -3458,7 +3458,7 @@ async function loadFarmDiseaseRisk(farmId) {
     const snapHtml = snap ? `<div style="font-size:10px;color:var(--muted);margin-top:8px">
       판단근거: 온도 ${snap.temp_internal??'—'}°C / 습도 ${snap.humidity_int??'—'}% / CO₂ ${snap.co2_ppm??'—'}ppm</div>` : '';
     // 조치 권고
-    const actionHtml = d.action_ko ? `<div style="font-size:11px;color:var(--accent);margin-top:6px">💊 ${d.action_ko}</div>` : '';
+    const actionHtml = d.action_ko ? `<div style="font-size:11px;color:var(--accent);margin-top:6px">💊 ${_esc(d.action_ko)}</div>` : '';
     el.innerHTML = `<div class="disease-grid">${cards}</div>${snapHtml}${actionHtml}`;
   } catch(e) {
     el.innerHTML = `<div style="color:var(--red);padding:12px">병해 조회 실패: ${_esc(e.message)}</div>`;
@@ -4665,20 +4665,20 @@ async function loadDiseaseDetect(farmId) {
     const srcBadges = (d.source_chain||[]).map(s=>`<span class="badge badge-info" style="font-size:9px">${s}</span>`).join(' ');
     const allRisks  = (d.all_risks||[]).slice(0,4).map(r=>`
       <div style="display:flex;justify-content:space-between;padding:3px 0;font-size:11px">
-        <span>${r.disease_ko||r.disease}</span>
+        <span>${_esc(r.disease_ko||r.disease)}</span>
         <span style="color:${r.risk_level==='high'?'var(--red)':r.risk_level==='medium'?'var(--yellow)':'var(--green)'}">${(r.score*100).toFixed(0)}%</span>
       </div>`).join('');
-    const ncpms = (d.ncpms_forecast||[]).slice(0,3).map(f=>`<div style="font-size:10px;color:var(--muted)">${f.date} ${f.pest_ko} ${f.level}</div>`).join('');
+    const ncpms = (d.ncpms_forecast||[]).slice(0,3).map(f=>`<div style="font-size:10px;color:var(--muted)">${_esc(f.date)} ${_esc(f.pest_ko)} ${_esc(f.level)}</div>`).join('');
     el.innerHTML = `
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
         <div style="font-size:22px;font-weight:700;color:${riskColor}">${riskTxt}</div>
         <div>
-          <div style="font-weight:600">${d.disease_ko||'이상 없음'}</div>
-          <div style="font-size:11px;color:var(--muted)">${d.action_ko||''}</div>
+          <div style="font-weight:600">${_esc(d.disease_ko||'이상 없음')}</div>
+          <div style="font-size:11px;color:var(--muted)">${_esc(d.action_ko||'')}</div>
         </div>
       </div>
       <div style="font-size:11px;color:var(--muted);margin-bottom:6px">
-        ${(d.reasons||[]).map(r=>`• ${r}`).join('<br>')}
+        ${(d.reasons||[]).map(r=>`• ${_esc(r)}`).join('<br>')}
       </div>
       ${allRisks ? `<div style="border-top:1px solid var(--border);padding-top:6px;margin-bottom:6px">${allRisks}</div>` : ''}
       ${ncpms ? `<div style="border-top:1px solid var(--border);padding-top:6px"><div style="font-size:10px;font-weight:700;color:var(--muted);margin-bottom:3px">NCPMS 발생예보</div>${ncpms}</div>` : ''}
@@ -5035,7 +5035,7 @@ async function loadHeroDashboard(farmId) {
       const profit   = rec.profit_delta != null ? `+${Math.round(rec.profit_delta).toLocaleString('ko-KR')}원` : '';
       return `<div class="todo-item">
         <div class="todo-num ${cls}">${i+1}</div>
-        <div class="todo-text"><b>${rec.action_ko || '권고'}</b><span>${profit}</span></div>
+        <div class="todo-text"><b>${_esc(rec.action_ko || '권고')}</b><span>${profit}</span></div>
         <button class="todo-action ${act}">${btnLabel}</button>
       </div>`;
     }).join('');
@@ -5059,7 +5059,7 @@ async function loadHeroDashboard(farmId) {
     const topRec = recs[0];
     setText('ai-reco-explain', '');
     const exEl = $('ai-reco-explain');
-    if (exEl && topRec) exEl.innerHTML = `<b>추천:</b> ${topRec.action_ko || ''}`;
+    if (exEl && topRec) exEl.innerHTML = `<b>추천:</b> ${_esc(topRec.action_ko || '')}`;
   } catch(e) {
     // AI 권고 없어도 Hero는 표시됨
     const tb = $('todo-body');
