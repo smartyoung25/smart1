@@ -1271,6 +1271,10 @@ def whatif(farm_id: str, body: WhatIfInput):
         "[whatif] farm=%s crop=%s base=%.0f whatif=%.0f delta=%.0f",
         farm_id, crop, baseline_rev, whatif_rev, delta,
     )
+    # yield_kg_forecast: revenue / price 역산
+    _price = get_price_krw_kg(crop) or 1.0
+    _yield_est = round(whatif_rev / _price, 1) if _price and whatif_rev else None
+
     return WhatIfResult(
         baseline_revenue_krw=round(baseline_rev),
         whatif_revenue_krw=round(whatif_rev),
@@ -1282,6 +1286,7 @@ def whatif(farm_id: str, body: WhatIfInput):
         profit_gain_krw=round(delta),
         revenue_gain_krw=round(delta),
         revenue_krw=round(whatif_rev),
+        yield_kg_forecast=_yield_est,
     )
 
 
