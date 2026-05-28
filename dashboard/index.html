@@ -2328,6 +2328,7 @@
       <select id="chat-farm-sel" class="chat-farm-sel">
         <option value="">농장 선택…</option>
       </select>
+      <button onclick="clearChat()" title="대화 초기화" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;padding:2px 6px;border-radius:4px" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background='none'">🗑️</button>
       <button onclick="toggleChat()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px">✕</button>
     </div>
   </div>
@@ -2357,6 +2358,8 @@ let _myFarmId  = sessionStorage.getItem('sf_farm_id') || '';
 let _myTier    = sessionStorage.getItem('sf_tier')    || 'basic';
 let _planCache = null;   // GET /billing/plan 캐시
 let _featCache = {};     // { section: [features] }
+let _chatHistory = [];   // AI 채팅 대화 이력 [{ role, content }]
+let _chatFarmId  = '';   // 현재 채팅 중인 농장 ID (변경 시 이력 초기화)
 
 function _decodeJwt(token) {
   try {
@@ -3672,19 +3675,6 @@ async function loadProfitForecast() {
     `;
   } catch(e) {
     body.innerHTML = `<div style="color:var(--muted);font-size:12px;padding:8px">조회 실패: ${e.message}</div>`;
-  }
-}
-
-// 손익 예측 농장 선택지 채우기 (farmsOverview 완료 후 호출)
-function populateProfitFarmSel(farms) {
-  const sel = $('profit-farm-sel');
-  if (!sel || !farms) return;
-  const current = sel.value;
-  sel.innerHTML = '<option value="">농장 선택…</option>' +
-    farms.map(f => `<option value="${f.farm_id}" ${f.farm_id === current ? 'selected' : ''}>${f.farm_id} (${f.crop_ko || ''})</option>`).join('');
-  if (!current && farms.length > 0) {
-    sel.value = farms[0].farm_id;
-    loadProfitForecast();
   }
 }
 
@@ -5498,6 +5488,18 @@ function toggleChat() {
   }
 }
 
+function clearChat() {
+  _chatHistory = [];
+  _chatFarmId  = '';
+  const msgs = $('chat-messages');
+  if (msgs) {
+    msgs.innerHTML = `<div class="chat-msg ai">
+      <div class="chat-who">SMART FARM AI</div>
+      안녕하세요! 재배 환경, 수확량 예측, 관수 관리에 대해 무엇이든 물어보세요.
+    </div>`;
+  }
+}
+
 async function sendChat() {
   const input  = $('chat-input');
   const sendBtn= $('chat-send');
@@ -5505,6 +5507,13 @@ async function sendChat() {
   const farmId = $('chat-farm-sel')?.value || '';
   const text   = input?.value.trim();
   if (!text || !msgs) return;
+
+  // 농장 변경 시 대화 이력 초기화
+  const target = farmId || (_farmsData[0]?.farm_id || 'farm_001');
+  if (target !== _chatFarmId) {
+    _chatHistory = [];
+    _chatFarmId  = target;
+  }
 
   // 사용자 메시지 표시
   const userDiv = document.createElement('div');
@@ -5523,29 +5532,68 @@ async function sendChat() {
   msgs.appendChild(loadDiv);
   msgs.scrollTop = msgs.scrollHeight;
 
+  // 대화 이력에 사용자 메시지 추가 (최근 10개 유지)
+  _chatHistory.push({ role: 'user', content: text });
+  if (_chatHistory.length > 20) _chatHistory = _chatHistory.slice(-20);
+
   try {
-    const target = farmId || (_farmsData[0]?.farm_id || 'farm_001');
     const d = await apiFetch(`/api/farms/${target}/chat`, {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ message: text }),
+      body: JSON.stringify({ message: text, history: _chatHistory.slice(0, -1) }),
     });
     const reply = d.reply || d.message || d.response || JSON.stringify(d);
+    // 대화 이력에 AI 응답 추가
+    _chatHistory.push({ role: 'assistant', content: reply });
+
+    // 응답 표시 (텍스트 노드로 안전하게 처리)
+    const whoDiv = document.createElement('div');
+    whoDiv.className = 'chat-who';
+    whoDiv.textContent = 'SMART FARM AI';
+    const replyDiv = document.createElement('div');
+    replyDiv.style.whiteSpace = 'pre-wrap';
+    replyDiv.textContent = reply;
+    loadDiv.innerHTML = '';
+    loadDiv.appendChild(whoDiv);
+    loadDiv.appendChild(replyDiv);
+
     // 메타 뱃지 (model_used, referenced_data)
-    const metaHtml = (d.model_used && d.model_used !== 'stub-v1')
-      ? `<div style="font-size:9px;color:var(--muted);margin-top:4px">모델: ${d.model_used}</div>` : '';
-    const refHtml = (d.referenced_data && d.referenced_data.length)
-      ? `<div style="font-size:9px;color:var(--muted)">참조: ${d.referenced_data.join(', ')}</div>` : '';
+    if (d.model_used && d.model_used !== 'stub-v1' && d.model_used !== 'rule_based') {
+      const metaSpan = document.createElement('div');
+      metaSpan.style.cssText = 'font-size:9px;color:var(--muted);margin-top:4px';
+      metaSpan.textContent = '모델: ' + d.model_used;
+      loadDiv.appendChild(metaSpan);
+    }
+    if (d.referenced_data && d.referenced_data.length) {
+      const refSpan = document.createElement('div');
+      refSpan.style.cssText = 'font-size:9px;color:var(--muted)';
+      refSpan.textContent = '참조: ' + d.referenced_data.join(', ');
+      loadDiv.appendChild(refSpan);
+    }
     // suggestions 칩 — 클릭 시 해당 질문을 자동 입력
     const suggs = d.suggestions || [];
-    const suggsHtml = suggs.length
-      ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px">${
-          suggs.map(s => `<button class="chat-sugg-chip" onclick="$('chat-input').value='${s.replace(/'/g,"\\'")}';$('chat-input').focus()">${s}</button>`).join('')
-        }</div>` : '';
-    loadDiv.innerHTML = `<div class="chat-who">SMART FARM AI</div>${reply}${metaHtml}${refHtml}${suggsHtml}`;
+    if (suggs.length) {
+      const suggsWrap = document.createElement('div');
+      suggsWrap.style.cssText = 'display:flex;flex-wrap:wrap;gap:4px;margin-top:6px';
+      suggs.forEach(s => {
+        const btn = document.createElement('button');
+        btn.className = 'chat-sugg-chip';
+        btn.textContent = s;
+        btn.addEventListener('click', () => {
+          const inp = $('chat-input');
+          if (inp) { inp.value = s; inp.focus(); }
+        });
+        suggsWrap.appendChild(btn);
+      });
+      loadDiv.appendChild(suggsWrap);
+    }
     _refreshChatQuota();
   } catch(e) {
     loadDiv.innerHTML = `<div class="chat-who">SMART FARM AI</div><span style="color:var(--red)">오류: ${e.message}</span>`;
+    // 실패 시 대화 이력에서 사용자 메시지 제거
+    if (_chatHistory.length && _chatHistory[_chatHistory.length-1].role === 'user') {
+      _chatHistory.pop();
+    }
   } finally {
     if (sendBtn) sendBtn.disabled = false;
     msgs.scrollTop = msgs.scrollHeight;
