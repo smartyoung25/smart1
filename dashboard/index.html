@@ -3644,25 +3644,28 @@ async function loadProfitForecast() {
   body.innerHTML = '<div class="spinner"></div>';
   try {
     const d = await apiFetch(`/api/admin/farms/${farmId}/profit-forecast`);
-    const fmt = n => Math.round(n).toLocaleString('ko-KR');
-    const profitClass = d.profit_krw >= 0 ? 'positive' : 'negative';
-    const sign = d.profit_krw >= 0 ? '+' : '';
+    const fmt = n => n != null && !isNaN(n) ? Math.round(n).toLocaleString('ko-KR') : '—';
+    const fmtKg = n => n != null ? Number(n).toFixed(1) : '—';
+    const profit = d.profit_krw ?? (( d.revenue_krw ?? 0) - (d.cost_krw ?? 0));
+    const profitClass = profit >= 0 ? 'positive' : 'negative';
+    const sign = profit >= 0 ? '+' : '';
+    const marginPct = d.profit_margin_pct != null ? d.profit_margin_pct.toFixed(1) : '—';
     body.innerHTML = `
       <div class="profit-grid">
         <div class="profit-kpi"><div class="pk-label">예상 수확량</div>
-          <div class="pk-val">${fmt(d.yield_kg_forecast)} kg</div></div>
+          <div class="pk-val">${fmtKg(d.yield_kg_forecast)} <span style="font-size:11px;color:var(--muted)">kg</span></div></div>
         <div class="profit-kpi"><div class="pk-label">시세 (${d.price_source === 'kamis_live' ? '🟢실시간' : '📊평균'})</div>
-          <div class="pk-val">${fmt(d.price_krw_kg)}원/kg</div></div>
+          <div class="pk-val">${fmt(d.price_krw_kg)} <span style="font-size:11px;color:var(--muted)">원/kg</span></div></div>
         <div class="profit-kpi"><div class="pk-label">재배 면적</div>
-          <div class="pk-val">${fmt(d.plant_area_m2)} m²</div></div>
+          <div class="pk-val">${fmt(d.plant_area_m2)} <span style="font-size:11px;color:var(--muted)">m²</span></div></div>
         <div class="profit-kpi"><div class="pk-label">예상 매출</div>
-          <div class="pk-val">${fmt(d.revenue_krw)}원</div></div>
+          <div class="pk-val">${fmt(d.revenue_krw)} <span style="font-size:11px;color:var(--muted)">원</span></div></div>
         <div class="profit-kpi"><div class="pk-label">예상 비용</div>
-          <div class="pk-val">${fmt(d.cost_krw)}원</div></div>
+          <div class="pk-val">${fmt(d.cost_krw)} <span style="font-size:11px;color:var(--muted)">원</span></div></div>
         <div class="profit-kpi"><div class="pk-label">예상 순이익</div>
-          <div class="pk-val ${profitClass}">${sign}${fmt(d.profit_krw)}원</div></div>
+          <div class="pk-val ${profitClass}">${sign}${fmt(profit)} <span style="font-size:11px">원</span></div></div>
       </div>
-      <div class="profit-note">${d.crop_ko} · ${d.season_months}개월 · 이익률 ${d.profit_margin_pct}% · ${d.note}</div>
+      <div class="profit-note">${d.crop_ko || ''} · ${d.season_months || '—'}개월 시즌 · 이익률 ${marginPct}% · ${d.note || ''}</div>
     `;
   } catch(e) {
     body.innerHTML = `<div style="color:var(--muted);font-size:12px;padding:8px">조회 실패: ${e.message}</div>`;
