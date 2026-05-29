@@ -42,6 +42,16 @@ logging.basicConfig(
 )
 log = logging.getLogger("nightly_db_etl")
 
+# crop_type 영어 → 한국어 (training scripts는 한국어로 필터링)
+_CROP_EN_TO_KO: dict[str, str] = {
+    "strawberry":     "딸기",
+    "cherry_tomato":  "방울토마토",
+    "tomato":         "완숙토마토",
+    "melon":          "참외",
+    "paprika":        "파프리카",
+    "cucumber":       "오이",
+}
+
 
 # ── 환경 변수 / DB 연결 ──────────────────────────────────────────────────────────
 def _get_db_url() -> str:
@@ -95,20 +105,38 @@ def export_env(conn) -> int:
         except Exception:
             pass
 
+    # DB-side CASE WHEN aggregation (avoids loading 600k rows into Python memory)
     query = f"""
         SELECT
-            em.time::date         AS date,
+            em.time::date                                      AS date,
             em.farm_id,
-            em.canonical_name,
-            em.value,
-            f.crop_type           AS crop,
-            EXTRACT(YEAR FROM em.time)::int AS year,
-            '1'                   AS season
+            f.crop_type                                        AS crop,
+            EXTRACT(YEAR FROM em.time)::int                    AS year,
+            '1'                                                AS season,
+            AVG(CASE WHEN em.canonical_name = 'temp_internal' THEN em.value END) AS temp_internal_mean,
+            MAX(CASE WHEN em.canonical_name = 'temp_internal' THEN em.value END) AS temp_internal_max,
+            MIN(CASE WHEN em.canonical_name = 'temp_internal' THEN em.value END) AS temp_internal_min,
+            AVG(CASE WHEN em.canonical_name = 'temp_external' THEN em.value END) AS temp_external_mean,
+            AVG(CASE WHEN em.canonical_name = 'humidity_int'  THEN em.value END) AS humidity_int_mean,
+            AVG(CASE WHEN em.canonical_name = 'co2_ppm'       THEN em.value END) AS co2_ppm_mean,
+            AVG(CASE WHEN em.canonical_name = 'solar_rad'     THEN em.value END) AS solar_rad_mean,
+            SUM(CASE WHEN em.canonical_name = 'solar_rad'     THEN em.value END) AS solar_rad_sum,
+            AVG(CASE WHEN em.canonical_name = 'ec_dsm'        THEN em.value END) AS ec_dsm_mean,
+            AVG(CASE WHEN em.canonical_name = 'soil_temp'     THEN em.value END) AS soil_temp_mean,
+            AVG(CASE WHEN em.canonical_name = 'wc'            THEN em.value END) AS wc_mean,
+            MAX(CASE WHEN em.canonical_name = 'wc'            THEN em.value END) AS wc_max,
+            MIN(CASE WHEN em.canonical_name = 'wc'            THEN em.value END) AS wc_min,
+            AVG(CASE WHEN em.canonical_name = 'dr_pct'        THEN em.value END) AS dr_pct_mean,
+            AVG(CASE WHEN em.canonical_name = 'ec_drain'      THEN em.value END) AS ec_drain_mean,
+            SUM(CASE WHEN em.canonical_name = 'supply_total'  THEN em.value END) AS supply_total_sum,
+            SUM(CASE WHEN em.canonical_name = 'irr_count'     THEN em.value END) AS irr_count_sum,
+            AVG(CASE WHEN em.canonical_name = 'nl_pct'        THEN em.value END) AS nl_pct_mean
         FROM env_measurements em
         JOIN farms f ON f.farm_id = em.farm_id
         WHERE em.time::date > '{cutoff}'
           AND (em.quality_tag IS NULL OR em.quality_tag NOT IN ('bad','ERROR'))
-        ORDER BY em.farm_id, em.time::date, em.canonical_name
+        GROUP BY em.time::date, em.farm_id, f.crop_type, EXTRACT(YEAR FROM em.time)
+        ORDER BY em.farm_id, date
     """
     try:
         df = pd.read_sql(query, conn)
@@ -120,50 +148,15 @@ def export_env(conn) -> int:
         log.info("env: 신규 데이터 없음 (cutoff=%s)", cutoff)
         return 0
 
-    log.info("env 원시 행: %d (farm %d개)", len(df), df["farm_id"].nunique())
+    # crop_type 영어 → 한국어 변환
+    df["crop"] = df["crop"].map(lambda c: _CROP_EN_TO_KO.get(c, c))
+    df["date"] = pd.to_datetime(df["date"])
+    df["season"] = df["season"].astype(str)
 
-    # year/season already in df from SQL query
-    # pivot: 각 canonical_name → 통계 컬럼 (mean / max / min / sum)
-    AGG_COLS = {
-        "temp_internal":    ["mean", "max", "min"],
-        "temp_external":    ["mean"],
-        "humidity_int":     ["mean"],
-        "co2_ppm":          ["mean"],
-        "solar_rad":        ["mean", "sum"],
-        "ec_dsm":           ["mean"],
-        "soil_temp":        ["mean"],
-        # 관수 피처
-        "wc":               ["mean", "max", "min"],
-        "dr_pct":           ["mean"],
-        "ec_drain":         ["mean"],
-        "supply_total":     ["sum"],
-        "irr_count":        ["sum"],
-        "nl_pct":           ["mean"],
-    }
-
-    pivot_frames = []
-    group_keys = ["farm_id", "crop", "season", "year", "date"]
-
-    for canon, stats in AGG_COLS.items():
-        sub = df[df["canonical_name"].str.startswith(canon)]
-        if sub.empty:
-            continue
-        for stat in stats:
-            col_name = f"{canon}_{stat}"
-            agg = sub.groupby(group_keys)["value"].agg(stat).reset_index()
-            agg.rename(columns={"value": col_name}, inplace=True)
-            pivot_frames.append(agg)
-
-    if not pivot_frames:
-        log.warning("pivot 결과 없음 — canonical_name 매핑 확인 필요")
-        return 0
-
-    from functools import reduce
-    wide = reduce(lambda a, b: a.merge(b, on=group_keys, how="outer"), pivot_frames)
-    wide["date"] = pd.to_datetime(wide["date"])
+    log.info("env 집계 행: %d (farm %d개)", len(df), df["farm_id"].nunique())
 
     # 기존 parquet 에 증분 추가
-    new_rows = _merge_parquet(ENV_PARQUET, wide, key_cols=["farm_id", "crop", "season", "date"])
+    new_rows = _merge_parquet(ENV_PARQUET, df, key_cols=["farm_id", "crop", "season", "date"])
     log.info("env_daily.parquet 신규 행: %d", new_rows)
     return new_rows
 
@@ -212,20 +205,29 @@ def export_growth(conn) -> int:
 
     log.info("growth 원시 행: %d", len(df))
 
-    GROWTH_COLS = ["plant_height_cm", "leaf_count", "fruit_set_count", "stem_diameter_mm",
-                   "yield_kg", "revenue_krw"]
+    # 실제 DB canonical_names (variable_registry.sql 기준)
+    GROWTH_COLS = {
+        "plant_height":  "mean",
+        "leaf_count":    "mean",
+        "leaf_length":   "mean",
+        "leaf_width":    "mean",
+        "stem_diameter": "mean",
+        "fruit_count":   "mean",
+        "crown_diameter":"mean",
+        "node_count":    "mean",
+        # 생산량/매출은 sum (없으면 스킵)
+        "yield_kg":      "sum",
+        "revenue_krw":   "sum",
+    }
     group_keys = ["farm_id", "crop", "season", "year", "date"]
 
     pivot_frames = []
-    for col in GROWTH_COLS:
+    for col, stat in GROWTH_COLS.items():
         sub = df[df["canonical_name"] == col]
         if sub.empty:
             continue
-        stat = "sum" if col in ("yield_kg", "revenue_krw") else "mean"
         agg = sub.groupby(group_keys)["value"].agg(stat).reset_index()
-        # clean col names (e.g., plant_height_cm → plant_height)
-        clean = col.replace("_cm", "").replace("_mm", "")
-        agg.rename(columns={"value": clean}, inplace=True)
+        agg.rename(columns={"value": col}, inplace=True)
         pivot_frames.append(agg)
 
     if not pivot_frames:
@@ -235,13 +237,11 @@ def export_growth(conn) -> int:
     from functools import reduce
     wide = reduce(lambda a, b: a.merge(b, on=group_keys, how="outer"), pivot_frames)
     wide["date"] = pd.to_datetime(wide["date"])
-    wide["year"] = wide["date"].dt.year
 
     # prod_daily.parquet 도 yield/revenue 포함 (M2 학습 호환)
     prod_cols = [c for c in ["yield_kg", "revenue_krw"] if c in wide.columns]
     if prod_cols:
-        prod = wide[group_keys + prod_cols + ["year"]].copy()
-        prod["date"] = pd.to_datetime(prod["date"])
+        prod = wide[group_keys + prod_cols].copy()
         _merge_parquet(PROD_PARQUET, prod, key_cols=["farm_id", "crop", "season", "date"])
 
     new_rows = _merge_parquet(GROWTH_PARQUET, wide, key_cols=["farm_id", "crop", "season", "date"])
