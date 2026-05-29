@@ -280,6 +280,7 @@ async function submitManualEnv() {
 
 // ── 환경: 이상 감지 조회 ──────────────────────────────────────────────────────
 async function loadEnvAnomalies() {
+  if (!_token) return;
   const farmId = $('env-anomaly-farm')?.value || _defaultFarm();
   const el = $('env-anomaly-body');
   if (!el) return;

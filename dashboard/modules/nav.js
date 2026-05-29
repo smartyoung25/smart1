@@ -42,11 +42,12 @@ const SECTION_LOADERS = {
         _autoSel('weather-farm-sel', fid);
         _autoSel('env-manual-farm',  fid);
         _autoSel('led-farm-sel',     fid);
-        loadCurrentEnv();
-        loadWeatherForecast();
-        loadEnvAnomalies();
-        loadLEDSpectrum();
       }
+      // 각 함수가 내부적으로 farmId 미선택 처리하므로 fid 여부와 무관하게 항상 호출
+      loadCurrentEnv();
+      loadWeatherForecast();
+      loadEnvAnomalies();
+      loadLEDSpectrum();
     };
     if (!_farmsData.length) {
       loadFarmsOverview().then(_doLoadEnviron).catch(_doLoadEnviron);

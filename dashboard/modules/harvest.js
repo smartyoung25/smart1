@@ -3,6 +3,16 @@ let _advisoryEntries = [];
 
 async function loadAdvisoryHistory() {
   if (!_token) return;
+  if (_myFarmId) {  // 농장주 계정: 관리자 전용 기능 안내
+    const feed = $('advisory-feed');
+    if (feed && !feed.dataset.farmerMsg) {
+      feed.dataset.farmerMsg = '1';
+      feed.innerHTML = `<div class="data-reason-box" style="margin:8px 0">
+        <span style="font-size:13px;color:var(--muted)">🔒 권고 이력은 관리자 계정에서만 조회할 수 있습니다.</span>
+      </div>`;
+    }
+    return;
+  }
   const limit = $('adv-filter-limit') ? $('adv-filter-limit').value : 50;
   try {
     const data = await apiFetch(`/api/admin/advisor/history?limit=${limit}`);
@@ -79,6 +89,7 @@ const FIELD_SHORT = {
 
 async function loadAdvisorySummary() {
   if (!_token) return;
+  if (_myFarmId) return;  // 농장주 계정: 관리자 전용 엔드포인트 건너뜀
   const days = $('heatmap-days-sel') ? $('heatmap-days-sel').value : 30;
   try {
     const d = await apiFetch(`/api/admin/advisor/summary?days=${days}`);
