@@ -4,8 +4,9 @@ import pandas as pd, numpy as np
 warnings.filterwarnings("ignore")
 
 crop = sys.argv[1]
-OUT  = "/sessions/lucid-affectionate-bardeen/mnt/outputs/etl"
-DATA = "/sessions/lucid-affectionate-bardeen/mnt/smart_farm/engine/data"
+_ROOT = __import__("pathlib").Path(__file__).parent.parent.parent  # C:\smart_farm
+OUT  = str(_ROOT / "outputs" / "etl")
+DATA = str(_ROOT / "engine" / "data")
 
 ENV_BASE = ["temp_internal_mean","temp_internal_max","temp_internal_min",
             "humidity_int_mean","co2_ppm_mean","solar_rad_mean","solar_rad_sum",

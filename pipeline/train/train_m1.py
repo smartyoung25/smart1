@@ -6,8 +6,9 @@ import xgboost as xgb, lightgbm as lgb
 warnings.filterwarnings("ignore")
 
 crop = sys.argv[1]
-DATA = "/sessions/lucid-affectionate-bardeen/mnt/smart_farm/engine/data"
-ARTS = "/sessions/lucid-affectionate-bardeen/mnt/smart_farm/models/artifacts"
+_ROOT = __import__("pathlib").Path(__file__).parent.parent.parent  # C:\smart_farm
+DATA = str(_ROOT / "engine" / "data")
+ARTS = str(_ROOT / "models" / "artifacts")
 CROP_DIR = {"딸기":"strawberry","방울토마토":"cherry_tomato","완숙토마토":"tomato",
             "참외":"melon","파프리카":"paprika"}
 

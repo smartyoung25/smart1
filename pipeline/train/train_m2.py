@@ -15,8 +15,9 @@ optuna.logging.set_verbosity(optuna.logging.WARNING)
 crop = sys.argv[1]
 N_TRIALS = int(sys.argv[2]) if len(sys.argv) > 2 else 60
 
-OUT  = "/sessions/lucid-affectionate-bardeen/mnt/outputs/etl"
-ARTS = "/sessions/lucid-affectionate-bardeen/mnt/smart_farm/models/artifacts"
+_ROOT = __import__("pathlib").Path(__file__).parent.parent.parent  # C:\smart_farm
+OUT  = str(_ROOT / "outputs" / "etl")
+ARTS = str(_ROOT / "models" / "artifacts")
 CROP_DIR = {"딸기":"strawberry","방울토마토":"cherry_tomato","완숙토마토":"tomato",
             "참외":"melon","파프리카":"paprika"}
 art_dir  = f"{ARTS}/{CROP_DIR.get(crop,crop)}"
