@@ -228,7 +228,7 @@ _ALERT_RULES: dict[str, list[tuple]] = {
 
 
 def _build_alerts(farm_id: str, env: dict[str, float]) -> list[FarmAlert]:
-    """환경값과 임계값을 비교해 FarmAlert 목록 반환."""
+    """환경값과 임계값을 비교해 FarmAlert 목록 반환 (레거시 정적 룰 기반)."""
     rules = _ALERT_RULES.get(farm_id, [])
     alerts = []
     for i, (var, direction, threshold, severity, msg) in enumerate(rules):
@@ -247,6 +247,46 @@ def _build_alerts(farm_id: str, env: dict[str, float]) -> list[FarmAlert]:
                 threshold=threshold,
                 unit=_ENV_UNITS.get(var, ""),
             ))
+    return alerts
+
+
+def _detect_alerts(farm_id: str, env: dict[str, float], crop_ko: str = "딸기") -> list[FarmAlert]:
+    """detect_anomalies() 물리·통계 엔진을 사용해 FarmAlert 목록 반환.
+
+    _build_alerts()의 정적 룰 대신 anomaly_detector의 작기별·품종별
+    VPD/통계 임계값을 활용한다. 결과가 없을 때 정적 룰로 폴백.
+    """
+    from api.services.anomaly_detector import detect_anomalies  # 순환 import 방지
+    try:
+        raw = detect_anomalies(
+            crop_ko=crop_ko,
+            env_values={k: v for k, v in env.items() if v is not None},
+        )
+    except Exception:
+        raw = []
+
+    alerts: list[FarmAlert] = []
+    for i, a in enumerate(raw):
+        # threshold: 위반 방향에 맞는 경계값
+        if a.current_value > a.normal_max:
+            threshold = a.normal_max
+        else:
+            threshold = a.normal_min
+        # severity 매핑: anomaly_detector("minor/major/critical") → schema("info/warning/danger")
+        sev_map = {"minor": "info", "major": "warning", "critical": "danger"}
+        alerts.append(FarmAlert(
+            id=f"{farm_id}_{a.variable}_{i}",
+            severity=sev_map.get(a.severity, a.severity),
+            variable=a.variable,
+            message_ko=a.message_ko,
+            value=round(a.current_value, 2),
+            threshold=threshold,
+            unit=a.unit,
+        ))
+
+    # 물리 엔진 결과가 없으면 정적 룰 폴백
+    if not alerts:
+        alerts = _build_alerts(farm_id, env)
     return alerts
 
 
@@ -495,10 +535,10 @@ def get_regions(sido: str | None = None):
 def get_summary(farm_id: str):
     meta = _require_farm(farm_id)
     env  = _get_env(farm_id)
-    alerts = _build_alerts(farm_id, env) if env else []
+    crop     = meta.get("crop", "딸기")
+    alerts = _detect_alerts(farm_id, env, crop_ko=crop) if env else []
 
     # 이번 달 순이익 = 수확량 × 단가 × 면적 - 실비용 (stats_loader 실데이터)
-    crop     = meta.get("crop", "딸기")
     area     = meta["area_m2"]
     price    = get_price_krw_kg(crop)
     yield_m2 = get_yield_kg_m2(crop)
@@ -1585,8 +1625,8 @@ def _stub_reply(farm_id: str, message: str) -> ChatResponse:
     msg_lower = message.lower()
     meta   = _FARM_META.get(farm_id, {})
     env    = _get_env(farm_id) or {}
-    alerts = _build_alerts(farm_id, env) if env else []
     crop   = meta.get("crop", "작물")
+    alerts = _detect_alerts(farm_id, env, crop_ko=crop) if env else []
     area   = float(meta.get("area_m2") or 1000.0)  # 0/None 기본값 방지
 
     referenced: list[str] = []
@@ -1829,7 +1869,7 @@ def post_chat(farm_id: str, body: ChatRequest):
         from api.services.ai_chat import call_ai, build_farm_context
         _meta    = _FARM_META.get(farm_id, {})
         _env     = _get_env(farm_id) or {}
-        _alerts  = _build_alerts(farm_id, _env) if _env else []
+        _alerts  = _detect_alerts(farm_id, _env, crop_ko=_meta.get("crop", "딸기")) if _env else []
         _ctx     = build_farm_context(farm_id, _meta, _env, _alerts)
         _history = [{"role": m.role, "content": m.content} for m in body.history]
         _result  = call_ai(

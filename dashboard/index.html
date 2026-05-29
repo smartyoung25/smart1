@@ -4472,17 +4472,22 @@ const SECTION_LOADERS = {
 
   energy: () => {
     loadPricesLatest();
-    populateAllFarmSels();
-    const fid = _defaultFarm();
-    if (fid) {
-      _autoSel('erp-farm-sel',     fid);
-      _autoSel('cost-farm-sel',    fid);
-      _autoSel('profit-farm-sel',  fid);
-      _autoSel('cost-manual-farm', fid);
-      loadERPRealtime();       // ERP 실시간 원가·마진 자동 로드
-      loadProfitForecast();
-      loadCostBreakdown();     // 비용내역 자동 로드
-    }
+    const _doLoadEnergy = () => {
+      populateAllFarmSels();
+      const fid = _defaultFarm();
+      if (fid) {
+        _autoSel('erp-farm-sel',     fid);
+        _autoSel('cost-farm-sel',    fid);
+        _autoSel('profit-farm-sel',  fid);
+        _autoSel('cost-manual-farm', fid);
+        loadERPRealtime();       // ERP 실시간 원가·마진 자동 로드
+        loadProfitForecast();
+        loadCostBreakdown();     // 비용내역 자동 로드
+      }
+    };
+    if (!_farmsData.length) {
+      loadFarmsOverview().then(_doLoadEnergy).catch(_doLoadEnergy);
+    } else { _doLoadEnergy(); }
     if (_myFarmId) tierGuard(_myFarmId, 'energy');
   },
 
