@@ -53,7 +53,8 @@ def predict_yield(crop_ko: str, season_env: Dict[str, float],
                   farm_id: Optional[str] = None) -> Dict[str, float]:
     pkg = _load(crop_ko)
     if pkg is None:
-        return {"yield_kg_total":5000.0,"yield_kg_m2":5.0,"source":"stub"}
+        return {"yield_kg_total":5000.0,"yield_kg_m2":5.0,"source":"stub",
+                "mape_cv":999.0,"gate_pass":False}
 
     # ── 포맷 감지 ─────────────────────────────────────────────────────────────
     # 포맷 A (train_stage2_yield.py): feat_cols, feat_median, target, farm_yield_mean
@@ -109,7 +110,8 @@ def predict_yield(crop_ko: str, season_env: Dict[str, float],
         log_transform = pkg.get("log_transform", True)
 
         if not feat_cols:
-            return {"yield_kg_total": 5000.0, "yield_kg_m2": 5.0, "source": "stub"}
+            return {"yield_kg_total": 5000.0, "yield_kg_m2": 5.0, "source": "stub",
+                    "mape_cv": 999.0, "gate_pass": False}
 
         # 피처 행 구성: 0으로 초기화 (imputer가 훈련 중앙값으로 채움)
         row = {c: 0.0 for c in feat_cols}
@@ -143,7 +145,8 @@ def predict_yield(crop_ko: str, season_env: Dict[str, float],
         if lgb_m is not None:
             preds.append(float(lgb_m.predict(X)[0]))
         if not preds:
-            return {"yield_kg_total": 5000.0, "yield_kg_m2": 5.0, "source": "stub"}
+            return {"yield_kg_total": 5000.0, "yield_kg_m2": 5.0, "source": "stub",
+                    "mape_cv": 999.0, "gate_pass": False}
 
         log_pred = float(np.mean(preds))
         agg_mode = pkg.get("agg_mode", "annual")
@@ -188,7 +191,8 @@ def predict_yield(crop_ko: str, season_env: Dict[str, float],
         log_transform = pkg.get("log_transform", True)
 
         if not feat_cols:
-            return {"yield_kg_total": 5000.0, "yield_kg_m2": 5.0, "source": "stub"}
+            return {"yield_kg_total": 5000.0, "yield_kg_m2": 5.0, "source": "stub",
+                    "mape_cv": 999.0, "gate_pass": False}
 
         # 누락 피처는 0으로 패딩
         row = {c: 0.0 for c in feat_cols}
@@ -201,7 +205,8 @@ def predict_yield(crop_ko: str, season_env: Dict[str, float],
         if pkg.get("lgb") is not None:
             preds.append(pkg["lgb"].predict(X)[0])
         if not preds:
-            return {"yield_kg_total": 5000.0, "yield_kg_m2": 5.0, "source": "stub"}
+            return {"yield_kg_total": 5000.0, "yield_kg_m2": 5.0, "source": "stub",
+                    "mape_cv": 999.0, "gate_pass": False}
 
         raw_pred = float(np.mean(preds))
         if log_transform:
