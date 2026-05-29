@@ -177,8 +177,8 @@ async function loadERPRealtime() {
     const _DEFAULT_YIELD_KG_M2_MONTH = 3.0;
     const estKg = d.yield_kg_month ?? ((d.area_m2 ?? 0) * _DEFAULT_YIELD_KG_M2_MONTH);
     const bePct = beKg > 0 && estKg > 0 ? Math.min(100, Math.round(estKg / beKg * 100)) : 0;
-    const barFilled = Math.round(bePct / 10);
-    const barHtml = '■'.repeat(barFilled) + '□'.repeat(10 - barFilled);
+    const barColor = bePct >= 100 ? 'var(--green)' : bePct >= 70 ? 'var(--accent)' : 'var(--orange)';
+    const barHtml = `<div style="height:5px;background:var(--border);border-radius:3px;margin-top:4px;overflow:hidden"><div style="width:${bePct}%;height:100%;background:${barColor};border-radius:3px;transition:width .4s ease"></div></div>`;
 
     const led = d.led_spectrum || {};
     const stageHtml = d.growth_stage
@@ -219,7 +219,7 @@ async function loadERPRealtime() {
         <div class="profit-kpi">
           <div class="pk-label">달성률 추정</div>
           <div class="pk-val" style="font-size:14px">${bePct}%</div>
-          <div style="font-size:10px;color:var(--accent);letter-spacing:1px;margin-top:2px">${barHtml}</div>
+          ${barHtml}
         </div>
       </div>
       <div style="border-top:1px solid var(--border);padding-top:10px;margin-bottom:8px">

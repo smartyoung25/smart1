@@ -109,17 +109,17 @@ function triggerRetrainManual() {
     '재학습 시작',
     async () => {
       if (btn) btn.disabled = true;
-      if (resEl) resEl.innerHTML = '<span style="color:var(--muted);font-size:12px">재학습 요청 중…</span>';
+      _setResult('retrain-trigger-result', 'warn', '재학습 요청 중…');
       try {
         const d = await apiFetch('/api/admin/pipeline/trigger', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ reason: '대시보드 수동 트리거', confirm: true }),
         });
-        if (resEl) resEl.innerHTML = `<div style="color:var(--green);font-size:12px">✅ 재학습 시작됨 (run_id: ${_esc(d.run_id || '—')})</div>`;
+        _setResult('retrain-trigger-result', 'ok', `재학습 시작됨 (run_id: ${d.run_id || '—'})`);
         setTimeout(() => { loadRetrainHistory(); loadPipelineState(); }, 10_000);
       } catch(e) {
-        if (resEl) resEl.innerHTML = `<div style="color:var(--red);font-size:12px">❌ 실패: ${_esc(e.message)}</div>`;
+        _setResult('retrain-trigger-result', 'err', '실패: ' + e.message);
       } finally {
         if (btn) btn.disabled = false;
       }
