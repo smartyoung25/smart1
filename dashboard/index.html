@@ -953,6 +953,11 @@
   /* pill-tag: 와이어프레임 스타일 태그 */
   .pill-tag { padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 700;
               background: var(--green-soft); color: var(--green); border: 1px solid rgba(63,185,80,.3); cursor: default; }
+  /* 세그먼트 컨트롤 버튼 — 클릭 가능한 pill */
+  .seg-btn { cursor: pointer; background: var(--surface); color: var(--muted);
+             border: 1px solid var(--border); transition: background .15s, color .15s; }
+  .seg-btn:hover { background: var(--hover); color: var(--text); }
+  .seg-btn.seg-active { background: var(--green-soft); color: var(--green); border-color: rgba(63,185,80,.4); }
   .pill-tag.blue   { background: var(--blue-soft);   color: var(--blue);   border-color: rgba(88,166,255,.3); }
   .pill-tag.orange { background: var(--orange-soft); color: var(--orange); border-color: rgba(219,109,40,.3); }
   .pill-tag.red    { background: var(--red-soft);    color: var(--red);    border-color: rgba(248,81,73,.3); }
@@ -1598,7 +1603,7 @@
       <button class="ob-nav-back" id="ob-back-btn" onclick="obPrev()" style="display:none">← 이전</button>
       <button class="ob-nav-next" id="ob-next-btn" onclick="obNext()">다음 →</button>
     </div>
-    <div class="ob-skip" onclick="obSkip()">나중에 설정하기</div>
+    <div class="ob-skip" onclick="obSkip()" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){obSkip();event.preventDefault()}">나중에 설정하기</div>
   </div>
 </div>
 
@@ -1640,7 +1645,7 @@
   <button class="nav-item" onclick="showSection('system')"><span class="nav-icon">🔧</span>연동·모델관리</button>
   <!-- 구독 플랜 배지 -->
   <div id="plan-badge-wrap">
-    <div class="plan-badge" onclick="openUpgradeModal()" title="플랜 업그레이드">
+    <div class="plan-badge" onclick="openUpgradeModal()" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){openUpgradeModal();event.preventDefault()}" title="플랜 업그레이드">
       <div class="plan-dot" id="plan-dot" style="background:#8892a4"></div>
       <span class="plan-name" id="plan-name">기본</span>
       <span class="plan-chat-quota" id="plan-chat-quota"></span>
@@ -1930,10 +1935,10 @@
   <div class="card" style="background:linear-gradient(135deg,rgba(63,185,80,.08),rgba(46,160,67,.05));border:1px solid rgba(63,185,80,.2)">
     <div class="screen-hdr">
       <h4>🌱 온실 생육모델·재배력</h4>
-      <div class="model-seg-ctrl" style="display:flex;gap:6px;align-items:center">
-        <span class="pill-tag green">농진청 표준</span>
-        <span class="pill-tag blue">KAASA</span>
-        <span class="pill-tag orange">내 농장 동적</span>
+      <div class="model-seg-ctrl" id="model-seg-ctrl" style="display:flex;gap:6px;align-items:center">
+        <button class="pill-tag seg-btn" data-model="rda" onclick="setGrowthModel('rda')" title="농촌진흥청 표준 생육모델">농진청 표준</button>
+        <button class="pill-tag green seg-btn seg-active" data-model="kaasa" onclick="setGrowthModel('kaasa')" title="KAASA AI 생육모델">KAASA</button>
+        <button class="pill-tag seg-btn" data-model="dynamic" onclick="setGrowthModel('dynamic')" title="내 농장 실측 기반 동적 모델">내 농장 동적</button>
       </div>
     </div>
     <div class="kpi-row r3" style="margin-bottom:12px">
@@ -3655,7 +3660,7 @@ function renderFarmsTable() {
   tbody.innerHTML = rows.map((f, idx) => {
     const stCls  = f.anomaly?'anomaly': f.online?'online':'offline';
     const stText = f.anomaly?'🔴 이상': f.online?'🟢 온라인':'⚫ 오프라인';
-    return `<tr data-farmid="${_esc(f.farm_id)}" onclick="openChartPanel(this.dataset.farmid,this)">
+    return `<tr data-farmid="${_esc(f.farm_id)}" onclick="openChartPanel(this.dataset.farmid,this)" tabindex="0" role="button" onkeydown="if(event.key==='Enter'||event.key===' '){openChartPanel(this.dataset.farmid,this);event.preventDefault()}">
       <td style="font-family:monospace;font-size:11px">${_esc(f.farm_id)}</td>
       <td>${_esc(f.crop_ko)}</td>
       <td>${_esc(f.sido)} ${_esc(f.sigungu)}</td>
@@ -4552,7 +4557,14 @@ function showSection(name) {
 // ── 농장 선택지 일괄 채우기 헬퍼 ────────────────────────────────────────────
 function populateSelectWithFarms(selId, current = '') {
   const sel = $(selId);
-  if (!sel || !_farmsData.length) return;
+  if (!sel) return;
+  if (!_farmsData.length) {
+    // 농장 없음 상태 표시 (빈 select 대신 명시적 안내)
+    sel.innerHTML = '<option value="">등록된 농장 없음</option>';
+    sel.disabled = true;
+    return;
+  }
+  sel.disabled = false;
   // 기존 선택값 보존 (명시적으로 current가 전달되지 않은 경우)
   const prevVal = current || sel.value;
   const defaultFid = prevVal || _myFarmId || (_farmsData[0]?.farm_id) || '';
@@ -4599,6 +4611,31 @@ function populateGrowthSel() {
     sel.value = _farmsData[0].farm_id;
     loadGrowthHarvestRevenue();
   }
+}
+
+// ── 생육 모델 세그먼트 컨트롤 ──────────────────────────────────────────────
+let _growthModelType = 'kaasa'; // 'rda' | 'kaasa' | 'dynamic'
+
+function setGrowthModel(type) {
+  _growthModelType = type;
+  // 버튼 active 상태 업데이트
+  document.querySelectorAll('#model-seg-ctrl .seg-btn').forEach(btn => {
+    btn.classList.toggle('seg-active', btn.dataset.model === type);
+    // 색상: kaasa=green, dynamic=orange, rda=default(muted)
+    btn.classList.remove('green', 'blue', 'orange');
+    if (btn.dataset.model === type) {
+      if (type === 'kaasa')   btn.classList.add('green');
+      else if (type === 'dynamic') btn.classList.add('orange');
+    }
+  });
+  // 모델 타입에 따른 설명 업데이트
+  const hint = document.querySelector('#sec-growth .explain-box b');
+  if (hint) {
+    const labels = { rda: '농진청 표준', kaasa: 'KAASA AI', dynamic: '내 농장 동적' };
+    hint.textContent = (labels[type] || 'AI') + ' 생육모델:';
+  }
+  // 재로드 (API가 model_type 파라미터를 지원하면 전달, 아니면 클라이언트 측 레이블만 변경)
+  loadGrowthHarvestRevenue();
 }
 
 // ── 생육/재배: 수확량 + 매출·소득 예측 ──────────────────────────────────────
@@ -4816,6 +4853,7 @@ async function loadCostBreakdown() {
 // ── 에너지/비용: 수동 비용 입력 / 삭제 ──────────────────────────────────────
 function loadCostManualForm() {
   // 농장 선택 변경 시 기존 입력값 불러오기 (cost 조회 후 manual_input 필드 채우기)
+  if (!_token) return; // 로그인 전 호출 방지
   const farmId = $('cost-manual-farm')?.value;
   if (!farmId) return;
   apiFetch(`/api/farms/${farmId}/costs`).then(d => {
@@ -4978,7 +5016,33 @@ async function loadCurrentEnv() {
     apiFetch(`/api/farms/${farmId}/erp/realtime`).then(erp => {
       const energyW = erp?.cost_breakdown?.energy_per_m2;
       setText('env-kpi-energy', energyW != null ? Math.round(energyW) + 'W/m²' : '—');
+      // 피크 여부 힌트
+      const hint = $('env-kpi-energy-hint');
+      if (hint && erp?.peak_status) hint.textContent = erp.peak_status;
     }).catch(() => setText('env-kpi-energy', '—'));
+
+    // 운영모드 pill 동적 업데이트
+    const modeEl = $('env-mode-active');
+    if (modeEl && d.control_mode) {
+      const modeMap = {
+        'manual': '수동보조',
+        'advisory': '권고형',
+        'approval': '승인형 자동제어 ✓',
+        'full_auto': '완전자동',
+      };
+      modeEl.textContent = modeMap[d.control_mode] || d.control_mode;
+      // 색상: 완전자동=orange, 승인형=green, 권고형=default
+      modeEl.className = 'pill-tag ' +
+        (d.control_mode === 'full_auto' ? 'orange' :
+         d.control_mode === 'approval'  ? 'green'  : '');
+    }
+    // Fail-safe 상태 업데이트
+    const fsEl = $('env-failsafe-pill');
+    if (fsEl) {
+      const fsOk = d.failsafe_status !== false && d.failsafe_status !== 'error';
+      fsEl.textContent = fsOk ? 'Fail-safe 정상' : 'Fail-safe 이상';
+      fsEl.className   = 'pill-tag ' + (fsOk ? 'red' : 'orange');
+    }
 
   } catch(e) {
     el.innerHTML = `<span style="color:var(--red);font-size:12px">조회 실패: ${_esc(e.message)}</span>`;
@@ -6029,12 +6093,18 @@ async function loadMarketPrices() {
     if (poolPrices.length) {
       const avgP = Math.round(poolPrices.reduce((s,p)=>s+(p.price_krw_kg||0),0)/poolPrices.length);
       setText('pool-avg-price', avgP.toLocaleString('ko-KR')+'원/kg');
-      setText('pool-volume-7d', '집계 중');
-      setText('pool-quality-rate', '특·상 —%');
+      setText('pool-volume-7d', '—');           // 실측 집계 데이터 없음 — API 연동 시 업데이트
+      setText('pool-quality-rate', '특·상 —%'); // 품위 비율: 출하 실적 연동 예정
       setText('pool-farm-count', _farmsData.length || '—');
       setText('pool-farm-approved', '등록 '+(_farmsData.length||'—')+'개');
-      setText('pool-margin-vs-ind', '+8.3%');
-      setText('pool-price-change', '전주 대비');
+      // pool-margin-vs-ind: 전주 가격 대비 현재가 변화율 계산
+      const curAvg  = poolPrices.reduce((s,p)=>s+(p.price_krw_kg||0),0) / poolPrices.length;
+      const prevAvg = poolPrices.reduce((s,p)=>s+(p.prev_price_krw_kg || p.price_krw_kg || 0),0) / poolPrices.length;
+      const marginPct = prevAvg > 0 ? ((curAvg - prevAvg) / prevAvg * 100) : null;
+      setText('pool-margin-vs-ind', marginPct != null ? (marginPct >= 0 ? '+' : '') + marginPct.toFixed(1) + '%' : '—');
+      // pool-price-change: 전주 대비 가격 변화 금액
+      const priceDiff = Math.round(curAvg - prevAvg);
+      setText('pool-price-change', prevAvg > 0 ? (priceDiff >= 0 ? '+' : '') + priceDiff.toLocaleString('ko-KR') + '원' : '전주 대비');
       // pool-table-body 샘플 데이터
       const tbEl = $('pool-table-body');
       if (tbEl && tbEl.innerHTML.includes('갱신 중')) {
