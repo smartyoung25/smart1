@@ -35,7 +35,7 @@ function renderAdvisoryFeed() {
   const filter = ($('adv-filter-farm') ? $('adv-filter-farm').value.trim().toLowerCase() : '');
 
   const entries = filter
-    ? _advisoryEntries.filter(e => e.farm_id.toLowerCase().includes(filter))
+    ? _advisoryEntries.filter(e => (e.farm_id || '').toLowerCase().includes(filter))
     : _advisoryEntries;
 
   if (!entries.length) {
