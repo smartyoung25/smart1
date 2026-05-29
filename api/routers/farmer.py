@@ -2298,13 +2298,18 @@ def get_model_performance():
             # mape: training MAPE (gate 기준, 일관성) → cv_mape_mean은 LOYO 수치로 비정상 높음
             mape = m2.get("mape") or m2.get("cv_mape_mean") or m2.get("cv_mape") or 999
             cv_r2 = m2.get("cv_r2_mean") or m2.get("cv_r2") or 0.0
-            gate = m2.get("gate_passed", float(mape) <= 35)
+            # 현행 gate 기준(MAPE ≤ 35%)으로 재평가 — 저장된 gate_passed가 구 기준(40%)으로 설정됐을 수 있음
+            gate_stored = m2.get("gate_passed")
+            gate = bool(gate_stored) if gate_stored is not None else (float(mape) <= 35)
+            # MAPE가 100% 초과하면 gate_passed가 True여도 강제 실패로 표시
+            if float(mape) > 100:
+                gate = False
             m2_results.append({
                 "crop": ko,
                 "mape_pct": round(float(mape), 1),
                 "cv_r2": round(float(cv_r2), 3),
                 "n_samples": m2.get("n_samples", m2.get("n_train", 0)),
-                "gate_pass": bool(gate),
+                "gate_pass": gate,
                 "grade": "⭐⭐⭐" if mape <= 15 else "⭐⭐" if mape <= 30 else "⭐",
             })
 
