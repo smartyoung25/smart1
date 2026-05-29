@@ -1610,10 +1610,10 @@
     </button>
     <h1>🌿 KAASA <span>SmartOS</span></h1>
   </div>
-  <div style="display:flex;align-items:center;gap:10px">
-    <span id="last-refresh" style="font-size:11px;color:rgba(255,255,255,.5)">—</span>
-    <span id="logged-as" style="font-size:12px;color:rgba(255,255,255,.7)"></span>
-    <button class="hdr-btn" onclick="refreshAll()">↻ 새로고침</button>
+  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+    <span id="last-refresh" class="hdr-kpis" style="font-size:11px;color:rgba(255,255,255,.5)">—</span>
+    <span id="logged-as" class="hdr-kpis" style="font-size:12px;color:rgba(255,255,255,.7)"></span>
+    <button class="hdr-btn" onclick="refreshAll()" title="전체 새로고침 (Ctrl+R)">↻</button>
     <button class="hdr-btn" id="btn-logout" onclick="doLogout()">로그아웃</button>
     <div id="status-badge" class="offline"><div class="dot"></div><span>연결 확인 중</span></div>
   </div>
@@ -1838,8 +1838,7 @@
       </div>
     </div>
     <div id="farms-summary-bar" style="display:flex;gap:16px;margin:8px 0;flex-wrap:wrap"></div>
-    <div style="overflow-x:auto">
-      <div class="table-scroll-wrap"><table id="farms-table">
+    <div class="table-scroll-wrap"><table id="farms-table">
         <thead>
           <tr>
             <th onclick="sortFarms('farm_id')"       class="sortable">농장 ID ↕</th>
@@ -3461,7 +3460,12 @@ async function loadOverview() {
     if (modEl) modEl.textContent = d.models_loaded ?? '—';
     const r2El = $('kpi-r2');
     if (r2El) r2El.textContent = d.avg_model_r2 != null ? d.avg_model_r2.toFixed(3) : '—';
-  } catch {}
+  } catch(e) {
+    const modEl = $('kpi-models');
+    if (modEl) { modEl.textContent = '오류'; modEl.className = 'kc-val red'; }
+    const r2El = $('kpi-r2');
+    if (r2El) { r2El.textContent = '오류'; r2El.className = 'kc-val red'; }
+  }
 }
 
 // ── Crop models ───────────────────────────────────────────────────────────────
@@ -4163,6 +4167,8 @@ async function loadAdvisoryHistory() {
     renderAdvisoryFeed();
   } catch(e) {
     console.warn('[advisor] 이력 조회 실패:', e);
+    const feed = $('advisory-feed');
+    if (feed) feed.innerHTML = `<div class="data-err-box">권고 이력 조회 실패<span class="data-err-reason">${_esc(e.message)}</span></div>`;
   }
 }
 
@@ -4277,6 +4283,8 @@ async function loadAdvisorySummary() {
     renderHeatmap(d);
   } catch(e) {
     console.warn('[heatmap] 조회 실패:', e);
+    const tbody = $('heatmap-tbody');
+    if (tbody) tbody.innerHTML = `<tr><td colspan="10" style="color:var(--red);padding:8px">${_esc(e.message)}</td></tr>`;
   }
 }
 
