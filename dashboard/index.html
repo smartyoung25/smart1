@@ -5503,22 +5503,31 @@ async function loadEnvAnomalies() {
     const noEnvData = d.temp_internal == null && d.humidity_int == null;
 
     if (!alerts.length) {
-      el.innerHTML = '<div style="color:var(--green);font-size:12px;padding:16px 0;text-align:center">✅ 이상 감지 없음 — 모든 환경 지표 정상</div>';
       if (noEnvData) {
-        el.innerHTML += _nullReasonHtml([
+        el.innerHTML = _nullReasonHtml([
           ['환경 센서 수치', 'IoT 센서가 미연결이거나 최근 데이터가 수집되지 않았습니다'],
           ['알림 내역', 'IoT 환경 데이터가 없으면 이상 감지 알고리즘이 동작하지 않습니다'],
         ]);
+      } else {
+        el.innerHTML = '<div style="display:flex;align-items:center;gap:8px;padding:14px 0;font-size:12px">' +
+          '<span class="status-badge good">✅ 정상</span>' +
+          '<span style="color:var(--muted)">모든 환경 지표 이상 없음</span></div>';
       }
       return;
     }
     el.innerHTML = '<div style="display:flex;flex-direction:column;gap:6px;margin-top:6px">' +
       alerts.map(a => {
         const sev = a.severity || 'minor';
-        const cls = sev === 'critical' ? 'var(--red)' : sev === 'major' ? 'var(--yellow)' : 'var(--accent)';
+        const cls  = sev === 'critical' ? 'var(--red)' : sev === 'major' ? 'var(--yellow)' : 'var(--accent)';
+        const badgeCls = sev === 'critical' ? 'danger' : sev === 'major' ? 'warn' : 'info';
+        const badgeTxt = sev === 'critical' ? '🚨 위험' : sev === 'major' ? '⚠️ 주의' : '💡 참고';
         const valStr = a.current_value != null ? (Number(a.current_value) % 1 === 0 ? Number(a.current_value) : Number(a.current_value).toFixed(2)) : '—';
         return `<div style="padding:8px 12px;border-radius:7px;border-left:3px solid ${cls};background:var(--card-soft);font-size:12px">
-          <div style="font-weight:600;margin-bottom:2px">${_esc(a.variable_ko || a.variable)} <span style="color:${cls}">${_esc(valStr)}${_esc(a.unit||'')}</span></div>
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+            <span class="status-badge ${badgeCls}">${badgeTxt}</span>
+            <span style="font-weight:600">${_esc(a.variable_ko || a.variable)}</span>
+            <span style="color:${cls};font-weight:700">${_esc(valStr)}${_esc(a.unit||'')}</span>
+          </div>
           <div style="color:var(--muted)">${_esc(a.message_ko || '')}</div></div>`;
       }).join('') + '</div>';
   } catch(e) {
