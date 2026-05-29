@@ -161,7 +161,12 @@ class TestAdminEndpoints:
         assert "runs" in res.json()
 
     def test_pipeline_trigger_returns_run_id(self, admin_client: TestClient):
-        res = admin_client.post("/api/admin/pipeline/trigger", json={"reason": "test"})
+        # confirm=True 없이 호출 → 400
+        res_no_confirm = admin_client.post("/api/admin/pipeline/trigger", json={"reason": "test"})
+        assert res_no_confirm.status_code == 400
+
+        # confirm=True 포함 → 200
+        res = admin_client.post("/api/admin/pipeline/trigger", json={"reason": "test", "confirm": True})
         assert res.status_code == 200
         data = res.json()
         assert "run_id" in data
