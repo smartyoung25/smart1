@@ -86,8 +86,25 @@
 | Phase 2+3 | d712187 | +295 | 섹션별 CSS + 신규 UI 패턴 컴포넌트 |
 | **합계** | — | **+674** | **작업지시서 Phase 1(P1-1~11) + P2 주요항목 완료** |
 
+---
+
+## Phase 4 — 섹션 HTML 구조 최적화 (P1 우선순위)
+
+**완료일**: 2026-05-29
+**커밋**: c40663b
+
+| 항목 | 작업지시서 | 구현 내용 |
+|------|----------|---------|
+| sec-dashboard AI 추천 Accordion | §3.3 | accordion-toggle + accordion-body 래퍼 적용 |
+| sec-irrigation Period 타임라인 | §6.2 G3 | timeline-list period-timeline-mobile (모바일 전용) |
+| sec-irrigation Period 필박스 | §6.2 G3 | period-pill-bar (데스크탑 전용), 768px 기준 전환 |
+| sec-irrigation P4 입력 그리드 | §9.2 | form-3col 반응형 (3열→2열→1열) |
+| sec-environ 수동입력 그리드 | §4.1 | form-3col 반응형 전환 |
+| sec-market Pool 테이블 스크롤 | §9.3 | table-scroll-wrap 래퍼 |
+| sec-market 동의·참여 BottomSheet | §10.1 | BottomSheet.open() 연결 + pool-join-btns 모바일 세로 배치 |
+| sec-growth 모델 선택 세그먼트 | §2-5 | model-seg-ctrl 수평 스크롤 래퍼 |
+
 ### 미구현 (별도 작업 필요)
-- 각 섹션 HTML 내부 구조 변경 (Period 타임라인 실제 연결, Wizard 실제 화면)
-- 지도 플레이스홀더 터치 타겟 확대
-- 공동출하 Bottom Sheet 실제 트리거 연결
-- AI 추천 Accordion 실제 연결
+- 지도 플레이스홀더 터치 타겟 확대 (§3.2)
+- Wizard 실제 Full-screen Step 화면 (§9.7)
+- sec-energy / sec-control 섹션 HTML 정비
