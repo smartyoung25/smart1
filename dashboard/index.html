@@ -4590,7 +4590,7 @@ function populateGrowthSel() {
 
 // ── 생육/재배: 수확량 + 매출·소득 예측 ──────────────────────────────────────
 async function loadGrowthHarvestRevenue() {
-  const farmId = $('growth-farm-sel')?.value;
+  const farmId = $('growth-farm-sel')?.value || _defaultFarm();
   if (!farmId) return;
   // 동기화: whatif 농장도 맞춤
   if ($('whatif-farm-sel')) $('whatif-farm-sel').value = farmId;
@@ -4868,7 +4868,7 @@ async function deleteManualCost() {
 
 // ── 제어최적화: AI 권고 조회 ─────────────────────────────────────────────────
 async function loadCtrlRecommendations() {
-  const farmId = $('ctrl-farm-sel')?.value;
+  const farmId = $('ctrl-farm-sel')?.value || _defaultFarm();
   const el = $('ctrl-reco-body');
   if (!farmId || !el) return;
   el.innerHTML = '<div class="spinner"></div>';
