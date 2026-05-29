@@ -2818,8 +2818,12 @@
 
   <div class="row row-2">
     <div class="card">
-      <div class="card-title">파이프라인 — 재학습 임계값 진행률</div>
+      <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+        <span>파이프라인 — 재학습 임계값 진행률</span>
+        <button class="hdr-btn" id="retrain-trigger-btn" onclick="triggerRetrainManual()" title="수동 재학습 트리거 (어드민 전용)">⚡ 수동 재학습</button>
+      </div>
       <div id="pipeline-state-body"><div class="spinner"></div></div>
+      <div id="retrain-trigger-result" style="margin-top:8px"></div>
     </div>
     <div class="card">
       <div class="card-title">재학습 이력</div>
@@ -3521,6 +3525,30 @@ async function loadPipelineState() {
       </div>
       <div style="font-size:11px;color:var(--muted);margin-top:8px">갱신: ${(d.last_updated||'—').slice(0,19).replace('T',' ')}</div>`;
   } catch(e) { el.innerHTML = _errBoxHtml(e, '파이프라인 상태 조회 실패'); }
+}
+
+// ── 수동 재학습 트리거 (어드민 전용) ─────────────────────────────────────────
+async function triggerRetrainManual() {
+  const resEl = $('retrain-trigger-result');
+  const btn   = $('retrain-trigger-btn');
+  // 확인 다이얼로그 — confirm=true 필드 필수 (보안: 의도치 않은 트리거 방지)
+  if (!confirm('⚠️ 전체 모델 재학습을 시작하시겠습니까?\n\n약 10~30분 소요될 수 있습니다.\n계속하려면 확인을 누르세요.')) return;
+  if (btn) btn.disabled = true;
+  if (resEl) resEl.innerHTML = '<span style="color:var(--muted);font-size:12px">재학습 요청 중…</span>';
+  try {
+    const d = await apiFetch('/api/admin/pipeline/trigger', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reason: '대시보드 수동 트리거', confirm: true }),
+    });
+    if (resEl) resEl.innerHTML = `<div style="color:var(--green);font-size:12px">✅ 재학습 시작됨 (run_id: ${_esc(d.run_id || '—')})</div>`;
+    // 10초 후 재학습 이력 갱신
+    setTimeout(() => { loadRetrainHistory(); loadPipelineState(); }, 10_000);
+  } catch(e) {
+    if (resEl) resEl.innerHTML = `<div style="color:var(--red);font-size:12px">❌ 실패: ${_esc(e.message)}</div>`;
+  } finally {
+    if (btn) { btn.disabled = false; }
+  }
 }
 
 // ── ETL status ────────────────────────────────────────────────────────────────
