@@ -2843,14 +2843,32 @@ async function loadEnvAnomalies() {
 
     if (!alerts.length) {
       if (noEnvData) {
-        el.innerHTML = _nullReasonHtml([
-          ['환경 센서 수치', 'IoT 센서가 미연결이거나 최근 데이터가 수집되지 않았습니다'],
-          ['알림 내역', 'IoT 환경 데이터가 없으면 이상 감지 알고리즘이 동작하지 않습니다'],
-        ]);
+        el.innerHTML = '<div style="padding:16px;text-align:center;border-radius:8px;background:var(--card-soft);border:1px solid var(--border)">' +
+          '<div style="font-size:22px;margin-bottom:8px">📡</div>' +
+          '<div style="font-size:13px;font-weight:600;color:var(--fg);margin-bottom:4px">IoT 센서 미연결</div>' +
+          '<div style="font-size:12px;color:var(--muted)">센서 데이터가 수집되면 이상 감지가 자동으로 시작됩니다.</div>' +
+          '<div style="font-size:11px;color:var(--muted);margin-top:8px">수동 입력 탭에서 환경 수치를 직접 입력할 수 있습니다.</div>' +
+          '</div>';
       } else {
-        el.innerHTML = '<div style="display:flex;align-items:center;gap:8px;padding:14px 0;font-size:12px">' +
+        // 정상 상태: 현재 측정값도 함께 표시해 카드가 비어 보이지 않도록
+        const _SEN = [
+          {key:'temp_internal', label:'내부온도', unit:'°C', icon:'🌡️'},
+          {key:'humidity_int',  label:'내부습도', unit:'%',  icon:'💧'},
+          {key:'co2_ppm',       label:'CO₂',     unit:'ppm',icon:'💨'},
+          {key:'ec_dsm',        label:'EC',       unit:'dS/m',icon:'⚡'},
+          {key:'solar_rad',     label:'일사량',   unit:'W/m²',icon:'☀️'},
+          {key:'soil_temp',     label:'지온',     unit:'°C', icon:'🌱'},
+        ];
+        const sensorHtml = _SEN
+          .filter(s => d[s.key] != null)
+          .map(s => `<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border)">
+            <span style="font-size:12px;color:var(--muted)">${s.icon} ${s.label}</span>
+            <span style="font-size:13px;font-weight:600;color:var(--green)">${Number(d[s.key]).toFixed(1)} <span style="font-size:10px;font-weight:400">${s.unit}</span></span>
+          </div>`).join('');
+        el.innerHTML = '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">' +
           '<span class="status-badge good">✅ 정상</span>' +
-          '<span style="color:var(--muted)">모든 환경 지표 이상 없음</span></div>';
+          '<span style="font-size:12px;color:var(--muted)">모든 환경 지표 이상 없음</span></div>' +
+          (sensorHtml ? `<div style="margin-top:4px">${sensorHtml}</div>` : '');
       }
       return;
     }
