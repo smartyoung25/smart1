@@ -289,10 +289,10 @@ async function loadMarketPrices() {
       if (tbEl && tbEl.innerHTML.includes('갱신 중')) {
         tbEl.innerHTML = poolPrices.slice(0,5).map(p=>`
           <tr>
-            <td>${_esc(p.crop_ko||'—')}</td>
-            <td style="text-align:center;color:var(--muted)">금주</td>
-            <td style="text-align:right">${p.supply_volume != null ? Math.round(p.supply_volume).toLocaleString('ko-KR') + 'kg' : '—'}</td>
-            <td style="text-align:center"><span class="pill-tag">${p.change_pct != null ? (p.change_pct >= 0 ? '모집중' : '완료') : '—'}</span></td>
+            <td data-label="품목">${_esc(p.crop_ko||'—')}</td>
+            <td data-label="출하일" style="text-align:center;color:var(--muted)">금주</td>
+            <td data-label="물량" style="text-align:right">${p.supply_volume != null ? Math.round(p.supply_volume).toLocaleString('ko-KR') + 'kg' : '—'}</td>
+            <td data-label="상태" style="text-align:center"><span class="pill-tag">${p.change_pct != null ? (p.change_pct >= 0 ? '모집중' : '완료') : '—'}</span></td>
           </tr>`).join('');
       }
     }

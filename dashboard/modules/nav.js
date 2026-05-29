@@ -204,6 +204,12 @@ function showSection(name) {
   if (_ca) _ca.scrollTop = 0;
   if (target) target.scrollTop = 0;
 
+  // Sticky Action Bar 표시 제어 (작업지시서 §10.2)
+  const _SAB_SECTIONS = ['dashboard', 'market'];
+  document.querySelectorAll('.sticky-action-bar').forEach(bar => {
+    bar.style.display = _SAB_SECTIONS.includes(name) && bar.id === `sab-${name}` ? '' : 'none';
+  });
+
   const runLoader = () => { if (SECTION_LOADERS[name]) SECTION_LOADERS[name](); };
 
   if (!_farmsData.length && name !== 'system') {
@@ -330,6 +336,46 @@ function toggleCard(bodyEl, arrowEl) {
   const open = bodyEl.style.display !== 'none';
   bodyEl.style.display = open ? 'none' : 'block';
   if (arrowEl) arrowEl.style.transform = open ? '' : 'rotate(180deg)';
+}
+
+// ── C3 To-do 전체 확인 (Sticky Action Bar) ──
+function markAllTodoDone() {
+  const items = document.querySelectorAll('#todo-body .todo-item');
+  if (!items.length) { showToast('확인할 To-do 항목이 없습니다.'); return; }
+  items.forEach(item => {
+    const btn = item.querySelector('.todo-action');
+    if (btn && !btn.classList.contains('gray')) {
+      btn.classList.remove('blue','orange','red');
+      btn.classList.add('gray');
+      btn.textContent = '✓ 완료';
+    }
+  });
+  showToast('✅ 오늘 To-do를 모두 확인했습니다.');
+}
+
+// ── G2 환경제어 탭 전환 (작업지시서 §10.4) ──
+function switchEnvTab(tabName, btn) {
+  // 탭 버튼 활성화
+  document.querySelectorAll('.env-seg-ctrl .seg-btn').forEach(b => {
+    b.classList.remove('active');
+    b.setAttribute('aria-selected', 'false');
+  });
+  btn.classList.add('active');
+  btn.setAttribute('aria-selected', 'true');
+
+  // 패널 표시/숨김
+  document.querySelectorAll('#sec-environ .env-panel').forEach(panel => {
+    const show = panel.dataset.envpanel === tabName;
+    panel.style.display = show ? '' : 'none';
+    // row row-2는 flex 복원
+    if (show && panel.classList.contains('row')) panel.style.display = 'grid';
+  });
+
+  // 이력 탭 진입 시 자동 로드
+  if (tabName === 'history') {
+    const farmId = document.getElementById('env-manual-farm')?.value || _defaultFarm();
+    if (farmId && typeof loadEnvHistory === 'function') loadEnvHistory(farmId);
+  }
 }
 
 const BottomSheet = {

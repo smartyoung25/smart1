@@ -415,6 +415,12 @@
   </div>
 
 </div> <!-- /farms-overview-card -->
+
+<!-- Sticky Action Bar — C3 To-do 확인 (작업지시서 §10.2) -->
+<div class="sticky-action-bar" id="sab-dashboard">
+  <button class="sab-btn" onclick="markAllTodoDone()">✅ 오늘 To-do 모두 확인</button>
+</div>
+
 </div> <!-- /sec-dashboard -->
 
 <!-- ══════════════ 생육·재배력 (G4 + G6) ══════════════ -->
@@ -1243,6 +1249,13 @@
 <!-- ══════════════ 환경·기후·에너지 제어 (G2) ══════════════ -->
 <div id="sec-environ" class="sec">
 
+  <!-- G2 탭 전환 (환경현황 / 수동입력 / 이력) — 작업지시서 §10.4 -->
+  <div class="seg-ctrl env-seg-ctrl" role="tablist" aria-label="환경제어 탭">
+    <button class="seg-btn active" role="tab" aria-selected="true" data-envtab="realtime" onclick="switchEnvTab('realtime',this)">🌡️ 환경현황</button>
+    <button class="seg-btn" role="tab" aria-selected="false" data-envtab="manual" onclick="switchEnvTab('manual',this)">✏️ 수동입력</button>
+    <button class="seg-btn" role="tab" aria-selected="false" data-envtab="history" onclick="switchEnvTab('history',this)">📋 이력</button>
+  </div>
+
   <!-- G2 환경제어 헤더 -->
   <div class="card" style="background:linear-gradient(135deg,rgba(63,185,80,.08),rgba(46,160,67,.05));border:1px solid rgba(63,185,80,.2)">
     <div class="screen-hdr">
@@ -1274,7 +1287,7 @@
     </div>
   </div>
 
-  <div class="row row-2">
+  <div class="row row-2 env-panel" data-envpanel="realtime">
     <!-- 현재 환경값 조회 -->
     <div class="card">
       <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
@@ -1305,7 +1318,7 @@
   </div>
 
   <!-- 수동 환경값 입력 -->
-  <div class="card">
+  <div class="card env-panel" data-envpanel="manual" style="display:none">
     <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
       <span>✏️ 환경값 수동 입력</span>
       <span style="font-size:11px;color:var(--muted)">IoT 미구축 농장 전용</span>
@@ -1376,7 +1389,7 @@
   </div>
 
   <!-- 환경 이상 감지 패널 -->
-  <div class="card">
+  <div class="card env-panel" data-envpanel="realtime">
     <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
       <span>🚨 환경 이상 감지 (VPD·온도·습도·CO₂·EC)</span>
       <div style="display:flex;gap:6px;align-items:center">
@@ -1392,7 +1405,7 @@
   </div>
 
   <!-- 환경값 수동 입력 이력 -->
-  <div class="card">
+  <div class="card env-panel" data-envpanel="history" style="display:none">
     <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
       <span>📋 환경값 수동 입력 이력</span>
       <button class="hdr-btn" onclick="loadEnvHistory($('env-manual-farm')?.value || _defaultFarm())">↻</button>
@@ -1403,7 +1416,7 @@
   </div>
 
   <!-- LED 스펙트럼 추천 카드 (SFROP v2.0 혁신③) -->
-  <div class="card">
+  <div class="card env-panel" data-envpanel="manual" style="display:none">
     <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
       <span>💡 LED 스펙트럼 최적화 (작기단계별 자동 권장)</span>
       <select id="led-farm-sel" class="profit-farm-sel" onchange="loadLEDSpectrum()">
@@ -1554,6 +1567,12 @@
       <div id="advisor-opt-body" style="min-height:80px;color:var(--muted);font-size:12px;padding:16px 0;text-align:center">작목을 선택하세요</div>
     </div>
   </div>
+
+
+<!-- Sticky Action Bar — C12 참여 등록 (작업지시서 §10.2) -->
+<div class="sticky-action-bar" id="sab-market">
+  <button class="sab-btn" onclick="document.querySelector('#sec-market .pool-join-btns button')?.click()">🤝 공동출하 참여 등록</button>
+</div>
 
 </div> <!-- /sec-market -->
 

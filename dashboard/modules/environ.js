@@ -346,13 +346,17 @@ async function loadEnvAnomalies() {
         const badgeCls = sev === 'critical' ? 'danger' : sev === 'major' ? 'warn' : 'info';
         const badgeTxt = sev === 'critical' ? '🚨 위험' : sev === 'major' ? '⚠️ 주의' : '💡 참고';
         const valStr = a.current_value != null ? (Number(a.current_value) % 1 === 0 ? Number(a.current_value) : Number(a.current_value).toFixed(2)) : '—';
-        return `<div style="padding:8px 12px;border-radius:7px;border-left:3px solid ${cls};background:var(--card-soft);font-size:12px">
+        return `<div style="padding:10px 12px;border-radius:10px;border-left:3px solid ${cls};background:var(--card-soft);font-size:12px">
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
             <span class="status-badge ${badgeCls}">${badgeTxt}</span>
             <span style="font-weight:600">${_esc(a.variable_ko || a.variable)}</span>
             <span style="color:${cls};font-weight:700">${_esc(valStr)}${_esc(a.unit||'')}</span>
           </div>
-          <div style="color:var(--muted)">${_esc(a.message_ko || '')}</div></div>`;
+          <div style="color:var(--muted);margin-bottom:8px">${_esc(a.message_ko || '')}</div>
+          <div class="anomaly-action-btns">
+            <button class="reco-apply-btn" style="font-size:11px;padding:6px 14px" onclick="this.textContent='✅ 승인됨';this.disabled=true;this.nextElementSibling.disabled=true;showToast('AI 제어 권고를 승인했습니다.')">✓ 승인</button>
+            <button class="btn-ghost" style="font-size:11px;padding:6px 14px" onclick="this.textContent='⏸ 보류됨';this.disabled=true;this.previousElementSibling.disabled=true;showToast('권고를 보류했습니다.')">⏸ 보류</button>
+          </div></div>`;
       }).join('') + '</div>';
   } catch(e) {
     el.innerHTML = _errBoxHtml(e, '환경 이상감지 조회 실패');
