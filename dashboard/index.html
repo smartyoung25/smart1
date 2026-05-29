@@ -1099,6 +1099,7 @@
     .disease-grid { grid-template-columns: 1fr; }
     .advisor-opt-grid { grid-template-columns: 1fr 1fr; }
     .sensor-grid  { grid-template-columns: 1fr 1fr !important; }
+    .crop-grid    { grid-template-columns: 1fr 1fr; }
   }
 
   /* ── 1-7. 테이블 가로 스크롤 래퍼 ── */
@@ -1494,10 +1495,13 @@
   @media (min-width: 768px) { .period-timeline-mobile { display: none; } }
   @media (max-width: 767px) { .period-pill-bar { display: none !important; } }
 
-  /* ── 3-10. P4 입력 그리드 모바일 축소 ── */
+  /* ── 3-10. 입력 그리드 반응형 ── */
   .form-3col { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
   @media (max-width: 767px) { .form-3col { grid-template-columns: repeat(2, 1fr); } }
   @media (max-width: 430px)  { .form-3col { grid-template-columns: 1fr; } }
+  .form-4col { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  @media (max-width: 1099px) { .form-4col { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 430px)  { .form-4col { grid-template-columns: 1fr 1fr; } }
 
   /* ── 3-11. 공동출하 참여 버튼 전체 너비 (모바일) ── */
   @media (max-width: 767px) {
@@ -1987,7 +1991,7 @@
         <option value="">농장 선택…</option>
       </select>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:12px 0" id="whatif-inputs">
+    <div class="form-4col" style="margin:12px 0" id="whatif-inputs">
       <div>
         <div style="font-size:10px;color:var(--muted);margin-bottom:3px">내부온도 (°C)</div>
         <input id="wi-temp" type="number" step="0.5" placeholder="예: 24.0" class="env-input">
@@ -2217,6 +2221,7 @@
       <!-- 공동출하 수익효과 비교표 -->
       <div>
         <div style="font-size:12px;font-weight:700;margin-bottom:10px;color:var(--text)">공동출하 수익효과</div>
+        <div class="table-scroll-wrap">
         <table style="width:100%;font-size:12px;border-collapse:collapse">
           <thead><tr style="background:var(--card-soft)">
             <th style="padding:6px 8px;text-align:left;border-bottom:1px solid var(--border)">항목</th>
@@ -2230,6 +2235,7 @@
             <tr style="background:var(--card-soft)"><td style="padding:5px 8px">효과</td><td style="text-align:right">기준</td><td style="text-align:right;color:var(--green);font-weight:700" id="c5-pool-effect">—</td></tr>
           </tbody>
         </table>
+        </div><!-- /table-scroll-wrap -->
       </div>
     </div>
     <div class="explain-box" style="margin-top:14px"><b>설명:</b> 공동출하는 단가 상승과 물류비 절감 효과를 수익성 화면에서 직접 비교합니다. 농장을 선택하면 실시간 계산이 시작됩니다.</div>
@@ -2293,7 +2299,7 @@
     <div style="font-size:11px;color:var(--muted);margin-bottom:10px">
       입력한 항목만 적용됩니다. 미입력 항목은 기본 추정값을 사용합니다.
     </div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px">
+    <div class="form-3col" style="margin-bottom:10px">
       <!-- ── 에너지 ─────────────────────────── -->
       <div class="form-section-header">⚡ 에너지</div>
       <div>
@@ -5029,14 +5035,14 @@ async function loadPrivaSchedule() {
         </div>
       </div>`).join('');
     el.innerHTML = `
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px">
+      <div class="form-4col" style="gap:8px;margin-bottom:12px">
         <div class="irr-kpi"><div class="ik-label">총 관수</div><div class="ik-val">${d.n_irrigations ?? '—'}</div><div class="ik-unit">회/일</div></div>
         <div class="irr-kpi"><div class="ik-label">총 공급량</div><div class="ik-val">${fmt0(d.supply_total_ml)}</div><div class="ik-unit">ml/slab</div></div>
         <div class="irr-kpi"><div class="ik-label">ET₀</div><div class="ik-val">${fmt1(d.et0_mm)}</div><div class="ik-unit">mm</div></div>
         <div class="irr-kpi"><div class="ik-label">ETc (Kc=${fmt1(d.kc)})</div><div class="ik-val">${fmt1(d.etc_mm)}</div><div class="ik-unit">mm</div></div>
       </div>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px">${phases}</div>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;font-size:11px">
+      <div class="form-3col" style="gap:8px;margin-bottom:12px">${phases}</div>
+      <div class="form-3col" style="gap:8px;font-size:11px">
         <div style="background:var(--card);padding:8px;border-radius:6px">
           <div style="color:var(--muted);margin-bottom:2px">배액 목표</div>
           <div style="font-weight:700;color:var(--green)">${fmt1(d.drain_target_pct)}%</div>
@@ -5676,7 +5682,7 @@ async function loadERPRealtime() {
       nullReasons.push(['작기단계', '정식일 미등록 — 농가 메타 설정에서 정식월을 입력하세요']);
 
     el.innerHTML = `
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px">
+      <div class="form-3col" style="gap:10px;margin-bottom:12px">
         <div class="profit-kpi">
           <div class="pk-label">kg당 원가</div>
           <div class="pk-val">${fmt(d.cost_per_kg)} <span style="font-size:11px">원</span></div>
@@ -5842,7 +5848,7 @@ async function loadSfropScenarios() {
     }).join('');
 
     el.innerHTML = `
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:4px">
+      <div class="form-4col" style="gap:10px;margin-top:4px">
         ${cols}
       </div>
       <div style="font-size:10px;color:var(--muted);margin-top:8px;text-align:right">
@@ -5958,7 +5964,7 @@ async function loadPriceHistory() {
         <span style="font-size:11px;color:${trendColor};font-weight:700">${trendIcon} ${d.trend === 'up' ? '상승세' : d.trend === 'down' ? '하락세' : '보합세'}</span>
       </div>
       ${sparkline}
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px">
+      <div class="form-4col" style="gap:6px;margin-bottom:10px">
         ${[['최신가',stats.latest],['평균',stats.avg],['최고',stats.max],['최저',stats.min]].map(([l,v])=>
           `<div style="background:var(--card-soft);border:1px solid var(--border);border-radius:6px;padding:6px 8px;text-align:center">
             <div style="font-size:9px;color:var(--muted)">${l}</div>
