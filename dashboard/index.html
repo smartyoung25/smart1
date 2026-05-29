@@ -4618,7 +4618,7 @@ async function loadGrowthHarvestRevenue() {
         const priceLabel = r.price_source === 'kamis_live' || r.price_source === 'kamis_cache' ? '🟢실시간' : '📊평균';
         const marginTxt  = r.profit_margin_pct != null ? ` · 이익률 ${r.profit_margin_pct}%` : '';
         rEl.innerHTML = `
-          <div class="harvest-grid" style="grid-template-columns:repeat(3,1fr)">
+          <div class="harvest-grid">
             <div class="harvest-kpi">
               <div class="hk-label">예상 수확량 ${gateIcon}</div>
               <div class="hk-val">${fmtF(r.yield_kg_forecast)} <span style="font-size:11px;color:var(--muted)">kg</span></div>
