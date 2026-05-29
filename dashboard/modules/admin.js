@@ -139,7 +139,7 @@ async function loadEtlStatus() {
       return `<div class="log-line ${cls}">${_esc(l)}</div>`;
     }).join('');
     el.innerHTML = `<div class="log-box">${lines||'<span style="color:var(--muted)">로그 없음</span>'}</div>`;
-    el.querySelector('.log-box').scrollTop = 9999;
+    el.scrollTop = 9999;
   } catch(e) { el.innerHTML = _errBoxHtml(e, 'ETL 상태 조회 실패'); }
 }
 
