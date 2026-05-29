@@ -8,7 +8,7 @@ $DB_NAME  = "smartfarm"
 $DB_USER  = "smartfarm"
 $KEEP_DAYS = 7
 
-$env:PGPASSWORD = "f6bFuazrDJkHJsLfiI7@"
+$env:PGPASSWORD = "smartfarm"
 
 # 백업 디렉터리 생성
 if (!(Test-Path $BACKUP_DIR)) {
