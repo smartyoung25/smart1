@@ -216,7 +216,7 @@ function _renderHarvestTimeline(records, total) {
     : `<span class="rec-count">전체 ${total}건</span>`;
 
   const rows = records.map((r, i) => {
-    const bg        = i % 2 === 1 ? 'background:var(--card-soft)' : '';
+    const trCls     = i % 2 === 1 ? ' class="tbl-alt"' : '';
     const dateStr   = _jFmtDate(r.harvest_date || r.recorded_at);
     const crop      = r.crop_ko || '—';
     const yld       = _jFmtNum(r.yield_kg_m2,   'kg/㎡', 2);
@@ -266,7 +266,7 @@ function _renderEnvTimeline(records, total) {
     : `<span class="rec-count">전체 ${total}건</span>`;
 
   const rows = records.map((r, i) => {
-    const bg  = i % 2 === 1 ? 'background:var(--card-soft)' : '';
+    const trCls = i % 2 === 1 ? ' class="tbl-alt"' : '';
     const ts  = r.recorded_at ? String(r.recorded_at).substring(0, 16).replace('T', ' ') : '—';
     const p   = r.payload || {};
     const temp = _jFmtNum(p.temp_internal,  '°C', 1);
@@ -365,7 +365,7 @@ function _renderIrrigationTimeline(records, dataDays) {
   const badge = `<span class="rec-count">최근 ${dataDays}일 데이터 · ${records.length}건</span>`;
 
   const rows = records.slice().reverse().map((r, i) => {
-    const bg      = i % 2 === 1 ? 'background:var(--card-soft)' : '';
+    const trCls   = i % 2 === 1 ? ' class="tbl-alt"' : '';
     const dateStr = _jFmtDate(r.date);
     const wc      = _jFmtNum(r.wc_mean,      '%', 1);
     const dr      = r.dr_pct_mean != null ? _jFmtNum(r.dr_pct_mean, '%', 1) : '—';
