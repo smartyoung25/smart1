@@ -1286,7 +1286,7 @@
     .weather-tbl { min-width: 420px; }
     /* JS-rendered table 컨테이너에 직접 overflow 적용 */
     #weather-body, #env-current-body, #weather-et0-body,
-    #market-prices-body, #price-hist-body, #sys-model-perf-body { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    #market-prices-body, #price-hist-body, #model-perf-body { overflow-x: auto; -webkit-overflow-scrolling: touch; }
     #weather-body table, #env-current-body table { min-width: 380px; }
   }
 
@@ -2680,7 +2680,7 @@
         <div style="font-size:12px;font-weight:700;margin-bottom:8px">공동출하 정보 공개설정</div>
         <div class="explain-box" style="margin-top:0;margin-bottom:8px"><b>공개:</b> 품목·품종·예상물량·등급·출하가능일·포장규격·인증여부<br><b>비공개:</b> 농장 상세주소·원가·마진·센서 원자료·전체 생산량</div>
         <div class="pool-join-btns" style="display:flex;gap:8px">
-          <button class="todo-action" onclick="BottomSheet.open('공동출하 참여 동의','<p style=\'line-height:1.7;font-size:13px\'>아래 정보를 공개하는 데 동의하고 공동출하 Pool에 참여합니다.<br><b>공개 항목:</b> 품목·품종·예상물량·등급·출하가능일·포장규격·인증여부</p>','동의하고 참여',function(){alert(\'참여 신청이 접수되었습니다.\');BottomSheet.close();})">동의하고 참여</button>
+          <button class="todo-action" onclick="BottomSheet.open('공동출하 참여 동의','<p style=\'line-height:1.7;font-size:13px\'>아래 정보를 공개하는 데 동의하고 공동출하 Pool에 참여합니다.<br><b>공개 항목:</b> 품목·품종·예상물량·등급·출하가능일·포장규격·인증여부</p>','동의하고 참여',function(){showToast(\'✅ 참여 신청이 접수되었습니다.\');BottomSheet.close();})">동의하고 참여</button>
           <button class="todo-action gray">비공개 유지</button>
         </div>
       </div>
@@ -3528,27 +3528,31 @@ async function loadPipelineState() {
 }
 
 // ── 수동 재학습 트리거 (어드민 전용) ─────────────────────────────────────────
-async function triggerRetrainManual() {
+function triggerRetrainManual() {
   const resEl = $('retrain-trigger-result');
   const btn   = $('retrain-trigger-btn');
-  // 확인 다이얼로그 — confirm=true 필드 필수 (보안: 의도치 않은 트리거 방지)
-  if (!confirm('⚠️ 전체 모델 재학습을 시작하시겠습니까?\n\n약 10~30분 소요될 수 있습니다.\n계속하려면 확인을 누르세요.')) return;
-  if (btn) btn.disabled = true;
-  if (resEl) resEl.innerHTML = '<span style="color:var(--muted);font-size:12px">재학습 요청 중…</span>';
-  try {
-    const d = await apiFetch('/api/admin/pipeline/trigger', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ reason: '대시보드 수동 트리거', confirm: true }),
-    });
-    if (resEl) resEl.innerHTML = `<div style="color:var(--green);font-size:12px">✅ 재학습 시작됨 (run_id: ${_esc(d.run_id || '—')})</div>`;
-    // 10초 후 재학습 이력 갱신
-    setTimeout(() => { loadRetrainHistory(); loadPipelineState(); }, 10_000);
-  } catch(e) {
-    if (resEl) resEl.innerHTML = `<div style="color:var(--red);font-size:12px">❌ 실패: ${_esc(e.message)}</div>`;
-  } finally {
-    if (btn) { btn.disabled = false; }
-  }
+  BottomSheet.open(
+    '⚠️ 전체 모델 재학습',
+    '<p style="line-height:1.7;font-size:13px">전체 작목 AI 모델 재학습을 시작합니다.<br>약 <b>10~30분</b> 소요될 수 있습니다.</p>',
+    '재학습 시작',
+    async () => {
+      if (btn) btn.disabled = true;
+      if (resEl) resEl.innerHTML = '<span style="color:var(--muted);font-size:12px">재학습 요청 중…</span>';
+      try {
+        const d = await apiFetch('/api/admin/pipeline/trigger', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reason: '대시보드 수동 트리거', confirm: true }),
+        });
+        if (resEl) resEl.innerHTML = `<div style="color:var(--green);font-size:12px">✅ 재학습 시작됨 (run_id: ${_esc(d.run_id || '—')})</div>`;
+        setTimeout(() => { loadRetrainHistory(); loadPipelineState(); }, 10_000);
+      } catch(e) {
+        if (resEl) resEl.innerHTML = `<div style="color:var(--red);font-size:12px">❌ 실패: ${_esc(e.message)}</div>`;
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+  );
 }
 
 // ── ETL status ────────────────────────────────────────────────────────────────
@@ -3924,16 +3928,22 @@ async function loadFarmRecommendations(farmId) {
   }
 }
 
-async function applyRecommendations(farmId) {
-  if (!confirm(`${farmId}의 AI 권고를 적용하시겠습니까?`)) return;
-  try {
-    await apiFetch(`/api/farms/${farmId}/apply`, {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ rank: 1, confirmed: false }),
-    });
-    showToast('✅ 권고 적용 요청 완료');
-    loadFarmRecommendations(farmId);
-  } catch(e) { showToast('❌ 적용 실패: ' + e.message); }
+function applyRecommendations(farmId) {
+  BottomSheet.open(
+    'AI 권고 적용',
+    `<p style="line-height:1.7;font-size:13px"><b>${_esc(farmId)}</b> 농장의 AI 권고를 적용합니다.<br>권고 내용을 확인 후 진행하세요.</p>`,
+    '적용 요청',
+    async () => {
+      try {
+        await apiFetch(`/api/farms/${farmId}/apply`, {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ rank: 1, confirmed: false }),
+        });
+        showToast('✅ 권고 적용 요청 완료');
+        loadFarmRecommendations(farmId);
+      } catch(e) { showToast('❌ 적용 실패: ' + e.message); }
+    }
+  );
 }
 
 // ── 농가 상세: 수확·매출 예측 ─────────────────────────────────────────────────
@@ -4937,15 +4947,21 @@ async function submitManualCost() {
   }
 }
 
-async function deleteManualCost() {
+function deleteManualCost() {
   const farmId = $('cost-manual-farm')?.value;
   if (!farmId) { _setResult('cost-manual-result', 'warn', '농장을 선택하세요'); return; }
-  if (!confirm(`${farmId}의 수동 비용 항목을 모두 삭제하겠습니까?`)) return;
-  try {
-    await apiFetch(`/api/farms/${farmId}/costs/manual`, { method: 'DELETE' });
-    _setResult('cost-manual-result', 'ok', '삭제 완료');
-    loadCostBreakdown();
-  } catch(e) { _setResult('cost-manual-result', 'err', '삭제 실패: ' + e.message); }
+  BottomSheet.open(
+    '수동 비용 항목 삭제',
+    `<p style="line-height:1.7;font-size:13px"><b>${_esc(farmId)}</b> 농장의 수동 비용 항목을 <b style="color:var(--red)">모두 삭제</b>합니다.<br>이 작업은 되돌릴 수 없습니다.</p>`,
+    '삭제 확인',
+    async () => {
+      try {
+        await apiFetch(`/api/farms/${farmId}/costs/manual`, { method: 'DELETE' });
+        _setResult('cost-manual-result', 'ok', '삭제 완료');
+        loadCostBreakdown();
+      } catch(e) { _setResult('cost-manual-result', 'err', '삭제 실패: ' + e.message); }
+    }
+  );
 }
 
 // ── 제어최적화: AI 권고 조회 ─────────────────────────────────────────────────
@@ -4970,23 +4986,28 @@ async function loadCtrlRecommendations() {
   }
 }
 
-async function applyCtrlRecommendations(farmId) {
-  if (!confirm(`${farmId} 농장에 권고를 적용하시겠습니까?\n이 작업은 자동 제어 명령을 발송합니다.`)) return;
-  const btn = document.querySelector(`.reco-apply-btn[data-farmid="${farmId}"]`);
-  if (btn) btn.disabled = true;
-  try {
-    await apiFetch(`/api/farms/${farmId}/apply`, {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ rank: 1, confirmed: false }),
-    });
-    showToast('✅ 권고 적용 요청 완료');
-    loadCtrlRecommendations();
-  } catch(e) {
-    // alert() 대신 토스트/인라인 에러 표시
-    showToast('❌ 적용 실패: ' + e.message);
-  } finally {
-    if (btn) btn.disabled = false;
-  }
+function applyCtrlRecommendations(farmId) {
+  BottomSheet.open(
+    '권고 자동 제어 적용',
+    `<p style="line-height:1.7;font-size:13px"><b>${_esc(farmId)}</b> 농장에 AI 권고를 적용합니다.<br>이 작업은 <b>자동 제어 명령을 발송</b>합니다.</p>`,
+    '권고 적용',
+    async () => {
+      const btn = document.querySelector(`.reco-apply-btn[data-farmid="${farmId}"]`);
+      if (btn) btn.disabled = true;
+      try {
+        await apiFetch(`/api/farms/${farmId}/apply`, {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ rank: 1, confirmed: false }),
+        });
+        showToast('✅ 권고 적용 요청 완료');
+        loadCtrlRecommendations();
+      } catch(e) {
+        showToast('❌ 적용 실패: ' + e.message);
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+  );
 }
 
 // ── 제어최적화: 관수 데이터 입력 ─────────────────────────────────────────────
