@@ -4371,74 +4371,102 @@ const SECTION_LOADERS = {
   },
 
   environ: () => {
-    populateAllFarmSels();
-    const fid = _defaultFarm();
-    if (fid) {
-      _autoSel('env-view-farm',    fid);
-      _autoSel('env-anomaly-farm', fid);
-      _autoSel('weather-farm-sel', fid);
-      _autoSel('env-manual-farm',  fid);
-      _autoSel('led-farm-sel',     fid);
-      loadCurrentEnv();
-      loadWeatherForecast();   // 기상예보 자동 로드
-      loadEnvAnomalies();      // 이상감지 자동 로드
-      loadLEDSpectrum();       // LED 스펙트럼 권장 자동 로드
+    const _doLoadEnviron = () => {
+      populateAllFarmSels();
+      const fid = _defaultFarm();
+      if (fid) {
+        _autoSel('env-view-farm',    fid);
+        _autoSel('env-anomaly-farm', fid);
+        _autoSel('weather-farm-sel', fid);
+        _autoSel('env-manual-farm',  fid);
+        _autoSel('led-farm-sel',     fid);
+        loadCurrentEnv();
+        loadWeatherForecast();   // 기상예보 자동 로드
+        loadEnvAnomalies();      // 이상감지 자동 로드
+        loadLEDSpectrum();       // LED 스펙트럼 권장 자동 로드
+      }
+    };
+    if (!_farmsData.length) {
+      // _farmsData 미적재 시 먼저 농장 목록 로드 후 환경탭 채우기
+      loadFarmsOverview().then(_doLoadEnviron).catch(_doLoadEnviron);
+    } else {
+      _doLoadEnviron();
     }
     if (_myFarmId) tierGuard(_myFarmId, 'environ');
   },
 
   control: () => {
-    populateAllFarmSels();
-    const fid = _defaultFarm();
-    if (fid) {
-      _autoSel('ctrl-farm-sel', fid);
-      loadCtrlRecommendations();   // AI 권고 자동 로드
-      loadDiseaseDetect(fid);      // G5 헤더 KPI 업데이트
-    }
-    loadAdvisoryHistory();
-    loadAdvisorySummary();
+    const _doLoadControl = () => {
+      populateAllFarmSels();
+      const fid = _defaultFarm();
+      if (fid) {
+        _autoSel('ctrl-farm-sel', fid);
+        loadCtrlRecommendations();   // AI 권고 자동 로드
+        loadDiseaseDetect(fid);      // G5 헤더 KPI 업데이트
+      }
+      loadAdvisoryHistory();
+      loadAdvisorySummary();
+    };
+    if (!_farmsData.length) {
+      loadFarmsOverview().then(_doLoadControl).catch(_doLoadControl);
+    } else { _doLoadControl(); }
     if (_myFarmId) tierGuard(_myFarmId, 'control');
   },
 
   irrigation: () => {
-    populateAllFarmSels();
-    const fid = _defaultFarm();
-    if (fid) {
-      _autoSel('irr-sched-farm', fid);
-      _autoSel('priva-farm-sel', fid);
-      _autoSel('irri-farm-sel2', fid);
-      loadIrrigationAnalysis(fid);
-      loadIrrigationSchedule();
-      loadPrivaSchedule();
-    }
+    const _doLoadIrrigation = () => {
+      populateAllFarmSels();
+      const fid = _defaultFarm();
+      if (fid) {
+        _autoSel('irr-sched-farm', fid);
+        _autoSel('priva-farm-sel', fid);
+        _autoSel('irri-farm-sel2', fid);
+        loadIrrigationAnalysis(fid);
+        loadIrrigationSchedule();
+        loadPrivaSchedule();
+      }
+    };
+    if (!_farmsData.length) {
+      loadFarmsOverview().then(_doLoadIrrigation).catch(_doLoadIrrigation);
+    } else { _doLoadIrrigation(); }
     if (_myFarmId) tierGuard(_myFarmId, 'irrigation');
   },
 
   growth: () => {
-    loadCropModels();
-    populateGrowthSel();
-    const fid = _defaultFarm();
-    if (fid) {
-      _autoSel('growth-farm-sel',  fid);
-      _autoSel('whatif-farm-sel',  fid);
-      _autoSel('sfrop-farm-sel',   fid);
-      loadGrowthHarvestRevenue();
-      loadSfropScenarios();    // SFROP 4개 시나리오 자동 로드
-    }
+    const _doLoadGrowth = () => {
+      loadCropModels();
+      populateGrowthSel();
+      const fid = _defaultFarm();
+      if (fid) {
+        _autoSel('growth-farm-sel',  fid);
+        _autoSel('whatif-farm-sel',  fid);
+        _autoSel('sfrop-farm-sel',   fid);
+        loadGrowthHarvestRevenue();
+        loadSfropScenarios();    // SFROP 4개 시나리오 자동 로드
+      }
+    };
+    if (!_farmsData.length) {
+      loadFarmsOverview().then(_doLoadGrowth).catch(_doLoadGrowth);
+    } else { _doLoadGrowth(); }
     if (_myFarmId) tierGuard(_myFarmId, 'growth');
   },
 
   market: () => {
-    populateAllFarmSels();
-    loadMarketPrices();
-    const fid = _defaultFarm();
-    if (fid) {
-      _autoSel('market-harvest-farm', fid);
-      const sel = $('price-hist-crop');
-      if (sel && !sel.value) sel.value = '딸기';
-      loadPriceHistory();
-      loadMarketHarvest();     // 출하예측 자동 로드
-    }
+    const _doLoadMarket = () => {
+      populateAllFarmSels();
+      loadMarketPrices();
+      const fid = _defaultFarm();
+      if (fid) {
+        _autoSel('market-harvest-farm', fid);
+        const sel = $('price-hist-crop');
+        if (sel && !sel.value) sel.value = '딸기';
+        loadPriceHistory();
+        loadMarketHarvest();     // 출하예측 자동 로드
+      }
+    };
+    if (!_farmsData.length) {
+      loadFarmsOverview().then(_doLoadMarket).catch(_doLoadMarket);
+    } else { _doLoadMarket(); }
     if (_myFarmId) tierGuard(_myFarmId, 'market');
   },
 
@@ -4895,7 +4923,7 @@ async function submitIrrigation() {
 
 // ── 환경설정: 현재 환경값 조회 ───────────────────────────────────────────────
 async function loadCurrentEnv() {
-  const farmId = $('env-view-farm')?.value;
+  const farmId = $('env-view-farm')?.value || _defaultFarm();
   const el = $('env-current-body');
   if (!farmId || !el) return;
   el.innerHTML = '<div class="spinner"></div>';
@@ -4946,7 +4974,7 @@ async function loadCurrentEnv() {
 
 // ── 환경설정: 7일 기상 예보 ──────────────────────────────────────────────────
 async function loadWeatherForecast() {
-  const farmId = $('weather-farm-sel')?.value;
+  const farmId = $('weather-farm-sel')?.value || _defaultFarm();
   const el = $('weather-body');
   if (!farmId || !el) return;
   el.innerHTML = '<div class="spinner"></div>';
@@ -5553,12 +5581,19 @@ async function loadIrrigationAnalysis(farmId) {
 
 // ── 환경: 이상 감지 조회 ──────────────────────────────────────────────────────
 async function loadEnvAnomalies() {
-  const farmId = $('env-anomaly-farm')?.value;
+  const farmId = $('env-anomaly-farm')?.value || _defaultFarm();
   const el = $('env-anomaly-body');
   if (!el) return;
   if (!farmId) {
     el.innerHTML = _nullReasonHtml([['농장 미선택', '위 드롭다운에서 농장을 선택하면 알림·권고 내역이 표시됩니다']]);
     return;
+  }
+  // select에 option이 아직 없으면 fallback으로 채우기
+  const sel = $('env-anomaly-farm');
+  if (sel && !sel.value && farmId) {
+    const opt = document.createElement('option');
+    opt.value = farmId; opt.text = farmId; opt.selected = true;
+    sel.appendChild(opt);
   }
   el.innerHTML = '<div class="spinner"></div>';
   try {
