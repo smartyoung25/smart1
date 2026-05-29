@@ -142,7 +142,7 @@ CROP_CONFIGS: dict[str, CropConfig] = {
         opt_co2_range=(400.0, 1200.0),
         env_to_growth_lag=1,   # 참외는 생육 빠름
         harvest_lag=1,
-        min_train_samples=30,  # 샘플 부족 → 폴백 적극 활용
+        min_train_samples=60,  # n=42 → Ridge 폴백 강제 (XGBoost 과적합 방지)
         area_default_m2=3800.0,
         season_months=[3, 4, 5, 6, 7, 8],
         heating_months=[3, 4],
