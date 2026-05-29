@@ -153,6 +153,23 @@ function _updateHarvestPreview() {
   pv.classList.add('visible');
 }
 
+// ── CSV 다운로드 헬퍼 ──────────────────────────────────────────────────────
+function _downloadCsv(filename, rows, headers) {
+  const escape = v => {
+    if (v == null || v === '—') return '';
+    const s = String(v);
+    return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const lines = [headers.join(','), ...rows.map(r => r.map(escape).join(','))];
+  const blob = new Blob(['﻿' + lines.join('\r\n')], {type: 'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+let _harvestRecordsCache = [];  // CSV export용 캐시
+
 // ── 날짜 포맷 헬퍼 ─────────────────────────────────────────────────────────
 function _jFmtDate(s) {
   if (!s) return '—';
@@ -198,6 +215,7 @@ function _renderGrowthTimeline(records, total) {
 
   return `<div class="tbl-hdr">
     <span class="tbl-hdr-title">📋 생육 측정 이력</span>${badge}
+    <button class="hdr-btn" onclick="_exportGrowthCsv()" title="CSV 내보내기" style="margin-left:auto">⬇ CSV</button>
   </div>
   <div class="tbl-wrap">
     <table style="min-width:560px">
@@ -255,6 +273,7 @@ function _renderHarvestTimeline(records, total) {
 
   return `<div class="tbl-hdr">
     <span class="tbl-hdr-title">📦 수확량 기록 이력</span>${badge}
+    <button class="hdr-btn" onclick="_exportHarvestCsv()" title="CSV 내보내기" style="margin-left:auto">⬇ CSV</button>
   </div>
   <div class="tbl-wrap">
     <table style="min-width:560px">
@@ -326,6 +345,8 @@ function _renderEnvTimeline(records, total) {
 
 // ── 공개 함수 ──────────────────────────────────────────────────────────────
 
+let _growthRecordsCache = [];
+
 async function loadGrowthHistory(farmId) {
   farmId = farmId || _defaultFarm();
   const el = $('growth-hist-body');
@@ -334,13 +355,34 @@ async function loadGrowthHistory(farmId) {
   try {
     const data = await apiFetch(`/api/data/growth?farm_id=${encodeURIComponent(farmId)}&limit=30`);
     if (!data.records || !data.records.length) {
+      _growthRecordsCache = [];
       el.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🌱</div>생육 기록이 없습니다<div class="empty-state-sub">생육 측정 데이터를 등록하면 이력이 표시됩니다</div></div>';
       return;
     }
+    _growthRecordsCache = data.records;
     el.innerHTML = _renderGrowthTimeline(data.records, data.total);
   } catch (e) {
     el.innerHTML = _errBoxHtml(e, '생육 이력 로드 실패');
   }
+}
+
+function _exportGrowthCsv() {
+  if (!_growthRecordsCache.length) { showToast('⚠️ 내보낼 데이터가 없습니다'); return; }
+  const headers = ['측정일', '작목', '초장(cm)', '엽수(개)', '착과수(개)', '경경(mm)', '내부온도(°C)', 'VPD(kPa)', '출처'];
+  const rows = _growthRecordsCache.map(r => [
+    r.recorded_date || r.recorded_at?.slice(0,10) || '',
+    r.crop_ko || '',
+    r.plant_height_cm != null ? r.plant_height_cm : '',
+    r.leaf_count != null ? r.leaf_count : '',
+    r.fruit_count != null ? r.fruit_count : '',
+    r.stem_diameter_mm != null ? r.stem_diameter_mm : '',
+    r.temp_internal != null ? r.temp_internal : '',
+    r.vpd_kpa != null ? r.vpd_kpa : '',
+    r.source || '',
+  ]);
+  const today = new Date().toISOString().slice(0,10);
+  _downloadCsv(`growth_records_${today}.csv`, rows, headers);
+  showToast(`✅ ${rows.length}건 CSV 내보내기 완료`);
 }
 
 async function loadHarvestHistory(farmId) {
@@ -351,13 +393,35 @@ async function loadHarvestHistory(farmId) {
   try {
     const data = await apiFetch(`/api/data/harvest?farm_id=${encodeURIComponent(farmId)}&limit=30`);
     if (!data.records || !data.records.length) {
+      _harvestRecordsCache = [];
       el.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📦</div>수확 기록이 없습니다<div class="empty-state-sub">수확 데이터를 등록하면 이력이 표시됩니다</div></div>';
       return;
     }
+    _harvestRecordsCache = data.records;
     el.innerHTML = _renderHarvestTimeline(data.records, data.total);
   } catch (e) {
     el.innerHTML = _errBoxHtml(e, '수확 이력 로드 실패');
   }
+}
+
+function _exportHarvestCsv() {
+  if (!_harvestRecordsCache.length) { showToast('⚠️ 내보낼 데이터가 없습니다'); return; }
+  const headers = ['수확일', '작목', '단위수확량(kg/m²)', '총수확량(kg)', '면적(m²)', '재배일수', '정식일', '시즌평균온도(°C)', '시즌평균습도(%)', '출처'];
+  const rows = _harvestRecordsCache.map(r => [
+    r.harvest_date || '',
+    r.crop_ko || '',
+    r.yield_kg_m2 != null ? r.yield_kg_m2 : '',
+    r.total_yield_kg != null ? r.total_yield_kg : '',
+    r.area_m2 != null ? r.area_m2 : '',
+    r.growing_days != null ? r.growing_days : '',
+    r.planting_date || '',
+    r.season_avg_temp != null ? r.season_avg_temp : '',
+    r.season_avg_humidity != null ? r.season_avg_humidity : '',
+    r.source || '',
+  ]);
+  const today = new Date().toISOString().slice(0,10);
+  _downloadCsv(`harvest_records_${today}.csv`, rows, headers);
+  showToast(`✅ ${rows.length}건 CSV 내보내기 완료`);
 }
 
 async function loadEnvHistory(farmId) {
