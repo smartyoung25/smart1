@@ -832,3 +832,56 @@ async function loadApiStatus() {
     el.innerHTML = `<span class="err-inline">조회 실패: ${_esc(e.message)}</span>`;
   }
 }
+
+// ── M2 드리프트 모니터링 ────────────────────────────────────────────────────
+async function loadModelDrift() {
+  const el = $('drift-body');
+  if (!el) return;
+  el.innerHTML = '<div class="spinner"></div>';
+  try {
+    const d = await apiFetch('/api/admin/models/drift');
+    const crops = d.crops || {};
+    const alertIcon = a => a === 'green' ? '🟢' : a === 'yellow' ? '🟡' : '🔴';
+    const trendIcon = t => t === 'degrading' ? '↗ 악화' : t === 'improving' ? '↘ 개선' : '→ 안정';
+    const mapeColor = v => isNaN(v) ? 'var(--muted)' : v <= 20 ? 'var(--green)' : v <= 35 ? 'var(--yellow)' : 'var(--red)';
+
+    const overallAlert = d.overall_alert || 'yellow';
+    const overallIcon  = alertIcon(overallAlert);
+    const overallMsg   = overallAlert === 'green' ? '전 작목 예측 정확도 양호'
+                       : overallAlert === 'red'   ? '일부 작목 재학습 권고'
+                       : '일부 작목 모니터링 필요';
+
+    const rows = Object.entries(crops).map(([crop, b]) => {
+      const mape = b.mape != null && !isNaN(b.mape) ? b.mape.toFixed(1) + '%' : '데이터 부족';
+      const trend = trendIcon(b.trend || 'stable');
+      const bias  = b.bias != null && !isNaN(b.bias) ? (b.bias >= 0 ? '+' : '') + b.bias.toFixed(1) + '%' : '—';
+      const last  = b.last_harvest ? b.last_harvest.slice(0, 10) : '—';
+      return `<tr>
+        <td>${_esc(crop)}</td>
+        <td style="font-weight:700;color:${mapeColor(b.mape)}">${mape}</td>
+        <td style="font-size:11px;color:var(--muted)">${bias}</td>
+        <td style="font-size:11px">${trend}</td>
+        <td style="text-align:center;font-size:16px">${alertIcon(b.alert||'yellow')}</td>
+        <td style="font-size:10px;color:var(--muted)">${last}</td>
+      </tr>`;
+    }).join('');
+
+    el.innerHTML = `
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding:8px 10px;
+                  background:var(--card-soft);border-radius:8px;border:1px solid var(--border)">
+        <span style="font-size:18px">${overallIcon}</span>
+        <span style="font-weight:600;font-size:13px">${overallMsg}</span>
+      </div>
+      <div class="table-scroll-wrap">
+        <table class="weather-tbl">
+          <thead><tr><th>작목</th><th>MAPE</th><th>편향</th><th>추세</th><th>상태</th><th>최근수확</th></tr></thead>
+          <tbody>${rows || '<tr><td colspan="6" style="color:var(--muted);text-align:center;font-size:11px">수확 실측 데이터 없음</td></tr>'}</tbody>
+        </table>
+      </div>
+      <div style="margin-top:8px;font-size:10px;color:var(--muted)">
+        🔴 재학습: <code>/api/data/harvest</code> POST로 수확량 기록 누적 시 자동 개선
+      </div>`;
+  } catch(e) {
+    el.innerHTML = `<span class="err-inline">드리프트 조회 실패: ${_esc(e.message)}</span>`;
+  }
+}

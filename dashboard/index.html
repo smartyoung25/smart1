@@ -1664,6 +1664,18 @@
     <div id="model-perf-body"><div class="spinner"></div></div>
   </div>
 
+  <!-- M2 드리프트 모니터링 -->
+  <div class="card">
+    <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+      <span>📉 M2 예측 드리프트 모니터링</span>
+      <button class="hdr-btn" onclick="loadModelDrift()">↻</button>
+    </div>
+    <div style="font-size:10px;color:var(--muted);margin-bottom:8px">
+      실측 수확량 vs M2 예측 자동 비교 · 🟢 MAPE≤20% 양호 / 🟡 20~35% 주의 / 🔴 &gt;35% 재학습 권고
+    </div>
+    <div id="drift-body"><div class="spinner"></div></div>
+  </div>
+
   <!-- 외부 API 연결 상태 -->
   <div class="card">
     <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">

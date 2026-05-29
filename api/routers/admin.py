@@ -7,7 +7,7 @@ import re
 import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -330,6 +330,53 @@ def get_crop_models():
             ))
 
     return CropModelsResponse(crops=crops, updated_at=_now())
+
+
+# ---------------------------------------------------------------------------
+# GET /models/drift  — M2 드리프트 모니터링
+# ---------------------------------------------------------------------------
+
+@router.get("/models/drift", tags=["model_versioning"],
+            summary="M2 수확량 예측 드리프트 현황")
+def get_model_drift(
+    crop_ko: Optional[str] = Query(None, description="작목 (미지정 시 전 작목)"),
+    farm_id: Optional[str] = Query(None, description="농장 ID 필터 (선택)"),
+    n_recent: int           = Query(50, ge=5, le=200, description="최근 N건 사용"),
+):
+    """실측 수확량 vs M2 예측값을 비교하여 드리프트 현황을 반환합니다.
+
+    - **MAPE ≤ 20%**: green — 양호
+    - **MAPE 20~35%**: yellow — 주의
+    - **MAPE > 35% 또는 최근 급등**: red — 재학습 권고
+    """
+    from api.services.drift_monitor import compute_drift, compute_all_drift, summary_badge
+
+    if crop_ko:
+        stats = compute_drift(crop_ko, farm_id=farm_id, n_recent=n_recent)
+        return {
+            "mode": "single",
+            "crop_ko": crop_ko,
+            "drift": stats.to_dict(),
+            "badge": summary_badge(stats),
+        }
+
+    all_stats = compute_all_drift(farm_id=farm_id)
+    badges = {c: summary_badge(s) for c, s in all_stats.items()}
+
+    # 전체 요약
+    valid = [s for s in all_stats.values() if not (
+        s.mape != s.mape  # NaN check
+    )]
+    overall_alert = "green"
+    if any(s.alert == "red"    for s in valid): overall_alert = "red"
+    elif any(s.alert == "yellow" for s in valid): overall_alert = "yellow"
+
+    return {
+        "mode":           "all",
+        "overall_alert":  overall_alert,
+        "crops":          badges,
+        "detail":         {c: s.to_dict() for c, s in all_stats.items()},
+    }
 
 
 # ---------------------------------------------------------------------------

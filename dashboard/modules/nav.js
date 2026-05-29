@@ -172,7 +172,7 @@ const SECTION_LOADERS = {
 
   system: () => {
     loadPipelineState(); loadEtlStatus(); loadRetrainHistory();
-    loadModelPerformance(); loadApiStatus();
+    loadModelPerformance(); loadModelDrift(); loadApiStatus();
     loadDiseaseDetect(); loadWholesaleMarket();
   },
 };
