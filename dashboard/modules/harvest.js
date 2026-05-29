@@ -492,19 +492,57 @@ async function loadHeroDashboard(farmId) {
     const TIER_BTN  = { auto: '', approval_required: 'orange', checklist: 'blue' };
     const TIER_LABEL= { auto: '적용', approval_required: '승인', checklist: '확인' };
     const colors = ['','blue','orange','red'];
-    const todoHtml = recs.slice(0, 5).map((rec, i) => {
+
+    // 카테고리 감지 헬퍼
+    const _cat = a => {
+      if (!a) return { icon:'⚙️', label:'제어', cls:'', sec:'control' };
+      if (/온도|습도|CO2|이산화탄소|일사량|환기|냉방|난방/.test(a)) return { icon:'🌡️', label:'환경제어', cls:'cat-env',     sec:'environ' };
+      if (/관수|EC|pH|배액|급액|양액|드레인/.test(a))               return { icon:'💧', label:'관수·양액', cls:'cat-irr',     sec:'irrigation' };
+      if (/수확|출하|수확량|판매/.test(a))                           return { icon:'🌾', label:'수확·출하', cls:'cat-harvest',  sec:'market' };
+      if (/병해|해충|방제|곰팡이|잿빛/.test(a))                     return { icon:'🔬', label:'병해충',    cls:'cat-pest',    sec:'control' };
+      return { icon:'⚙️', label:'제어', cls:'', sec:'control' };
+    };
+
+    // 기본 환경 권고 항목
+    const allItems = recs.slice(0, 5).map((rec, i) => {
       const cls      = colors[i % colors.length];
       const tierKey  = rec.tier_action || 'checklist';
       const act      = TIER_BTN[tierKey]  || 'blue';
       const btnLabel = TIER_LABEL[tierKey] || '확인';
       const profit   = rec.profit_delta != null ? `+${Math.round(rec.profit_delta).toLocaleString('ko-KR')}원` : '';
-      const destSection = tierKey === 'auto' ? 'environ' : 'control';
+      const cat      = _cat(rec.action_ko);
+      // tier가 auto면 카테고리 섹션 우선, 아니면 control
+      const destSection = tierKey === 'auto' ? cat.sec : (tierKey === 'approval_required' ? 'control' : cat.sec);
       return `<div class="todo-item">
         <div class="todo-num ${cls}">${i+1}</div>
-        <div class="todo-text"><b>${_esc(rec.action_ko || '권고')}</b><span>${profit}</span></div>
+        <div class="todo-text">
+          <span class="todo-cat-badge ${cat.cls}">${cat.icon} ${cat.label}</span>
+          <b>${_esc(rec.action_ko || '권고')}</b>
+          <span>${profit}</span>
+        </div>
         <button class="todo-action ${act}" onclick="showSection('${destSection}')">${btnLabel}</button>
       </div>`;
-    }).join('');
+    });
+
+    // 이상감지 항목 보강 (anomaly API)
+    try {
+      const anomRes = await apiFetch(`/api/farms/${farmId}/anomalies/latest`);
+      const anomList = anomRes.anomalies || anomRes.items || [];
+      const criticals = anomList.filter(a => a.severity === 'critical' || a.severity === 'high');
+      criticals.slice(0, 2).forEach(a => {
+        allItems.push(`<div class="todo-item">
+          <div class="todo-num red">🚨</div>
+          <div class="todo-text">
+            <span class="todo-cat-badge cat-alert">⚠️ 이상감지</span>
+            <b>${_esc(a.variable_ko || a.variable || '센서 이상')} ${_esc(a.value != null ? String(Number(a.value).toFixed(1)) + (a.unit||'') : '')}</b>
+            <span>${_esc(a.message_ko || '즉시 확인 필요')}</span>
+          </div>
+          <button class="todo-action orange" onclick="showSection('environ')">확인</button>
+        </div>`);
+      });
+    } catch(_) { /* 이상감지 API 없으면 무시 */ }
+
+    const todoHtml = allItems.join('');
     const tb = $('todo-body');
     if (tb) tb.innerHTML = todoHtml;
     setText('todo-meta', `AI 생성 ${recs.length}건`);

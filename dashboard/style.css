@@ -990,6 +990,17 @@
   .todo-num.red    { background: var(--red-soft);    color: var(--red); }
   .todo-text b     { font-size: 13px; display: block; color: var(--text); }
   .todo-text span  { font-size: 11px; color: var(--muted); display: block; margin-top: 2px; }
+  .todo-cat-badge  {
+    display: inline-flex; align-items: center; gap: 3px;
+    font-size: 10px; font-weight: 700; color: var(--muted);
+    background: var(--card-soft); border-radius: 4px;
+    padding: 1px 6px; margin-bottom: 3px; border: 1px solid var(--border);
+  }
+  .todo-cat-badge.cat-env    { color: var(--blue);   background: var(--blue-soft); }
+  .todo-cat-badge.cat-irr    { color: #0d9488;        background: rgba(13,148,136,.12); }
+  .todo-cat-badge.cat-harvest{ color: var(--green);  background: var(--green-soft); }
+  .todo-cat-badge.cat-pest   { color: var(--red);    background: var(--red-soft); }
+  .todo-cat-badge.cat-alert  { color: var(--orange); background: var(--orange-soft); }
   .todo-action { padding: 5px 12px; border-radius: 8px; border: none; font-size: 11px; font-weight: 700;
                  cursor: pointer; background: var(--green); color: #fff; white-space: nowrap; transition: opacity .15s; }
   .todo-action:hover { opacity: .85; }

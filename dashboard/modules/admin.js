@@ -216,11 +216,17 @@ function renderFarmsTable() {
   const cropFilter = $('farm-crop-filter')?.value  || '';
   const statFilter = $('farm-status-filter')?.value || '';
 
+  // 기본 필터 없고 검색도 없으면 → 오프라인 자동 숨김 (의미 있는 농장만 표시)
+  // statFilter==='all' 이면 강제 전체 표시
+  const hideOffline = !statFilter && !search && !cropFilter;
+
   let rows = _farmsData.filter(f => {
     if (cropFilter && f.crop_ko !== cropFilter) return false;
     if (statFilter === 'online'  && (!f.online || f.anomaly)) return false;
     if (statFilter === 'anomaly' && !f.anomaly)  return false;
     if (statFilter === 'offline' && f.online)    return false;
+    if (statFilter === 'all') { /* 전체 표시 — 아무 필터 없음 */ }
+    else if (hideOffline && !f.online) return false;
     if (search) {
       if (!`${f.farm_id} ${f.crop_ko} ${f.sido} ${f.sigungu}`.toLowerCase().includes(search)) return false;
     }
@@ -271,6 +277,20 @@ function renderFarmsTable() {
       <td style="color:var(--muted);font-size:11px">${fmtTs(f.last_ts)}</td>
     </tr>`;
   }).join('');
+
+  // 오프라인 숨김 안내 (기본 필터일 때만)
+  if (hideOffline) {
+    const offCnt = _farmsData.filter(f => !f.online).length;
+    if (offCnt > 0) {
+      tbody.innerHTML += `<tr><td colspan="10" style="text-align:center;padding:10px 0;border-top:1px solid var(--border)">
+        <span style="font-size:12px;color:var(--muted)">⚫ 오프라인 ${offCnt}개 숨김 (실시간 데이터 없음)</span>
+        &nbsp;<button onclick="document.getElementById('farm-status-filter').value='offline';renderFarmsTable()"
+          style="font-size:11px;color:var(--accent);background:none;border:1px solid var(--accent);border-radius:6px;padding:2px 8px;cursor:pointer">오프라인 보기</button>
+        &nbsp;<button onclick="document.getElementById('farm-status-filter').value='all';renderFarmsTable()"
+          style="font-size:11px;color:var(--muted);background:none;border:1px solid var(--border);border-radius:6px;padding:2px 8px;cursor:pointer">전체 보기</button>
+      </td></tr>`;
+    }
+  }
 }
 
 // ── 센서 이력 차트 패널 ───────────────────────────────────────────────────────

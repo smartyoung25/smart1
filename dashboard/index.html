@@ -323,9 +323,10 @@
           <option>참외</option><option>파프리카</option><option>오이</option>
         </select>
         <select id="farm-status-filter" onchange="renderFarmsTable()" class="filter-input">
-          <option value="">전체 상태</option>
-          <option value="online">온라인</option>
-          <option value="anomaly">이상</option>
+          <option value="">활성 농장</option>
+          <option value="all">전체 (오프라인 포함)</option>
+          <option value="online">온라인만</option>
+          <option value="anomaly">이상 농장</option>
           <option value="offline">오프라인</option>
         </select>
         <span id="farms-count" style="font-size:11px;color:var(--muted)"></span>
