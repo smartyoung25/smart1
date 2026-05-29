@@ -4785,7 +4785,11 @@ function resetWhatIf() { $('whatif-result').innerHTML = ''; }
 
 async function runWhatIf() {
   const farmId = $('whatif-farm-sel')?.value;
-  if (!farmId) { alert('농장을 선택하세요'); return; }
+  if (!farmId) {
+    const el = $('whatif-result');
+    if (el) el.innerHTML = _nullReasonHtml([['농장 미선택', '위 드롭다운에서 농장을 선택하세요']]);
+    return;
+  }
   const el = $('whatif-result');
   el.innerHTML = '<div class="spinner"></div>';
   const body = {};
@@ -4935,14 +4939,13 @@ async function submitManualCost() {
 
 async function deleteManualCost() {
   const farmId = $('cost-manual-farm')?.value;
-  if (!farmId) { alert('농장을 선택하세요'); return; }
+  if (!farmId) { _setResult('cost-manual-result', 'warn', '농장을 선택하세요'); return; }
   if (!confirm(`${farmId}의 수동 비용 항목을 모두 삭제하겠습니까?`)) return;
   try {
     await apiFetch(`/api/farms/${farmId}/costs/manual`, { method: 'DELETE' });
-    const resEl = $('cost-manual-result');
-    if (resEl) resEl.innerHTML = '<span style="color:var(--green)">삭제 완료</span>';
+    _setResult('cost-manual-result', 'ok', '삭제 완료');
     loadCostBreakdown();
-  } catch(e) { alert('삭제 실패: ' + e.message); }
+  } catch(e) { _setResult('cost-manual-result', 'err', '삭제 실패: ' + e.message); }
 }
 
 // ── 제어최적화: AI 권고 조회 ─────────────────────────────────────────────────
@@ -4968,15 +4971,22 @@ async function loadCtrlRecommendations() {
 }
 
 async function applyCtrlRecommendations(farmId) {
-  if (!confirm(`${farmId} 권고를 적용하시겠습니까?`)) return;
+  if (!confirm(`${farmId} 농장에 권고를 적용하시겠습니까?\n이 작업은 자동 제어 명령을 발송합니다.`)) return;
+  const btn = document.querySelector(`.reco-apply-btn[data-farmid="${farmId}"]`);
+  if (btn) btn.disabled = true;
   try {
     await apiFetch(`/api/farms/${farmId}/apply`, {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ rank: 1, confirmed: false }),
     });
-    alert('권고 적용 요청 완료');
+    showToast('✅ 권고 적용 요청 완료');
     loadCtrlRecommendations();
-  } catch(e) { alert('적용 실패: ' + e.message); }
+  } catch(e) {
+    // alert() 대신 토스트/인라인 에러 표시
+    showToast('❌ 적용 실패: ' + e.message);
+  } finally {
+    if (btn) btn.disabled = false;
+  }
 }
 
 // ── 제어최적화: 관수 데이터 입력 ─────────────────────────────────────────────
@@ -5434,12 +5444,12 @@ async function loadDiseaseDetect(farmId) {
       headers:{'Content-Type':'application/json'}, body:'{}' });
     const risk = d.risk_level || 'none';
     const riskColor = risk==='high'?'var(--red)':risk==='medium'?'var(--yellow)':'var(--green)';
-    const riskTxt   = {high:'🔴 높음',medium:'🟡 중간',low:'🟢 낮음',none:'✅ 정상'}[risk]||risk;
+    const riskTxt   = {high:'🔴 높음',medium:'🟡 중간',low:'🟢 낮음',none:'✅ 정상'}[risk] || '—';
     const srcBadges = (d.source_chain||[]).map(s=>`<span class="badge badge-info" style="font-size:9px">${_esc(s)}</span>`).join(' ');
     const allRisks  = (d.all_risks||[]).slice(0,4).map(r=>`
       <div style="display:flex;justify-content:space-between;padding:3px 0;font-size:11px">
-        <span>${_esc(r.disease_ko||r.disease)}</span>
-        <span style="color:${r.risk_level==='high'?'var(--red)':r.risk_level==='medium'?'var(--yellow)':'var(--green)'}">${(r.score*100).toFixed(0)}%</span>
+        <span>${_esc(r.disease_ko || r.disease || '—')}</span>
+        <span style="color:${r.risk_level==='high'?'var(--red)':r.risk_level==='medium'?'var(--yellow)':'var(--green)'}">${r.score != null ? (r.score*100).toFixed(0) : '—'}%</span>
       </div>`).join('');
     const ncpms = (d.ncpms_forecast||[]).slice(0,3).map(f=>`<div style="font-size:10px;color:var(--muted)">${_esc(f.date)} ${_esc(f.pest_ko)} ${_esc(f.level)}</div>`).join('');
     el.innerHTML = `
@@ -5459,7 +5469,7 @@ async function loadDiseaseDetect(farmId) {
 
     // G5 헤더 KPI 업데이트
     const riskLabel = {high:'🔴 높음', medium:'🟡 중간', low:'🟢 낮음', none:'✅ 정상'};
-    setText('g5-disease-risk', riskLabel[risk] || risk);
+    setText('g5-disease-risk', riskLabel[risk] || '—');
     const topPest = (d.all_risks||[]).find(r => r.category === '해충' || r.disease_ko?.includes('응애') || r.disease_ko?.includes('진딧물'));
     setText('g5-pest-risk', topPest ? '🟡 ' + (topPest.disease_ko||'주의') : '✅ 정상');
     setText('g5-quality-risk', '보통');
@@ -5898,7 +5908,9 @@ async function loadERPRealtime() {
 
     // 손익분기 달성률 (월 예상 수확량 기준)
     const beKg = d.breakeven_kg ?? 0;
-    const estKg = (d.area_m2 ?? 0) * 3.0; // 간략 추정: 3kg/m²/월 기본값
+    // ERP가 월 예상 수확량을 내려주면 사용, 없으면 면적 × 기본 수율로 추정
+    const _DEFAULT_YIELD_KG_M2_MONTH = 3.0;
+    const estKg = d.yield_kg_month ?? ((d.area_m2 ?? 0) * _DEFAULT_YIELD_KG_M2_MONTH);
     const bePct = beKg > 0 && estKg > 0 ? Math.min(100, Math.round(estKg / beKg * 100)) : 0;
     const barFilled = Math.round(bePct / 10);
     const barHtml = '■'.repeat(barFilled) + '□'.repeat(10 - barFilled);
