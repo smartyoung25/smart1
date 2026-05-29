@@ -408,6 +408,9 @@
   .adv-ch-badge.dry_run { color:var(--muted); }
   .adv-filter    { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
   .adv-filter input, .adv-filter select { background:var(--surface2); border:1px solid var(--border); color:var(--text); border-radius:6px; padding:4px 8px; font-size:12px; }
+  .adv-filter input[type="text"], .adv-filter input:not([type]) { width:90px; }
+  /* 카드 헤더용 소형 숫자 입력 */
+  .compact-num-input { width: 60px !important; padding: 4px 8px !important; min-height: 32px !important; font-size: 12px !important; }
   #adv-empty     { color:var(--muted); font-size:13px; text-align:center; padding:24px 0; }
 
   /* ── 사이드바 레이아웃 ── */
@@ -561,6 +564,12 @@
   .profit-note  { font-size:10px; color:var(--muted); margin-top:6px; }
   .profit-farm-sel { background:var(--surface2); border:1px solid var(--border); color:var(--text);
                      border-radius:6px; padding:4px 8px; font-size:12px; max-width:220px; }
+  /* 테이블 필터 입력 (검색·드롭다운) */
+  .filter-input {
+    padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border);
+    background: var(--bg); color: var(--text); font-size: 12px;
+  }
+  .filter-input[type="text"], .filter-input[type="search"] { width: 180px; }
   /* 히트맵 */
   .heatmap-wrap  { overflow-x:auto; margin-top:6px; }
   .heatmap-table { border-collapse:collapse; width:100%; font-size:11px; }

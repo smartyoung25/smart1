@@ -316,16 +316,13 @@
     <div class="farms-hdr">
       <div class="card-title" style="margin:0">🏭 전체 농장 현황</div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-        <input id="farm-search" placeholder="농장 ID·지역·작목 검색" oninput="renderFarmsTable()"
-               style="padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:12px;width:180px">
-        <select id="farm-crop-filter" onchange="renderFarmsTable()"
-                style="padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:12px">
+        <input id="farm-search" type="search" placeholder="농장 ID·지역·작목 검색" oninput="renderFarmsTable()" class="filter-input">
+        <select id="farm-crop-filter" onchange="renderFarmsTable()" class="filter-input">
           <option value="">전체 작목</option>
           <option>딸기</option><option>방울토마토</option><option>완숙토마토</option>
           <option>참외</option><option>파프리카</option><option>오이</option>
         </select>
-        <select id="farm-status-filter" onchange="renderFarmsTable()"
-                style="padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:12px">
+        <select id="farm-status-filter" onchange="renderFarmsTable()" class="filter-input">
           <option value="">전체 상태</option>
           <option value="online">온라인</option>
           <option value="anomaly">이상</option>
@@ -492,7 +489,7 @@
       <div class="form-4col" style="margin-bottom:12px">
         <div>
           <label class="form-field-label">농장 <span class="req">*</span></label>
-          <select id="gr-farm" class="profit-farm-sel env-input" style="width:100%"><option value="">선택…</option></select>
+          <select id="gr-farm" class="profit-farm-sel env-input"><option value="">선택…</option></select>
         </div>
         <div>
           <label class="form-field-label">측정일 <span class="req">*</span></label>
@@ -500,7 +497,7 @@
         </div>
         <div>
           <label class="form-field-label">작목</label>
-          <select id="gr-crop" class="profit-farm-sel env-input" style="width:100%">
+          <select id="gr-crop" class="profit-farm-sel env-input">
             <option value="">자동 감지</option>
             <option>딸기</option><option>방울토마토</option><option>완숙토마토</option>
             <option>오이</option><option>파프리카</option><option>참외</option>
@@ -587,7 +584,7 @@
       <div class="form-4col" style="margin-bottom:12px">
         <div>
           <label class="form-field-label">농장 <span class="req">*</span></label>
-          <select id="hv-farm" class="profit-farm-sel env-input" style="width:100%"><option value="">선택…</option></select>
+          <select id="hv-farm" class="profit-farm-sel env-input"><option value="">선택…</option></select>
         </div>
         <div>
           <label class="form-field-label">수확일 <span class="req">*</span></label>
@@ -595,7 +592,7 @@
         </div>
         <div>
           <label class="form-field-label">작목</label>
-          <select id="hv-crop" class="profit-farm-sel env-input" style="width:100%">
+          <select id="hv-crop" class="profit-farm-sel env-input">
             <option value="">자동 감지</option>
             <option>딸기</option><option>방울토마토</option><option>완숙토마토</option>
             <option>오이</option><option>파프리카</option><option>참외</option>
@@ -802,7 +799,7 @@
           <option value="">농장 선택…</option>
         </select>
         <label style="font-size:11px;color:var(--muted)">트리거</label>
-        <input id="irr-trigger-mj" type="number" step="0.5" value="2.0" min="0.5" max="5" class="env-input" style="width:60px">
+        <input id="irr-trigger-mj" type="number" step="0.5" value="2.0" min="0.5" max="5" class="env-input compact-num-input">
         <span style="font-size:11px;color:var(--muted)">MJ</span>
         <button class="hdr-btn" onclick="loadIrrigationSchedule()">↻</button>
       </div>
@@ -819,11 +816,11 @@
       <div class="form-3col" style="margin-bottom:10px">
         <div>
           <label class="form-field-label">농장 <span class="req">*</span></label>
-          <select id="irri-farm-sel2" class="profit-farm-sel env-input" style="width:100%"><option value="">선택…</option></select>
+          <select id="irri-farm-sel2" class="profit-farm-sel env-input"><option value="">선택…</option></select>
         </div>
         <div>
           <label class="form-field-label">날짜 <span class="req">*</span></label>
-          <input id="irri-date" type="date" class="env-input" style="width:100%">
+          <input id="irri-date" type="date" class="env-input">
         </div>
         <div></div><!-- spacer -->
         <div class="form-section-header">💧 관수 측정값</div>
@@ -919,7 +916,7 @@
           <option value="late">수확기</option>
         </select>
         <label style="font-size:11px;color:var(--muted)">작물크기</label>
-        <input id="priva-size" type="number" step="10" value="100" min="5" max="500" class="env-input" style="width:55px">
+        <input id="priva-size" type="number" step="10" value="100" min="5" max="500" class="env-input compact-num-input">
         <span style="font-size:11px;color:var(--muted)">%</span>
         <button class="hdr-btn" onclick="loadPrivaSchedule()">↻</button>
       </div>
@@ -1195,7 +1192,7 @@
     <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
       <span>🌿 재배 권고 이력</span>
       <div class="adv-filter">
-        <input  id="adv-filter-farm" placeholder="농장 ID" oninput="renderAdvisoryFeed()" style="width:90px" />
+        <input  id="adv-filter-farm" placeholder="농장 ID" oninput="renderAdvisoryFeed()" />
         <select id="adv-filter-limit" onchange="loadAdvisoryHistory()">
           <option value="20">20건</option>
           <option value="50" selected>50건</option>
@@ -1316,7 +1313,7 @@
     <div class="form-3col" style="margin-bottom:14px">
       <div style="grid-column:1/-1">
         <label class="form-field-label">농장 <span class="req">*</span></label>
-        <select id="env-manual-farm" class="profit-farm-sel env-input" style="width:100%">
+        <select id="env-manual-farm" class="profit-farm-sel env-input">
           <option value="">선택…</option>
         </select>
       </div>
