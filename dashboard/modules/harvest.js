@@ -94,7 +94,9 @@ const FIELD_SHORT = {
 async function loadAdvisorySummary() {
   if (!_token) return;
   if (_myFarmId) {
-    // 농장주 계정: _advisoryEntries 기반 로컬 집계
+    // 농장주 계정: _advisoryEntries 기반 로컬 집계, 히트맵 관련 UI 숨기기
+    const daysCtrl = $('heatmap-days-sel');
+    if (daysCtrl) daysCtrl.closest('div')?.style && (daysCtrl.closest('div').style.display = 'none');
     _renderFarmerAdvisorySummary();
     return;
   }
