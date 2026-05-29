@@ -159,11 +159,11 @@ function _jFmtNum(v, unit, digits) {
 // ── 생육 이력 렌더 ─────────────────────────────────────────────────────────
 function _renderGrowthTimeline(records, total) {
   const badge = total > records.length
-    ? `<span style="color:var(--muted);font-size:11px">최신 ${records.length}건 / 전체 ${total}건</span>`
-    : `<span style="color:var(--muted);font-size:11px">전체 ${total}건</span>`;
+    ? `<span class="rec-count">최신 ${records.length}건 / 전체 ${total}건</span>`
+    : `<span class="rec-count">전체 ${total}건</span>`;
 
   const rows = records.map((r, i) => {
-    const bg = i % 2 === 1 ? 'background:var(--card-soft)' : '';
+    const trCls = i % 2 === 1 ? ' class="tbl-alt"' : '';
     const dateStr  = _jFmtDate(r.recorded_date || r.recorded_at);
     const crop     = r.crop_ko || '—';
     const ph       = _jFmtNum(r.plant_height_cm,  'cm', 1);
@@ -173,35 +173,35 @@ function _renderGrowthTimeline(records, total) {
     const temp     = _jFmtNum(r.temp_internal,     '°C', 1);
     const vpd      = _jFmtNum(r.vpd_kpa,           'kPa', 2);
     const src      = r.source || 'api';
-    return `<tr style="${bg}">
-      <td style="padding:5px 8px;white-space:nowrap;color:var(--accent);font-size:12px">${dateStr}</td>
-      <td style="padding:5px 8px;font-size:12px">${crop}</td>
-      <td style="padding:5px 8px;text-align:right;font-size:12px">${ph}</td>
-      <td style="padding:5px 8px;text-align:right;font-size:12px">${lc}</td>
-      <td style="padding:5px 8px;text-align:right;font-size:12px">${fc}</td>
-      <td style="padding:5px 8px;text-align:right;font-size:12px">${sd}</td>
-      <td style="padding:5px 8px;text-align:right;font-size:12px">${temp}</td>
-      <td style="padding:5px 8px;text-align:right;font-size:12px">${vpd}</td>
-      <td style="padding:5px 8px;color:var(--muted);font-size:11px">${src}</td>
+    return `<tr${trCls}>
+      <td class="tbl-td accent">${dateStr}</td>
+      <td class="tbl-td">${crop}</td>
+      <td class="tbl-td r">${ph}</td>
+      <td class="tbl-td r">${lc}</td>
+      <td class="tbl-td r">${fc}</td>
+      <td class="tbl-td r">${sd}</td>
+      <td class="tbl-td r">${temp}</td>
+      <td class="tbl-td r">${vpd}</td>
+      <td class="tbl-td muted">${src}</td>
     </tr>`;
   }).join('');
 
-  return `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-    <span style="font-size:12px;color:var(--fg);font-weight:600">📋 생육 측정 이력</span>${badge}
+  return `<div class="tbl-hdr">
+    <span class="tbl-hdr-title">📋 생육 측정 이력</span>${badge}
   </div>
-  <div style="overflow-x:auto">
-    <table style="width:100%;border-collapse:collapse;min-width:560px">
+  <div class="tbl-wrap">
+    <table style="min-width:560px">
       <thead>
-        <tr style="background:var(--card-soft);color:var(--muted);font-size:11px">
-          <th style="padding:6px 8px;text-align:left;border-bottom:1px solid var(--border)">측정일</th>
-          <th style="padding:6px 8px;text-align:left;border-bottom:1px solid var(--border)">작물</th>
-          <th style="padding:6px 8px;text-align:right;border-bottom:1px solid var(--border)">초장</th>
-          <th style="padding:6px 8px;text-align:right;border-bottom:1px solid var(--border)">엽수</th>
-          <th style="padding:6px 8px;text-align:right;border-bottom:1px solid var(--border)">착과수</th>
-          <th style="padding:6px 8px;text-align:right;border-bottom:1px solid var(--border)">경경</th>
-          <th style="padding:6px 8px;text-align:right;border-bottom:1px solid var(--border)">온도</th>
-          <th style="padding:6px 8px;text-align:right;border-bottom:1px solid var(--border)">VPD</th>
-          <th style="padding:6px 8px;text-align:left;border-bottom:1px solid var(--border)">출처</th>
+        <tr class="tbl-head-row">
+          <th class="tbl-th">측정일</th>
+          <th class="tbl-th">작물</th>
+          <th class="tbl-th r">초장</th>
+          <th class="tbl-th r">엽수</th>
+          <th class="tbl-th r">착과수</th>
+          <th class="tbl-th r">경경</th>
+          <th class="tbl-th r">온도</th>
+          <th class="tbl-th r">VPD</th>
+          <th class="tbl-th">출처</th>
         </tr>
       </thead>
       <tbody>${rows}</tbody>
@@ -212,8 +212,8 @@ function _renderGrowthTimeline(records, total) {
 // ── 수확 이력 렌더 ─────────────────────────────────────────────────────────
 function _renderHarvestTimeline(records, total) {
   const badge = total > records.length
-    ? `<span style="color:var(--muted);font-size:11px">최신 ${records.length}건 / 전체 ${total}건</span>`
-    : `<span style="color:var(--muted);font-size:11px">전체 ${total}건</span>`;
+    ? `<span class="rec-count">최신 ${records.length}건 / 전체 ${total}건</span>`
+    : `<span class="rec-count">전체 ${total}건</span>`;
 
   const rows = records.map((r, i) => {
     const bg        = i % 2 === 1 ? 'background:var(--card-soft)' : '';
@@ -225,33 +225,33 @@ function _renderHarvestTimeline(records, total) {
     const days      = r.growing_days != null ? `${r.growing_days}일` : '—';
     const planting  = _jFmtDate(r.planting_date);
     const src       = r.source || 'api';
-    return `<tr style="${bg}">
-      <td style="padding:5px 8px;white-space:nowrap;color:var(--accent);font-size:12px">${dateStr}</td>
-      <td style="padding:5px 8px;font-size:12px">${crop}</td>
-      <td style="padding:5px 8px;text-align:right;font-size:12px;font-weight:600;color:var(--green)">${yld}</td>
-      <td style="padding:5px 8px;text-align:right;font-size:12px">${totalKg}</td>
-      <td style="padding:5px 8px;text-align:right;font-size:12px">${area}</td>
-      <td style="padding:5px 8px;text-align:right;font-size:12px">${days}</td>
-      <td style="padding:5px 8px;text-align:right;font-size:12px;color:var(--muted)">${planting}</td>
-      <td style="padding:5px 8px;color:var(--muted);font-size:11px">${src}</td>
+    return `<tr${trCls}>
+      <td class="tbl-td accent">${dateStr}</td>
+      <td class="tbl-td">${crop}</td>
+      <td class="tbl-td r green">${yld}</td>
+      <td class="tbl-td r">${totalKg}</td>
+      <td class="tbl-td r">${area}</td>
+      <td class="tbl-td r">${days}</td>
+      <td class="tbl-td r muted">${planting}</td>
+      <td class="tbl-td muted">${src}</td>
     </tr>`;
   }).join('');
 
-  return `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-    <span style="font-size:12px;color:var(--fg);font-weight:600">📦 수확량 기록 이력</span>${badge}
+  return `<div class="tbl-hdr">
+    <span class="tbl-hdr-title">📦 수확량 기록 이력</span>${badge}
   </div>
-  <div style="overflow-x:auto">
-    <table style="width:100%;border-collapse:collapse;min-width:520px">
+  <div class="tbl-wrap">
+    <table style="min-width:520px">
       <thead>
-        <tr style="background:var(--card-soft);color:var(--muted);font-size:11px">
-          <th style="padding:6px 8px;text-align:left;border-bottom:1px solid var(--border)">수확일</th>
-          <th style="padding:6px 8px;text-align:left;border-bottom:1px solid var(--border)">작물</th>
-          <th style="padding:6px 8px;text-align:right;border-bottom:1px solid var(--border)">수량(kg/㎡)</th>
-          <th style="padding:6px 8px;text-align:right;border-bottom:1px solid var(--border)">총수확(kg)</th>
-          <th style="padding:6px 8px;text-align:right;border-bottom:1px solid var(--border)">면적(㎡)</th>
-          <th style="padding:6px 8px;text-align:right;border-bottom:1px solid var(--border)">재배일수</th>
-          <th style="padding:6px 8px;text-align:right;border-bottom:1px solid var(--border)">정식일</th>
-          <th style="padding:6px 8px;text-align:left;border-bottom:1px solid var(--border)">출처</th>
+        <tr class="tbl-head-row">
+          <th class="tbl-th">수확일</th>
+          <th class="tbl-th">작물</th>
+          <th class="tbl-th r">수량(kg/㎡)</th>
+          <th class="tbl-th r">총수확(kg)</th>
+          <th class="tbl-th r">면적(㎡)</th>
+          <th class="tbl-th r">재배일수</th>
+          <th class="tbl-th r">정식일</th>
+          <th class="tbl-th">출처</th>
         </tr>
       </thead>
       <tbody>${rows}</tbody>
@@ -262,8 +262,8 @@ function _renderHarvestTimeline(records, total) {
 // ── 환경 수동 입력 이력 렌더 ───────────────────────────────────────────────
 function _renderEnvTimeline(records, total) {
   const badge = total > records.length
-    ? `<span style="color:var(--muted);font-size:11px">최신 ${records.length}건 / 전체 ${total}건</span>`
-    : `<span style="color:var(--muted);font-size:11px">전체 ${total}건</span>`;
+    ? `<span class="rec-count">최신 ${records.length}건 / 전체 ${total}건</span>`
+    : `<span class="rec-count">전체 ${total}건</span>`;
 
   const rows = records.map((r, i) => {
     const bg  = i % 2 === 1 ? 'background:var(--card-soft)' : '';
@@ -275,31 +275,31 @@ function _renderEnvTimeline(records, total) {
     const ec   = _jFmtNum(p.ec_dsm,         'dS/m',1);
     const ph   = _jFmtNum(p.ph,             '',   1);
     const vpd  = _jFmtNum(p.vpd_kpa,        'kPa',2);
-    return `<tr style="${bg}">
-      <td style="padding:5px 8px;white-space:nowrap;color:var(--accent);font-size:12px">${ts}</td>
-      <td style="padding:5px 8px;text-align:right;font-size:12px">${temp}</td>
-      <td style="padding:5px 8px;text-align:right;font-size:12px">${humi}</td>
-      <td style="padding:5px 8px;text-align:right;font-size:12px">${co2}</td>
-      <td style="padding:5px 8px;text-align:right;font-size:12px">${ec}</td>
-      <td style="padding:5px 8px;text-align:right;font-size:12px">${ph}</td>
-      <td style="padding:5px 8px;text-align:right;font-size:12px">${vpd}</td>
+    return `<tr${trCls}>
+      <td class="tbl-td accent">${ts}</td>
+      <td class="tbl-td r">${temp}</td>
+      <td class="tbl-td r">${humi}</td>
+      <td class="tbl-td r">${co2}</td>
+      <td class="tbl-td r">${ec}</td>
+      <td class="tbl-td r">${ph}</td>
+      <td class="tbl-td r">${vpd}</td>
     </tr>`;
   }).join('');
 
-  return `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-    <span style="font-size:12px;color:var(--fg);font-weight:600">📋 환경값 수동 입력 이력</span>${badge}
+  return `<div class="tbl-hdr">
+    <span class="tbl-hdr-title">📋 환경값 수동 입력 이력</span>${badge}
   </div>
-  <div style="overflow-x:auto">
-    <table style="width:100%;border-collapse:collapse;min-width:420px">
+  <div class="tbl-wrap">
+    <table style="min-width:420px">
       <thead>
-        <tr style="background:var(--card-soft);color:var(--muted);font-size:11px">
-          <th style="padding:6px 8px;text-align:left;border-bottom:1px solid var(--border)">입력 시각</th>
-          <th style="padding:6px 8px;text-align:right;border-bottom:1px solid var(--border)">온도</th>
-          <th style="padding:6px 8px;text-align:right;border-bottom:1px solid var(--border)">습도</th>
-          <th style="padding:6px 8px;text-align:right;border-bottom:1px solid var(--border)">CO₂</th>
-          <th style="padding:6px 8px;text-align:right;border-bottom:1px solid var(--border)">EC</th>
-          <th style="padding:6px 8px;text-align:right;border-bottom:1px solid var(--border)">pH</th>
-          <th style="padding:6px 8px;text-align:right;border-bottom:1px solid var(--border)">VPD</th>
+        <tr class="tbl-head-row">
+          <th class="tbl-th">입력 시각</th>
+          <th class="tbl-th r">온도</th>
+          <th class="tbl-th r">습도</th>
+          <th class="tbl-th r">CO₂</th>
+          <th class="tbl-th r">EC</th>
+          <th class="tbl-th r">pH</th>
+          <th class="tbl-th r">VPD</th>
         </tr>
       </thead>
       <tbody>${rows}</tbody>
@@ -322,7 +322,7 @@ async function loadGrowthHistory(farmId) {
     }
     el.innerHTML = _renderGrowthTimeline(data.records, data.total);
   } catch (e) {
-    el.innerHTML = `<div class="data-reason-box"><span style="font-size:13px;color:var(--muted)">생육 이력 로드 실패: ${e.message || '서버 오류'}</span></div>`;
+    el.innerHTML = _errBoxHtml(e, '생육 이력 로드 실패');
   }
 }
 
@@ -339,7 +339,7 @@ async function loadHarvestHistory(farmId) {
     }
     el.innerHTML = _renderHarvestTimeline(data.records, data.total);
   } catch (e) {
-    el.innerHTML = `<div class="data-reason-box"><span style="font-size:13px;color:var(--muted)">수확 이력 로드 실패: ${e.message || '서버 오류'}</span></div>`;
+    el.innerHTML = _errBoxHtml(e, '수확 이력 로드 실패');
   }
 }
 
@@ -356,13 +356,13 @@ async function loadEnvHistory(farmId) {
     }
     el.innerHTML = _renderEnvTimeline(data.records, data.total);
   } catch (e) {
-    el.innerHTML = `<div class="data-reason-box"><span style="font-size:13px;color:var(--muted)">환경 이력 조회 실패: ${e.message || '서버 오류'}</span></div>`;
+    el.innerHTML = _errBoxHtml(e, '환경 이력 조회 실패');
   }
 }
 
 // ── 관수 이력 렌더 ─────────────────────────────────────────────────────────
 function _renderIrrigationTimeline(records, dataDays) {
-  const badge = `<span style="color:var(--muted);font-size:11px">최근 ${dataDays}일 데이터 · ${records.length}건</span>`;
+  const badge = `<span class="rec-count">최근 ${dataDays}일 데이터 · ${records.length}건</span>`;
 
   const rows = records.slice().reverse().map((r, i) => {
     const bg      = i % 2 === 1 ? 'background:var(--card-soft)' : '';
@@ -388,37 +388,37 @@ function _renderIrrigationTimeline(records, dataDays) {
       else if (r.wc_mean > 95) wcColor = 'var(--orange)';
     }
 
-    return `<tr style="${bg}">
-      <td style="padding:5px 8px;white-space:nowrap;color:var(--accent);font-size:12px">${dateStr}</td>
-      <td style="padding:5px 8px;text-align:right;font-size:12px;color:${wcColor};font-weight:600">${wc}</td>
-      <td style="padding:5px 8px;text-align:right;font-size:12px;color:${drColor};font-weight:600">${dr}</td>
-      <td style="padding:5px 8px;text-align:right;font-size:12px">${ec}</td>
-      <td style="padding:5px 8px;text-align:right;font-size:12px">${sup}</td>
-      <td style="padding:5px 8px;text-align:right;font-size:12px">${cnt}</td>
-      <td style="padding:5px 8px;text-align:right;font-size:12px;color:var(--muted)">${nl}</td>
+    return `<tr${trCls}>
+      <td class="tbl-td accent">${dateStr}</td>
+      <td class="tbl-td r bold" style="color:${wcColor}">${wc}</td>
+      <td class="tbl-td r bold" style="color:${drColor}">${dr}</td>
+      <td class="tbl-td r">${ec}</td>
+      <td class="tbl-td r">${sup}</td>
+      <td class="tbl-td r">${cnt}</td>
+      <td class="tbl-td r muted">${nl}</td>
     </tr>`;
   }).join('');
 
-  return `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-    <span style="font-size:12px;color:var(--fg);font-weight:600">💧 관수 기록 이력</span>${badge}
+  return `<div class="tbl-hdr">
+    <span class="tbl-hdr-title">💧 관수 기록 이력</span>${badge}
   </div>
-  <div style="overflow-x:auto">
-    <table style="width:100%;border-collapse:collapse;min-width:480px">
+  <div class="tbl-wrap">
+    <table style="min-width:480px">
       <thead>
-        <tr style="background:var(--card-soft);color:var(--muted);font-size:11px">
-          <th style="padding:6px 8px;text-align:left;border-bottom:1px solid var(--border)">날짜</th>
-          <th style="padding:6px 8px;text-align:right;border-bottom:1px solid var(--border)">함수율</th>
-          <th style="padding:6px 8px;text-align:right;border-bottom:1px solid var(--border)">배액률</th>
-          <th style="padding:6px 8px;text-align:right;border-bottom:1px solid var(--border)">배액EC</th>
-          <th style="padding:6px 8px;text-align:right;border-bottom:1px solid var(--border)">총공급량</th>
-          <th style="padding:6px 8px;text-align:right;border-bottom:1px solid var(--border)">관수횟수</th>
-          <th style="padding:6px 8px;text-align:right;border-bottom:1px solid var(--border)">야간소실</th>
+        <tr class="tbl-head-row">
+          <th class="tbl-th">날짜</th>
+          <th class="tbl-th r">함수율</th>
+          <th class="tbl-th r">배액률</th>
+          <th class="tbl-th r">배액EC</th>
+          <th class="tbl-th r">총공급량</th>
+          <th class="tbl-th r">관수횟수</th>
+          <th class="tbl-th r">야간소실</th>
         </tr>
       </thead>
       <tbody>${rows}</tbody>
     </table>
   </div>
-  <div style="margin-top:6px;font-size:11px;color:var(--muted)">
+  <div class="rec-count" style="margin-top:6px">
     🟢 배액률 20~40% 정상 &nbsp;|&nbsp; 🔴 배액률 &lt;20% 부족 &nbsp;|&nbsp; 🟠 배액률 &gt;40% 과다
   </div>`;
 }
@@ -437,6 +437,6 @@ async function loadIrrigationHistory(farmId) {
     }
     el.innerHTML = _renderIrrigationTimeline(data.records, data.data_days);
   } catch (e) {
-    el.innerHTML = `<div class="data-reason-box"><span style="font-size:13px;color:var(--muted)">관수 이력 로드 실패: ${e.message || '서버 오류'}</span></div>`;
+    el.innerHTML = _errBoxHtml(e, '관수 이력 로드 실패');
   }
 }

@@ -413,6 +413,23 @@
   .compact-num-input { width: 60px !important; padding: 4px 8px !important; min-height: 32px !important; font-size: 12px !important; }
   #adv-empty     { color:var(--muted); font-size:13px; text-align:center; padding:24px 0; }
 
+  /* ── 이력·데이터 테이블 공통 클래스 ── */
+  .tbl-wrap  { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .tbl-wrap table { width: 100%; border-collapse: collapse; min-width: 480px; }
+  .tbl-hdr   { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .tbl-hdr-title { font-size: 12px; color: var(--fg); font-weight: 600; }
+  .tbl-head-row  { background: var(--card-soft); color: var(--muted); font-size: 11px; }
+  .tbl-alt   { background: var(--card-soft); }
+  .tbl-th    { padding: 6px 8px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; font-weight: 600; }
+  .tbl-th.r  { text-align: right; }
+  .tbl-td    { padding: 5px 8px; font-size: 12px; }
+  .tbl-td.r  { text-align: right; }
+  .tbl-td.accent { color: var(--accent); white-space: nowrap; }
+  .tbl-td.green  { color: var(--green); font-weight: 600; }
+  .tbl-td.muted  { color: var(--muted); font-size: 11px; }
+  .tbl-td.bold   { font-weight: 600; }
+  .rec-count { color: var(--muted); font-size: 11px; }
+
   /* ── 사이드바 레이아웃 ── */
   #app-layout {
     display: flex;
