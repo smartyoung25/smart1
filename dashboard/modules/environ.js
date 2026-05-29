@@ -271,8 +271,9 @@ async function submitManualEnv() {
     await apiFetch(`/api/farms/${farmId}/environment/manual`, {
       method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body),
     });
-    _setResult('env-manual-result', 'ok', `저장 완료 (${farmId})`);
+    _setResult('env-manual-result', 'ok', `저장 완료 — AI 추천이 업데이트됩니다`);
     loadCurrentEnv();
+    setTimeout(() => { if (typeof loadEnvHistory === 'function') loadEnvHistory(farmId); }, 800);
   } catch(e) {
     _setResult('env-manual-result', 'err', '저장 실패: ' + e.message);
   }

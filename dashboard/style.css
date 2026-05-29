@@ -609,21 +609,33 @@
   .reco-action { font-size:12px; flex:1; color:var(--text); }
   .reco-val    { font-size:11px; color:var(--muted); white-space:nowrap; }
   .reco-apply-btn {
-    margin-top:10px; padding:6px 16px; background:var(--accent); border:none;
-    border-radius:6px; color:#fff; font-size:12px; font-weight:600; cursor:pointer;
+    margin-top:10px; padding:10px 20px; background:var(--accent); border:none;
+    border-radius:8px; color:#fff; font-size:13px; font-weight:700; cursor:pointer;
+    min-height:44px; display:inline-flex; align-items:center; gap:6px;
     transition: opacity .15s, box-shadow .15s;
+    -webkit-tap-highlight-color: transparent;
   }
-  .reco-apply-btn:hover { opacity:.85; }
-  .reco-apply-btn:focus-visible { outline:2px solid var(--accent); outline-offset:2px; opacity:.9; }
-  .reco-apply-btn:disabled { opacity:.45; cursor:default; }
+  .reco-apply-btn:hover { opacity:.88; box-shadow:0 3px 12px rgba(46,160,67,.3); }
+  .reco-apply-btn:active { opacity:.75; transform:scale(.98); }
+  .reco-apply-btn:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
+  .reco-apply-btn:disabled { opacity:.4; cursor:default; }
+  .reco-apply-btn.loading::after {
+    content:''; display:inline-block; width:14px; height:14px;
+    border:2px solid rgba(255,255,255,.4); border-top-color:#fff;
+    border-radius:50%; animation:spin .7s linear infinite; margin-left:4px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
   /* btn-danger: 같은 형태, 빨간 배경 */
   .btn-danger {
-    padding:6px 16px; background:var(--red); border:none;
-    border-radius:6px; color:#fff; font-size:12px; font-weight:600; cursor:pointer;
+    padding:10px 20px; background:var(--red); border:none;
+    border-radius:8px; color:#fff; font-size:13px; font-weight:700; cursor:pointer;
+    min-height:44px; display:inline-flex; align-items:center; gap:6px;
     transition: opacity .15s;
+    -webkit-tap-highlight-color: transparent;
   }
   .btn-danger:hover { opacity:.85; }
-  .btn-danger:focus-visible { outline:2px solid var(--red); outline-offset:2px; }
+  .btn-danger:active { opacity:.7; transform:scale(.98); }
+  .btn-danger:focus-visible { outline:2px solid var(--red); outline-offset:3px; }
   .reco-gain { font-size:11px; color:var(--green); margin-top:4px; }
 
   /* 병해 위험 */
@@ -669,10 +681,32 @@
   /* ── 환경/비용 입력 폼 공통 ── */
   .env-input {
     background: var(--bg); border: 1px solid var(--border);
-    border-radius: 6px; color: var(--text); font-size: 13px;
-    padding: 7px 10px; width: 100%;
+    border-radius: 8px; color: var(--text); font-size: 13px;
+    padding: 9px 12px; width: 100%;
+    min-height: 40px; box-sizing: border-box;
+    transition: border-color .15s, box-shadow .15s;
   }
-  .env-input:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: var(--accent); }
+  .env-input:focus {
+    outline: none; border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(46,160,67,.18);
+  }
+  .env-input::placeholder { color: var(--muted); opacity: .7; }
+  .env-input:invalid:not(:placeholder-shown) { border-color: var(--red); }
+  /* 입력 필드 단위 뱃지 래퍼 */
+  .input-with-unit {
+    position: relative; display: flex; align-items: center;
+  }
+  .input-with-unit .env-input { padding-right: 38px; }
+  .input-unit-badge {
+    position: absolute; right: 10px; font-size: 10px; font-weight: 600;
+    color: var(--muted); pointer-events: none; white-space: nowrap;
+  }
+  /* 폼 라벨 */
+  .form-field-label {
+    font-size: 11px; color: var(--muted); font-weight: 600;
+    margin-bottom: 5px; display: block; letter-spacing: .2px;
+  }
+  .form-field-label .req { color: var(--red); margin-left: 2px; }
   /* ── 폼 피드백 / 범위 힌트 ── */
   .result-ok   { display:inline-flex; align-items:center; gap:5px; color:var(--green); font-size:12px; }
   .result-err  { display:inline-flex; align-items:center; gap:5px; color:var(--red);   font-size:12px; }
@@ -680,7 +714,17 @@
   .result-ok::before   { content:'✓'; font-weight:700; }
   .result-err::before  { content:'✕'; font-weight:700; }
   .result-warn::before { content:'!'; font-weight:700; }
-  .field-hint  { font-size:10px; color:var(--muted); margin-top:2px; letter-spacing:-.1px; }
+  .field-hint  { font-size:10px; color:var(--muted); margin-top:3px; letter-spacing:-.1px; line-height:1.4; }
+  /* 폼 전체 제출 피드백 배너 */
+  .form-feedback {
+    margin-top: 10px; padding: 10px 14px; border-radius: 8px;
+    font-size: 12px; font-weight: 600; display: none;
+    animation: fadeIn .2s ease;
+  }
+  .form-feedback.ok   { display:flex; align-items:center; gap:6px; background:rgba(46,160,67,.12);  color:var(--green); }
+  .form-feedback.err  { display:flex; align-items:center; gap:6px; background:rgba(242,100,90,.12); color:var(--red); }
+  .form-feedback.warn { display:flex; align-items:center; gap:6px; background:rgba(245,200,66,.12); color:var(--yellow); }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:none; } }
   /* ── 빈 상태 ── */
   .empty-state { display:flex; flex-direction:column; align-items:center; gap:6px; padding:28px 0; color:var(--muted); font-size:12px; text-align:center; }
   .empty-state-icon { font-size:26px; opacity:.4; }
@@ -1495,12 +1539,22 @@
   @media (max-width: 767px) { .period-pill-bar { display: none !important; } }
 
   /* ── 3-10. 입력 그리드 반응형 ── */
+  .form-2col { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  @media (max-width: 430px)  { .form-2col { grid-template-columns: 1fr; } }
   .form-3col { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
   @media (max-width: 767px) { .form-3col { grid-template-columns: repeat(2, 1fr); } }
   @media (max-width: 430px)  { .form-3col { grid-template-columns: 1fr; } }
   .form-4col { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
   @media (max-width: 1099px) { .form-4col { grid-template-columns: repeat(2, 1fr); } }
   @media (max-width: 430px)  { .form-4col { grid-template-columns: 1fr 1fr; } }
+  /* 모바일에서 주요 submit 버튼 전체 너비 */
+  @media (max-width: 767px) {
+    .reco-apply-btn.full-mobile, .btn-danger.full-mobile { width: 100%; justify-content: center; }
+  }
+  /* select 요소 높이 통일 */
+  select.env-input, .profit-farm-sel {
+    min-height: 40px;
+  }
 
   /* ── 3-11. 공동출하 참여 버튼 전체 너비 (모바일) ── */
   @media (max-width: 767px) {

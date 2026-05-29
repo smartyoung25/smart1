@@ -104,6 +104,8 @@ const SECTION_LOADERS = {
         _autoSel('growth-farm-sel',  fid);
         _autoSel('whatif-farm-sel',  fid);
         _autoSel('sfrop-farm-sel',   fid);
+        _autoSel('gr-farm', fid);
+        _autoSel('hv-farm', fid);
         loadGrowthHarvestRevenue();
         loadSfropScenarios();
         loadGrowthHistory(fid);
@@ -250,7 +252,7 @@ function populateAllFarmSels() {
    'irr-sched-farm','priva-farm-sel','market-harvest-farm',
    'env-view-farm','weather-farm-sel','env-manual-farm','env-anomaly-farm',
    'led-farm-sel','cost-manual-farm','chat-farm-sel',
-   'hero-farm-sel'].forEach(id => populateSelectWithFarms(id));
+   'hero-farm-sel','gr-farm','hv-farm'].forEach(id => populateSelectWithFarms(id));
   const sfSel = $('sensor-farm-sel');
   if (sfSel && _farmsData.length) {
     const cur = sfSel.value;
@@ -308,6 +310,14 @@ function toggleAccordion(btn) {
   if (body && body.classList.contains('accordion-body')) {
     body.classList.toggle('open');
   }
+}
+
+// 카드 접기/펼치기 — 새 폼 카드용 (bodyEl, arrowEl 직접 전달)
+function toggleCard(bodyEl, arrowEl) {
+  if (!bodyEl) return;
+  const open = bodyEl.style.display !== 'none';
+  bodyEl.style.display = open ? 'none' : 'block';
+  if (arrowEl) arrowEl.style.transform = open ? '' : 'rotate(180deg)';
 }
 
 const BottomSheet = {

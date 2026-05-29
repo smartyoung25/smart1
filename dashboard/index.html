@@ -482,6 +482,180 @@
     </div>
   </div>
 
+  <!-- 생육 측정 등록 폼 -->
+  <div class="card">
+    <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="toggleCard(this.parentElement.querySelector('.accordion-body'),this.querySelector('.acc-arrow'))">
+      <span>📏 생육 측정 등록 <span style="font-size:11px;font-weight:400;color:var(--muted)">— 주간 측정값 입력 → M1 모델 자동 개선</span></span>
+      <span class="acc-arrow" style="font-size:14px;transition:transform .25s">▼</span>
+    </div>
+    <div class="accordion-body" style="display:none;margin-top:14px">
+      <div class="form-4col" style="margin-bottom:12px">
+        <div>
+          <label class="form-field-label">농장 <span class="req">*</span></label>
+          <select id="gr-farm" class="profit-farm-sel env-input" style="width:100%"><option value="">선택…</option></select>
+        </div>
+        <div>
+          <label class="form-field-label">측정일 <span class="req">*</span></label>
+          <input id="gr-date" type="date" class="env-input">
+        </div>
+        <div>
+          <label class="form-field-label">작목</label>
+          <select id="gr-crop" class="profit-farm-sel env-input" style="width:100%">
+            <option value="">자동 감지</option>
+            <option>딸기</option><option>방울토마토</option><option>완숙토마토</option>
+            <option>오이</option><option>파프리카</option><option>참외</option>
+          </select>
+        </div>
+        <div><!-- spacer --></div>
+
+        <div class="form-section-header">🌱 생육 측정값</div>
+        <div>
+          <label class="form-field-label">초장 (植草長)</label>
+          <div class="input-with-unit">
+            <input id="gr-height" type="number" step="0.5" min="1" max="500" class="env-input" placeholder="예: 45.0">
+            <span class="input-unit-badge">cm</span>
+          </div>
+          <div class="field-hint">정식 후 주 1회 측정</div>
+        </div>
+        <div>
+          <label class="form-field-label">엽수</label>
+          <div class="input-with-unit">
+            <input id="gr-leaves" type="number" step="1" min="0" max="200" class="env-input" placeholder="예: 14">
+            <span class="input-unit-badge">매</span>
+          </div>
+        </div>
+        <div>
+          <label class="form-field-label">착과수</label>
+          <div class="input-with-unit">
+            <input id="gr-fruits" type="number" step="1" min="0" max="500" class="env-input" placeholder="예: 8">
+            <span class="input-unit-badge">개</span>
+          </div>
+        </div>
+        <div>
+          <label class="form-field-label">경경 (줄기직경)</label>
+          <div class="input-with-unit">
+            <input id="gr-stem" type="number" step="0.1" min="1" max="50" class="env-input" placeholder="예: 9.5">
+            <span class="input-unit-badge">mm</span>
+          </div>
+        </div>
+
+        <div class="form-section-header">🌡️ 측정 시점 환경 (선택)</div>
+        <div>
+          <label class="form-field-label">내부온도</label>
+          <div class="input-with-unit">
+            <input id="gr-temp" type="number" step="0.1" min="5" max="40" class="env-input" placeholder="예: 24.5">
+            <span class="input-unit-badge">°C</span>
+          </div>
+        </div>
+        <div>
+          <label class="form-field-label">내부습도</label>
+          <div class="input-with-unit">
+            <input id="gr-humi" type="number" step="1" min="20" max="100" class="env-input" placeholder="예: 72">
+            <span class="input-unit-badge">%</span>
+          </div>
+        </div>
+        <div>
+          <label class="form-field-label">CO₂</label>
+          <div class="input-with-unit">
+            <input id="gr-co2" type="number" step="10" min="300" max="2000" class="env-input" placeholder="예: 850">
+            <span class="input-unit-badge">ppm</span>
+          </div>
+        </div>
+        <div>
+          <label class="form-field-label">EC</label>
+          <div class="input-with-unit">
+            <input id="gr-ec" type="number" step="0.01" min="0" max="10" class="env-input" placeholder="예: 2.4">
+            <span class="input-unit-badge">dS/m</span>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="reco-apply-btn" onclick="submitGrowthRecord()">📏 생육 측정 저장</button>
+        <button class="btn" style="min-height:44px;padding:10px 16px;border-radius:8px;font-size:12px;cursor:pointer;background:var(--card-soft);border:1px solid var(--border);color:var(--muted)" onclick="document.querySelectorAll('#gr-height,#gr-leaves,#gr-fruits,#gr-stem,#gr-temp,#gr-humi,#gr-co2,#gr-ec').forEach(e=>e.value='')">↺ 초기화</button>
+      </div>
+      <div id="gr-result" class="form-feedback"></div>
+    </div>
+  </div>
+
+  <!-- 수확량 등록 폼 -->
+  <div class="card">
+    <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="toggleCard(this.parentElement.querySelector('.accordion-body'),this.querySelector('.acc-arrow'))">
+      <span>📦 수확량 실측 등록 <span style="font-size:11px;font-weight:400;color:var(--muted)">— 시즌 수확 데이터 입력 → M2 자동 재학습</span></span>
+      <span class="acc-arrow" style="font-size:14px;transition:transform .25s">▼</span>
+    </div>
+    <div class="accordion-body" style="display:none;margin-top:14px">
+      <div class="form-4col" style="margin-bottom:12px">
+        <div>
+          <label class="form-field-label">농장 <span class="req">*</span></label>
+          <select id="hv-farm" class="profit-farm-sel env-input" style="width:100%"><option value="">선택…</option></select>
+        </div>
+        <div>
+          <label class="form-field-label">수확일 <span class="req">*</span></label>
+          <input id="hv-date" type="date" class="env-input">
+        </div>
+        <div>
+          <label class="form-field-label">작목</label>
+          <select id="hv-crop" class="profit-farm-sel env-input" style="width:100%">
+            <option value="">자동 감지</option>
+            <option>딸기</option><option>방울토마토</option><option>완숙토마토</option>
+            <option>오이</option><option>파프리카</option><option>참외</option>
+          </select>
+        </div>
+        <div><!-- spacer --></div>
+
+        <div class="form-section-header">📊 수확 데이터 <span class="req">*</span> 필수 입력</div>
+        <div>
+          <label class="form-field-label">단위수확량 <span class="req">*</span></label>
+          <div class="input-with-unit">
+            <input id="hv-yield" type="number" step="0.01" min="0.01" max="100" class="env-input" placeholder="예: 6.5" oninput="_updateHarvestPreview()">
+            <span class="input-unit-badge">kg/㎡</span>
+          </div>
+          <div class="field-hint">딸기 4~10 / 토마토 8~20 / 오이 10~25 kg/m²</div>
+        </div>
+        <div>
+          <label class="form-field-label">재배 면적</label>
+          <div class="input-with-unit">
+            <input id="hv-area" type="number" step="1" min="1" max="50000" class="env-input" placeholder="예: 330" oninput="_updateHarvestPreview()">
+            <span class="input-unit-badge">㎡</span>
+          </div>
+          <div class="field-hint">입력 시 총수확량 자동 계산</div>
+        </div>
+        <div>
+          <label class="form-field-label">정식일</label>
+          <input id="hv-plant-date" type="date" class="env-input">
+          <div class="field-hint">입력 시 재배일수 자동 계산</div>
+        </div>
+        <div><!-- spacer --></div>
+
+        <div class="form-section-header">🌡️ 시즌 평균 환경 (선택)</div>
+        <div>
+          <label class="form-field-label">시즌 평균 온도</label>
+          <div class="input-with-unit">
+            <input id="hv-avg-temp" type="number" step="0.1" min="0" max="40" class="env-input" placeholder="예: 23.5">
+            <span class="input-unit-badge">°C</span>
+          </div>
+        </div>
+        <div>
+          <label class="form-field-label">시즌 평균 습도</label>
+          <div class="input-with-unit">
+            <input id="hv-avg-humi" type="number" step="1" min="20" max="100" class="env-input" placeholder="예: 72">
+            <span class="input-unit-badge">%</span>
+          </div>
+        </div>
+      </div>
+      <!-- 입력값 미리보기 -->
+      <div id="hv-preview" style="display:none;margin-bottom:12px;padding:10px 14px;background:var(--card-soft);border:1px solid var(--border);border-radius:8px;font-size:12px">
+        <b style="color:var(--fg)">입력 확인</b>
+        <div style="margin-top:6px;color:var(--muted)" id="hv-preview-body"></div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="reco-apply-btn" onclick="submitHarvestRecord()">📦 수확량 저장</button>
+        <button class="btn" style="min-height:44px;padding:10px 16px;border-radius:8px;font-size:12px;cursor:pointer;background:var(--card-soft);border:1px solid var(--border);color:var(--muted)" onclick="document.querySelectorAll('#hv-yield,#hv-area,#hv-plant-date,#hv-avg-temp,#hv-avg-humi').forEach(e=>e.value='');document.getElementById('hv-preview').style.display='none'">↺ 초기화</button>
+      </div>
+      <div id="hv-result" class="form-feedback"></div>
+    </div>
+  </div>
+
   <!-- What-if 시뮬레이션 -->
   <div class="card">
     <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
@@ -1062,47 +1236,73 @@
 
   <!-- 수동 환경값 입력 -->
   <div class="card">
-    <div class="card-title">✏️ 환경값 수동 입력</div>
-    <div class="form-3col" style="margin-bottom:12px">
-      <div>
-        <div style="font-size:10px;color:var(--muted);margin-bottom:3px">농장</div>
-        <select id="env-manual-farm" class="profit-farm-sel" style="width:100%">
+    <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+      <span>✏️ 환경값 수동 입력</span>
+      <span style="font-size:11px;color:var(--muted)">IoT 미구축 농장 전용</span>
+    </div>
+    <div class="form-3col" style="margin-bottom:14px">
+      <div style="grid-column:1/-1">
+        <label class="form-field-label">농장 <span class="req">*</span></label>
+        <select id="env-manual-farm" class="profit-farm-sel env-input" style="width:100%">
           <option value="">선택…</option>
         </select>
       </div>
+      <div class="form-section-header" style="grid-column:1/-1">🌡️ 기후 환경</div>
       <div>
-        <div style="font-size:10px;color:var(--muted);margin-bottom:3px">내부온도 (°C)</div>
-        <input id="em-temp" type="number" step="0.1" class="env-input" placeholder="예: 24.0" style="width:100%">
-        <div class="field-hint">작물별 권장 18~28°C</div>
+        <label class="form-field-label">내부온도</label>
+        <div class="input-with-unit">
+          <input id="em-temp" type="number" step="0.1" min="5" max="40" class="env-input" placeholder="24.0">
+          <span class="input-unit-badge">°C</span>
+        </div>
+        <div class="field-hint">권장 18~28°C</div>
       </div>
       <div>
-        <div style="font-size:10px;color:var(--muted);margin-bottom:3px">내부습도 (%)</div>
-        <input id="em-humi" type="number" step="1" class="env-input" placeholder="예: 70" style="width:100%">
-        <div class="field-hint">권장 60~80% (VPD 0.8~1.2)</div>
+        <label class="form-field-label">내부습도</label>
+        <div class="input-with-unit">
+          <input id="em-humi" type="number" step="1" min="20" max="100" class="env-input" placeholder="70">
+          <span class="input-unit-badge">%</span>
+        </div>
+        <div class="field-hint">권장 60~80% · VPD 0.8~1.2kPa</div>
       </div>
       <div>
-        <div style="font-size:10px;color:var(--muted);margin-bottom:3px">CO₂ (ppm)</div>
-        <input id="em-co2" type="number" step="10" class="env-input" placeholder="예: 800" style="width:100%">
+        <label class="form-field-label">CO₂ 농도</label>
+        <div class="input-with-unit">
+          <input id="em-co2" type="number" step="10" min="300" max="2000" class="env-input" placeholder="800">
+          <span class="input-unit-badge">ppm</span>
+        </div>
         <div class="field-hint">권장 600~1,200 ppm</div>
       </div>
+      <div class="form-section-header" style="grid-column:1/-1">💧 양액 환경</div>
       <div>
-        <div style="font-size:10px;color:var(--muted);margin-bottom:3px">EC (dS/m)</div>
-        <input id="em-ec" type="number" step="0.01" class="env-input" placeholder="예: 2.5" style="width:100%">
+        <label class="form-field-label">EC (전기전도도)</label>
+        <div class="input-with-unit">
+          <input id="em-ec" type="number" step="0.01" min="0" max="10" class="env-input" placeholder="2.5">
+          <span class="input-unit-badge">dS/m</span>
+        </div>
         <div class="field-hint">작목별 1.5~3.5 dS/m</div>
       </div>
       <div>
-        <div style="font-size:10px;color:var(--muted);margin-bottom:3px">pH</div>
-        <input id="em-ph" type="number" step="0.1" class="env-input" placeholder="예: 6.2" style="width:100%">
+        <label class="form-field-label">pH</label>
+        <div class="input-with-unit">
+          <input id="em-ph" type="number" step="0.1" min="3" max="9" class="env-input" placeholder="6.2">
+          <span class="input-unit-badge">pH</span>
+        </div>
         <div class="field-hint">권장 5.8~6.5</div>
       </div>
       <div>
-        <div style="font-size:10px;color:var(--muted);margin-bottom:3px">지온 (°C)</div>
-        <input id="em-soil" type="number" step="0.1" class="env-input" placeholder="예: 20.0" style="width:100%">
+        <label class="form-field-label">지온 (지중온도)</label>
+        <div class="input-with-unit">
+          <input id="em-soil" type="number" step="0.1" min="5" max="35" class="env-input" placeholder="20.0">
+          <span class="input-unit-badge">°C</span>
+        </div>
         <div class="field-hint">권장 18~25°C</div>
       </div>
     </div>
-    <button class="reco-apply-btn" onclick="submitManualEnv()">💾 환경값 저장</button>
-    <div id="env-manual-result" style="margin-top:8px;font-size:12px"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="reco-apply-btn" onclick="submitManualEnv()">💾 환경값 저장</button>
+      <button class="btn" style="min-height:44px;padding:10px 16px;border-radius:8px;font-size:12px;cursor:pointer;background:var(--card-soft);border:1px solid var(--border);color:var(--muted)" onclick="document.querySelectorAll('#em-temp,#em-humi,#em-co2,#em-ec,#em-ph,#em-soil').forEach(e=>e.value='')">↺ 초기화</button>
+    </div>
+    <div id="env-manual-result" class="form-feedback" style="margin-top:10px"></div>
   </div>
 
   <!-- 환경 이상 감지 패널 -->

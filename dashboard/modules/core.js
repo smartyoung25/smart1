@@ -28,6 +28,15 @@ const $ = id => document.getElementById(id);
 function _setResult(elId, status, msg) {
   const el = $(elId);
   if (!el) return;
+  // form-feedback 클래스 패턴 지원 (새 디자인)
+  if (el.classList.contains('form-feedback')) {
+    const icon = status === 'ok' ? '✅' : status === 'err' ? '❌' : '⚠️';
+    el.className = `form-feedback ${status}`;
+    el.textContent = `${icon} ${msg}`;
+    if (status === 'ok') setTimeout(() => { el.className = 'form-feedback'; }, 5000);
+    return;
+  }
+  // 레거시 패턴
   const cls = status === 'ok' ? 'result-ok' : status === 'err' ? 'result-err' : 'result-warn';
   el.innerHTML = `<span class="${cls}">${_esc(msg)}</span>`;
 }

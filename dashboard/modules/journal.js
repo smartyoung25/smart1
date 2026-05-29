@@ -1,7 +1,147 @@
 // ══════════════════════════════════════════════════════════════════════════
-//  journal.js — 생육·수확·환경 이력 타임라인
+//  journal.js — 생육·수확·환경 이력 타임라인 + 등록 폼
 //  의존: core.js (apiFetch, $, _token, _defaultFarm, _myFarmId)
 // ══════════════════════════════════════════════════════════════════════════
+
+// ── 폼 피드백 헬퍼 ────────────────────────────────────────────────────────
+function _setFeedback(elId, type, msg) {
+  const el = $(elId);
+  if (!el) return;
+  el.className = `form-feedback ${type}`;
+  el.textContent = msg;
+  if (type === 'ok') setTimeout(() => { el.className = 'form-feedback'; }, 4000);
+}
+
+function _setLoading(btn, loading) {
+  if (!btn) return;
+  btn.disabled = loading;
+  if (loading) {
+    btn.classList.add('loading');
+  } else {
+    btn.classList.remove('loading');
+  }
+}
+
+// ── 생육 측정 등록 ────────────────────────────────────────────────────────
+async function submitGrowthRecord() {
+  const btn = document.querySelector('[onclick="submitGrowthRecord()"]');
+  const farmId = $('gr-farm')?.value;
+  const dateVal = $('gr-date')?.value;
+
+  if (!farmId) { _setFeedback('gr-result', 'err', '농장을 선택해 주세요.'); return; }
+  if (!dateVal) { _setFeedback('gr-result', 'err', '측정일을 입력해 주세요.'); return; }
+
+  // 작목 — farm 메타에서 가져오거나 선택값 사용
+  const farmMeta = (_farmsData || []).find(f => f.farm_id === farmId);
+  const cropKo = $('gr-crop')?.value || farmMeta?.crop_ko || '방울토마토';
+
+  const body = {
+    farm_id:    farmId,
+    crop_ko:    cropKo,
+    recorded_date: dateVal,
+    source:     'manual_ui',
+    plant_height_cm:  _numVal('gr-height'),
+    leaf_count:       _numVal('gr-leaves'),
+    fruit_count:      _numVal('gr-fruits'),
+    stem_diameter_mm: _numVal('gr-stem'),
+    temp_internal:    _numVal('gr-temp'),
+    humidity_int:     _numVal('gr-humi'),
+    co2_ppm:          _numVal('gr-co2'),
+    ec_dsm:           _numVal('gr-ec'),
+  };
+  // null 제거
+  Object.keys(body).forEach(k => { if (body[k] === null) delete body[k]; });
+
+  _setLoading(btn, true);
+  try {
+    const res = await apiFetch('/api/data/growth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    _setFeedback('gr-result', 'ok', `✅ ${res.message_ko || '생육 측정 저장 완료'}`);
+    // 이력 새로고침
+    setTimeout(() => loadGrowthHistory(farmId), 600);
+  } catch (e) {
+    _setFeedback('gr-result', 'err', `저장 실패: ${e.message || '서버 오류'}`);
+  } finally {
+    _setLoading(btn, false);
+  }
+}
+
+function _numVal(id) {
+  const v = $(id)?.value;
+  if (v === '' || v == null) return null;
+  const n = parseFloat(v);
+  return isNaN(n) ? null : n;
+}
+
+// ── 수확량 등록 ────────────────────────────────────────────────────────────
+async function submitHarvestRecord() {
+  const btn = document.querySelector('[onclick="submitHarvestRecord()"]');
+  const farmId = $('hv-farm')?.value;
+  const dateVal = $('hv-date')?.value;
+  const yieldVal = _numVal('hv-yield');
+
+  if (!farmId) { _setFeedback('hv-result', 'err', '농장을 선택해 주세요.'); return; }
+  if (!dateVal) { _setFeedback('hv-result', 'err', '수확일을 입력해 주세요.'); return; }
+  if (!yieldVal || yieldVal <= 0) { _setFeedback('hv-result', 'err', '단위수확량(kg/m²)을 올바르게 입력해 주세요.'); return; }
+
+  const farmMeta = (_farmsData || []).find(f => f.farm_id === farmId);
+  const cropKo = $('hv-crop')?.value || farmMeta?.crop_ko || '방울토마토';
+
+  const body = {
+    farm_id:        farmId,
+    crop_ko:        cropKo,
+    harvest_date:   dateVal,
+    source:         'manual_ui',
+    yield_kg_m2:    yieldVal,
+    area_m2:        _numVal('hv-area'),
+    planting_date:  $('hv-plant-date')?.value || undefined,
+    season_avg_temp:     _numVal('hv-avg-temp'),
+    season_avg_humidity: _numVal('hv-avg-humi'),
+  };
+  if (!body.planting_date) delete body.planting_date;
+  Object.keys(body).forEach(k => { if (body[k] === null || body[k] === undefined) delete body[k]; });
+
+  // 미리보기 숨기기
+  const pv = $('hv-preview');
+  if (pv) pv.style.display = 'none';
+
+  _setLoading(btn, true);
+  try {
+    const res = await apiFetch('/api/data/harvest', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    _setFeedback('hv-result', 'ok', `✅ ${res.message_ko || '수확량 저장 완료'}`);
+    // 재학습 트리거 알림
+    if (res.retrain_triggered) {
+      setTimeout(() => _setFeedback('hv-result', 'warn', `🔄 ${res.retrain_message_ko || '재학습이 예약되었습니다'}`), 2000);
+    }
+    // 이력 새로고침
+    setTimeout(() => loadHarvestHistory(farmId), 600);
+  } catch (e) {
+    _setFeedback('hv-result', 'err', `저장 실패: ${e.message || '서버 오류'}`);
+  } finally {
+    _setLoading(btn, false);
+  }
+}
+
+// 수확 입력값 미리보기 (실시간)
+function _updateHarvestPreview() {
+  const yield_ = _numVal('hv-yield');
+  const area   = _numVal('hv-area');
+  const pv     = $('hv-preview');
+  const pvb    = $('hv-preview-body');
+  if (!pv || !pvb || !yield_) { if (pv) pv.style.display = 'none'; return; }
+  const total = area ? (yield_ * area).toFixed(1) : null;
+  pvb.innerHTML = `단위수확량 <b style="color:var(--green)">${yield_} kg/m²</b>` +
+    (area ? ` × 면적 ${area}m² = <b style="color:var(--accent)">${total} kg</b>` : '') +
+    (total ? ` | 예상 매출 ≈ <b>${(parseFloat(total) * 3500).toLocaleString()}원</b> (평균 3,500원/kg)` : '');
+  pv.style.display = 'block';
+}
 
 // ── 날짜 포맷 헬퍼 ─────────────────────────────────────────────────────────
 function _jFmtDate(s) {
