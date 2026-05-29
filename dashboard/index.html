@@ -1105,7 +1105,7 @@
   /* ── 1-7. 테이블 가로 스크롤 래퍼 ── */
   @media (max-width: 767px) {
     .table-scroll-wrap, .heatmap-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-    table { min-width: 460px; }
+    .table-scroll-wrap table { min-width: 460px; }
     #farms-table { min-width: 600px; }
     td, th { padding: 6px 8px; font-size: 12px; }
   }
@@ -1279,6 +1279,9 @@
   @media (max-width: 767px) {
     .weather-tbl-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
     .weather-tbl { min-width: 420px; }
+    /* JS-rendered table 컨테이너에 직접 overflow 적용 */
+    #weather-body, #env-current-body, #weather-et0-body,
+    #market-prices-body, #price-hist-body, #sys-model-perf-body { overflow-x: auto; -webkit-overflow-scrolling: touch; }
     #weather-body table, #env-current-body table { min-width: 380px; }
   }
 
