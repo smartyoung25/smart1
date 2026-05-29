@@ -1345,10 +1345,18 @@ def select_top_features(model, X: np.ndarray, feature_names: list[str],
 
 # ── 학습 ──────────────────────────────────────────────────────────────────────
 
-def _mape(y_true: np.ndarray, y_pred: np.ndarray) -> float:
-    mask = y_true > 0
+def _mape(y_true: np.ndarray, y_pred: np.ndarray, floor: float = 0.05) -> float:
+    """평균절대백분율오차 (MAPE). near-zero 분모 방지를 위해 floor 적용.
+
+    floor=0.05: 월별 yield_per_m2 ≥ 0.05 kg/m²/월인 샘플만 MAPE 계산.
+    비수확기 near-zero 값이 MAPE를 비정상적으로 부풀리는 것을 방지.
+    """
+    mask = y_true >= floor
     if not mask.any():
-        return 999.9
+        # floor를 넘는 값이 없으면 y_true > 0 샘플로 폴백
+        mask = y_true > 0
+        if not mask.any():
+            return 999.9
     return float(np.mean(np.abs((y_true[mask] - y_pred[mask]) / y_true[mask])) * 100)
 
 

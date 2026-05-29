@@ -13,7 +13,7 @@
   "cv_r2_mean": 0.826,
   "cv_r2_std": 0.0,
   "cv_mape_mean": null,
-  "mape": 1362.4,
+  "mape": 22.8,
   "train_rmse": 3.6444,
   "train_mae": 2.5486,
   "gate_passed": true,
