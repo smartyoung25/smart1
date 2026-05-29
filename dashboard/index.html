@@ -666,23 +666,35 @@
     </div>
     <div class="form-4col" style="margin:12px 0" id="whatif-inputs">
       <div>
-        <div style="font-size:10px;color:var(--muted);margin-bottom:3px">내부온도 (°C)</div>
-        <input id="wi-temp" type="number" step="0.5" placeholder="예: 24.0" class="env-input">
+        <label class="form-field-label">내부온도</label>
+        <div class="input-with-unit">
+          <input id="wi-temp" type="number" step="0.5" placeholder="24.0" class="env-input">
+          <span class="input-unit-badge">°C</span>
+        </div>
         <div class="field-hint">18~28°C</div>
       </div>
       <div>
-        <div style="font-size:10px;color:var(--muted);margin-bottom:3px">내부습도 (%)</div>
-        <input id="wi-humi" type="number" step="1" placeholder="예: 70" class="env-input">
+        <label class="form-field-label">내부습도</label>
+        <div class="input-with-unit">
+          <input id="wi-humi" type="number" step="1" placeholder="70" class="env-input">
+          <span class="input-unit-badge">%</span>
+        </div>
         <div class="field-hint">60~80%</div>
       </div>
       <div>
-        <div style="font-size:10px;color:var(--muted);margin-bottom:3px">CO₂ (ppm)</div>
-        <input id="wi-co2" type="number" step="10" placeholder="예: 800" class="env-input">
+        <label class="form-field-label">CO₂ 농도</label>
+        <div class="input-with-unit">
+          <input id="wi-co2" type="number" step="10" placeholder="800" class="env-input">
+          <span class="input-unit-badge">ppm</span>
+        </div>
         <div class="field-hint">600~1,200 ppm</div>
       </div>
       <div>
-        <div style="font-size:10px;color:var(--muted);margin-bottom:3px">EC (dS/m)</div>
-        <input id="wi-ec" type="number" step="0.1" placeholder="예: 2.5" class="env-input">
+        <label class="form-field-label">EC</label>
+        <div class="input-with-unit">
+          <input id="wi-ec" type="number" step="0.1" placeholder="2.5" class="env-input">
+          <span class="input-unit-badge">dS/m</span>
+        </div>
         <div class="field-hint">1.5~3.5 dS/m</div>
       </div>
     </div>
@@ -714,7 +726,7 @@
     <div class="card">
       <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
         <span>🌱 생육 측정 기록 이력</span>
-        <button class="hdr-btn" onclick="loadGrowthHistory()">↻</button>
+        <button class="hdr-btn" onclick="loadGrowthHistory($('growth-farm-sel')?.value || _defaultFarm())">↻</button>
       </div>
       <div id="growth-hist-body">
         <div class="empty-state"><div class="empty-state-icon">🌱</div>농장을 선택하면 생육 측정 이력을 표시합니다<div class="empty-state-sub">초장·엽수·착과수·경경·온도·VPD 추이</div></div>
@@ -723,7 +735,7 @@
     <div class="card">
       <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
         <span>📦 수확량 기록 이력</span>
-        <button class="hdr-btn" onclick="loadHarvestHistory()">↻</button>
+        <button class="hdr-btn" onclick="loadHarvestHistory($('hv-farm')?.value || _defaultFarm())">↻</button>
       </div>
       <div id="harvest-hist-body">
         <div class="empty-state"><div class="empty-state-icon">📦</div>농장을 선택하면 수확량 기록 이력을 표시합니다<div class="empty-state-sub">수확일·수확량·면적·재배일수 추이</div></div>
