@@ -5138,15 +5138,17 @@ async function loadPrivaSchedule() {
     const fmt1 = n => n != null ? Number(n).toFixed(1) : '—';
     const fmt0 = n => n != null ? Math.round(n) : '—';
     const phaseColors = ['#4f8ef7','#3ecf8e','#f5c842'];
-    const phases = (d.phases || []).map((ph, i) => `
+    const phaseList = d.phases || [];
+    const phases = phaseList.length ? phaseList.map((ph, i) => `
       <div style="background:rgba(${i===0?'79,142,247':i===1?'62,207,142':'245,200,66'},.1);border-radius:8px;padding:10px;border:1px solid rgba(${i===0?'79,142,247':i===1?'62,207,142':'245,200,66'},.3)">
-        <div style="font-size:11px;font-weight:700;color:${phaseColors[i]};margin-bottom:6px">${_esc(ph.name_ko || 'Phase'+(i+1))} <span style="color:var(--muted);font-weight:400">${_esc(ph.start_hhmm)}~${_esc(ph.end_hhmm)}</span></div>
+        <div style="font-size:11px;font-weight:700;color:${phaseColors[i]||'var(--accent)'};margin-bottom:6px">${_esc(ph?.name_ko || 'Phase'+(i+1))} <span style="color:var(--muted);font-weight:400">${_esc(ph?.start_hhmm??'')}~${_esc(ph?.end_hhmm??'')}</span></div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:11px">
-          <div style="color:var(--muted)">횟수</div><div style="font-weight:700">${ph.n_max}회</div>
-          <div style="color:var(--muted)">회당공급</div><div style="font-weight:700">${fmt0(ph.supply_ml)} ml</div>
-          <div style="color:var(--muted)">배액목표</div><div style="font-weight:700">${fmt1(ph.drain_target_pct)}%</div>
+          <div style="color:var(--muted)">횟수</div><div style="font-weight:700">${ph?.n_max ?? '—'}회</div>
+          <div style="color:var(--muted)">회당공급</div><div style="font-weight:700">${fmt0(ph?.supply_ml)} ml</div>
+          <div style="color:var(--muted)">배액목표</div><div style="font-weight:700">${fmt1(ph?.drain_target_pct)}%</div>
         </div>
-      </div>`).join('');
+      </div>`).join('')
+    : '<div style="color:var(--muted);font-size:12px;padding:8px">페이즈 정보 없음</div>';
     el.innerHTML = `
       <div class="form-4col" style="gap:8px;margin-bottom:12px">
         <div class="irr-kpi"><div class="ik-label">총 관수</div><div class="ik-val">${d.n_irrigations ?? '—'}</div><div class="ik-unit">회/일</div></div>
@@ -5742,19 +5744,25 @@ async function loadHeroDashboard(farmId) {
     setText('c5-breakeven',  fmt(d.breakeven_kg));
     setText('c5-cost-hint',   d.growth_stage || '원/kg');
 
-    // 공동출하 비교표
+    // 공동출하 비교표 — ERP 물류비 우선, 없으면 기본값
     const ht = d.harvest_timing || {};
-    const mktP = d.market_price_per_kg ?? 0;
+    const mktP    = d.market_price_per_kg ?? 0;
+    const poolFac = d.pool_price_factor   ?? 1.083; // API가 계수를 내려주면 사용
+    const indLog  = d.logistics_cost_ind  ?? 320;
+    const poolLog = d.logistics_cost_pool ?? 210;
+    const costKg  = d.cost_per_kg ?? 0;
+    const poolPrice = Math.round(mktP * poolFac);
     setText('c5-ind-price',      fmt(mktP));
-    setText('c5-pool-price',     fmt(Math.round(mktP * 1.083)));
-    setText('c5-ind-logistics',  '320원');
-    setText('c5-pool-logistics', '210원');
-    const indMgn = mktP - (d.cost_per_kg ?? 0) - 320;
-    const poolMgn = Math.round(mktP * 1.083) - (d.cost_per_kg ?? 0) - 210;
-    setText('c5-ind-margin',  fmt(indMgn > 0 ? indMgn : null));
-    setText('c5-pool-margin', fmt(poolMgn > 0 ? poolMgn : null));
+    setText('c5-pool-price',     fmt(poolPrice));
+    setText('c5-ind-logistics',  indLog  + '원');
+    setText('c5-pool-logistics', poolLog + '원');
+    const indMgn  = Math.round(mktP    - costKg - indLog);
+    const poolMgn = Math.round(poolPrice - costKg - poolLog);
+    // 마진: 음수도 표시 (개별 대비 비교 정보가 필요하므로)
+    setText('c5-ind-margin',  indMgn  !== 0 ? fmt(indMgn)  + '원' : '0원');
+    setText('c5-pool-margin', poolMgn !== 0 ? fmt(poolMgn) + '원' : '0원');
     const effect = poolMgn - indMgn;
-    setText('c5-pool-effect', effect > 0 ? '+'+fmt(effect)+'원/kg' : '—');
+    setText('c5-pool-effect', effect !== 0 ? (effect > 0 ? '+' : '') + fmt(effect) + '원/kg' : '동일');
 
     // 원가 구조 바 (ERP 비용구성 기반)
     const cb = d.cost_breakdown || {};
@@ -5771,7 +5779,8 @@ async function loadHeroDashboard(farmId) {
     // G6 수확 KPI (7일 예측 사용)
     if (d.harvest_7d_kg != null) {
       setText('harvest-7d-kg', fmt(d.harvest_7d_kg));
-      setText('harvest-pool-margin', fmt(poolMgn > 0 ? poolMgn : null));
+      // poolMgn은 위 공동출하 비교표 블록에서 이미 계산됨
+      setText('harvest-pool-margin', poolMgn !== 0 ? fmt(poolMgn) + '원/kg' : '—');
     }
 
     // 헤더 모드 pill 업데이트
@@ -5781,11 +5790,6 @@ async function loadHeroDashboard(farmId) {
       modeEl.textContent = modeTxt;
     }
 
-    // 물류비 — ERP 데이터 우선 사용, 없으면 기본값
-    const indLog  = d.logistics_cost_ind  ?? 320;
-    const poolLog = d.logistics_cost_pool ?? 210;
-    setText('c5-ind-logistics',  indLog  + '원');
-    setText('c5-pool-logistics', poolLog + '원');
   } catch(e) { /* hero는 선택적 — 실패해도 계속 */ }
 
   // AI 권고 → To-do 목록 + AI 3유형 바
@@ -6112,8 +6116,8 @@ async function loadMarketPrices() {
           <tr>
             <td>${_esc(p.crop_ko||'—')}</td>
             <td style="text-align:center;color:var(--muted)">금주</td>
-            <td style="text-align:right">${'—'}</td>
-            <td style="text-align:center"><span class="pill-tag">${p.change_pct>=0?'모집중':'완료'}</span></td>
+            <td style="text-align:right">${p.supply_volume != null ? Math.round(p.supply_volume).toLocaleString('ko-KR') + 'kg' : '—'}</td>
+            <td style="text-align:center"><span class="pill-tag">${p.change_pct != null ? (p.change_pct >= 0 ? '모집중' : '완료') : '—'}</span></td>
           </tr>`).join('');
       }
     }
