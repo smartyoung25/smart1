@@ -120,6 +120,30 @@
 | table min-width 과잉 수정 | §9.3 | .table-scroll-wrap table로 범위 축소 (전체→래퍼 안으로) |
 | JS동적 테이블 컨테이너 | §9.3 | weather/env/market/price/model 컨테이너 overflow-x:auto |
 
+---
+
+## Phase 6 — UI 상태 표시 개선 + 카드 빈 상태 진단
+
+**완료일**: 2026-05-29
+**커밋**: 1ba1259, 55c93f3, 2cb9a90
+
+| 항목 | 작업지시서 | 구현 내용 |
+|------|----------|---------|
+| 환경 이상감지 status-badge | §10.3 | 심각도별 배지(위험/주의/참고) + noEnvData vs 알림없음 분리 |
+| AI 권고 tier 배지 | §10.3 | good/warn/info status-badge, 신뢰도 % 배지 |
+| AI 권고 모바일 flex-wrap | §3.2 | 좁은 화면 배지+텍스트 줄바꿈 |
+| harvest-grid inline 수정 | §4.1 | inline style 제거 → 반응형 클래스 활성화 |
+
+### 최종 완료 현황 (2026-05-29)
+
+| 항목 | 상태 |
+|------|------|
+| Phase 1 전역 CSS + 하단탭 + 드로어 | ✅ |
+| Phase 2+3 섹션별 CSS + 신규 UI 패턴 | ✅ |
+| Phase 4 HTML 구조 최적화 (P1 섹션) | ✅ |
+| Phase 5 전역 그리드 반응형 + 테이블 수정 | ✅ |
+| Phase 6 status-badge + 빈 상태 개선 | ✅ |
+
 ### 미구현 (별도 작업 필요)
 - 지도 플레이스홀더 터치 타겟 확대 (§3.2)
 - Wizard 실제 Full-screen Step 화면 (§9.7)
