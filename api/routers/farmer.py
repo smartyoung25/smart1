@@ -429,7 +429,7 @@ def _get_env(farm_id: str) -> dict[str, float]:
         # IoT 없음: 수동 입력 있으면 사용, 없으면 빈 dict
         base = persistence.get_manual_env(farm_id)
     else:
-        base = dict(_FARM_ENV.get(farm_id, _FARM_ENV["farm_001"]))
+        base = dict(_FARM_ENV.get(farm_id) or _FARM_ENV.get("farm_001", {}))
 
     # 기상청 ASOS 실측값으로 외부 기상 관련 항목 보강
     # (온도는 오프셋 보정값 사용, IoT 농가는 내부 측정값 우선이므로 덮어쓰지 않음)
@@ -942,6 +942,9 @@ def get_harvest(farm_id: str):
     yield_m2       = get_yield_kg_m2(crop)
     area           = meta["area_m2"]
     total_kg       = round(yield_m2 * area, 1)
+    # 기본값 초기화 — LegacyAdapter/M2 블록 실패 시 NameError 방지
+    confidence     = 0.60
+    model_used     = "stats_fallback"
 
     # ── 생육단계(growth_stage_ko) / 정식 경과일 계산 ──────────────────────
     _plant_month_raw = meta.get("plant_month") or meta.get("season_start")
@@ -1061,14 +1064,20 @@ def get_harvest(farm_id: str):
     _m2_conf = None
     if _model_mape is not None:
         _mape_f = float(_model_mape)
-        _m2_gate = (_mape_f <= 35.0) and (_mape_f <= 100.0)
-        # gate_passed from meta (more authoritative if available)
+        # gate: MAPE ≤ 35% AND cv_r2 ≥ 0.0 (일관 기준)
+        try:
+            _cv_r2 = float(_meta.get("cv_r2_mean", 0.0)) if _meta else 0.0
+        except Exception:
+            _cv_r2 = 0.0
+        _m2_gate = (_mape_f <= 35.0) and (_cv_r2 >= 0.0)
+        # stage2_meta.json의 gate_passed를 authoritative source로 사용
         try:
             if _meta_path.exists():
                 _meta2 = _json.loads(_meta_path.read_text(encoding="utf-8"))
                 _stored_gate = _meta2.get("gate_passed")
                 if _stored_gate is not None:
-                    _m2_gate = bool(_stored_gate) and (_mape_f <= 100.0)
+                    _stored_r2   = float(_meta2.get("cv_r2_mean", 0.0))
+                    _m2_gate = bool(_stored_gate) and (_stored_r2 >= 0.0)
         except Exception:
             pass
         _m2_conf = round(max(0.0, min(0.95, 1.0 - _mape_f / 100.0)), 3)
@@ -1433,10 +1442,11 @@ def _compute_costs(farm_id: str) -> CostBreakdownResponse:
     _MANUAL_COSTS[farm_id] 에 실제값이 있으면 해당 항목 우선 사용,
     없으면 _RESOURCE_COSTS 기본값 사용.
     """
-    # farm_id가 _RESOURCE_COSTS에 없으면 가장 유사한 기본값(farm_001) 사용
+    # farm_id가 _RESOURCE_COSTS에 없으면 farm_001 기본값 사용 (면적은 실제 메타에서 가져옴)
     rc   = _RESOURCE_COSTS.get(farm_id, _RESOURCE_COSTS["farm_001"])
     mc   = persistence.get_manual_cost(farm_id)
-    meta = _FARM_META.get(farm_id, _FARM_META["farm_001"])
+    # _FARM_META: _require_farm()이 이미 호출된 이후이므로 farm_id 키가 존재
+    meta = _FARM_META.get(farm_id) or _FARM_META.get("farm_001", {})
     DAYS = 30
 
     def _v(key_manual: str, default: float) -> tuple[float, bool]:
@@ -1791,7 +1801,7 @@ def _stub_reply(farm_id: str, message: str) -> ChatResponse:
         return ChatResponse(
             reply=f"{crop} 스마트팜 운영 핵심 포인트:\n\n"
                   f"• 일조: 하루 14~16시간 유지 (보광등 활용)\n"
-                  f"• 관비: EC {_ALERT_RULES.get(farm_id, [{}])[0] if _ALERT_RULES.get(farm_id) else '1.5~2.5'} dS/m\n"
+                  f"• 관비: EC {_ALERT_RULES.get(farm_id, [None])[0][2] if _ALERT_RULES.get(farm_id) else '1.5~2.5'} dS/m\n"
                   f"• 환기: 온도·습도 연동 자동 제어 권장\n"
                   f"• 수확 후 방제: 다음 작기 병해 예방",
             suggestions=["EC 관리 방법 알려줘", "보광등 효과는?", "관비 스케줄 최적화"],
@@ -1865,7 +1875,7 @@ def post_chat(farm_id: str, body: ChatRequest):
     _tier    = quota.get("tier", "basic")
     _use_llm = bool(_api_key) and _tier in ("pro", "enterprise")
 
-    if _use_llm or True:  # 멀티프로바이더: 항상 AI 라우팅 시도
+    if _use_llm:  # 멀티프로바이더: 키/티어 보유 시 AI 라우팅
         from api.services.ai_chat import call_ai, build_farm_context
         _meta    = _FARM_META.get(farm_id, {})
         _env     = _get_env(farm_id) or {}

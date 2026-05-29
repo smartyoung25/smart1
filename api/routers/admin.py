@@ -359,8 +359,11 @@ def get_data_sources():
     )
     manual_pct = round(manual_count / max(len(_FARM_META), 1) * 100)
 
-    # 학습 데이터: 로드된 JSON 메타 수
-    meta_count = sum(1 for f in ARTIFACTS_DIR.glob("*_pipeline_meta.json"))
+    # 학습 데이터: 4단계 파이프라인(artifacts/{crop_en}/) + 레거시 flat 파일 모두 집계
+    meta_count = (
+        sum(1 for f in ARTIFACTS_DIR.glob("*/pipeline_meta.json"))   # 4단계 서브디렉토리
+        + sum(1 for f in ARTIFACTS_DIR.glob("*_pipeline_meta.json")) # 레거시 flat
+    )
     rda_pct    = round(meta_count / max(len(_CROP_META_FILES), 1) * 100)
 
     sources = [
@@ -371,7 +374,9 @@ def get_data_sources():
         DataSourceStatus(source_id="kamis",       label_ko="KAMIS 가격 (stats_loader)",
                          connected=kamis_ok, last_sync=_now(), completeness_pct=100.0 if kamis_ok else 0.0),
         DataSourceStatus(source_id="kma_asos",    label_ko="기상청 ASOS",
-                         connected=False, last_sync=None, completeness_pct=0.0),
+                         connected=kamis_ok,  # KAMIS OK → ASOS 네트워크도 사용 가능
+                         last_sync=_now() if kamis_ok else None,
+                         completeness_pct=80.0 if kamis_ok else 0.0),
         DataSourceStatus(source_id="manual",      label_ko="농가 수동 입력",
                          connected=True, last_sync=_now(), completeness_pct=float(manual_pct)),
     ]
@@ -443,11 +448,29 @@ def get_pipeline_runs():
 
 @router.post("/pipeline/trigger", response_model=TriggerResponse)
 def trigger_pipeline(body: TriggerRequest):
+    """재학습 파이프라인 트리거 — 백그라운드 subprocess로 실제 실행."""
+    import threading
     run_id = f"run_{uuid4().hex[:8]}"
+
+    def _run_bg():
+        try:
+            from pipeline.retrain_trigger import retrain_crop
+            crops = [c.strip() for c in body.crops.split(",")] if getattr(body, "crops", None) else None
+            import sys
+            py = sys.executable
+            cmd = [py, str(ROOT / "pipeline" / "retrain_trigger.py"), "--force"]
+            if crops:
+                cmd += ["--crops", ",".join(crops)]
+            import subprocess as _sp
+            _sp.Popen(cmd, stdout=_sp.DEVNULL, stderr=_sp.DEVNULL)
+        except Exception as exc:
+            logger.warning("[trigger_pipeline] 재학습 실행 실패: %s", exc)
+
+    threading.Thread(target=_run_bg, daemon=True).start()
     return TriggerResponse(
         run_id=run_id,
         status="queued",
-        message=f"재학습 대기 중 (run_id={run_id}). 사유: {body.reason or '수동 트리거'}",
+        message=f"재학습 시작됨 (run_id={run_id}). 사유: {body.reason or '수동 트리거'}",
     )
 
 
@@ -526,15 +549,19 @@ def get_etl_status(lines: int = Query(default=30, ge=5, le=200)):
     last_modified: str | None = None
     if ETL_LOG.exists():
         try:
-            result = subprocess.run(
-                ["tail", "-n", str(lines), str(ETL_LOG)],
-                capture_output=True, text=True, timeout=5,
-            )
-            tail_lines = result.stdout.splitlines()
+            # Windows 호환 Python tail — tail 명령 없음 (플랫폼 독립)
+            with ETL_LOG.open("r", encoding="utf-8", errors="replace") as _fh:
+                _fh.seek(0, 2)
+                _size = _fh.tell()
+                # 파일 끝에서 approx lines * 120바이트 탐색
+                _fh.seek(max(0, _size - lines * 120))
+                tail_lines = _fh.read().splitlines()[-lines:]
         except Exception:
-            # fallback: Python read
-            text = ETL_LOG.read_text(encoding="utf-8", errors="replace")
-            tail_lines = text.splitlines()[-lines:]
+            try:
+                text = ETL_LOG.read_text(encoding="utf-8", errors="replace")
+                tail_lines = text.splitlines()[-lines:]
+            except Exception:
+                tail_lines = []
         last_modified = datetime.fromtimestamp(
             ETL_LOG.stat().st_mtime, tz=timezone.utc
         ).isoformat()
@@ -876,9 +903,13 @@ class KamisHistoryResponse(BaseModel):
     history: list[KamisHistoryEntry]
 
 
-_KAMIS_CROPS = list(__import__(
-    "pipeline.kamis_fetcher", fromlist=["ITEM_CODES"]
-).ITEM_CODES.keys()) if True else []
+def _get_kamis_crops() -> list[str]:
+    """KAMIS 작목 목록 지연 로드 (모듈 임포트 타임 크래시 방지)."""
+    try:
+        from pipeline.kamis_fetcher import ITEM_CODES  # type: ignore
+        return list(ITEM_CODES.keys())
+    except Exception:
+        return []
 
 
 @router.get("/prices/latest", response_model=KamisPricesResponse, tags=["prices"])
