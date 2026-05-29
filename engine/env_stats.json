@@ -259,6 +259,110 @@
       "unit": "°C"
     }
   },
+  "오이": {
+    "temp_internal": {
+      "mean": 23.0,
+      "std": 3.2,
+      "min": 10.0,
+      "max": 38.0,
+      "p5": 17.5,
+      "p95": 28.5,
+      "delta_step": 1.6,
+      "unit": "°C"
+    },
+    "humidity_int": {
+      "mean": 78.0,
+      "std": 10.5,
+      "min": 35.0,
+      "max": 100.0,
+      "p5": 60.0,
+      "p95": 93.0,
+      "delta_step": 5.2,
+      "unit": "%"
+    },
+    "co2_ppm": {
+      "mean": 850.0,
+      "std": 190.0,
+      "min": 350.0,
+      "max": 1800.0,
+      "p5": 530.0,
+      "p95": 1180.0,
+      "delta_step": 95.0,
+      "unit": "ppm"
+    },
+    "solar_rad": {
+      "mean": 195.0,
+      "std": 98.0,
+      "min": 0.0,
+      "max": 950.0,
+      "p5": 45.0,
+      "p95": 385.0,
+      "delta_step": 49.0,
+      "unit": "W/m²"
+    },
+    "soil_temp": {
+      "mean": 22.0,
+      "std": 3.5,
+      "min": 10.0,
+      "max": 34.0,
+      "p5": 15.8,
+      "p95": 28.2,
+      "delta_step": 1.75,
+      "unit": "°C"
+    }
+  },
+  "딸기(설향)": {
+    "temp_internal": {
+      "mean": 16.11,
+      "std": 3.67,
+      "min": 4.91,
+      "max": 47.97,
+      "p5": 11.33,
+      "p95": 23.19,
+      "delta_step": 1.84,
+      "unit": "°C"
+    },
+    "humidity_int": {
+      "mean": 81.25,
+      "std": 14.32,
+      "min": 7.2,
+      "max": 100.0,
+      "p5": 58.7,
+      "p95": 98.73,
+      "delta_step": 7.16,
+      "unit": "%"
+    },
+    "co2_ppm": {
+      "mean": 511.68,
+      "std": 149.72,
+      "min": 200.0,
+      "max": 1412.25,
+      "p5": 302.26,
+      "p95": 796.38,
+      "delta_step": 74.86,
+      "unit": "ppm"
+    },
+    "solar_rad": {
+      "mean": 143.57,
+      "std": 106.38,
+      "min": 0.0,
+      "max": 1210.1,
+      "p5": 8.49,
+      "p95": 299.97,
+      "delta_step": 53.19,
+      "unit": "W/m²"
+    },
+    "soil_temp": {
+      "mean": 16.23,
+      "std": 4.68,
+      "min": 0.0,
+      "max": 39.63,
+      "p5": 10.92,
+      "p95": 23.74,
+      "delta_step": 2.34,
+      "unit": "°C"
+    }
+  },
   "_all": {
     "temp_internal": {
       "mean": 19.12,

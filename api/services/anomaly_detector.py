@@ -164,6 +164,11 @@ def _load_stats() -> dict:
     return {}
 
 
+def reload_stats() -> None:
+    """env_stats.json 갱신 후 캐시를 강제 초기화한다."""
+    _load_stats.cache_clear()
+
+
 def _check_vpd(
     crop_ko: str,
     temp: float,
@@ -285,10 +290,12 @@ def detect_anomalies(
     k     = _STAGE_SENSITIVITY.get(stage, 1.0)
 
     stats      = _load_stats()
-    crop_stats = stats.get(crop_ko, {})
-    if not crop_stats:
-        logger.debug("[anomaly] 작물 통계 없음: %s", crop_ko)
-        crop_stats = {}
+    # 별칭 정규화: "딸기(설향)" → "딸기" 등
+    _CROP_ALIASES = {"딸기(설향)": "딸기"}
+    crop_lookup = _CROP_ALIASES.get(crop_ko, crop_ko)
+    crop_stats = stats.get(crop_lookup) or stats.get("_all", {})
+    if not stats.get(crop_lookup):
+        logger.debug("[anomaly] 작물 통계 없음: %s → _all 사용", crop_ko)
 
     alerts: list[EnvAlert] = []
 

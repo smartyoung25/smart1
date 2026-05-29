@@ -299,15 +299,20 @@ async function loadEnvAnomalies() {
   try {
     const d = await apiFetch(`/api/farms/${farmId}/environment`);
     const alerts = d.alerts || d.anomalies || [];
-    const noEnvData = d.temp_internal == null && d.humidity_int == null;
+    // simulated = IoT 없을 때 API가 주입한 작목 표준값 (실측 아님)
+    const isSimulated = d.indoor?.source === 'simulated';
+    const noEnvData = isSimulated || (d.temp_internal == null && d.humidity_int == null);
 
     if (!alerts.length) {
       if (noEnvData) {
+        const simNote = isSimulated
+          ? '<div style="font-size:11px;color:var(--muted);margin-top:8px">💡 작목 표준 시뮬레이션 값이 사용 중입니다. 실측 이상 감지를 위해 IoT 센서를 연결하거나 수동 입력 탭에서 수치를 직접 입력하세요.</div>'
+          : '<div style="font-size:11px;color:var(--muted);margin-top:8px">수동 입력 탭에서 환경 수치를 직접 입력할 수 있습니다.</div>';
         el.innerHTML = '<div style="padding:16px;text-align:center;border-radius:8px;background:var(--card-soft);border:1px solid var(--border)">' +
           '<div style="font-size:22px;margin-bottom:8px">📡</div>' +
           '<div style="font-size:13px;font-weight:600;color:var(--fg);margin-bottom:4px">IoT 센서 미연결</div>' +
           '<div style="font-size:12px;color:var(--muted)">센서 데이터가 수집되면 이상 감지가 자동으로 시작됩니다.</div>' +
-          '<div style="font-size:11px;color:var(--muted);margin-top:8px">수동 입력 탭에서 환경 수치를 직접 입력할 수 있습니다.</div>' +
+          simNote +
           '</div>';
       } else {
         const _SEN = [
@@ -324,8 +329,11 @@ async function loadEnvAnomalies() {
             <span style="font-size:12px;color:var(--muted)">${s.icon} ${s.label}</span>
             <span style="font-size:13px;font-weight:600;color:var(--green)">${Number(d[s.key]).toFixed(1)} <span style="font-size:10px;font-weight:400">${s.unit}</span></span>
           </div>`).join('');
+        const srcLabel = d.iot_available ? 'IoT 실시간' : (d.indoor?.source === 'manual_input' ? '수동 입력' : '');
+        const srcBadge = srcLabel ? `<span class="status-badge info" style="font-size:10px;padding:2px 7px">${srcLabel}</span>` : '';
         el.innerHTML = '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">' +
           '<span class="status-badge good">✅ 정상</span>' +
+          srcBadge +
           '<span style="font-size:12px;color:var(--muted)">모든 환경 지표 이상 없음</span></div>' +
           (sensorHtml ? `<div style="margin-top:4px">${sensorHtml}</div>` : '');
       }
