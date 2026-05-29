@@ -1489,6 +1489,21 @@
   .fdc-icon { font-size: 18px; margin-bottom: 4px; }
   .fdc-temp { font-size: 12px; font-weight: 700; color: var(--text); }
   .fdc-rain { font-size: 10px; color: var(--blue); margin-top: 2px; }
+
+  /* ── 3-9. Period 타임라인 / 필박스 반응형 전환 ── */
+  @media (min-width: 768px) { .period-timeline-mobile { display: none; } }
+  @media (max-width: 767px) { .period-pill-bar { display: none !important; } }
+
+  /* ── 3-10. P4 입력 그리드 모바일 축소 ── */
+  .form-3col { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  @media (max-width: 767px) { .form-3col { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 430px)  { .form-3col { grid-template-columns: 1fr; } }
+
+  /* ── 3-11. 공동출하 참여 버튼 전체 너비 (모바일) ── */
+  @media (max-width: 767px) {
+    .pool-join-btns { flex-direction: column; }
+    .pool-join-btns button { width: 100%; justify-content: center; }
+  }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
 </head>
@@ -1704,7 +1719,7 @@
   </div>
 
   <!-- ── To-do + AI 3유형 ── -->
-  <div class="grid-col-2">
+  <div class="grid-col-2" id="dash-todo-grid">
     <div class="card">
       <div class="screen-hdr">
         <h4>📋 오늘의 To-do List</h4>
@@ -1731,7 +1746,14 @@
         <div class="br-row"><span class="br-label">수익최적화</span><div class="br-bg"><div class="br-fill blue" id="bar-profit" style="width:0%"></div></div><span class="br-val" id="bv-profit">—</span></div>
         <div class="br-row"><span class="br-label">학습상태</span><div class="br-bg"><div class="br-fill" id="bar-learning" style="width:64%"></div></div><span class="br-val" id="bv-learning">64%</span></div>
       </div>
-      <div class="explain-box" id="ai-reco-explain"><b>추천:</b> 농장을 선택하면 AI 추천을 표시합니다.</div>
+      <!-- AI 추천 설명 — Accordion (모바일 접기/펼치기) -->
+      <button class="accordion-toggle" onclick="toggleAccordion(this)" aria-expanded="false">
+        <span>🤖 AI 추천 상세 설명</span>
+        <svg class="acc-arrow" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div class="accordion-body">
+        <div class="explain-box" id="ai-reco-explain" style="margin-top:6px"><b>추천:</b> 농장을 선택하면 AI 추천을 표시합니다.</div>
+      </div>
     </div>
   </div>
 
@@ -1902,7 +1924,7 @@
   <div class="card" style="background:linear-gradient(135deg,rgba(63,185,80,.08),rgba(46,160,67,.05));border:1px solid rgba(63,185,80,.2)">
     <div class="screen-hdr">
       <h4>🌱 온실 생육모델·재배력</h4>
-      <div style="display:flex;gap:6px;align-items:center">
+      <div class="model-seg-ctrl" style="display:flex;gap:6px;align-items:center">
         <span class="pill-tag green">농진청 표준</span>
         <span class="pill-tag blue">KAASA</span>
         <span class="pill-tag orange">내 농장 동적</span>
@@ -2026,14 +2048,35 @@
       <div class="kpi-card"><span class="kc-label">배액 EC</span><span class="kc-val" id="irr-drain-ec">—</span><span class="kc-hint">dS/m</span></div>
       <div class="kpi-card"><span class="kc-label">급액 pH</span><span class="kc-val" id="irr-supply-ph">—</span><span class="kc-hint">목표 5.8~6.2</span></div>
     </div>
-    <!-- P1~P6 Period 탭 -->
-    <div class="pill-bar" id="period-bar">
+    <!-- P1~P6 Period 탭 — 데스크탑: pill-bar / 모바일: timeline-list -->
+    <div class="pill-bar period-pill-bar" id="period-bar">
       <span class="pill-tag">P1 관수 전</span>
       <span class="pill-tag green">P2 첫 관수</span>
       <span class="pill-tag">P3 오전</span>
       <span class="pill-tag orange">P4 정오</span>
       <span class="pill-tag">P5 오후</span>
       <span class="pill-tag">P6 마감</span>
+    </div>
+    <!-- 모바일 전용: Period 타임라인 -->
+    <div class="timeline-list period-timeline-mobile" style="margin-top:10px">
+      <div class="timeline-item">
+        <div><div class="tl-label">P1 — 관수 전</div><div class="tl-meta">일출 전 슬랩 수분 확인</div></div>
+      </div>
+      <div class="timeline-item done">
+        <div><div class="tl-label">P2 — 첫 관수 <span class="work-badge ok" style="font-size:10px">완료</span></div><div class="tl-meta">일사 누적 0.5 MJ 이후</div></div>
+      </div>
+      <div class="timeline-item done">
+        <div><div class="tl-label">P3 — 오전</div><div class="tl-meta">공급 EC 목표 2.2 dS/m</div></div>
+      </div>
+      <div class="timeline-item active">
+        <div><div class="tl-label">P4 — 정오 <span class="work-badge warn" style="font-size:10px">진행 중</span></div><div class="tl-meta">최대 부하 · 배액률 점검</div></div>
+      </div>
+      <div class="timeline-item">
+        <div><div class="tl-label">P5 — 오후</div><div class="tl-meta">P4 배액률 기반 자동 조정</div></div>
+      </div>
+      <div class="timeline-item">
+        <div><div class="tl-label">P6 — 마감 관수</div><div class="tl-meta">일몰 전 2시간 이내 종료</div></div>
+      </div>
     </div>
     <div class="explain-box" style="margin-top:8px"><b>Period 관리:</b> 관수는 일일 총량보다 시간대별 반응이 중요합니다. P4 정오 급액량·배액률·EC/pH를 기반으로 오후 전략을 자동 조정합니다.</div>
   </div>
@@ -2061,7 +2104,7 @@
     <!-- P4 관수 데이터 입력 -->
     <div class="card">
       <div class="card-title">💧 P4 관수 데이터 입력</div>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px">
+      <div class="form-3col" style="margin-bottom:10px">
         <div>
           <div style="font-size:10px;color:var(--muted);margin-bottom:3px">농장</div>
           <select id="irri-farm-sel2" class="profit-farm-sel" style="width:100%"><option value="">선택…</option></select>
@@ -2492,7 +2535,7 @@
   <!-- 수동 환경값 입력 -->
   <div class="card">
     <div class="card-title">✏️ 환경값 수동 입력</div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px">
+    <div class="form-3col" style="margin-bottom:12px">
       <div>
         <div style="font-size:10px;color:var(--muted);margin-bottom:3px">농장</div>
         <select id="env-manual-farm" class="profit-farm-sel" style="width:100%">
@@ -2605,24 +2648,26 @@
       <!-- Pool 현황 테이블 -->
       <div>
         <div style="font-size:12px;font-weight:700;margin-bottom:8px">공동출하 Pool 현황</div>
-        <table style="width:100%;font-size:12px;border-collapse:collapse">
-          <thead><tr style="background:var(--card-soft)">
-            <th style="padding:5px 8px;text-align:left;border-bottom:1px solid var(--border)">품목</th>
-            <th style="padding:5px 8px;text-align:center;border-bottom:1px solid var(--border)">출하일</th>
-            <th style="padding:5px 8px;text-align:right;border-bottom:1px solid var(--border)">물량</th>
-            <th style="padding:5px 8px;text-align:center;border-bottom:1px solid var(--border)">상태</th>
-          </tr></thead>
-          <tbody id="pool-table-body">
-            <tr><td colspan="4" style="text-align:center;padding:10px;color:var(--muted);font-size:11px">KAMIS 시세 갱신 중…</td></tr>
-          </tbody>
-        </table>
+        <div class="table-scroll-wrap">
+          <table style="width:100%;font-size:12px;border-collapse:collapse">
+            <thead><tr style="background:var(--card-soft)">
+              <th style="padding:5px 8px;text-align:left;border-bottom:1px solid var(--border)">품목</th>
+              <th style="padding:5px 8px;text-align:center;border-bottom:1px solid var(--border)">출하일</th>
+              <th style="padding:5px 8px;text-align:right;border-bottom:1px solid var(--border)">물량</th>
+              <th style="padding:5px 8px;text-align:center;border-bottom:1px solid var(--border)">상태</th>
+            </tr></thead>
+            <tbody id="pool-table-body">
+              <tr><td colspan="4" style="text-align:center;padding:10px;color:var(--muted);font-size:11px">KAMIS 시세 갱신 중…</td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
       <!-- 공동출하 공개설정 -->
       <div>
         <div style="font-size:12px;font-weight:700;margin-bottom:8px">공동출하 정보 공개설정</div>
         <div class="explain-box" style="margin-top:0;margin-bottom:8px"><b>공개:</b> 품목·품종·예상물량·등급·출하가능일·포장규격·인증여부<br><b>비공개:</b> 농장 상세주소·원가·마진·센서 원자료·전체 생산량</div>
-        <div style="display:flex;gap:8px">
-          <button class="todo-action" onclick="alert('공동출하 참여는 공개설정 동의 후 가능합니다.')">동의하고 참여</button>
+        <div class="pool-join-btns" style="display:flex;gap:8px">
+          <button class="todo-action" onclick="BottomSheet.open('공동출하 참여 동의','<p style=\'line-height:1.7;font-size:13px\'>아래 정보를 공개하는 데 동의하고 공동출하 Pool에 참여합니다.<br><b>공개 항목:</b> 품목·품종·예상물량·등급·출하가능일·포장규격·인증여부</p>','동의하고 참여',function(){alert(\'참여 신청이 접수되었습니다.\');BottomSheet.close();})">동의하고 참여</button>
           <button class="todo-action gray">비공개 유지</button>
         </div>
       </div>
