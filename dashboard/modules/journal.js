@@ -122,6 +122,10 @@ async function submitHarvestRecord() {
     }
     // 이력 새로고침
     setTimeout(() => loadHarvestHistory(farmId), 600);
+    // 드리프트 카드 자동 갱신 (시스템 탭이 열려있으면 즉시, 아니면 다음 방문 시)
+    if (typeof loadModelDrift === 'function') {
+      setTimeout(() => loadModelDrift(), 1500);
+    }
   } catch (e) {
     _setFeedback('hv-result', 'err', `저장 실패: ${e.message || '서버 오류'}`);
   } finally {
@@ -133,13 +137,19 @@ async function submitHarvestRecord() {
 function _updateHarvestPreview() {
   const yield_ = _numVal('hv-yield');
   const area   = _numVal('hv-area');
+  const temp   = _numVal('hv-avg-temp');
+  const humi   = _numVal('hv-avg-humi');
   const pv     = $('hv-preview');
   const pvb    = $('hv-preview-body');
   if (!pv || !pvb || !yield_) { if (pv) pv.classList.remove('visible'); return; }
   const total = area ? (yield_ * area).toFixed(1) : null;
+  const envHint = (temp || humi)
+    ? ` | 환경 <span style="color:var(--green)">✓ 입력됨</span> (드리프트 정확도 향상)`
+    : ` | 환경 <span style="color:var(--orange);font-size:11px">미입력 (온도·습도 입력 권장)</span>`;
   pvb.innerHTML = `단위수확량 <b style="color:var(--green)">${yield_} kg/m²</b>` +
     (area ? ` × 면적 ${area}m² = <b style="color:var(--accent)">${total} kg</b>` : '') +
-    (total ? ` | 예상 매출 ≈ <b>${(parseFloat(total) * 3500).toLocaleString()}원</b> (평균 3,500원/kg)` : '');
+    (total ? ` | 예상 매출 ≈ <b>${(parseFloat(total) * 3500).toLocaleString()}원</b>` : '') +
+    envHint;
   pv.classList.add('visible');
 }
 
@@ -225,6 +235,11 @@ function _renderHarvestTimeline(records, total) {
     const days      = r.growing_days != null ? `${r.growing_days}일` : '—';
     const planting  = _jFmtDate(r.planting_date);
     const src       = r.source || 'api';
+    // 환경값 입력 여부 — 드리프트 정확도에 영향
+    const hasEnv    = r.season_avg_temp != null || r.season_avg_humidity != null;
+    const envBadge  = hasEnv
+      ? `<span title="온도·습도 환경값 포함" style="color:var(--green);font-size:11px">🌡</span>`
+      : `<span title="환경값 없음 (입력 권장)" style="color:var(--muted);font-size:11px">—</span>`;
     return `<tr${trCls}>
       <td class="tbl-td accent">${dateStr}</td>
       <td class="tbl-td">${crop}</td>
@@ -233,6 +248,7 @@ function _renderHarvestTimeline(records, total) {
       <td class="tbl-td r">${area}</td>
       <td class="tbl-td r">${days}</td>
       <td class="tbl-td r muted">${planting}</td>
+      <td class="tbl-td" style="text-align:center">${envBadge}</td>
       <td class="tbl-td muted">${src}</td>
     </tr>`;
   }).join('');
@@ -241,7 +257,7 @@ function _renderHarvestTimeline(records, total) {
     <span class="tbl-hdr-title">📦 수확량 기록 이력</span>${badge}
   </div>
   <div class="tbl-wrap">
-    <table style="min-width:520px">
+    <table style="min-width:560px">
       <thead>
         <tr class="tbl-head-row">
           <th class="tbl-th">수확일</th>
@@ -251,6 +267,7 @@ function _renderHarvestTimeline(records, total) {
           <th class="tbl-th r">면적(㎡)</th>
           <th class="tbl-th r">재배일수</th>
           <th class="tbl-th r">정식일</th>
+          <th class="tbl-th" title="환경값 입력 여부 (드리프트 정확도)">🌡</th>
           <th class="tbl-th">출처</th>
         </tr>
       </thead>

@@ -631,20 +631,22 @@
         </div>
         <div><!-- spacer --></div>
 
-        <div class="form-section-header">🌡️ 시즌 평균 환경 (선택)</div>
+        <div class="form-section-header">🌡️ 시즌 평균 환경 <span style="font-size:10px;color:var(--accent);font-weight:600">(입력 시 M2 예측 정확도 향상)</span></div>
         <div>
           <label class="form-field-label">시즌 평균 온도</label>
           <div class="input-with-unit">
-            <input id="hv-avg-temp" type="number" step="0.1" min="0" max="40" class="env-input" placeholder="예: 23.5">
+            <input id="hv-avg-temp" type="number" step="0.1" min="0" max="40" class="env-input" placeholder="예: 23.5" oninput="_updateHarvestPreview()">
             <span class="input-unit-badge">°C</span>
           </div>
+          <div class="field-hint">입력하면 드리프트 모니터링 정확도 개선</div>
         </div>
         <div>
           <label class="form-field-label">시즌 평균 습도</label>
           <div class="input-with-unit">
-            <input id="hv-avg-humi" type="number" step="1" min="20" max="100" class="env-input" placeholder="예: 72">
+            <input id="hv-avg-humi" type="number" step="1" min="20" max="100" class="env-input" placeholder="예: 72" oninput="_updateHarvestPreview()">
             <span class="input-unit-badge">%</span>
           </div>
+          <div class="field-hint">입력하면 드리프트 모니터링 정확도 개선</div>
         </div>
       </div>
       <!-- 입력값 미리보기 -->
