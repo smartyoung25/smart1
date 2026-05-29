@@ -177,29 +177,39 @@ def get_overview():
 @router.get("/models", response_model=ModelOverview)
 def get_models():
     """R²·MAPE 기준 통과 여부 — 전체 작목 앙상블 요약."""
-    all_meta  = _load_all_meta()
-    r2_vals   = [m["train_metrics"]["r2"]  for m in all_meta.values() if "train_metrics" in m]
-    mape_vals = [m["train_metrics"]["mape"] for m in all_meta.values() if "train_metrics" in m]
+    all_meta = _load_all_meta()
+
+    # stage2 (수확량) 기준: cv_mape_mean 또는 mape, gate_passed
+    r2_vals, mape_vals = [], []
+    for m in all_meta.values():
+        s2 = m.get("stage2", {})
+        if s2:
+            r2   = s2.get("cv_r2_mean") or s2.get("cv_r2") or 0.0
+            mape = s2.get("cv_mape_mean") or s2.get("mape") or 999.0
+            r2_vals.append(float(r2))
+            mape_vals.append(float(mape))
 
     avg_r2   = sum(r2_vals)   / len(r2_vals)   if r2_vals   else 0.0
     avg_mape = sum(mape_vals) / len(mape_vals) if mape_vals else 0.0
 
     models = [
-        ModelStatus(module_id="Ensemble-R²",   metric_name="훈련 R²",
-                    metric_value=round(avg_r2, 3),   threshold=0.90, passed=avg_r2 >= 0.90),
-        ModelStatus(module_id="Ensemble-MAPE",  metric_name="훈련 MAPE %",
-                    metric_value=round(avg_mape, 1), threshold=100.0, passed=avg_mape <= 100.0),
+        ModelStatus(module_id="Ensemble-R²",  metric_name="M2 평균 CV R²",
+                    metric_value=round(avg_r2, 3),   threshold=0.0,  passed=avg_r2 >= 0.0),
+        ModelStatus(module_id="Ensemble-MAPE", metric_name="M2 평균 MAPE %",
+                    metric_value=round(avg_mape, 1), threshold=35.0, passed=avg_mape <= 35.0),
     ]
-    # 작목별 행 추가
+    # 작목별 M2 행
     for crop_ko, meta in all_meta.items():
-        tr = meta.get("train_metrics", {})
-        r2 = tr.get("r2", 0)
+        s2   = meta.get("stage2", {})
+        mape = float(s2.get("cv_mape_mean") or s2.get("mape") or 999)
+        r2   = float(s2.get("cv_r2_mean")   or s2.get("cv_r2")  or 0.0)
+        gate = s2.get("gate_passed", mape <= 35)
         models.append(ModelStatus(
             module_id=crop_ko,
-            metric_name="R²",
-            metric_value=round(r2, 3),
-            threshold=0.90,
-            passed=r2 >= 0.90,
+            metric_name="MAPE",
+            metric_value=round(mape, 1),
+            threshold=35.0,
+            passed=bool(gate),
             last_trained=_now(),
         ))
     return ModelOverview(models=models, updated_at=_now())

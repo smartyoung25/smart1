@@ -2297,11 +2297,13 @@ def get_model_performance():
         if m2:
             mape = m2.get("cv_mape_mean") or m2.get("cv_mape") or m2.get("mape") or 999
             cv_r2 = m2.get("cv_r2_mean") or m2.get("cv_r2") or 0.0
+            gate = m2.get("gate_passed", float(mape) <= 35)
             m2_results.append({
                 "crop": ko,
                 "mape_pct": round(float(mape), 1),
                 "cv_r2": round(float(cv_r2), 3),
                 "n_samples": m2.get("n_samples", m2.get("n_train", 0)),
+                "gate_pass": bool(gate),
                 "grade": "⭐⭐⭐" if mape <= 15 else "⭐⭐" if mape <= 30 else "⭐",
             })
 
