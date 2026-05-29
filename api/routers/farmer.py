@@ -1016,6 +1016,23 @@ def get_harvest(farm_id: str):
         _mape_note  = (f"예측 오차 약 ±{_model_mape:.0f}% — 데이터 추가 수집 필요"
                        if _model_mape else "모델 정보 없음")
 
+    # M2 gate_pass 및 model_confidence 계산
+    _m2_gate = None
+    _m2_conf = None
+    if _model_mape is not None:
+        _mape_f = float(_model_mape)
+        _m2_gate = (_mape_f <= 35.0) and (_mape_f <= 100.0)
+        # gate_passed from meta (more authoritative if available)
+        try:
+            if _meta_path.exists():
+                _meta2 = _json.loads(_meta_path.read_text(encoding="utf-8"))
+                _stored_gate = _meta2.get("gate_passed")
+                if _stored_gate is not None:
+                    _m2_gate = bool(_stored_gate) and (_mape_f <= 100.0)
+        except Exception:
+            pass
+        _m2_conf = round(max(0.0, min(0.95, 1.0 - _mape_f / 100.0)), 3)
+
     return HarvestForecast(
         farm_id=farm_id,
         updated_at=_now(),
@@ -1035,6 +1052,9 @@ def get_harvest(farm_id: str):
         confidence_grade=_conf_grade,
         model_mape_pct=_model_mape,
         mape_note=_mape_note,
+        # Phase 45+: M2 게이트 통과 여부
+        model_gate_pass=_m2_gate,
+        model_confidence=_m2_conf,
     )
 
 

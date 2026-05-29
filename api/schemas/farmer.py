@@ -107,6 +107,9 @@ class HarvestForecast(BaseResponse):
     confidence_grade: str = "낮음 (참고용)"     # "높음" | "보통" | "낮음 (참고용)"
     model_mape_pct: Optional[float] = None      # 학습 MAPE (%)
     mape_note: str = ""                          # 오차 설명 메시지
+    # Phase 45+: M2 게이트 통과 여부 + 신뢰도 (수확 카드 표시용)
+    model_gate_pass: Optional[bool] = None       # M2 gate_passed (True/False)
+    model_confidence: Optional[float] = None     # 1 - MAPE/100 (0~0.95)
 
 
 class RevenueResponse(BaseResponse):

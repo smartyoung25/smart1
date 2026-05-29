@@ -10,9 +10,9 @@ logger = logging.getLogger(__name__)
 ARTS = os.path.join(os.path.dirname(__file__), "artifacts")
 CROP_MAP = {
     "딸기":"strawberry","방울토마토":"cherry_tomato","완숙토마토":"tomato",
-    "참외":"melon","파프리카":"paprika",
+    "참외":"melon","파프리카":"paprika","오이":"cucumber",
     "strawberry":"strawberry","cherry_tomato":"cherry_tomato",
-    "tomato":"tomato","melon":"melon","paprika":"paprika",
+    "tomato":"tomato","melon":"melon","paprika":"paprika","cucumber":"cucumber",
 }
 
 # 작기 개월수 — 연간 예측값을 월별로 환산할 때 사용
