@@ -3279,7 +3279,7 @@ function obCollectStep() {
 async function obNext() {
   obCollectStep();
   if (_ob.step === 1 && !_ob.crop_ko) {
-    alert('작목을 선택해 주세요.'); return;
+    showToast('작목을 선택해 주세요.'); return;
   }
   if (_ob.step < 5) {
     _ob.step++;
@@ -3330,7 +3330,7 @@ async function obSubmit() {
     refreshAll();
     if (_myFarmId) loadPlanBadge(_myFarmId);
   } catch(e) {
-    alert('온보딩 저장 오류: ' + e.message + '\n나중에 다시 시도해 주세요.');
+    showToast('온보딩 저장 오류: ' + e.message);
     $('onboarding-overlay').classList.add('hidden');
     refreshAll();
   } finally {
@@ -3931,9 +3931,9 @@ async function applyRecommendations(farmId) {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ rank: 1, confirmed: false }),
     });
-    alert('권고가 적용 요청되었습니다.');
+    showToast('✅ 권고 적용 요청 완료');
     loadFarmRecommendations(farmId);
-  } catch(e) { alert('적용 실패: ' + e.message); }
+  } catch(e) { showToast('❌ 적용 실패: ' + e.message); }
 }
 
 // ── 농가 상세: 수확·매출 예측 ─────────────────────────────────────────────────
@@ -4992,7 +4992,7 @@ async function applyCtrlRecommendations(farmId) {
 // ── 제어최적화: 관수 데이터 입력 ─────────────────────────────────────────────
 async function submitIrrigation() {
   const farmId = $('irri-farm-sel2')?.value || $('irri-farm-sel')?.value;
-  if (!farmId) { alert('농장을 선택하세요'); return; }
+  if (!farmId) { const el = $('irri-result'); if(el) el.innerHTML = _nullReasonHtml([['농장 미선택','위 드롭다운에서 농장을 선택하세요']]); return; }
   const el = $('irri-result');
   const body = {
     amount_l: parseFloat($('irri-amount')?.value||'0'),
@@ -6590,11 +6590,11 @@ function _tierFeatureHint(tier) {
 async function submitUpgrade() {
   const farmId = _myFarmId;
   if (!farmId) {
-    alert('농장 정보를 불러오는 중입니다. 잠시 후 다시 시도해 주세요.');
+    showToast('농장 정보를 불러오는 중입니다. 잠시 후 다시 시도해 주세요.');
     return;
   }
   const tierRadio = document.querySelector('input[name="upgrade-tier-sel"]:checked');
-  if (!tierRadio) { alert('업그레이드할 플랜을 선택해 주세요.'); return; }
+  if (!tierRadio) { showToast('업그레이드할 플랜을 선택해 주세요.'); return; }
   const pgRadio = document.querySelector('input[name="pg-channel"]:checked');
   const pg = pgRadio ? pgRadio.value : 'manual';
 
