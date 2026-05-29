@@ -4067,7 +4067,7 @@ async function loadPricesLatest() {
       </span>`;
     }).join('');
     strip.style.display = 'flex';
-  } catch { /* 가격 스트립 실패는 무시 */ }
+  } catch(e) { console.warn('[prices-strip] 조회 실패:', e.message); }
 }
 
 // ── WebSocket 실시간 센서 ──────────────────────────────────────────────────────
@@ -4149,13 +4149,13 @@ function showAnomalyToast(msg) {
   setTimeout(() => toast.classList.remove('show'), 5000);
 }
 
-// HTTP 폴백 30초 polling
+// HTTP 폴백 30초 polling (백그라운드 탭·미로그인 시 스킵)
 setInterval(async () => {
-  if (_wsActive || !_token) return;
+  if (_wsActive || !_token || document.hidden) return;
   try {
     const d = await apiFetch(`/api/sensors/${_currentFarm}/latest`);
     if (d?.messages?.length) applyEnvMessage(d.messages[d.messages.length-1]);
-  } catch {}
+  } catch(e) { console.debug('[ws-fallback] 폴링 실패:', e.message); }
 }, 30_000);
 
 // 60초 자동 전체 갱신
@@ -4869,7 +4869,7 @@ function loadCostManualForm() {
     set('mc-labor-rate','labor_rate');
     set('mc-nutr',     'nutrients_krw_month');
     set('mc-pest',     'pesticides_krw_month');
-  }).catch(()=>{});
+  }).catch(e => console.warn('[cost-manual-form] 기존 입력값 로드 실패:', e.message));
 }
 
 async function submitManualCost() {

@@ -593,11 +593,11 @@ def get_recommendations(farm_id: str):
                           "solar_rad": 400.0, "ec_dsm": 2.2, "soil_temp": 22.0},
         }
         crop_key = meta.get("crop", "딸기")
-        env_values = _CROP_SIM_REC.get(crop_key, _CROP_SIM_REC["딸기"])
+        env_values = _CROP_SIM_REC.get(crop_key) or _CROP_SIM_REC.get("딸기") or {}
         _FARM_ENV[farm_id] = dict(env_values)
 
-    # 수동 입력값이 부분적일 수 있으므로 기본값(farm_001 기준)으로 채움
-    base = _FARM_ENV.get(farm_id, _FARM_ENV["farm_001"])
+    # 수동 입력값이 부분적일 수 있으므로 기본값으로 채움 (farm_001 없을 수도 있으므로 안전 접근)
+    base = _FARM_ENV.get(farm_id) or _FARM_ENV.get("farm_001") or {}
     merged_env = {**base, **env_values}
     current_env = EnvState(farm_id=farm_id, values=merged_env)
 
@@ -1326,7 +1326,7 @@ def whatif(farm_id: str, body: WhatIfInput):
     # 현재 환경값 (베이스라인)
     current_env = _get_env(farm_id)
     # 기본값 채우기 (IoT 미구축 시 빈 dict 방지)
-    base_env = {**_FARM_ENV.get(farm_id, _FARM_ENV["farm_001"]), **current_env}
+    base_env = {**(_FARM_ENV.get(farm_id) or _FARM_ENV.get("farm_001") or {}), **current_env}
 
     # 가상 환경값: 현재값 위에 body 값 덮어쓰기
     hypo_env = {**base_env, **body.model_dump(exclude_none=True)}
@@ -1378,7 +1378,7 @@ def whatif_multi(farm_id: str, body: WhatIfMultiInput):
     month  = _dt.date.today().month
 
     current_env = _get_env(farm_id)
-    base_env    = {**_FARM_ENV.get(farm_id, _FARM_ENV["farm_001"]), **current_env}
+    base_env    = {**(_FARM_ENV.get(farm_id) or _FARM_ENV.get("farm_001") or {}), **current_env}
 
     # 베이스라인 매출
     baseline_rev, baseline_src = _predict(base_env, crop, area, month)
@@ -1443,7 +1443,7 @@ def _compute_costs(farm_id: str) -> CostBreakdownResponse:
     없으면 _RESOURCE_COSTS 기본값 사용.
     """
     # farm_id가 _RESOURCE_COSTS에 없으면 farm_001 기본값 사용 (면적은 실제 메타에서 가져옴)
-    rc   = _RESOURCE_COSTS.get(farm_id, _RESOURCE_COSTS["farm_001"])
+    rc   = _RESOURCE_COSTS.get(farm_id) or _RESOURCE_COSTS.get("farm_001") or {}
     mc   = persistence.get_manual_cost(farm_id)
     # _FARM_META: _require_farm()이 이미 호출된 이후이므로 farm_id 키가 존재
     meta = _FARM_META.get(farm_id) or _FARM_META.get("farm_001", {})
@@ -2320,8 +2320,9 @@ def get_disease_risk_augmented(
 
 @router.get("/system/model-performance",
             summary="전체 ML 모델 성능 매트릭스")
-def get_model_performance():
+def get_model_performance(farm_id: str):
     """M1~M5 모델 성능 현황 + API 연결 상태를 반환합니다."""
+    _require_farm(farm_id)  # 존재 검증 (farm_id가 유효한 농장인지 확인)
     import json as _json
     from pathlib import Path
 
@@ -2644,8 +2645,9 @@ def get_erp_realtime(
 
 @router.get("/system/api-status",
             summary="외부 API 연결 상태 + 미연결 서비스 설정 방법")
-def get_api_status():
+def get_api_status(farm_id: str):
     """연결된/미연결 외부 API 전체 현황과 미연결 서비스 설정 가이드를 반환합니다."""
+    _require_farm(farm_id)  # 존재 검증
     from api.services.external_api_hub import get_api_status_report
     report = get_api_status_report()
     # 민감 정보 마스킹
