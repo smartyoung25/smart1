@@ -4228,7 +4228,7 @@ function renderAdvisoryFeed() {
 async function loadProfitForecast() {
   if (!_token) return;
   const sel    = $('profit-farm-sel');
-  const farmId = sel ? sel.value : '';
+  const farmId = (sel ? sel.value : '') || _defaultFarm();
   const body   = $('profit-body');
   if (!farmId) return;
 
@@ -4756,7 +4756,7 @@ async function runWhatIf() {
 
 // ── 에너지/비용: 비용 내역 조회 ───────────────────────────────────────────────
 async function loadCostBreakdown() {
-  const farmId = $('cost-farm-sel')?.value;
+  const farmId = $('cost-farm-sel')?.value || _defaultFarm();
   const el = $('cost-body');
   if (!farmId || !el) return;
   el.innerHTML = '<div class="spinner"></div>';
@@ -5048,7 +5048,7 @@ async function loadWeatherEt0(farmId) {
 
 // ── 관수: Priva ET₀ 스케줄 ────────────────────────────────────────────────────
 async function loadPrivaSchedule() {
-  const farmId = $('priva-farm-sel')?.value;
+  const farmId = $('priva-farm-sel')?.value || _defaultFarm();
   const stage  = $('priva-stage-sel')?.value || 'mid';
   const size   = parseFloat($('priva-size')?.value || '100');
   const el = $('priva-sched-body');
@@ -5417,7 +5417,7 @@ async function submitManualEnv() {
 
 // ── 관수관리: 스케줄 예측 ─────────────────────────────────────────────────────
 async function loadIrrigationSchedule() {
-  const farmId  = $('irr-sched-farm')?.value;
+  const farmId  = $('irr-sched-farm')?.value || _defaultFarm();
   const trigger = parseFloat($('irr-trigger-mj')?.value || '2.0');
   const el = $('irr-sched-body');
   if (!farmId || !el) return;
@@ -5756,7 +5756,7 @@ function setBar(barId, pct, valId, label) {
 }
 
 async function loadERPRealtime() {
-  const farmId = $('erp-farm-sel')?.value;
+  const farmId = $('erp-farm-sel')?.value || _defaultFarm();
   const el = $('erp-realtime-body');
   if (!el) return;
   if (!farmId) {
@@ -5850,7 +5850,7 @@ async function loadERPRealtime() {
 
 // ── LED 스펙트럼 동적 강조 (SFROP v2.0 혁신③) ────────────────────────────────
 async function loadLEDSpectrum() {
-  const farmId = $('led-farm-sel')?.value;
+  const farmId = $('led-farm-sel')?.value || _defaultFarm();
   const el = $('led-current-stage');
   if (!farmId || !el) return;
   try {
@@ -5889,7 +5889,7 @@ async function loadLEDSpectrum() {
 
 // ── SFROP v2.0 — 4개 시나리오 비교 ──────────────────────────────────────────
 async function loadSfropScenarios() {
-  const farmId = $('sfrop-farm-sel')?.value;
+  const farmId = $('sfrop-farm-sel')?.value || _defaultFarm();
   const el = $('sfrop-scenario-body');
   if (!farmId || !el) return;
   el.innerHTML = '<div class="spinner"></div>';
@@ -6096,7 +6096,7 @@ async function loadPriceHistory() {
 }
 
 async function loadMarketHarvest() {
-  const farmId = $('market-harvest-farm')?.value;
+  const farmId = $('market-harvest-farm')?.value || _defaultFarm();
   const el = $('market-harvest-body');
   if (!farmId || !el) return;
   el.innerHTML = '<div class="spinner"></div>';
