@@ -104,7 +104,22 @@
 | sec-market 동의·참여 BottomSheet | §10.1 | BottomSheet.open() 연결 + pool-join-btns 모바일 세로 배치 |
 | sec-growth 모델 선택 세그먼트 | §2-5 | model-seg-ctrl 수평 스크롤 래퍼 |
 
+---
+
+## Phase 5 — 전역 그리드 반응형 완성 + 테이블 오버플로우 수정
+
+**완료일**: 2026-05-29
+**커밋**: e550d3a, 97231de
+
+| 항목 | 작업지시서 | 구현 내용 |
+|------|----------|---------|
+| form-4col 유틸 클래스 | §4.1 | 4열→2열→2열 반응형, whatif/irr-kpi/4시나리오/가격통계 적용 |
+| sec-energy 비교표 스크롤 | §9.3 | table-scroll-wrap 래퍼 |
+| sec-energy 원가입력 | §4.1 | form-3col 반응형 |
+| crop-grid 모바일 규칙 | §4.1 | xs: 2열 |
+| table min-width 과잉 수정 | §9.3 | .table-scroll-wrap table로 범위 축소 (전체→래퍼 안으로) |
+| JS동적 테이블 컨테이너 | §9.3 | weather/env/market/price/model 컨테이너 overflow-x:auto |
+
 ### 미구현 (별도 작업 필요)
 - 지도 플레이스홀더 터치 타겟 확대 (§3.2)
 - Wizard 실제 Full-screen Step 화면 (§9.7)
-- sec-energy / sec-control 섹션 HTML 정비
