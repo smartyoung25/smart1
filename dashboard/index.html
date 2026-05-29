@@ -5077,7 +5077,7 @@ async function loadCurrentEnv() {
     // Fail-safe 상태 업데이트
     const fsEl = $('env-failsafe-pill');
     if (fsEl) {
-      const fsOk = d.failsafe_status !== false && d.failsafe_status !== 'error';
+      const fsOk = d.failsafe_status === 'ok' || (d.failsafe_status == null ? true : d.failsafe_status !== 'error' && d.failsafe_status !== 'degraded' && d.failsafe_status !== false);
       fsEl.textContent = fsOk ? 'Fail-safe 정상' : 'Fail-safe 이상';
       fsEl.className   = 'pill-tag ' + (fsOk ? 'red' : 'orange');
     }

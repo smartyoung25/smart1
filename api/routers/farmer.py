@@ -830,6 +830,16 @@ def get_environment(farm_id: str):
         except Exception:
             pass
 
+    # 제어 모드: FarmTier → JS pill 문자열
+    _tier_to_mode = {
+        FarmTier.MANUAL:    "advisory",
+        FarmTier.SEMI_AUTO: "approval",
+        FarmTier.AUTO:      "full_auto",
+    }
+    farm_tier = meta.get("tier", FarmTier.MANUAL)
+    ctrl_mode = _tier_to_mode.get(farm_tier, "advisory")
+    fail_safe = "ok" if iot_ok else "degraded"
+
     return EnvironmentResponse(
         farm_id=farm_id,
         updated_at=_now(),
@@ -848,6 +858,9 @@ def get_environment(farm_id: str):
         timestamp=_now().isoformat(),
         # 이상 감지
         alerts=anomaly_list,
+        # 제어 모드 및 Fail-safe
+        control_mode=ctrl_mode,
+        failsafe_status=fail_safe,
     )
 
 

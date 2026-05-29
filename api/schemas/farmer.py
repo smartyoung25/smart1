@@ -87,6 +87,9 @@ class EnvironmentResponse(BaseResponse):
     timestamp:      Optional[str]   = None
     # 이상 감지 결과 (loadEnvAnomalies JS에서 d.alerts 접근)
     alerts: list[dict] = []
+    # 제어 모드 및 Fail-safe (env-mode-active, env-failsafe-pill pill 업데이트용)
+    control_mode:    Optional[str]  = None  # manual|advisory|approval|full_auto
+    failsafe_status: Optional[str]  = None  # "ok" | "error" | None
 
 
 class HarvestForecast(BaseResponse):
