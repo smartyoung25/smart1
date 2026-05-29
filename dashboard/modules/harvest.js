@@ -268,22 +268,22 @@ async function loadGrowthHarvestRevenue() {
           <div class="harvest-grid">
             <div class="harvest-kpi">
               <div class="hk-label">예상 수확량 ${gateIcon}</div>
-              <div class="hk-val">${fmtF(r.yield_kg_forecast)} <span style="font-size:11px;color:var(--muted)">kg</span></div>
+              <div class="hk-val">${fmtF(r.yield_kg_forecast)} <span class="unit-muted">kg</span></div>
               ${confPct != null ? `<div style="font-size:9px;color:var(--muted);margin-top:1px">모델신뢰도 ${confPct}%</div>${confBar}` : ''}
             </div>
             <div class="harvest-kpi">
               <div class="hk-label">시세 ${priceLabel}</div>
-              <div class="hk-val">${fmt(r.price_krw_kg)} <span style="font-size:11px;color:var(--muted)">원/kg</span></div>
+              <div class="hk-val">${fmt(r.price_krw_kg)} <span class="unit-muted">원/kg</span></div>
               <div style="font-size:9px;color:var(--muted);margin-top:1px">${_esc(r.crop_ko||'')} · ${r.area_m2!=null?r.area_m2.toLocaleString('ko-KR')+' m²':''}</div>
             </div>
             <div class="harvest-kpi">
               <div class="hk-label">예상 매출</div>
-              <div class="hk-val">${fmt(r.revenue_krw)} <span style="font-size:11px;color:var(--muted)">원</span></div>
+              <div class="hk-val">${fmt(r.revenue_krw)} <span class="unit-muted">원</span></div>
               <div style="font-size:9px;color:var(--muted);margin-top:1px">${srcLabel}</div>
             </div>
             <div class="harvest-kpi">
               <div class="hk-label">예상 비용</div>
-              <div class="hk-val">${fmt(r.cost_krw)} <span style="font-size:11px;color:var(--muted)">원</span></div>
+              <div class="hk-val">${fmt(r.cost_krw)} <span class="unit-muted">원</span></div>
             </div>
             <div class="harvest-kpi" style="grid-column:span 2">
               <div class="hk-label">예상 순이익</div>

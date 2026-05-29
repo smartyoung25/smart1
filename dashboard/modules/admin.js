@@ -447,7 +447,7 @@ function _renderRecoItems(items, farmId) {
 async function loadFarmRecommendations(farmId) {
   const el = $('detail-reco-body');
   if (!el) return;
-  el.innerHTML = '<div class="spinner" style="margin:40px auto;display:block"></div>';
+  el.innerHTML = '<div class="spinner spinner-center"></div>';
   try {
     const d = await apiFetch(`/api/farms/${farmId}/recommendations`);
     const items = d.recommendations || d.items || [];
@@ -487,7 +487,7 @@ function applyRecommendations(farmId) {
 async function loadFarmHarvestRevenue(farmId) {
   const el = $('detail-harvest-body');
   if (!el) return;
-  el.innerHTML = '<div class="spinner" style="margin:40px auto;display:block"></div>';
+  el.innerHTML = '<div class="spinner spinner-center"></div>';
   try {
     const [harv, rev] = await Promise.allSettled([
       apiFetch(`/api/farms/${farmId}/harvest`),
@@ -511,9 +511,9 @@ async function loadFarmHarvestRevenue(farmId) {
         <div class="harvest-kpi"><div class="hk-label">잔여 재배일</div>
           <div class="hk-val">${h?.days_to_harvest ?? '—'} <span style="font-size:13px;color:var(--muted)">일</span></div></div>
         <div class="harvest-kpi"><div class="hk-label">예상 매출</div>
-          <div class="hk-val">${fmt(r?.revenue_krw)} <span style="font-size:11px;color:var(--muted)">원</span></div></div>
+          <div class="hk-val">${fmt(r?.revenue_krw)} <span class="unit-muted">원</span></div></div>
         <div class="harvest-kpi"><div class="hk-label">예상 비용</div>
-          <div class="hk-val">${fmt(r?.cost_krw)} <span style="font-size:11px;color:var(--muted)">원</span></div></div>
+          <div class="hk-val">${fmt(r?.cost_krw)} <span class="unit-muted">원</span></div></div>
         <div class="harvest-kpi"><div class="hk-label">예상 순이익</div>
           <div class="hk-val ${profitCls}">${profitSign}${fmt(profit)} <span style="font-size:11px">원</span></div></div>
       </div>
@@ -549,7 +549,7 @@ async function loadFarmHarvestRevenue(farmId) {
 async function loadFarmDiseaseRisk(farmId) {
   const el = $('detail-disease-body');
   if (!el) return;
-  el.innerHTML = '<div class="spinner" style="margin:40px auto;display:block"></div>';
+  el.innerHTML = '<div class="spinner spinner-center"></div>';
   try {
     const d = await apiFetch(`/api/farms/${farmId}/disease-risk`);
     let risks = d.risks || d.diseases || null;

@@ -18,15 +18,15 @@ async function loadProfitForecast() {
     body.innerHTML = `
       <div class="profit-grid">
         <div class="profit-kpi"><div class="pk-label">예상 수확량</div>
-          <div class="pk-val">${fmtKg(d.yield_kg_forecast)} <span style="font-size:11px;color:var(--muted)">kg</span></div></div>
+          <div class="pk-val">${fmtKg(d.yield_kg_forecast)} <span class="unit-muted">kg</span></div></div>
         <div class="profit-kpi"><div class="pk-label">시세 (${d.price_source === 'kamis_live' ? '🟢실시간' : '📊평균'})</div>
-          <div class="pk-val">${fmt(d.price_krw_kg)} <span style="font-size:11px;color:var(--muted)">원/kg</span></div></div>
+          <div class="pk-val">${fmt(d.price_krw_kg)} <span class="unit-muted">원/kg</span></div></div>
         <div class="profit-kpi"><div class="pk-label">재배 면적</div>
-          <div class="pk-val">${fmt(d.plant_area_m2)} <span style="font-size:11px;color:var(--muted)">m²</span></div></div>
+          <div class="pk-val">${fmt(d.plant_area_m2)} <span class="unit-muted">m²</span></div></div>
         <div class="profit-kpi"><div class="pk-label">예상 매출</div>
-          <div class="pk-val">${fmt(d.revenue_krw)} <span style="font-size:11px;color:var(--muted)">원</span></div></div>
+          <div class="pk-val">${fmt(d.revenue_krw)} <span class="unit-muted">원</span></div></div>
         <div class="profit-kpi"><div class="pk-label">예상 비용</div>
-          <div class="pk-val">${fmt(d.cost_krw)} <span style="font-size:11px;color:var(--muted)">원</span></div></div>
+          <div class="pk-val">${fmt(d.cost_krw)} <span class="unit-muted">원</span></div></div>
         <div class="profit-kpi"><div class="pk-label">예상 순이익</div>
           <div class="pk-val ${profitClass}">${sign}${fmt(profit)} <span style="font-size:11px">원</span></div></div>
       </div>
