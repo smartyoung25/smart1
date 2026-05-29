@@ -418,7 +418,7 @@ async function loadWholesaleMarket(farmId) {
         <div>${_esc(d.crop)}: <span style="color:var(--green)">${bounds.lower_kg_m2}~${bounds.upper_kg_m2} kg/m²/시즌</span></div>
         <div style="color:var(--muted);font-size:10px">${_esc(bounds.reference)} · ${_esc(d.yield_clipping_note||'')}</div>
       </div>` : '';
-    const srcBadges = (d.source_chain||[]).map(s=>`<span class="badge badge-info" style="font-size:9px">${_esc(s)}</span>`).join(' ');
+    const srcBadges = (d.source_chain||[]).map(s=>`<span class="badge info" style="font-size:9px">${_esc(s)}</span>`).join(' ');
     el.innerHTML = `
       <div style="font-size:20px;font-weight:700;color:var(--green)">${price}</div>
       <div style="font-size:11px;color:var(--muted);margin:4px 0">${faoRef}${faoRef&&corr?' · ':''}${corr}</div>

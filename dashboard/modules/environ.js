@@ -224,7 +224,7 @@ async function loadDiseaseDetect(farmId) {
     const risk = d.risk_level || 'none';
     const riskColor = risk==='high'?'var(--red)':risk==='medium'?'var(--yellow)':'var(--green)';
     const riskTxt   = {high:'🔴 높음',medium:'🟡 중간',low:'🟢 낮음',none:'✅ 정상'}[risk] || '—';
-    const srcBadges = (d.source_chain||[]).map(s=>`<span class="badge badge-info" style="font-size:9px">${_esc(s)}</span>`).join(' ');
+    const srcBadges = (d.source_chain||[]).map(s=>`<span class="badge info" style="font-size:9px">${_esc(s)}</span>`).join(' ');
     const allRisks  = (d.all_risks||[]).slice(0,4).map(r=>`
       <div style="display:flex;justify-content:space-between;padding:3px 0;font-size:11px">
         <span>${_esc(r.disease_ko || r.disease || '—')}</span>

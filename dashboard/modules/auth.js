@@ -20,6 +20,7 @@ function _applyAuthSuccess(data, username, api) {
   sessionStorage.setItem('sf_tier',    _myTier);
   $('login-overlay').classList.add('hidden');
   $('logged-as').textContent = `👤 ${username}`;
+  _startTimers();
   if (data.onboarding_required) {
     startOnboarding();
   } else {
@@ -73,9 +74,12 @@ document.addEventListener('keydown', e => {
 
 // ── 로그아웃 ──────────────────────────────────────────────────────────────────
 function doLogout() {
-  _token = '';
-  if (typeof _TIMERS !== 'undefined') _TIMERS.forEach(t => clearInterval(t));
-  sessionStorage.removeItem('sf_token');
+  _token = ''; _myFarmId = ''; _myTier = 'basic';
+  _farmsData = []; _planCache = null; _featCache = {};
+  _chatHistory = []; _chatFarmId = '';
+  _TIMERS.forEach(t => clearInterval(t));
+  _TIMERS = [];
+  ['sf_token','sf_api','sf_farm_id','sf_tier'].forEach(k => sessionStorage.removeItem(k));
   $('login-overlay').classList.remove('hidden');
   $('logged-as').textContent = '';
   switchAuthTab('login');
@@ -540,9 +544,14 @@ function _refreshChatQuota() {
   }
 }
 
-// ── 자동갱신 타이머 (doLogout 시 해제) ───────────────────────────────────────
-const _TIMERS = [
-  setInterval(() => { if (_token && !document.hidden) loadAdvisorySummary(); }, 30_000),
-  setInterval(() => { if (_token && !document.hidden) loadAdvisoryHistory(); }, 30_000),
-  setInterval(() => { if (_token && !document.hidden) refreshAll(); }, 60_000),
-];
+// ── 자동갱신 타이머 (doLogout 시 해제, 재로그인 시 재시작) ───────────────────
+let _TIMERS = [];
+function _startTimers() {
+  _TIMERS.forEach(t => clearInterval(t));
+  _TIMERS = [
+    setInterval(() => { if (_token && !document.hidden) loadAdvisorySummary(); }, 30_000),
+    setInterval(() => { if (_token && !document.hidden) loadAdvisoryHistory(); }, 30_000),
+    setInterval(() => { if (_token && !document.hidden) refreshAll(); }, 60_000),
+  ];
+}
+_startTimers();
