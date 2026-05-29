@@ -486,7 +486,7 @@
   <div class="card">
     <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="toggleCard(this.parentElement.querySelector('.accordion-body'),this.querySelector('.acc-arrow'))">
       <span>📏 생육 측정 등록 <span style="font-size:11px;font-weight:400;color:var(--muted)">— 주간 측정값 입력 → M1 모델 자동 개선</span></span>
-      <span class="acc-arrow" style="font-size:14px;transition:transform .25s">▼</span>
+      <svg class="acc-arrow" viewBox="0 0 24 24" style="width:16px;height:16px;flex-shrink:0;transition:transform .25s;fill:none;stroke:var(--muted);stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><polyline points="6 9 12 15 18 9"/></svg>
     </div>
     <div class="accordion-body" style="display:none;margin-top:14px">
       <div class="form-4col" style="margin-bottom:12px">
@@ -581,7 +581,7 @@
   <div class="card">
     <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="toggleCard(this.parentElement.querySelector('.accordion-body'),this.querySelector('.acc-arrow'))">
       <span>📦 수확량 실측 등록 <span style="font-size:11px;font-weight:400;color:var(--muted)">— 시즌 수확 데이터 입력 → M2 자동 재학습</span></span>
-      <span class="acc-arrow" style="font-size:14px;transition:transform .25s">▼</span>
+      <svg class="acc-arrow" viewBox="0 0 24 24" style="width:16px;height:16px;flex-shrink:0;transition:transform .25s;fill:none;stroke:var(--muted);stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><polyline points="6 9 12 15 18 9"/></svg>
     </div>
     <div class="accordion-body" style="display:none;margin-top:14px">
       <div class="form-4col" style="margin-bottom:12px">
@@ -806,47 +806,67 @@
       <div class="card-title">💧 P4 관수 데이터 입력</div>
       <div class="form-3col" style="margin-bottom:10px">
         <div>
-          <div style="font-size:10px;color:var(--muted);margin-bottom:3px">농장</div>
-          <select id="irri-farm-sel2" class="profit-farm-sel" style="width:100%"><option value="">선택…</option></select>
+          <label class="form-field-label">농장 <span class="req">*</span></label>
+          <select id="irri-farm-sel2" class="profit-farm-sel env-input" style="width:100%"><option value="">선택…</option></select>
         </div>
         <div>
-          <div style="font-size:10px;color:var(--muted);margin-bottom:3px">날짜</div>
+          <label class="form-field-label">날짜 <span class="req">*</span></label>
           <input id="irri-date" type="date" class="env-input" style="width:100%">
         </div>
         <div></div><!-- spacer -->
+        <div class="form-section-header">💧 관수 측정값</div>
         <div>
-          <div style="font-size:10px;color:var(--muted);margin-bottom:3px">공급량 (ml/slab)</div>
-          <input id="irri-supply" type="number" step="10" class="env-input" placeholder="예: 1050" style="width:100%">
+          <label class="form-field-label">공급량</label>
+          <div class="input-with-unit">
+            <input id="irri-supply" type="number" step="10" class="env-input" placeholder="예: 1050">
+            <span class="input-unit-badge">ml/slab</span>
+          </div>
           <div class="field-hint">권장: 600~1,400 ml/slab</div>
         </div>
         <div>
-          <div style="font-size:10px;color:var(--muted);margin-bottom:3px">배액량 (ml/slab)</div>
-          <input id="irri-drain" type="number" step="10" class="env-input" placeholder="예: 280" style="width:100%">
+          <label class="form-field-label">배액량</label>
+          <div class="input-with-unit">
+            <input id="irri-drain" type="number" step="10" class="env-input" placeholder="예: 280">
+            <span class="input-unit-badge">ml/slab</span>
+          </div>
           <div class="field-hint">배액률 권장: 20~40%</div>
         </div>
         <div>
-          <div style="font-size:10px;color:var(--muted);margin-bottom:3px">EC (dS/m)</div>
-          <input id="irri-ec2" type="number" step="0.01" class="env-input" placeholder="예: 2.3" style="width:100%">
-          <div class="field-hint">배액 목표: 공급 대비 +0.5~1.0</div>
+          <label class="form-field-label">배액 EC</label>
+          <div class="input-with-unit">
+            <input id="irri-ec2" type="number" step="0.01" class="env-input" placeholder="예: 2.3">
+            <span class="input-unit-badge">dS/m</span>
+          </div>
+          <div class="field-hint">공급 대비 +0.5~1.0 목표</div>
         </div>
+        <div class="form-section-header">⚖️ 슬랩 무게 (선택)</div>
         <div>
-          <div style="font-size:10px;color:var(--muted);margin-bottom:3px">야간 최대무게 (kg)</div>
-          <input id="irri-maxwt" type="number" step="0.1" class="env-input" placeholder="예: 14.8" style="width:100%">
+          <label class="form-field-label">야간 최대무게</label>
+          <div class="input-with-unit">
+            <input id="irri-maxwt" type="number" step="0.1" class="env-input" placeholder="예: 14.8">
+            <span class="input-unit-badge">kg</span>
+          </div>
           <div class="field-hint">슬랩 완전 포화 시 기준</div>
         </div>
         <div>
-          <div style="font-size:10px;color:var(--muted);margin-bottom:3px">일몰 후 무게 (kg)</div>
-          <input id="irri-sunsetwt" type="number" step="0.1" class="env-input" placeholder="예: 13.5" style="width:100%">
-          <div class="field-hint">야간 최대무게의 88~95% 목표</div>
+          <label class="form-field-label">일몰 후 무게</label>
+          <div class="input-with-unit">
+            <input id="irri-sunsetwt" type="number" step="0.1" class="env-input" placeholder="예: 13.5">
+            <span class="input-unit-badge">kg</span>
+          </div>
+          <div class="field-hint">야간 최대무게의 88~95%</div>
         </div>
         <div>
-          <div style="font-size:10px;color:var(--muted);margin-bottom:3px">흡수효율 (ml/J)</div>
-          <input id="irri-uptake" type="number" step="0.01" class="env-input" placeholder="예: 1.8" style="width:100%">
+          <label class="form-field-label">흡수효율</label>
+          <div class="input-with-unit">
+            <input id="irri-uptake" type="number" step="0.01" class="env-input" placeholder="예: 1.8">
+            <span class="input-unit-badge">ml/J</span>
+          </div>
           <div class="field-hint">통상 1.2~2.5 ml/J</div>
         </div>
       </div>
       <button class="reco-apply-btn" onclick="submitIrrigationP4()">💾 관수 데이터 저장</button>
-      <div id="irri-result2" style="margin-top:8px;font-size:12px"></div>
+      <div id="irri-result2" class="form-feedback" style="margin-top:10px"></div>
     </div>
 
     <!-- 관수 이상 감지 결과 -->
@@ -858,6 +878,17 @@
       <div id="irr-anomaly-body">
         <div style="color:var(--muted);font-size:12px;padding:20px 0;text-align:center">관수 데이터 입력 후 자동 감지</div>
       </div>
+    </div>
+  </div>
+
+  <!-- ── 관수 기록 이력 타임라인 ── -->
+  <div class="card">
+    <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+      <span>📋 관수 기록 이력 (최근 30일)</span>
+      <button class="hdr-btn" onclick="loadIrrigationHistory($('irri-farm-sel2')?.value || _defaultFarm())">↻</button>
+    </div>
+    <div id="irr-hist-body">
+      <div class="empty-state"><div class="empty-state-icon">💧</div>관수 기록이 없습니다<div class="empty-state-sub">P4 관수 데이터를 입력하면 이력이 표시됩니다</div></div>
     </div>
   </div>
 
@@ -999,67 +1030,97 @@
       <!-- ── 에너지 ─────────────────────────── -->
       <div class="form-section-header">⚡ 에너지</div>
       <div>
-        <div style="font-size:10px;color:var(--muted);margin-bottom:3px">전기 사용량 (kWh/월)</div>
-        <input id="mc-elec-kwh" type="number" class="env-input" placeholder="예: 4500" style="width:100%">
+        <label class="form-field-label">전기 사용량</label>
+        <div class="input-with-unit">
+          <input id="mc-elec-kwh" type="number" class="env-input" placeholder="4500">
+          <span class="input-unit-badge">kWh/월</span>
+        </div>
         <div class="field-hint">일반 온실 2,000~8,000 kWh</div>
       </div>
       <div>
-        <div style="font-size:10px;color:var(--muted);margin-bottom:3px">전기 단가 (원/kWh)</div>
-        <input id="mc-elec-rate" type="number" class="env-input" placeholder="예: 112" style="width:100%">
+        <label class="form-field-label">전기 단가</label>
+        <div class="input-with-unit">
+          <input id="mc-elec-rate" type="number" class="env-input" placeholder="112">
+          <span class="input-unit-badge">원/kWh</span>
+        </div>
         <div class="field-hint">농업용 저압 약 90~130원</div>
       </div>
       <div>
-        <div style="font-size:10px;color:var(--muted);margin-bottom:3px">난방 에너지 (kWh/월)</div>
-        <input id="mc-heat-kwh" type="number" class="env-input" placeholder="예: 2000" style="width:100%">
+        <label class="form-field-label">난방 에너지</label>
+        <div class="input-with-unit">
+          <input id="mc-heat-kwh" type="number" class="env-input" placeholder="2000">
+          <span class="input-unit-badge">kWh/월</span>
+        </div>
         <div class="field-hint">겨울철 최대 5,000 kWh</div>
       </div>
       <div>
-        <div style="font-size:10px;color:var(--muted);margin-bottom:3px">난방 단가 (원/kWh)</div>
-        <input id="mc-heat-rate" type="number" class="env-input" placeholder="예: 85" style="width:100%">
+        <label class="form-field-label">난방 단가</label>
+        <div class="input-with-unit">
+          <input id="mc-heat-rate" type="number" class="env-input" placeholder="85">
+          <span class="input-unit-badge">원/kWh</span>
+        </div>
         <div class="field-hint">농업용 LNG 환산 약 70~100원</div>
       </div>
       <!-- ── 용수 ─────────────────────────── -->
       <div class="form-section-header">💧 용수</div>
       <div>
-        <div style="font-size:10px;color:var(--muted);margin-bottom:3px">용수 사용량 (m³/월)</div>
-        <input id="mc-water-m3" type="number" class="env-input" placeholder="예: 180" style="width:100%">
+        <label class="form-field-label">용수 사용량</label>
+        <div class="input-with-unit">
+          <input id="mc-water-m3" type="number" class="env-input" placeholder="180">
+          <span class="input-unit-badge">m³/월</span>
+        </div>
         <div class="field-hint">330m² 기준 100~300 m³</div>
       </div>
       <div>
-        <div style="font-size:10px;color:var(--muted);margin-bottom:3px">용수 단가 (원/m³)</div>
-        <input id="mc-water-rate" type="number" class="env-input" placeholder="예: 620" style="width:100%">
+        <label class="form-field-label">용수 단가</label>
+        <div class="input-with-unit">
+          <input id="mc-water-rate" type="number" class="env-input" placeholder="620">
+          <span class="input-unit-badge">원/m³</span>
+        </div>
         <div class="field-hint">농업용수 300~900원/m³</div>
       </div>
       <!-- ── 인건 ─────────────────────────── -->
       <div class="form-section-header">👷 인건</div>
       <div>
-        <div style="font-size:10px;color:var(--muted);margin-bottom:3px">인건 시간 (시간/월)</div>
-        <input id="mc-labor-hrs" type="number" class="env-input" placeholder="예: 120" style="width:100%">
+        <label class="form-field-label">인건 시간</label>
+        <div class="input-with-unit">
+          <input id="mc-labor-hrs" type="number" class="env-input" placeholder="120">
+          <span class="input-unit-badge">시간/월</span>
+        </div>
         <div class="field-hint">파트타임 80~240시간</div>
       </div>
       <div>
-        <div style="font-size:10px;color:var(--muted);margin-bottom:3px">시급 (원/시간)</div>
-        <input id="mc-labor-rate" type="number" class="env-input" placeholder="예: 9860" style="width:100%">
+        <label class="form-field-label">시급</label>
+        <div class="input-with-unit">
+          <input id="mc-labor-rate" type="number" class="env-input" placeholder="9860">
+          <span class="input-unit-badge">원/시간</span>
+        </div>
         <div class="field-hint">최저시급 이상 (2024년 9,860원)</div>
       </div>
       <!-- ── 자재 ─────────────────────────── -->
       <div class="form-section-header">🌿 자재</div>
       <div>
-        <div style="font-size:10px;color:var(--muted);margin-bottom:3px">영양제·비료 (원/월)</div>
-        <input id="mc-nutr" type="number" class="env-input" placeholder="예: 80000" style="width:100%">
+        <label class="form-field-label">영양제·비료</label>
+        <div class="input-with-unit">
+          <input id="mc-nutr" type="number" class="env-input" placeholder="80000">
+          <span class="input-unit-badge">원/월</span>
+        </div>
         <div class="field-hint">딸기 약 5~15만원/월</div>
       </div>
       <div>
-        <div style="font-size:10px;color:var(--muted);margin-bottom:3px">농약·방제 (원/월)</div>
-        <input id="mc-pest" type="number" class="env-input" placeholder="예: 30000" style="width:100%">
+        <label class="form-field-label">농약·방제</label>
+        <div class="input-with-unit">
+          <input id="mc-pest" type="number" class="env-input" placeholder="30000">
+          <span class="input-unit-badge">원/월</span>
+        </div>
         <div class="field-hint">2~6만원/월 (병해 시 증가)</div>
       </div>
     </div>
-    <div style="display:flex;gap:8px">
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
       <button class="reco-apply-btn" onclick="submitManualCost()">💾 저장</button>
       <button class="btn-danger" onclick="deleteManualCost()">🗑️ 삭제 (기본값 복원)</button>
     </div>
-    <div id="cost-manual-result" style="margin-top:8px;font-size:12px"></div>
+    <div id="cost-manual-result" class="form-feedback" style="margin-top:10px"></div>
   </div>
 </div> <!-- /sec-energy -->
 
@@ -1325,7 +1386,7 @@
   <div class="card">
     <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
       <span>📋 환경값 수동 입력 이력</span>
-      <button class="hdr-btn" onclick="loadEnvHistory()">↻</button>
+      <button class="hdr-btn" onclick="loadEnvHistory($('env-manual-farm')?.value || _defaultFarm())">↻</button>
     </div>
     <div id="env-hist-body">
       <div class="empty-state"><div class="empty-state-icon">📋</div>수동 입력 이력이 없습니다<div class="empty-state-sub">위의 폼으로 환경값을 입력하면 이력이 누적됩니다</div></div>
@@ -1476,6 +1537,7 @@
             <option value="완숙토마토">완숙토마토</option>
             <option value="오이">오이</option>
             <option value="파프리카">파프리카</option>
+            <option value="참외">참외</option>
           </select>
           <button class="hdr-btn" onclick="loadAdvisorOptimal()">↻</button>
         </div>

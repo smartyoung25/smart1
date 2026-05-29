@@ -699,6 +699,24 @@ def get_env_journal(
 
 
 # ---------------------------------------------------------------------------
+# GET /journal/advisory  — 해당 농장 AI 권고 이력 (농장주용)
+# ---------------------------------------------------------------------------
+
+@router.get("/journal/advisory", summary="농장 AI 권고 이력 조회")
+def get_advisory_journal(
+    farm_id: str,
+    limit: int = Query(30, ge=1, le=200, description="반환할 최대 건수"),
+):
+    """농장별 AI 권고 이력을 최신순으로 반환합니다 (농장주 계정 전용)."""
+    try:
+        from pipeline.crop_advisor import load_history
+        entries = load_history(limit=limit, farm_id=farm_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"권고 이력 조회 실패: {e}")
+    return {"farm_id": farm_id, "entries": entries, "total": len(entries)}
+
+
+# ---------------------------------------------------------------------------
 # GET /environment
 # ---------------------------------------------------------------------------
 

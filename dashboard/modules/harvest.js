@@ -3,21 +3,25 @@ let _advisoryEntries = [];
 
 async function loadAdvisoryHistory() {
   if (!_token) return;
-  if (_myFarmId) {  // 농장주 계정: 관리자 전용 기능 안내
-    const feed = $('advisory-feed');
-    if (feed && !feed.dataset.farmerMsg) {
-      feed.dataset.farmerMsg = '1';
-      feed.innerHTML = `<div class="data-reason-box" style="margin:8px 0">
-        <span style="font-size:13px;color:var(--muted)">🔒 권고 이력은 관리자 계정에서만 조회할 수 있습니다.</span>
-      </div>`;
-    }
-    return;
-  }
   const limit = $('adv-filter-limit') ? $('adv-filter-limit').value : 50;
   try {
-    const data = await apiFetch(`/api/admin/advisor/history?limit=${limit}`);
+    let data;
+    if (_myFarmId) {
+      // 농장주 계정: 내 농장 전용 권고 이력 엔드포인트 사용
+      data = await apiFetch(`/api/farms/${encodeURIComponent(_myFarmId)}/journal/advisory?limit=${limit}`);
+      // 농장 ID 필터 인풋 숨기기 (본인 농장만 표시)
+      const filterInput = $('adv-filter-farm');
+      if (filterInput) {
+        filterInput.value = _myFarmId;
+        filterInput.style.display = 'none';
+      }
+    } else {
+      data = await apiFetch(`/api/admin/advisor/history?limit=${limit}`);
+    }
     _advisoryEntries = data.entries || [];
     renderAdvisoryFeed();
+    // 농장주 계정: 빈도 요약도 이력 로드 완료 후 갱신
+    if (_myFarmId) _renderFarmerAdvisorySummary();
   } catch(e) {
     console.warn('[advisor] 이력 조회 실패:', e);
     const feed = $('advisory-feed');
@@ -89,7 +93,11 @@ const FIELD_SHORT = {
 
 async function loadAdvisorySummary() {
   if (!_token) return;
-  if (_myFarmId) return;  // 농장주 계정: 관리자 전용 엔드포인트 건너뜀
+  if (_myFarmId) {
+    // 농장주 계정: _advisoryEntries 기반 로컬 집계
+    _renderFarmerAdvisorySummary();
+    return;
+  }
   const days = $('heatmap-days-sel') ? $('heatmap-days-sel').value : 30;
   try {
     const d = await apiFetch(`/api/admin/advisor/summary?days=${days}`);
@@ -99,6 +107,39 @@ async function loadAdvisorySummary() {
     const tbody = $('heatmap-tbody');
     if (tbody) tbody.innerHTML = `<tr><td colspan="10" style="color:var(--red);padding:8px">${_esc(e.message)}</td></tr>`;
   }
+}
+
+// 농장주 전용: 권고 이력에서 항목별 빈도 막대 차트 렌더
+function _renderFarmerAdvisorySummary() {
+  const heatmapBody = $('heatmap-body');
+  if (!heatmapBody) return;
+  if (!_advisoryEntries.length) {
+    heatmapBody.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🌿</div>권고 이력이 없습니다<div class="empty-state-sub">AI 권고가 발생하면 항목별 빈도가 표시됩니다</div></div>';
+    return;
+  }
+  // 항목별 빈도 집계
+  const freq = {};
+  _advisoryEntries.forEach(entry => {
+    (entry.advices || []).forEach(a => {
+      const label = FIELD_SHORT[a.field] || a.field;
+      freq[label] = (freq[label] || 0) + 1;
+    });
+  });
+  const sorted = Object.entries(freq).sort((a, b) => b[1] - a[1]);
+  const maxVal = sorted.length ? sorted[0][1] : 1;
+  const bars = sorted.map(([label, count]) => {
+    const pct = Math.round(count / maxVal * 100);
+    return `<div style="display:grid;grid-template-columns:80px 1fr 30px;align-items:center;gap:8px;margin-bottom:6px">
+      <span style="font-size:11px;color:var(--muted);text-align:right">${_esc(label)}</span>
+      <div style="background:var(--card-soft);border-radius:4px;overflow:hidden;height:16px">
+        <div style="width:${pct}%;background:var(--accent);height:100%;border-radius:4px;transition:width .3s"></div>
+      </div>
+      <span style="font-size:11px;color:var(--fg);font-weight:600">${count}</span>
+    </div>`;
+  }).join('');
+  heatmapBody.innerHTML = `
+    <div style="margin-bottom:8px;font-size:11px;color:var(--muted)">최근 ${_advisoryEntries.length}건 기준 항목별 권고 빈도</div>
+    ${bars}`;
 }
 
 function renderHeatmap(d) {

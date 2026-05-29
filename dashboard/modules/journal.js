@@ -359,3 +359,84 @@ async function loadEnvHistory(farmId) {
     el.innerHTML = `<div class="data-reason-box"><span style="font-size:13px;color:var(--muted)">환경 이력 조회 실패: ${e.message || '서버 오류'}</span></div>`;
   }
 }
+
+// ── 관수 이력 렌더 ─────────────────────────────────────────────────────────
+function _renderIrrigationTimeline(records, dataDays) {
+  const badge = `<span style="color:var(--muted);font-size:11px">최근 ${dataDays}일 데이터 · ${records.length}건</span>`;
+
+  const rows = records.slice().reverse().map((r, i) => {
+    const bg      = i % 2 === 1 ? 'background:var(--card-soft)' : '';
+    const dateStr = _jFmtDate(r.date);
+    const wc      = _jFmtNum(r.wc_mean,      '%', 1);
+    const dr      = r.dr_pct_mean != null ? _jFmtNum(r.dr_pct_mean, '%', 1) : '—';
+    const ec      = _jFmtNum(r.ec_drain,      'dS/m', 2);
+    const sup     = _jFmtNum(r.supply_total,  'ml', 0);
+    const cnt     = _jFmtNum(r.irr_count,     '회', 0);
+    const nl      = r.nl_pct != null ? _jFmtNum(r.nl_pct, '%', 1) : '—';
+
+    // 배액률 상태 컬러
+    let drColor = 'var(--fg)';
+    if (r.dr_pct_mean != null) {
+      if (r.dr_pct_mean < 20)      drColor = 'var(--red)';
+      else if (r.dr_pct_mean > 40) drColor = 'var(--orange)';
+      else                          drColor = 'var(--green)';
+    }
+    // 함수율 컬러
+    let wcColor = 'var(--fg)';
+    if (r.wc_mean != null) {
+      if (r.wc_mean < 60)      wcColor = 'var(--red)';
+      else if (r.wc_mean > 95) wcColor = 'var(--orange)';
+    }
+
+    return `<tr style="${bg}">
+      <td style="padding:5px 8px;white-space:nowrap;color:var(--accent);font-size:12px">${dateStr}</td>
+      <td style="padding:5px 8px;text-align:right;font-size:12px;color:${wcColor};font-weight:600">${wc}</td>
+      <td style="padding:5px 8px;text-align:right;font-size:12px;color:${drColor};font-weight:600">${dr}</td>
+      <td style="padding:5px 8px;text-align:right;font-size:12px">${ec}</td>
+      <td style="padding:5px 8px;text-align:right;font-size:12px">${sup}</td>
+      <td style="padding:5px 8px;text-align:right;font-size:12px">${cnt}</td>
+      <td style="padding:5px 8px;text-align:right;font-size:12px;color:var(--muted)">${nl}</td>
+    </tr>`;
+  }).join('');
+
+  return `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+    <span style="font-size:12px;color:var(--fg);font-weight:600">💧 관수 기록 이력</span>${badge}
+  </div>
+  <div style="overflow-x:auto">
+    <table style="width:100%;border-collapse:collapse;min-width:480px">
+      <thead>
+        <tr style="background:var(--card-soft);color:var(--muted);font-size:11px">
+          <th style="padding:6px 8px;text-align:left;border-bottom:1px solid var(--border)">날짜</th>
+          <th style="padding:6px 8px;text-align:right;border-bottom:1px solid var(--border)">함수율</th>
+          <th style="padding:6px 8px;text-align:right;border-bottom:1px solid var(--border)">배액률</th>
+          <th style="padding:6px 8px;text-align:right;border-bottom:1px solid var(--border)">배액EC</th>
+          <th style="padding:6px 8px;text-align:right;border-bottom:1px solid var(--border)">총공급량</th>
+          <th style="padding:6px 8px;text-align:right;border-bottom:1px solid var(--border)">관수횟수</th>
+          <th style="padding:6px 8px;text-align:right;border-bottom:1px solid var(--border)">야간소실</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>
+  <div style="margin-top:6px;font-size:11px;color:var(--muted)">
+    🟢 배액률 20~40% 정상 &nbsp;|&nbsp; 🔴 배액률 &lt;20% 부족 &nbsp;|&nbsp; 🟠 배액률 &gt;40% 과다
+  </div>`;
+}
+
+// ── 관수 이력 로더 ─────────────────────────────────────────────────────────
+async function loadIrrigationHistory(farmId) {
+  farmId = farmId || _defaultFarm();
+  const el = $('irr-hist-body');
+  if (!el || !farmId || !_token) return;
+  el.innerHTML = '<div class="spinner"></div>';
+  try {
+    const data = await apiFetch(`/api/farms/${encodeURIComponent(farmId)}/irrigation/analysis?days=30`);
+    if (!data.records || !data.records.length) {
+      el.innerHTML = '<div class="empty-state"><div class="empty-state-icon">💧</div>관수 기록이 없습니다<div class="empty-state-sub">P4 관수 데이터를 입력하면 이력이 표시됩니다</div></div>';
+      return;
+    }
+    el.innerHTML = _renderIrrigationTimeline(data.records, data.data_days);
+  } catch (e) {
+    el.innerHTML = `<div class="data-reason-box"><span style="font-size:13px;color:var(--muted)">관수 이력 로드 실패: ${e.message || '서버 오류'}</span></div>`;
+  }
+}

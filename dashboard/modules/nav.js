@@ -1,3 +1,12 @@
+// ── 오늘 날짜 자동 세팅 헬퍼 ─────────────────────────────────────────────────
+function _setTodayDate(...ids) {
+  const today = new Date().toISOString().slice(0, 10);
+  ids.forEach(id => {
+    const el = $(id);
+    if (el && !el.value) el.value = today;
+  });
+}
+
 // ── 기본 농장 선택 헬퍼 ─────────────────────────────────────────────────────
 function _defaultFarm() {
   if (_myFarmId && _farmsData.some(f => f.farm_id === _myFarmId)) {
@@ -79,6 +88,7 @@ const SECTION_LOADERS = {
   irrigation: () => {
     const _doLoadIrrigation = () => {
       populateAllFarmSels();
+      _setTodayDate('irri-date');
       const fid = _defaultFarm();
       if (fid) {
         _autoSel('irr-sched-farm', fid);
@@ -87,6 +97,7 @@ const SECTION_LOADERS = {
         loadIrrigationAnalysis(fid);
         loadIrrigationSchedule();
         loadPrivaSchedule();
+        loadIrrigationHistory(fid);
       }
     };
     if (!_farmsData.length) {
@@ -99,6 +110,7 @@ const SECTION_LOADERS = {
     const _doLoadGrowth = () => {
       loadCropModels();
       populateGrowthSel();
+      _setTodayDate('gr-date', 'hv-date');
       const fid = _defaultFarm();
       if (fid) {
         _autoSel('growth-farm-sel',  fid);

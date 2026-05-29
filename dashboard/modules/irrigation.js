@@ -143,6 +143,7 @@ async function submitIrrigationP4() {
     const wcMean= s.wc_mean     != null ? s.wc_mean.toFixed(1)     : '—';
     _setResult('irri-result2', 'ok', `저장 완료 — 배액률 ${drPct}%, 함수율 ${wcMean}%`);
     loadIrrigationAnalysis(farmId);
+    setTimeout(() => loadIrrigationHistory(farmId), 400);
   } catch(e) {
     _setResult('irri-result2', 'err', '저장 실패: ' + e.message);
   }
