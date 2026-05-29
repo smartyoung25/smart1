@@ -484,8 +484,10 @@
   .plan-dot { width:8px; height:8px; border-radius:50%; }
 
   /* 섹션 전환 — position:absolute 방식 (flex 높이 체인 의존성 제거) */
-  /* .sec 는 #app-layout 직속 자식 → 사이드바(192px) 이후부터 시작해야 겹침 방지 */
-  .sec { display: none; position: absolute; top: 0; left: 192px; right: 0; bottom: 0;
+  /* 모든 .sec는 #content-area(position:relative) 의 직속 자식.
+     #content-area는 flex 레이아웃에서 #sidebar(192px) 오른쪽에 위치하므로
+     데스크탑에서 left:0 = 뷰포트 x≈192 (사이드바 바로 우측) → 올바른 위치. */
+  .sec { display: none; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
          flex-direction: column; gap: 16px; padding: 20px 24px; overflow-y: auto; }
   .sec.active { display: flex; }
   /* ── 수치 미표시 이유 박스 (데이터 없음 원인 안내) ─────────────────────────── */

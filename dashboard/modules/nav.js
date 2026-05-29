@@ -407,7 +407,7 @@ const BottomSheet = {
 
 // ── 초기화 (토큰이 있으면 즉시 대시보드 진입) ─────────────────────────────
 if (_token) {
-  $('login-overlay').classList.add('hidden');
+  $('login-overlay')?.classList.add('hidden');
   if (!_myFarmId) {
     const claims = _decodeJwt(_token);
     _myFarmId = claims.farm_id || '';

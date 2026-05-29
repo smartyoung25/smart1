@@ -53,10 +53,10 @@ function renderAdvisoryFeed() {
 
   feed.innerHTML = entries.map(entry => {
     const ts      = entry.ts ? new Date(entry.ts).toLocaleString('ko-KR') : '—';
-    const topSide = entry.advices.length ? entry.advices[0].side : 'both';
+    const topSide = entry.advices?.length ? entry.advices[0].side : 'both';
     const sideClass = topSide === 'high' ? 'side-high' : topSide === 'low' ? 'side-low' : '';
 
-    const itemsHtml = entry.advices.map(a => {
+    const itemsHtml = (entry.advices || []).map(a => {
       const fname = FIELD_LABELS[a.field] || a.field;
       const optStr = `최적 ${a.optimal[0]}–${a.optimal[1]}`;
       const arrow  = a.side === 'high' ? '↑' : a.side === 'low' ? '↓' : '↕';

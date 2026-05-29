@@ -113,7 +113,9 @@ async function loadCurrentEnv() {
     }
     setText('env-kpi-co2', fmtF(d.co2_ppm, 0));
     const solarVal = d.solar_rad ?? d.solar_radiation ?? d.solar_rad_est ?? null;
-    setText('env-kpi-dli', solarVal != null ? (solarVal * 3600 / 1e6 * 8).toFixed(1) : '—');
+    // 위도 37°N 기준 월별 일조시간 추정 (4~9월: 장일, 10~3월: 단일)
+    const _dliHours = [9,10,11,12,13,14,14,13,12,11,10,9][new Date().getMonth()];
+    setText('env-kpi-dli', solarVal != null ? (solarVal * 3600 / 1e6 * _dliHours).toFixed(1) : '—');
     apiFetch(`/api/farms/${farmId}/erp/realtime`).then(erp => {
       const energyW = erp?.cost_breakdown?.energy_per_m2;
       setText('env-kpi-energy', energyW != null ? Math.round(energyW) + 'W/m²' : '—');

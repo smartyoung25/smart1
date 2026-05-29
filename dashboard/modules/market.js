@@ -321,11 +321,12 @@ async function loadPriceHistory() {
     const trendColor= {up:'var(--red)', down:'var(--accent)', flat:'var(--muted)'}[d.trend] || 'var(--muted)';
     const src = d.source === 'kamis_cache' ? 'KAMIS 실시간' : d.source === 'rda_static_estimated' ? '통계 추정' : '통계 기반';
 
-    const prices = items.map(i => i.price_krw_kg);
+    const prices = items.map(i => i.price_krw_kg).filter(p => p != null);
+    if (!prices.length) { el.innerHTML = '<div style="color:var(--muted);text-align:center;padding:12px">시세 데이터 없음</div>'; return; }
     const minP = Math.min(...prices), maxP = Math.max(...prices);
     const W = 340, H = 60, pad = 4;
     const toX = i => prices.length > 1 ? pad + (i / (prices.length - 1)) * (W - 2*pad) : W / 2;
-    const toY = p => H - pad - ((p - minP) / (maxP - minP + 1)) * (H - 2*pad);
+    const toY = p => maxP > minP ? H - pad - ((p - minP) / (maxP - minP)) * (H - 2*pad) : H / 2;
     const pts = prices.map((p, i) => `${toX(i).toFixed(1)},${toY(p).toFixed(1)}`).join(' ');
     const sparkline = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:60px;display:block;margin:8px 0">
       <polyline points="${pts}" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linejoin="round"/>
@@ -333,13 +334,15 @@ async function loadPriceHistory() {
     </svg>`;
 
     const rows = items.slice(-14).reverse().map((it, i, arr) => {
-      const prev = arr[i+1];
-      const chg  = prev ? ((it.price_krw_kg - prev.price_krw_kg) / prev.price_krw_kg * 100) : null;
+      const curPx  = it.price_krw_kg;
+      const prevPx = arr[i+1]?.price_krw_kg;
+      const chg    = (curPx != null && prevPx != null && prevPx > 0)
+        ? ((curPx - prevPx) / prevPx * 100) : null;
       const chgHtml = chg != null
         ? `<span class="${chg>=0?'price-up':'price-down'}">${chg>=0?'+':''}${chg.toFixed(1)}%</span>` : '—';
       return `<tr>
         <td style="color:var(--muted)">${_esc(it.date)}</td>
-        <td style="text-align:right;font-weight:600">${it.price_krw_kg.toLocaleString('ko-KR')}원</td>
+        <td style="text-align:right;font-weight:600">${curPx != null ? curPx.toLocaleString('ko-KR') : '—'}원</td>
         <td style="text-align:right">${chgHtml}</td>
       </tr>`;
     }).join('');

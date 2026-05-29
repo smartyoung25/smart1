@@ -203,7 +203,7 @@ async function loadFarmsOverview() {
   }
 }
 
-setInterval(() => { if (_token) loadFarmsOverview(); }, 30_000);
+setInterval(() => { if (_token && !document.hidden) loadFarmsOverview(); }, 30_000);
 
 function sortFarms(key) {
   if (_farmsSortKey === key) _farmsSortAsc = !_farmsSortAsc;
@@ -239,6 +239,14 @@ function renderFarmsTable() {
     if (bv == null) bv = _farmsSortAsc ? Infinity : -Infinity;
     if (typeof av === 'string') return _farmsSortAsc ? av.localeCompare(bv,'ko') : bv.localeCompare(av,'ko');
     return _farmsSortAsc ? av - bv : bv - av;
+  });
+
+  // 정렬 방향 표시기 업데이트
+  document.querySelectorAll('#farms-table .sortable').forEach(th => {
+    const k = th.getAttribute('onclick')?.match(/sortFarms\('(.+?)'\)/)?.[1];
+    if (!k) return;
+    th.textContent = th.textContent.replace(/[↑↓↕]/g, '').trim();
+    th.textContent += ' ' + (k === _farmsSortKey ? (_farmsSortAsc ? '↑' : '↓') : '↕');
   });
 
   const fc = $('farms-count');
