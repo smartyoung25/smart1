@@ -3830,27 +3830,32 @@ const RECO_FIELD_LABELS = {
 
 // 공통 권고 아이템 렌더 헬퍼 (RecommendationItem 스키마 기반)
 function _renderRecoItems(items, farmId) {
-  const TIER_BADGE = { auto:'🤖자동', approval_required:'✋승인필요', checklist:'📋체크리스트' };
+  const TIER_BADGE = { auto:'🤖 자동', approval_required:'✋ 승인필요', checklist:'📋 체크' };
+  const TIER_CLS   = { auto:'good', approval_required:'warn', checklist:'info' };
   const listHtml = items.map(r => {
-    // RecommendationItem: rank, action_ko, profit_delta, revenue_delta, cost_delta, confidence, tier_action, canonical_changes
     const profitCls = (r.profit_delta ?? 0) >= 0 ? 'positive' : 'negative';
     const sign = (r.profit_delta ?? 0) >= 0 ? '+' : '';
-    const tierTxt = _esc(TIER_BADGE[r.tier_action] || r.tier_action || '');
+    const tierKey = r.tier_action || '';
+    const tierTxt = TIER_BADGE[tierKey] || _esc(r.tier_action || '');
+    const tierCls = TIER_CLS[tierKey] || 'info';
     const changes = r.canonical_changes || {};
     const changeSummary = Object.entries(changes)
       .map(([k, v]) => `${_esc(RECO_FIELD_LABELS[k]||k)} ${v>=0?'+':''}${Number(v).toFixed(1)}`)
       .join(', ');
-    // 구버전 호환 (field/side/action 구조 혼용)
     const action = r.action_ko || r.action || r.message || '—';
+    const confPct = r.confidence != null ? Math.round((r.confidence??0)*100) : null;
+    const confBadge = confPct != null
+      ? `<span class="status-badge ${confPct>=80?'good':confPct>=50?'warn':'danger'}" style="font-size:10px">${confPct}%</span>`
+      : '';
     return `<div class="reco-item">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px">
-        <span class="reco-action">${r.rank != null ? `#${r.rank} ` : ''}${_esc(action)}</span>
-        <span style="white-space:nowrap">${tierTxt}</span>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px;flex-wrap:wrap">
+        <span class="reco-action" style="flex:1;min-width:0">${r.rank != null ? `#${r.rank} ` : ''}${_esc(action)}</span>
+        <span class="status-badge ${tierCls}" style="white-space:nowrap;font-size:10px">${tierTxt}</span>
       </div>
       ${changeSummary ? `<div style="font-size:10px;color:var(--muted);margin-top:2px">조정: ${changeSummary}</div>` : ''}
-      <div style="display:flex;gap:12px;margin-top:4px;font-size:11px">
+      <div style="display:flex;gap:8px;align-items:center;margin-top:5px;font-size:11px;flex-wrap:wrap">
         <span class="reco-val ${profitCls}">수익 ${sign}${Math.round(r.profit_delta??0).toLocaleString('ko-KR')}원</span>
-        ${r.confidence != null ? `<span style="color:var(--muted)">신뢰도 ${Math.round((r.confidence??0)*100)}%</span>` : ''}
+        ${confBadge}
       </div>
     </div>`;
   }).join('');
