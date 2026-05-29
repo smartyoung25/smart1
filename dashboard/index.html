@@ -5890,10 +5890,11 @@ async function loadHeroDashboard(farmId) {
       const act      = TIER_BTN[tierKey]  || 'blue';
       const btnLabel = TIER_LABEL[tierKey] || '확인';
       const profit   = rec.profit_delta != null ? `+${Math.round(rec.profit_delta).toLocaleString('ko-KR')}원` : '';
+      const destSection = tierKey === 'auto' ? 'environ' : 'control';
       return `<div class="todo-item">
         <div class="todo-num ${cls}">${i+1}</div>
         <div class="todo-text"><b>${_esc(rec.action_ko || '권고')}</b><span>${profit}</span></div>
-        <button class="todo-action ${act}">${btnLabel}</button>
+        <button class="todo-action ${act}" onclick="showSection('${destSection}')">${btnLabel}</button>
       </div>`;
     }).join('');
     const tb = $('todo-body');
