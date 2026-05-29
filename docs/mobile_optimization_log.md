@@ -110,3 +110,16 @@
 - ERA5 실측 CSV 확보 후 토마토 M1 재학습
 - CoolSMS / Slack Webhook .env API 키 설정
 - WSL2 → Docker → DuckDNS → Let's Encrypt
+
+---
+
+## 작업지시서 재검토 보완 (2026-05-30 커밋: 1db8566)
+
+작업지시서 전체를 다시 불러와 미구현 항목 6건 추가 처리:
+
+1. h2 22px, h3 20px @430px (기존 18px/16px 수정) -- 지시서 §4.2
+2. 핵심 액션 버튼 min-height 48px + 전체너비 @430px -- 지시서 §4.3
+3. G2 탭 전환 UI (환경현황/수동입력/이력) + switchEnvTab() -- 지시서 §10.4
+4. Sticky Action Bar HTML 배치: C3 To-do확인, C12 참여등록 -- 지시서 §10.2
+5. C12 Pool 테이블 → 모바일 스와이프 카드 (data-label) -- 지시서 §6.3
+6. G2 이상감지 카드 승인/보류 버튼 + 모바일 전체너비 -- 지시서 §7 G2
