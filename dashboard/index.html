@@ -172,7 +172,7 @@
         </label>
       </div>
       <button id="upgrade-submit-btn" class="reco-apply-btn" style="width:100%" onclick="submitUpgrade()">업그레이드 신청</button>
-      <div id="upgrade-result" style="margin-top:8px;font-size:12px;text-align:center"></div>
+      <div id="upgrade-result" class="form-feedback" style="margin-top:8px"></div>
     </div>
   </div>
 </div>
@@ -571,7 +571,7 @@
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button class="reco-apply-btn" onclick="submitGrowthRecord()">📏 생육 측정 저장</button>
-        <button class="btn" style="min-height:44px;padding:10px 16px;border-radius:8px;font-size:12px;cursor:pointer;background:var(--card-soft);border:1px solid var(--border);color:var(--muted)" onclick="document.querySelectorAll('#gr-height,#gr-leaves,#gr-fruits,#gr-stem,#gr-temp,#gr-humi,#gr-co2,#gr-ec').forEach(e=>e.value='')">↺ 초기화</button>
+        <button class="btn-ghost" onclick="document.querySelectorAll('#gr-height,#gr-leaves,#gr-fruits,#gr-stem,#gr-temp,#gr-humi,#gr-co2,#gr-ec').forEach(e=>e.value='')">↺ 초기화</button>
       </div>
       <div id="gr-result" class="form-feedback"></div>
     </div>
@@ -644,13 +644,13 @@
         </div>
       </div>
       <!-- 입력값 미리보기 -->
-      <div id="hv-preview" style="display:none;margin-bottom:12px;padding:10px 14px;background:var(--card-soft);border:1px solid var(--border);border-radius:8px;font-size:12px">
-        <b style="color:var(--fg)">입력 확인</b>
-        <div style="margin-top:6px;color:var(--muted)" id="hv-preview-body"></div>
+      <div id="hv-preview" class="preview-box">
+        <div class="preview-box-title">입력 확인</div>
+        <div class="preview-box-body" id="hv-preview-body"></div>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button class="reco-apply-btn" onclick="submitHarvestRecord()">📦 수확량 저장</button>
-        <button class="btn" style="min-height:44px;padding:10px 16px;border-radius:8px;font-size:12px;cursor:pointer;background:var(--card-soft);border:1px solid var(--border);color:var(--muted)" onclick="document.querySelectorAll('#hv-yield,#hv-area,#hv-plant-date,#hv-avg-temp,#hv-avg-humi').forEach(e=>e.value='');document.getElementById('hv-preview').style.display='none'">↺ 초기화</button>
+        <button class="btn-ghost" onclick="document.querySelectorAll('#hv-yield,#hv-area,#hv-plant-date,#hv-avg-temp,#hv-avg-humi').forEach(e=>e.value='');document.getElementById('hv-preview').classList.remove('visible')">↺ 초기화</button>
       </div>
       <div id="hv-result" class="form-feedback"></div>
     </div>
@@ -1373,7 +1373,7 @@
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <button class="reco-apply-btn" onclick="submitManualEnv()">💾 환경값 저장</button>
-      <button class="btn" style="min-height:44px;padding:10px 16px;border-radius:8px;font-size:12px;cursor:pointer;background:var(--card-soft);border:1px solid var(--border);color:var(--muted)" onclick="document.querySelectorAll('#em-temp,#em-humi,#em-co2,#em-ec,#em-ph,#em-soil').forEach(e=>e.value='')">↺ 초기화</button>
+      <button class="btn-ghost" onclick="document.querySelectorAll('#em-temp,#em-humi,#em-co2,#em-ec,#em-ph,#em-soil').forEach(e=>e.value='')">↺ 초기화</button>
     </div>
     <div id="env-manual-result" class="form-feedback" style="margin-top:10px"></div>
   </div>

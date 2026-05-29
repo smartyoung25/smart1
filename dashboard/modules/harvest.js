@@ -107,7 +107,7 @@ async function loadAdvisorySummary() {
   } catch(e) {
     console.warn('[heatmap] 조회 실패:', e);
     const tbody = $('heatmap-tbody');
-    if (tbody) tbody.innerHTML = `<tr><td colspan="10" style="color:var(--red);padding:8px">${_esc(e.message)}</td></tr>`;
+    if (tbody) tbody.innerHTML = `<tr><td colspan="10" class="err-inline" style="padding:8px">${_esc(e.message)}</td></tr>`;
   }
 }
 
@@ -311,8 +311,8 @@ async function loadGrowthHarvestRevenue() {
       setText('harvest-7d-kg', Number(h.yield_kg_forecast).toFixed(1));
     }
   } catch(e) {
-    if (hEl) hEl.innerHTML = `<span style="color:var(--red);font-size:12px">조회 실패: ${_esc(e.message)}</span>`;
-    if (rEl) rEl.innerHTML = `<span style="color:var(--red);font-size:12px">소득 조회 실패: ${_esc(e.message)}</span>`;
+    if (hEl) hEl.innerHTML = `<span class="err-inline">조회 실패: ${_esc(e.message)}</span>`;
+    if (rEl) rEl.innerHTML = `<span class="err-inline">소득 조회 실패: ${_esc(e.message)}</span>`;
   }
 }
 
@@ -368,7 +368,7 @@ async function runWhatIf() {
       </div>
       ${scenHtml}`;
   } catch(e) {
-    el.innerHTML = `<span style="color:var(--red);font-size:12px">시뮬레이션 실패: ${_esc(e.message)}</span>`;
+    el.innerHTML = `<span class="err-inline">시뮬레이션 실패: ${_esc(e.message)}</span>`;
   }
 }
 
@@ -390,7 +390,7 @@ async function loadCtrlRecommendations() {
       ${gainHtml}
       <button class="reco-apply-btn" style="margin-top:10px" data-farmid="${_esc(farmId)}" onclick="applyCtrlRecommendations(this.dataset.farmid)">✅ 권고 적용</button>`;
   } catch(e) {
-    el.innerHTML = `<span style="color:var(--red);font-size:12px">조회 실패: ${_esc(e.message)}</span>`;
+    el.innerHTML = `<span class="err-inline">조회 실패: ${_esc(e.message)}</span>`;
   }
 }
 
@@ -610,7 +610,7 @@ async function loadSfropScenarios() {
         * 시나리오 수치는 RDA 2022 실태조사 기반 추정값 · ERP 실시간 데이터 반영
       </div>`;
   } catch(e) {
-    el.innerHTML = `<span style="color:var(--red);font-size:12px">시나리오 계산 실패: ${_esc(e.message)}</span>`;
+    el.innerHTML = `<span class="err-inline">시나리오 계산 실패: ${_esc(e.message)}</span>`;
   }
 }
 
@@ -658,6 +658,6 @@ async function loadAdvisorOptimal() {
       }).join('') + '</div>' +
       (d.note ? `<div style="font-size:11px;color:var(--muted);margin-top:8px">${_esc(d.note)}</div>` : '');
   } catch(e) {
-    el.innerHTML = `<span style="color:var(--red);font-size:12px">조회 실패: ${_esc(e.message)}</span>`;
+    el.innerHTML = `<span class="err-inline">조회 실패: ${_esc(e.message)}</span>`;
   }
 }

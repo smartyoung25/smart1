@@ -494,9 +494,8 @@ async function submitUpgrade() {
   const pg = pgRadio ? pgRadio.value : 'manual';
 
   const btn = $('upgrade-submit-btn');
-  const res = $('upgrade-result');
   if (btn) { btn.disabled = true; btn.textContent = '처리 중…'; }
-  if (res) { res.textContent = ''; res.style.color = ''; }
+  _setResult('upgrade-result', 'warn', '처리 중…');
 
   try {
     const d = await apiFetch(`/api/farms/${farmId}/billing/upgrade`, {
@@ -504,10 +503,7 @@ async function submitUpgrade() {
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({ target_tier: tierRadio.value, pg_channel: pg }),
     });
-    if (res) {
-      res.textContent = d.message_ko || '업그레이드 완료';
-      res.style.color = 'var(--green)';
-    }
+    _setResult('upgrade-result', 'ok', d.message_ko || '업그레이드 완료');
     if (d.status === 'approved') {
       _planCache = null;
       _featCache = {};
@@ -521,11 +517,11 @@ async function submitUpgrade() {
         }
       }, 1400);
     } else if (d.redirect_url && /^https?:\/\//.test(d.redirect_url)) {
-      if (res) res.textContent += '\n결제 페이지로 이동합니다…';
+      _setResult('upgrade-result', 'ok', (d.message_ko || '업그레이드 완료') + ' — 결제 페이지로 이동합니다…');
       setTimeout(() => window.open(d.redirect_url, '_blank'), 1200);
     }
   } catch(e) {
-    if (res) { res.textContent = '오류: ' + e.message; res.style.color = 'var(--red)'; }
+    _setResult('upgrade-result', 'err', '오류: ' + e.message);
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = '업그레이드 신청'; }
   }

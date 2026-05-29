@@ -461,7 +461,7 @@ async function loadFarmRecommendations(farmId) {
       ${gainHtml}
       <button class="reco-apply-btn" data-farmid="${_esc(farmId)}" onclick="applyRecommendations(this.dataset.farmid)">✅ 권고 적용 요청</button>`;
   } catch(e) {
-    el.innerHTML = `<div style="color:var(--red);padding:12px">권고 조회 실패: ${_esc(e.message)}</div>`;
+    el.innerHTML = `<div class="err-inline" style="padding:12px">권고 조회 실패: ${_esc(e.message)}</div>`;
   }
 }
 
@@ -590,7 +590,7 @@ async function loadFarmDiseaseRisk(farmId) {
     const actionHtml = d.action_ko ? `<div style="font-size:11px;color:var(--accent);margin-top:6px">💊 ${_esc(d.action_ko)}</div>` : '';
     el.innerHTML = `<div class="disease-grid">${cards}</div>${snapHtml}${actionHtml}`;
   } catch(e) {
-    el.innerHTML = `<div style="color:var(--red);padding:12px">병해 조회 실패: ${_esc(e.message)}</div>`;
+    el.innerHTML = `<div class="err-inline" style="padding:12px">병해 조회 실패: ${_esc(e.message)}</div>`;
   }
 }
 
@@ -722,7 +722,7 @@ async function loadModelPerformance() {
       setBar('bar-learning', Math.min(100, Math.round(Math.max(0, avgR2) * 100)), 'bv-learning');
     }
   } catch(e) {
-    el.innerHTML = `<span style="color:var(--red);font-size:12px">조회 실패: ${_esc(e.message)}</span>`;
+    el.innerHTML = `<span class="err-inline">조회 실패: ${_esc(e.message)}</span>`;
   }
 }
 
@@ -801,6 +801,6 @@ async function loadApiStatus() {
     setText('sys-ctrl-conn', fullCount > 0 ? '연결됨' : '—');
     setText('sys-ctrl-hint', fullCount > 0 ? `${fullCount}개 API` : '확인 필요');
   } catch(e) {
-    el.innerHTML = `<span style="color:var(--red);font-size:12px">조회 실패: ${_esc(e.message)}</span>`;
+    el.innerHTML = `<span class="err-inline">조회 실패: ${_esc(e.message)}</span>`;
   }
 }

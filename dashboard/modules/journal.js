@@ -106,7 +106,7 @@ async function submitHarvestRecord() {
 
   // 미리보기 숨기기
   const pv = $('hv-preview');
-  if (pv) pv.style.display = 'none';
+  if (pv) pv.classList.remove('visible');
 
   _setLoading(btn, true);
   try {
@@ -135,12 +135,12 @@ function _updateHarvestPreview() {
   const area   = _numVal('hv-area');
   const pv     = $('hv-preview');
   const pvb    = $('hv-preview-body');
-  if (!pv || !pvb || !yield_) { if (pv) pv.style.display = 'none'; return; }
+  if (!pv || !pvb || !yield_) { if (pv) pv.classList.remove('visible'); return; }
   const total = area ? (yield_ * area).toFixed(1) : null;
   pvb.innerHTML = `단위수확량 <b style="color:var(--green)">${yield_} kg/m²</b>` +
     (area ? ` × 면적 ${area}m² = <b style="color:var(--accent)">${total} kg</b>` : '') +
     (total ? ` | 예상 매출 ≈ <b>${(parseFloat(total) * 3500).toLocaleString()}원</b> (평균 3,500원/kg)` : '');
-  pv.style.display = 'block';
+  pv.classList.add('visible');
 }
 
 // ── 날짜 포맷 헬퍼 ─────────────────────────────────────────────────────────

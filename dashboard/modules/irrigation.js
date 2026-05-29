@@ -1,24 +1,3 @@
-// ── 제어최적화: 관수 데이터 입력 ─────────────────────────────────────────────
-async function submitIrrigation() {
-  const farmId = $('irri-farm-sel2')?.value || $('irri-farm-sel')?.value;
-  if (!farmId) { const el = $('irri-result'); if(el) el.innerHTML = _nullReasonHtml([['농장 미선택','위 드롭다운에서 농장을 선택하세요']]); return; }
-  const el = $('irri-result');
-  const body = {
-    amount_l: parseFloat($('irri-amount')?.value||'0'),
-    ec_dsm:   parseFloat($('irri-ec')?.value||'0'),
-    ph:       parseFloat($('irri-ph')?.value||'0'),
-  };
-  try {
-    await apiFetch(`/api/farms/${farmId}/irrigation`, {
-      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body),
-    });
-    if (el) el.innerHTML = `<span style="color:var(--green)">관수 데이터 전송 완료 (${body.amount_l}L)</span>`;
-    ['irri-amount','irri-ec','irri-ph'].forEach(id => { const inp=$(id); if(inp) inp.value=''; });
-  } catch(e) {
-    if (el) el.innerHTML = `<span style="color:var(--red)">전송 실패: ${_esc(e.message)}</span>`;
-  }
-}
-
 // ── 관수: Priva ET₀ 스케줄 ───────────────────────────────────────────────────
 async function loadPrivaSchedule() {
   const farmId = $('priva-farm-sel')?.value || _defaultFarm();
@@ -74,7 +53,7 @@ async function loadPrivaSchedule() {
         ${d.note ? '· ' + _esc(d.note.slice(0,80)) : ''}
       </div>`;
   } catch(e) {
-    el.innerHTML = `<span style="color:var(--red);font-size:12px">조회 실패: ${_esc(e.message)}</span>`;
+    el.innerHTML = `<span class="err-inline">조회 실패: ${_esc(e.message)}</span>`;
   }
 }
 
@@ -110,7 +89,7 @@ async function loadIrrigationSchedule() {
         📡 ${d.source === 'kma_asos_yesterday' ? 'ASOS 전일 실측 기반' : '계절 평균 기반'} — ${_esc(d.note ?? '')}
       </div>`;
   } catch(e) {
-    el.innerHTML = `<span style="color:var(--red);font-size:12px">조회 실패: ${_esc(e.message)}</span>`;
+    el.innerHTML = `<span class="err-inline">조회 실패: ${_esc(e.message)}</span>`;
   }
 }
 

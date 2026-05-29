@@ -608,6 +608,17 @@
   .reco-field  { font-weight:700; font-size:12px; min-width:72px; color:var(--text); }
   .reco-action { font-size:12px; flex:1; color:var(--text); }
   .reco-val    { font-size:11px; color:var(--muted); white-space:nowrap; }
+  /* 보조 버튼 (초기화·취소 등) */
+  .btn-ghost {
+    padding: 10px 16px; background: var(--card-soft); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--muted); font-size: 12px; font-weight: 500;
+    cursor: pointer; min-height: 44px; display: inline-flex; align-items: center; gap: 6px;
+    transition: background .15s, color .15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn-ghost:hover { background: var(--border); color: var(--text); }
+  .btn-ghost:active { opacity: .75; transform: scale(.98); }
+
   .reco-apply-btn {
     margin-top:10px; padding:10px 20px; background:var(--accent); border:none;
     border-radius:8px; color:#fff; font-size:13px; font-weight:700; cursor:pointer;
@@ -714,6 +725,8 @@
   .result-ok::before   { content:'✓'; font-weight:700; }
   .result-err::before  { content:'✕'; font-weight:700; }
   .result-warn::before { content:'!'; font-weight:700; }
+  /* 데이터 카드용 인라인 에러 (조회 실패 등) */
+  .err-inline { color:var(--red); font-size:12px; padding:8px 0; display:block; }
   .field-hint  { font-size:10px; color:var(--muted); margin-top:3px; letter-spacing:-.1px; line-height:1.4; }
   /* 폼 전체 제출 피드백 배너 */
   .form-feedback {
@@ -725,6 +738,15 @@
   .form-feedback.err  { display:flex; align-items:center; gap:6px; background:rgba(242,100,90,.12); color:var(--red); }
   .form-feedback.warn { display:flex; align-items:center; gap:6px; background:rgba(245,200,66,.12); color:var(--yellow); }
   @keyframes fadeIn { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:none; } }
+  /* ── 입력값 미리보기 박스 ── */
+  .preview-box {
+    display: none; margin-bottom: 12px; padding: 10px 14px;
+    background: var(--card-soft); border: 1px solid var(--border);
+    border-radius: 8px; font-size: 12px;
+  }
+  .preview-box.visible { display: block; }
+  .preview-box-title { font-weight: 700; color: var(--fg); margin-bottom: 6px; }
+  .preview-box-body  { color: var(--muted); line-height: 1.6; }
   /* ── 빈 상태 ── */
   .empty-state { display:flex; flex-direction:column; align-items:center; gap:6px; padding:28px 0; color:var(--muted); font-size:12px; text-align:center; }
   .empty-state-icon { font-size:26px; opacity:.4; }
