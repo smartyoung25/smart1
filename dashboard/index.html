@@ -4702,7 +4702,7 @@ async function loadGrowthHarvestRevenue() {
       // ai_adjust: model_mape_pct 기반 정확도 표시
       const aiAdj = h.ai_adjust_pct ?? h.model_adjustment_pct ?? null;
       if (aiAdj != null) setText('growth-ai-adjust', (aiAdj >= 0 ? '+' : '') + aiAdj + '%');
-      else if (h.model_mape_pct != null) setText('growth-ai-adjust', 'MAPE ' + h.model_mape_pct.toFixed(0) + '%');
+      else setText('growth-ai-adjust', h.confidence_grade || '—'); // MAPE는 내부 지표 — 사용자에게 비노출
       if (h.yield_kg_forecast) { setText('harvest-quality-rate', '—'); const qEl=$('harvest-quality-rate'); if(qEl && !qEl.nextElementSibling?.classList.contains('kc-hint2')) { const hint=document.createElement('span'); hint.className='kc-hint kc-hint2'; hint.textContent='데이터 준비 중'; qEl.after(hint); } } // 상품과율 API 미지원
     }
     // 대시보드 hero 수확 KPI 보조 업데이트
@@ -5709,6 +5709,19 @@ async function loadHeroDashboard(farmId) {
       setText('harvest-7d-kg', fmt(d.harvest_7d_kg));
       setText('harvest-pool-margin', fmt(poolMgn > 0 ? poolMgn : null));
     }
+
+    // 헤더 모드 pill 업데이트
+    const modeEl = $('hero-mode-pill');
+    if (modeEl) {
+      const modeTxt = d.control_mode || (d.automation_level === 'auto' ? '자동 모드' : 'Private 모드');
+      modeEl.textContent = modeTxt;
+    }
+
+    // 물류비 — ERP 데이터 우선 사용, 없으면 기본값
+    const indLog  = d.logistics_cost_ind  ?? 320;
+    const poolLog = d.logistics_cost_pool ?? 210;
+    setText('c5-ind-logistics',  indLog  + '원');
+    setText('c5-pool-logistics', poolLog + '원');
   } catch(e) { /* hero는 선택적 — 실패해도 계속 */ }
 
   // AI 권고 → To-do 목록 + AI 3유형 바
