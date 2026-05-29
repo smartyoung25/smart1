@@ -2492,11 +2492,11 @@
     </div>
     <!-- 운영모드 pill-bar -->
     <div class="pill-bar" id="env-mode-bar" style="margin-bottom:12px">
-      <span class="pill-tag">수동보조</span>
-      <span class="pill-tag orange">권고형</span>
-      <span class="pill-tag green" id="env-mode-active">승인형 자동제어 ✓</span>
-      <span class="pill-tag">완전자동</span>
-      <span class="pill-tag red" id="env-failsafe-pill">Fail-safe 정상</span>
+      <span class="pill-tag" data-mode="manual">수동보조</span>
+      <span class="pill-tag" data-mode="advisory">권고형</span>
+      <span class="pill-tag" data-mode="approval">승인형 자동제어</span>
+      <span class="pill-tag" data-mode="full_auto">완전자동</span>
+      <span class="pill-tag" id="env-failsafe-pill">Fail-safe 확인중…</span>
     </div>
     <!-- 5개 실시간 KPI -->
     <div class="kpi-row r5" style="margin-bottom:14px">
@@ -5059,27 +5059,23 @@ async function loadCurrentEnv() {
       if (hint && erp?.peak_status) hint.textContent = erp.peak_status;
     }).catch(() => setText('env-kpi-energy', '—'));
 
-    // 운영모드 pill 동적 업데이트
-    const modeEl = $('env-mode-active');
-    if (modeEl && d.control_mode) {
-      const modeMap = {
-        'manual': '수동보조',
-        'advisory': '권고형',
-        'approval': '승인형 자동제어 ✓',
-        'full_auto': '완전자동',
-      };
-      modeEl.textContent = modeMap[d.control_mode] || d.control_mode;
-      // 색상: 완전자동=orange, 승인형=green, 권고형=default
-      modeEl.className = 'pill-tag ' +
-        (d.control_mode === 'full_auto' ? 'orange' :
-         d.control_mode === 'approval'  ? 'green'  : '');
+    // 운영모드 pill 동적 업데이트 — data-mode 속성으로 해당 pill 강조
+    if (d.control_mode) {
+      const modeColorMap = { full_auto: 'orange', approval: 'green', advisory: '', manual: '' };
+      document.querySelectorAll('#env-mode-bar [data-mode]').forEach(el => {
+        const active = el.dataset.mode === d.control_mode;
+        el.className = 'pill-tag' + (active ? ' ' + (modeColorMap[d.control_mode] || 'blue') : '');
+        el.style.fontWeight = active ? '700' : '';
+        el.style.opacity    = active ? '1'   : '0.45';
+      });
     }
     // Fail-safe 상태 업데이트
     const fsEl = $('env-failsafe-pill');
     if (fsEl) {
-      const fsOk = d.failsafe_status === 'ok' || (d.failsafe_status == null ? true : d.failsafe_status !== 'error' && d.failsafe_status !== 'degraded' && d.failsafe_status !== false);
+      const fsOk = d.failsafe_status === 'ok' || d.failsafe_status == null;
       fsEl.textContent = fsOk ? 'Fail-safe 정상' : 'Fail-safe 이상';
-      fsEl.className   = 'pill-tag ' + (fsOk ? 'red' : 'orange');
+      fsEl.className   = 'pill-tag ' + (fsOk ? 'green' : 'danger');
+      fsEl.style.opacity = '1';
     }
 
   } catch(e) {
@@ -5823,9 +5819,9 @@ async function loadHeroDashboard(farmId) {
 
     // 헤더 모드 pill 업데이트
     const modeEl = $('hero-mode-pill');
-    if (modeEl) {
-      const modeTxt = d.control_mode || (d.automation_level === 'auto' ? '자동 모드' : 'Private 모드');
-      modeEl.textContent = modeTxt;
+    if (modeEl && d.control_mode) {
+      const heroModeMap = { manual:'수동보조', advisory:'권고형', approval:'승인형 자동제어', full_auto:'완전자동' };
+      modeEl.textContent = heroModeMap[d.control_mode] || d.control_mode;
     }
 
   } catch(e) { /* hero는 선택적 — 실패해도 계속 */ }

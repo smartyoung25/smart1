@@ -2653,7 +2653,15 @@ def get_erp_realtime(
         current_month=current_m,
         plant_month=plant_m,
     )
-    return result.to_dict()
+    out = result.to_dict()
+    # 제어 모드 첨부 (Hero 배너 pill + 환경탭 일관성)
+    _tier = _FARM_META.get(farm_id, {}).get("tier", FarmTier.MANUAL)
+    out["control_mode"] = {
+        FarmTier.MANUAL:    "advisory",
+        FarmTier.SEMI_AUTO: "approval",
+        FarmTier.AUTO:      "full_auto",
+    }.get(_tier, "advisory")
+    return out
 
 
 @router.get("/system/api-status",
