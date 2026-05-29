@@ -2295,7 +2295,8 @@ def get_model_performance():
         # M2 수확량 (stage2)
         m2 = _read_meta(d / "stage2_meta.json")
         if m2:
-            mape = m2.get("cv_mape_mean") or m2.get("cv_mape") or m2.get("mape") or 999
+            # mape: training MAPE (gate 기준, 일관성) → cv_mape_mean은 LOYO 수치로 비정상 높음
+            mape = m2.get("mape") or m2.get("cv_mape_mean") or m2.get("cv_mape") or 999
             cv_r2 = m2.get("cv_r2_mean") or m2.get("cv_r2") or 0.0
             gate = m2.get("gate_passed", float(mape) <= 35)
             m2_results.append({
