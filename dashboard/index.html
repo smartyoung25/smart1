@@ -2199,7 +2199,7 @@
 <div id="sec-energy" class="sec">
 
   <!-- C5 헤더 KPI -->
-  <div class="card" style="background:linear-gradient(135deg,#fefce8,#fef9c3);border:1px solid #fde68a">
+  <div class="card" style="background:linear-gradient(135deg,rgba(245,158,11,.10),rgba(245,158,11,.05));border:1px solid rgba(245,158,11,.25)">
     <div class="screen-hdr">
       <h4>💰 농장 경영 KPI</h4>
       <span class="meta">월간 / 작기 / 온실동·필지별</span>
@@ -2394,7 +2394,7 @@
   </div>
 
   <!-- C4 AI 진단 헤더 -->
-  <div class="card" style="background:linear-gradient(135deg,#fdf4ff,#fae8ff);border:1px solid #e9d5ff">
+  <div class="card" style="background:linear-gradient(135deg,rgba(188,140,255,.10),rgba(188,140,255,.05));border:1px solid rgba(188,140,255,.25)">
     <div class="screen-hdr">
       <h4>🤖 AI 진단 콘솔 (C4)</h4>
       <span class="meta">질문 → 근거 → 추천 → 전문가 연결</span>
@@ -2760,7 +2760,7 @@
 <div id="sec-system" class="sec">
 
   <!-- C8 이기종 연동·진단 헤더 -->
-  <div class="card" style="background:linear-gradient(135deg,#f8fafc,#f1f5f9);border:1px solid #cbd5e1">
+  <div class="card" style="background:linear-gradient(135deg,rgba(88,166,255,.08),rgba(88,166,255,.04));border:1px solid rgba(88,166,255,.20)">
     <div class="screen-hdr">
       <h4>🔌 연동·진단 현황 (C8)</h4>
       <span class="meta">장비탐색 → 표준매핑 → 캘리브레이션</span>
@@ -2783,7 +2783,7 @@
   </div>
 
   <!-- C6 AI 학습·모델관리 헤더 -->
-  <div class="card" style="background:linear-gradient(135deg,#fdf4ff,#fae8ff);border:1px solid #d8b4fe">
+  <div class="card" style="background:linear-gradient(135deg,rgba(188,140,255,.10),rgba(188,140,255,.05));border:1px solid rgba(188,140,255,.25)">
     <div class="screen-hdr">
       <h4>🤖 AI 학습·모델관리 센터 (C6)</h4>
       <span class="meta">Private 데이터 제외</span>
@@ -3223,7 +3223,7 @@ function obRender() {
           <input id="ob-kpi-energy" type="number" min="0" max="100" placeholder="예: 15" value="${_ob.kpi_energy_save||''}">
         </div>
         <div class="ob-field">
-          <label>불량률 목표 (%)</label>
+          <label>배액률 목표 (%)</label>
           <input id="ob-kpi-drain" type="number" min="0" max="100" placeholder="예: 5" value="${_ob.kpi_drain_rate||''}">
         </div>
       </div>`;
@@ -3488,7 +3488,7 @@ async function loadCropModels() {
         <td>${r2!=null?Number(r2).toFixed(3):'—'}${gateBadge(m1Gate,'M1')}</td>
       </tr>`;
     }).join('');
-    el.innerHTML = `<table><thead><tr><th>작물</th><th>MAPE</th><th>R²</th></tr></thead><tbody>${rows||'<tr><td colspan="3" style="color:var(--muted);text-align:center">데이터 없음</td></tr>'}</tbody></table>`;
+    el.innerHTML = `<div class="table-scroll-wrap"><table><thead><tr><th>작물</th><th>MAPE</th><th>R²</th></tr></thead><tbody>${rows||'<tr><td colspan="3" style="color:var(--muted);text-align:center">데이터 없음</td></tr>'}</tbody></table></div>`;
   } catch(e) { el.innerHTML = _errBoxHtml(e, '모델 목록 조회 실패'); }
 }
 
@@ -3502,13 +3502,13 @@ async function loadPipelineState() {
         <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
           <span>환경 데이터</span><span>${d.new_env_rows} / ${d.env_threshold} 행 (${d.env_pct}%)</span>
         </div>
-        <div class="progress-bar"><div class="progress-fill" style="width:${d.env_pct}%"></div></div>
+        <div class="prog-bar"><div class="prog-fill green" style="width:${Math.min(d.env_pct,100)}%"></div></div>
       </div>
       <div>
         <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
           <span>생산량 데이터</span><span>${d.new_prod_rows} / ${d.prod_threshold} 행 (${d.prod_pct}%)</span>
         </div>
-        <div class="progress-bar"><div class="progress-fill" style="width:${d.prod_pct}%"></div></div>
+        <div class="prog-bar"><div class="prog-fill blue" style="width:${Math.min(d.prod_pct,100)}%"></div></div>
       </div>
       <div style="font-size:11px;color:var(--muted);margin-top:8px">갱신: ${(d.last_updated||'—').slice(0,19).replace('T',' ')}</div>`;
   } catch(e) { el.innerHTML = _errBoxHtml(e, '파이프라인 상태 조회 실패'); }
@@ -4695,7 +4695,7 @@ async function loadGrowthHarvestRevenue() {
       const aiAdj = h.ai_adjust_pct ?? h.model_adjustment_pct ?? null;
       if (aiAdj != null) setText('growth-ai-adjust', (aiAdj >= 0 ? '+' : '') + aiAdj + '%');
       else if (h.model_mape_pct != null) setText('growth-ai-adjust', 'MAPE ' + h.model_mape_pct.toFixed(0) + '%');
-      if (h.yield_kg_forecast) setText('harvest-quality-rate', '—'); // 상품과율 API 미지원
+      if (h.yield_kg_forecast) { setText('harvest-quality-rate', '—'); const qEl=$('harvest-quality-rate'); if(qEl && !qEl.nextElementSibling?.classList.contains('kc-hint2')) { const hint=document.createElement('span'); hint.className='kc-hint kc-hint2'; hint.textContent='데이터 준비 중'; qEl.after(hint); } } // 상품과율 API 미지원
     }
     // 대시보드 hero 수확 KPI 보조 업데이트
     if (h?.yield_kg_forecast) {
@@ -5015,9 +5015,9 @@ async function loadWeatherForecast() {
         <td>${windSpd!=null?Number(windSpd).toFixed(1)+' m/s':'—'}</td>
       </tr>`;
     }).join('');
-    el.innerHTML = `<table class="weather-tbl">
+    el.innerHTML = `<div class="weather-tbl-wrap"><table class="weather-tbl">
       <thead><tr><th>날짜</th><th>날씨</th><th>기온</th><th>강수확률</th><th>풍속</th></tr></thead>
-      <tbody>${rows}</tbody></table>`;
+      <tbody>${rows}</tbody></table></div>`;
   } catch(e) {
     el.innerHTML = `<span style="color:var(--red);font-size:12px">예보 조회 실패: ${_esc(e.message)}</span>`;
   }
@@ -5166,30 +5166,30 @@ async function loadModelPerformance() {
         M1 생육 모델 (R² 기준)
         <span style="font-size:10px;font-weight:400;color:var(--muted)">임계치: R² ≥ 0.75 ⭐⭐ / ≥ 0.90 ⭐⭐⭐</span>
       </div>
-      <table class="weather-tbl" style="margin-bottom:14px">
+      <div class="table-scroll-wrap"><table class="weather-tbl" style="margin-bottom:14px">
         <thead><tr><th>작목</th><th>지표</th><th>R²</th><th>MAE</th><th>Gate</th><th>등급</th></tr></thead>
         <tbody>${m1rows || '<tr><td colspan="6" style="color:var(--muted);font-size:11px;text-align:center">m1_meta.json 없음</td></tr>'}</tbody>
-      </table>
+      </table></div>
 
       <!-- M2 수확량 모델 -->
       <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px;display:flex;align-items:center;gap:8px">
         M2 수확량 예측 (MAPE 기준)
         <span style="font-size:10px;font-weight:400;color:var(--muted)">임계치: MAPE ≤ 15% ⭐⭐⭐ / ≤ 30% ⭐⭐ / ≤ 35% Gate통과</span>
       </div>
-      <table class="weather-tbl" style="margin-bottom:14px">
+      <div class="table-scroll-wrap"><table class="weather-tbl" style="margin-bottom:14px">
         <thead><tr><th>작목</th><th>MAPE</th><th>CV R²</th><th>샘플</th><th>Gate</th><th>등급</th></tr></thead>
         <tbody>${m2rows || '<tr><td colspan="6" style="color:var(--muted);font-size:11px;text-align:center">데이터 없음</td></tr>'}</tbody>
-      </table>
+      </table></div>
 
       <!-- M3 수익 모델 -->
       <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px;display:flex;align-items:center;gap:8px">
         M3 수익 예측 (MAPE 기준)
         <span style="font-size:10px;font-weight:400;color:var(--muted)">임계치: MAPE ≤ 15% ⭐⭐⭐ / ≤ 20% ⭐⭐</span>
       </div>
-      <table class="weather-tbl" style="margin-bottom:12px">
+      <div class="table-scroll-wrap"><table class="weather-tbl" style="margin-bottom:12px">
         <thead><tr><th>작목</th><th>MAPE</th><th>Gate</th><th>등급</th></tr></thead>
         <tbody>${m3rows || '<tr><td colspan="4" style="color:var(--muted);font-size:11px;text-align:center">데이터 없음</td></tr>'}</tbody>
-      </table>
+      </table></div>
 
       <!-- 부가 상태 -->
       <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:10px;color:var(--muted);margin-top:4px">
@@ -5274,22 +5274,22 @@ async function loadApiStatus() {
 
     el.innerHTML = `
       <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px">연결 현황</div>
-      <table class="weather-tbl" style="margin-bottom:10px">
+      <div class="table-scroll-wrap"><table class="weather-tbl" style="margin-bottom:10px">
         <thead><tr><th>API / 서비스</th><th>상태</th></tr></thead>
         <tbody>${rows}</tbody>
-      </table>
+      </table></div>
       ${missRows ? `
       <div style="font-size:11px;font-weight:700;color:var(--yellow);margin:8px 0 4px">⚠️ 미설정 API — 성능 향상 가능</div>
-      <table class="weather-tbl" style="margin-bottom:10px">
+      <div class="table-scroll-wrap"><table class="weather-tbl" style="margin-bottom:10px">
         <thead><tr><th>서비스</th><th>용도</th><th>발급</th></tr></thead>
         <tbody>${missRows}</tbody>
-      </table>` : ''}
+      </table></div>` : ''}
       ${mcpRows ? `
       <div style="font-size:11px;font-weight:700;color:var(--muted);margin:8px 0 4px">🔌 MCP 서버</div>
-      <table class="weather-tbl">
+      <div class="table-scroll-wrap"><table class="weather-tbl">
         <thead><tr><th>서버</th><th>설명</th><th>상태</th></tr></thead>
         <tbody>${mcpRows}</tbody>
-      </table>` : ''}
+      </table></div>` : ''}
       <div style="margin-top:8px;font-size:10px;color:var(--muted)">
         ✅ 무료 API (Open-Meteo·EPPO·FAO·PlantNet)는 키 없이 자동 사용 중
       </div>`;
@@ -5327,7 +5327,7 @@ async function loadDiseaseDetect(farmId) {
   el.innerHTML = '<div class="spinner"></div>';
   try {
     const fid = farmId || _myFarmId || (_farmsData[0]?.farm_id);
-    if (!fid) return;
+    if (!fid) { el.innerHTML = _nullReasonHtml([['농장 미선택', '위에서 농장을 선택하면 병해 탐지 결과가 표시됩니다']]); return; }
     const d = await apiFetch(`/api/farms/${fid}/disease/detect`, {method:'POST',
       headers:{'Content-Type':'application/json'}, body:'{}' });
     const risk = d.risk_level || 'none';
@@ -5376,7 +5376,7 @@ async function loadWholesaleMarket(farmId) {
   el.innerHTML = '<div class="spinner"></div>';
   try {
     const fid = farmId || _myFarmId || (_farmsData[0]?.farm_id);
-    if (!fid) return;
+    if (!fid) { el.innerHTML = _nullReasonHtml([['농장 미선택', '농장을 선택하면 도매가격 기준이 표시됩니다']]); return; }
     const d = await apiFetch(`/api/farms/${fid}/market/wholesale`);
     const price = d.price_krw_kg ? `${Number(d.price_krw_kg).toLocaleString()}원/kg` : '—';
     const faoRef = d.fao_ref_price_krw_kg ? `FAO 기준: ${Number(d.fao_ref_price_krw_kg).toLocaleString()}원/kg` : '';
@@ -5571,7 +5571,7 @@ async function loadIrrigationAnalysis(farmId) {
       </tr>`;
     }).filter(Boolean).join('');
     if (rows) {
-      el.innerHTML += `<table style="width:100%;border-collapse:collapse;margin-top:8px;font-size:12px">${rows}</table>
+      el.innerHTML += `<div class="table-scroll-wrap"><table style="width:100%;border-collapse:collapse;margin-top:8px;font-size:12px">${rows}</table></div>
         <div style="font-size:10px;color:var(--muted);margin-top:4px">데이터: ${d.data_days}일 (${_esc(d.start||'')}~${_esc(d.end||'')})</div>`;
     }
     // G3 헤더 KPI 업데이트
@@ -6000,16 +6000,16 @@ async function loadMarketPrices() {
         <td style="color:var(--muted)">${dateVal ? dateVal.substring(0,10) : '—'}</td>
       </tr>`;
     }).join('');
-    el.innerHTML = `<table class="price-hist-table">
+    el.innerHTML = `<div class="table-scroll-wrap"><table class="price-hist-table">
       <thead><tr><th>작목</th><th>시세</th><th>전일비</th><th>기준일</th></tr></thead>
-      <tbody>${rows}</tbody></table>`;
+      <tbody>${rows}</tbody></table></div>`;
     // C12 공동출하 헤더 KPI 업데이트 (KAMIS 가격 기반 추정)
     const poolPrices = prices.filter(p => p.price_krw_kg != null);
     if (poolPrices.length) {
       const avgP = Math.round(poolPrices.reduce((s,p)=>s+(p.price_krw_kg||0),0)/poolPrices.length);
       setText('pool-avg-price', avgP.toLocaleString('ko-KR')+'원/kg');
       setText('pool-volume-7d', '집계 중');
-      setText('pool-quality-rate', '특·상 80%');
+      setText('pool-quality-rate', '특·상 —%');
       setText('pool-farm-count', _farmsData.length || '—');
       setText('pool-farm-approved', '등록 '+(_farmsData.length||'—')+'개');
       setText('pool-margin-vs-ind', '+8.3%');
@@ -6021,7 +6021,7 @@ async function loadMarketPrices() {
           <tr>
             <td>${_esc(p.crop_ko||'—')}</td>
             <td style="text-align:center;color:var(--muted)">금주</td>
-            <td style="text-align:right">${p.price_krw_kg ? Math.round(p.price_krw_kg*0.3).toLocaleString('ko-KR')+'kg' : '—'}</td>
+            <td style="text-align:right">${'—'}</td>
             <td style="text-align:center"><span class="pill-tag">${p.change_pct>=0?'모집중':'완료'}</span></td>
           </tr>`).join('');
       }
@@ -6090,10 +6090,10 @@ async function loadPriceHistory() {
             <div style="font-size:13px;font-weight:700;color:var(--text)">${v!=null?v.toLocaleString('ko-KR'):'—'}</div>
           </div>`).join('')}
       </div>
-      <table class="price-hist-table">
+      <div class="table-scroll-wrap"><table class="price-hist-table">
         <thead><tr><th>날짜</th><th style="text-align:right">시세(원/kg)</th><th style="text-align:right">전일비</th></tr></thead>
         <tbody>${rows}</tbody>
-      </table>
+      </table></div>
       <div style="font-size:10px;color:var(--muted);margin-top:6px;text-align:right">출처: ${src}</div>`;
   } catch(e) {
     el.innerHTML = `<span style="color:var(--red);font-size:12px">조회 실패: ${_esc(e.message)}</span>`;
@@ -6519,9 +6519,9 @@ function _refreshChatQuota() {
 
 // 자동갱신 타이머 (doLogout 시 해제)
 const _TIMERS = [
-  setInterval(() => { if (_token) loadAdvisorySummary(); }, 30_000),
-  setInterval(() => { if (_token) loadAdvisoryHistory(); }, 30_000),
-  setInterval(() => { if (_token) refreshAll(); }, 60_000),
+  setInterval(() => { if (_token && !document.hidden) loadAdvisorySummary(); }, 30_000),
+  setInterval(() => { if (_token && !document.hidden) loadAdvisoryHistory(); }, 30_000),
+  setInterval(() => { if (_token && !document.hidden) refreshAll(); }, 60_000),
 ];
 
 // ── Phase 1~3 — 모바일 유틸리티 (드로어 / 하단 탭 / Bottom Sheet / Accordion) ──
