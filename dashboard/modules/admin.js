@@ -841,9 +841,15 @@ async function loadModelDrift() {
   try {
     const d = await apiFetch('/api/admin/models/drift');
     const crops = d.crops || {};
-    const alertIcon = a => a === 'green' ? '🟢' : a === 'yellow' ? '🟡' : '🔴';
-    const trendIcon = t => t === 'degrading' ? '↗ 악화' : t === 'improving' ? '↘ 개선' : '→ 안정';
-    const mapeColor = v => isNaN(v) ? 'var(--muted)' : v <= 20 ? 'var(--green)' : v <= 35 ? 'var(--yellow)' : 'var(--red)';
+
+    const alertIcon  = a => a === 'green' ? '🟢' : a === 'yellow' ? '🟡' : '🔴';
+    const trendIcon  = t => t === 'degrading' ? '<span style="color:var(--red)">↗ 악화</span>'
+                          : t === 'improving' ? '<span style="color:var(--green)">↘ 개선</span>'
+                          : '<span style="color:var(--muted)">→ 안정</span>';
+    const mapeColor  = v => isNaN(v) ? 'var(--muted)' : v <= 20 ? 'var(--green)' : v <= 35 ? 'var(--yellow)' : 'var(--red)';
+    const biasLabel  = v => isNaN(v) || v == null ? '—'
+                          : (v >= 0 ? `<span style="color:var(--orange)">+${v.toFixed(1)}%</span>`
+                                    : `<span style="color:var(--cyan)">  ${v.toFixed(1)}%</span>`);
 
     const overallAlert = d.overall_alert || 'yellow';
     const overallIcon  = alertIcon(overallAlert);
@@ -851,36 +857,72 @@ async function loadModelDrift() {
                        : overallAlert === 'red'   ? '일부 작목 재학습 권고'
                        : '일부 작목 모니터링 필요';
 
+    const overallColor = overallAlert === 'green' ? 'var(--green-soft)'
+                       : overallAlert === 'red'   ? 'var(--red-soft)' : 'var(--orange-soft)';
+
     const rows = Object.entries(crops).map(([crop, b]) => {
-      const mape = b.mape != null && !isNaN(b.mape) ? b.mape.toFixed(1) + '%' : '데이터 부족';
-      const trend = trendIcon(b.trend || 'stable');
-      const bias  = b.bias != null && !isNaN(b.bias) ? (b.bias >= 0 ? '+' : '') + b.bias.toFixed(1) + '%' : '—';
-      const last  = b.last_harvest ? b.last_harvest.slice(0, 10) : '—';
-      return `<tr>
-        <td>${_esc(crop)}</td>
-        <td style="font-weight:700;color:${mapeColor(b.mape)}">${mape}</td>
-        <td style="font-size:11px;color:var(--muted)">${bias}</td>
-        <td style="font-size:11px">${trend}</td>
-        <td style="text-align:center;font-size:16px">${alertIcon(b.alert||'yellow')}</td>
-        <td style="font-size:10px;color:var(--muted)">${last}</td>
+      const hasMape = b.mape != null && !isNaN(b.mape);
+      const mapeStr = hasMape ? b.mape.toFixed(1) + '%' : '—';
+      const nStr    = b.n_samples != null ? b.n_samples : 0;
+      const last    = b.last_harvest ? b.last_harvest.slice(0, 10) : '—';
+
+      // gate_pass 배지
+      const gateBadge = b.gate_pass === false
+        ? `<span title="M2 CV MAPE 기준 미달 — 예측 신뢰도 낮음"
+               style="font-size:10px;color:var(--red);margin-left:4px">⚠️gate</span>`
+        : '';
+
+      // 환경값 누락 경고
+      const envWarn = (b.env_missing_pct != null && b.env_missing_pct > 50)
+        ? `<span title="환경값(온도·습도) ${b.env_missing_pct.toFixed(0)}% 누락 — imputer 기본값 사용"
+               style="font-size:10px;color:var(--orange);margin-left:4px">⚠️env</span>`
+        : '';
+
+      // 데이터 부족 행
+      if (!hasMape) {
+        return `<tr style="opacity:0.55">
+          <td>${_esc(crop)}${gateBadge}</td>
+          <td colspan="4" style="font-size:11px;color:var(--muted)">수확 데이터 부족 (${nStr}건)</td>
+          <td style="font-size:10px;color:var(--muted)">${last}</td>
+        </tr>`;
+      }
+
+      const reason = _esc(b.alert_reason || '');
+      return `<tr title="${reason}">
+        <td>${_esc(crop)}${gateBadge}${envWarn}</td>
+        <td style="font-weight:700;color:${mapeColor(b.mape)}">${mapeStr}</td>
+        <td style="font-size:11px">${biasLabel(b.bias)}</td>
+        <td style="font-size:11px">${trendIcon(b.trend || 'stable')}</td>
+        <td style="text-align:center;font-size:15px" title="${reason}">${alertIcon(b.alert||'yellow')}</td>
+        <td style="font-size:10px;color:var(--muted)">${last}<br>
+            <span style="font-size:9px;color:var(--muted)">(n=${nStr})</span></td>
       </tr>`;
     }).join('');
 
+    const hasRedCrop  = Object.values(crops).some(b => b.alert === 'red' && !isNaN(b.mape));
+    const retrainHint = hasRedCrop
+      ? `<div style="margin-top:10px;padding:8px 10px;background:var(--red-soft);border-radius:8px;
+                    border-left:3px solid var(--red);font-size:11px">
+          ⚠️ <b>재학습 권고 작목 있음</b> — 수확량 기록(<code>POST /api/data/harvest</code>)에
+          <code>season_avg_temp</code> / <code>season_avg_humidity</code> 포함 시 정확도 개선
+        </div>`
+      : `<div style="margin-top:8px;font-size:10px;color:var(--muted)">
+          수확량 기록 시 <code>season_avg_temp · humidity</code> 입력 권장 (예측 정확도 향상)
+        </div>`;
+
     el.innerHTML = `
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding:8px 10px;
-                  background:var(--card-soft);border-radius:8px;border:1px solid var(--border)">
+                  background:${overallColor};border-radius:8px;border:1px solid var(--border)">
         <span style="font-size:18px">${overallIcon}</span>
         <span style="font-weight:600;font-size:13px">${overallMsg}</span>
       </div>
       <div class="table-scroll-wrap">
         <table class="weather-tbl">
-          <thead><tr><th>작목</th><th>MAPE</th><th>편향</th><th>추세</th><th>상태</th><th>최근수확</th></tr></thead>
-          <tbody>${rows || '<tr><td colspan="6" style="color:var(--muted);text-align:center;font-size:11px">수확 실측 데이터 없음</td></tr>'}</tbody>
+          <thead><tr><th>작목</th><th>MAPE</th><th>편향</th><th>추세</th><th>상태</th><th>최근수확/건수</th></tr></thead>
+          <tbody>${rows || '<tr><td colspan="6" style="color:var(--muted);text-align:center;font-size:11px;padding:16px">수확 실측 데이터 없음</td></tr>'}</tbody>
         </table>
       </div>
-      <div style="margin-top:8px;font-size:10px;color:var(--muted)">
-        🔴 재학습: <code>/api/data/harvest</code> POST로 수확량 기록 누적 시 자동 개선
-      </div>`;
+      ${retrainHint}`;
   } catch(e) {
     el.innerHTML = `<span class="err-inline">드리프트 조회 실패: ${_esc(e.message)}</span>`;
   }

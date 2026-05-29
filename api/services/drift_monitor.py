@@ -45,6 +45,7 @@ class DriftSample:
     predicted_m2: float           # M2 예측 yield kg/m²
     abs_pct_err:  float           # |actual - predicted| / actual × 100
     bias_pct:     float           # (predicted - actual) / actual × 100 (양수=과대예측)
+    has_env:      bool = True     # season_avg_temp/humidity 실측값 존재 여부
 
 
 @dataclass
@@ -60,6 +61,8 @@ class DriftStats:
     alert:          str             # "green" | "yellow" | "red"
     alert_reason:   str
     last_harvest:   Optional[str]   # 최신 수확일
+    env_missing_pct: float = 0.0   # 환경값 누락 비율 (%) — 높을수록 imputer 기본값 의존
+    gate_pass:      Optional[bool] = None   # M2 모델 gate 통과 여부
     samples:        List[DriftSample] = field(default_factory=list)
     computed_at:    str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
@@ -160,8 +163,12 @@ def _load_harvest_records(crop_ko: Optional[str] = None,
 # 핵심 계산
 # ---------------------------------------------------------------------------
 
-def _env_from_record(rec: Dict[str, Any]) -> Dict[str, float]:
-    """harvest 레코드에서 M2 환경 피처 추출 (없으면 빈 dict → imputer 기본값)."""
+def _env_from_record(rec: Dict[str, Any]) -> Tuple[Dict[str, float], bool]:
+    """harvest 레코드에서 M2 환경 피처 추출.
+
+    Returns:
+        (env_dict, has_env) — has_env=True 이면 실측 환경값 존재, False 이면 imputer 기본값 사용
+    """
     env: Dict[str, float] = {}
     t = rec.get("season_avg_temp")
     h = rec.get("season_avg_humidity")
@@ -169,7 +176,8 @@ def _env_from_record(rec: Dict[str, Any]) -> Dict[str, float]:
         env["temp_internal_mean"] = float(t)
     if h is not None:
         env["humidity_int_mean"] = float(h)
-    return env
+    has_env = t is not None or h is not None
+    return env, has_env
 
 
 def _compute_samples(records: List[Dict[str, Any]]) -> List[DriftSample]:
@@ -182,10 +190,10 @@ def _compute_samples(records: List[Dict[str, Any]]) -> List[DriftSample]:
         if actual_m2 <= 0:
             continue
 
-        crop_ko  = rec.get("crop_ko", "")
-        farm_id  = rec.get("farm_id")
-        area_m2  = float(rec.get("area_m2") or 1000.0)
-        env_feat = _env_from_record(rec)
+        crop_ko       = rec.get("crop_ko", "")
+        farm_id       = rec.get("farm_id")
+        area_m2       = float(rec.get("area_m2") or 1000.0)
+        env_feat, has_env = _env_from_record(rec)
 
         try:
             pred = predict_yield(crop_ko, env_feat, area_m2=area_m2, farm_id=farm_id)
@@ -210,6 +218,7 @@ def _compute_samples(records: List[Dict[str, Any]]) -> List[DriftSample]:
             predicted_m2 =round(pred_m2, 4),
             abs_pct_err  =round(abs_pct, 2),
             bias_pct     =round(bias, 2),
+            has_env      =has_env,
         ))
 
     return samples
@@ -236,26 +245,38 @@ def _trend_label(trend_delta: float) -> str:
     return "stable"
 
 
+def _gate_pass_for(crop_ko: str) -> Optional[bool]:
+    """M2 모델 gate_pass 조회 (실패 시 None)."""
+    try:
+        from models.m2_yield import get_model_meta
+        return bool(get_model_meta(crop_ko).get("gate_pass"))
+    except Exception:
+        return None
+
+
 def compute_drift(crop_ko: str,
                   farm_id: Optional[str] = None,
                   n_recent: int = 50) -> DriftStats:
     """단일 작물(+선택적 농장)의 드리프트 통계 산출."""
     records = _load_harvest_records(crop_ko, farm_id, limit=n_recent)
     samples = _compute_samples(records)
+    gate_pass = _gate_pass_for(crop_ko)
 
     if len(samples) < _MIN_SAMPLES:
         return DriftStats(
-            crop_ko      =crop_ko,
-            n_samples    =len(samples),
-            mape         =float("nan"),
-            bias         =float("nan"),
-            rmse_m2      =float("nan"),
-            trend        ="unknown",
-            trend_delta  =0.0,
-            alert        ="yellow",
-            alert_reason =f"실측 데이터 부족 ({len(samples)}건 < {_MIN_SAMPLES}건)",
-            last_harvest =samples[-1].harvest_date if samples else None,
-            samples      =samples,
+            crop_ko         =crop_ko,
+            n_samples       =len(samples),
+            mape            =float("nan"),
+            bias            =float("nan"),
+            rmse_m2         =float("nan"),
+            trend           ="unknown",
+            trend_delta     =0.0,
+            alert           ="yellow",
+            alert_reason    =f"실측 데이터 부족 ({len(samples)}건 < {_MIN_SAMPLES}건)",
+            last_harvest    =samples[-1].harvest_date if samples else None,
+            env_missing_pct =0.0,
+            gate_pass       =gate_pass,
+            samples         =samples,
         )
 
     errs   = [s.abs_pct_err for s in samples]
@@ -266,6 +287,11 @@ def compute_drift(crop_ko: str,
     bias   = sum(biases) / len(biases)
     rmse   = math.sqrt(sum(sq_err) / len(sq_err))
 
+    # 환경값 누락 비율
+    env_missing_pct = round(
+        sum(1 for s in samples if not s.has_env) / len(samples) * 100.0, 1
+    )
+
     # 추세: 최근 5건 vs 전체 MAPE 차이
     recent5 = errs[-5:]
     recent_mape  = sum(recent5) / len(recent5)
@@ -274,17 +300,19 @@ def compute_drift(crop_ko: str,
     alert, reason = _alert_level(mape, trend_delta)
 
     return DriftStats(
-        crop_ko     =crop_ko,
-        n_samples   =len(samples),
-        mape        =round(mape, 2),
-        bias        =round(bias, 2),
-        rmse_m2     =round(rmse, 4),
-        trend       =trend,
-        trend_delta =round(trend_delta, 2),
-        alert       =alert,
-        alert_reason=reason,
-        last_harvest=samples[-1].harvest_date if samples else None,
-        samples     =samples,
+        crop_ko         =crop_ko,
+        n_samples       =len(samples),
+        mape            =round(mape, 2),
+        bias            =round(bias, 2),
+        rmse_m2         =round(rmse, 4),
+        trend           =trend,
+        trend_delta     =round(trend_delta, 2),
+        alert           =alert,
+        alert_reason    =reason,
+        last_harvest    =samples[-1].harvest_date if samples else None,
+        env_missing_pct =env_missing_pct,
+        gate_pass       =gate_pass,
+        samples         =samples,
     )
 
 
@@ -303,14 +331,16 @@ def compute_all_drift(farm_id: Optional[str] = None) -> Dict[str, DriftStats]:
 def summary_badge(stats: DriftStats) -> Dict[str, Any]:
     """대시보드 카드용 요약 dict."""
     return {
-        "crop_ko":     stats.crop_ko,
-        "n_samples":   stats.n_samples,
-        "mape":        stats.mape,
-        "bias":        stats.bias,
-        "trend":       stats.trend,
-        "trend_delta": stats.trend_delta,
-        "alert":       stats.alert,
-        "alert_reason":stats.alert_reason,
-        "last_harvest":stats.last_harvest,
-        "computed_at": stats.computed_at,
+        "crop_ko":         stats.crop_ko,
+        "n_samples":       stats.n_samples,
+        "mape":            stats.mape,
+        "bias":            stats.bias,
+        "trend":           stats.trend,
+        "trend_delta":     stats.trend_delta,
+        "alert":           stats.alert,
+        "alert_reason":    stats.alert_reason,
+        "last_harvest":    stats.last_harvest,
+        "env_missing_pct": stats.env_missing_pct,
+        "gate_pass":       stats.gate_pass,
+        "computed_at":     stats.computed_at,
     }
