@@ -45,6 +45,47 @@ _RETRAIN_STATE = _DATA_DIR / "retrain_state.json"
 _THRESHOLD_HARVEST = int(os.environ.get("RETRAIN_THRESHOLD_HARVEST", "10"))
 _THRESHOLD_GROWTH  = int(os.environ.get("RETRAIN_THRESHOLD_GROWTH",  "30"))
 
+
+# ── 시즌 평균 환경값 자동 계산 ─────────────────────────────────────────────────
+
+def _auto_season_env(farm_id: str, start_date: str, end_date: str
+                     ) -> tuple[Optional[float], Optional[float]]:
+    """PostgreSQL sensor_data에서 정식일~수확일 기간의 평균 온도·습도를 조회.
+
+    Returns:
+        (avg_temp_c, avg_humidity_pct) — DB 조회 실패 또는 데이터 없으면 (None, None)
+    """
+    try:
+        from api.services.persistence import _get_engine
+        from sqlalchemy import text
+        engine = _get_engine()
+        if engine is None:
+            return None, None
+
+        with engine.connect() as conn:
+            row = conn.execute(
+                text("""
+                    SELECT
+                        AVG(CAST(payload->>'temp_internal' AS FLOAT)) AS avg_temp,
+                        AVG(CAST(payload->>'humidity_int'  AS FLOAT)) AS avg_humi
+                    FROM sensor_data
+                    WHERE farm_id = :farm_id
+                      AND recorded_at::date BETWEEN :start AND :end
+                      AND payload->>'temp_internal' IS NOT NULL
+                """),
+                {"farm_id": farm_id, "start": start_date, "end": end_date},
+            ).fetchone()
+
+        if row is None or row[0] is None:
+            return None, None
+        avg_temp = round(float(row[0]), 1) if row[0] is not None else None
+        avg_humi = round(float(row[1]), 1) if row[1] is not None else None
+        return avg_temp, avg_humi
+
+    except Exception as e:
+        logger.debug("[data_collection] 시즌 환경값 자동 계산 실패: %s", e)
+        return None, None
+
 # ── 인메모리 카운터 (서버 재시작 시 파일에서 복원) ──────────────────────────────
 _counts: dict[str, dict[str, int]] = {}   # crop_ko → {"growth": n, "harvest": n}
 _last_retrain: dict[str, str] = {}         # crop_ko → ISO timestamp
@@ -351,6 +392,25 @@ def receive_harvest(
     if growing_days is None and body.planting_date is not None:
         growing_days = (body.harvest_date - body.planting_date).days
 
+    # 시즌 평균 환경값 자동 채우기 — sensor_data DB에서 정식일~수확일 평균 계산
+    season_avg_temp     = body.season_avg_temp
+    season_avg_humidity = body.season_avg_humidity
+    if (season_avg_temp is None or season_avg_humidity is None) \
+            and body.planting_date is not None:
+        auto_temp, auto_humi = _auto_season_env(
+            body.farm_id,
+            str(body.planting_date),
+            str(body.harvest_date),
+        )
+        if season_avg_temp is None and auto_temp is not None:
+            season_avg_temp = auto_temp
+            logger.info(
+                "[data_collection] season_avg_temp 자동 계산: farm=%s crop=%s temp=%.1f",
+                body.farm_id, body.crop_ko, auto_temp,
+            )
+        if season_avg_humidity is None and auto_humi is not None:
+            season_avg_humidity = auto_humi
+
     record: dict[str, Any] = {
         "id":               rec_id,
         "farm_id":          body.farm_id,
@@ -363,8 +423,8 @@ def receive_harvest(
         "total_yield_kg":   total_kg,
         "planting_date":    str(body.planting_date) if body.planting_date else None,
         "growing_days":     growing_days,
-        "season_avg_temp":  body.season_avg_temp,
-        "season_avg_humidity": body.season_avg_humidity,
+        "season_avg_temp":  season_avg_temp,
+        "season_avg_humidity": season_avg_humidity,
         "notes":            body.notes,
     }
 
@@ -386,9 +446,16 @@ def receive_harvest(
         body.farm_id, body.crop_ko, body.yield_kg_m2, stored_where, total,
     )
 
+    # 자동 채우기된 환경값 알림 메시지 생성
+    env_auto_msg = ""
+    if season_avg_temp is not None and body.season_avg_temp is None:
+        env_auto_msg = f" (시즌 평균 온도 {season_avg_temp}°C 자동 계산됨)"
+    elif season_avg_temp is None:
+        env_auto_msg = " (환경값 없음 — 온도·습도 입력 시 드리프트 정확도 향상)"
+
     return HarvestRecordResponse(
         status=f"stored_{stored_where}",
-        message_ko=f"{body.crop_ko} 수확량 실측값 저장 완료 (누적 {total}건)",
+        message_ko=f"{body.crop_ko} 수확량 실측값 저장 완료 (누적 {total}건){env_auto_msg}",
         record_id=rec_id,
         total_count=total,
         retrain_triggered=triggered,
