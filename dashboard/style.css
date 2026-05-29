@@ -484,7 +484,8 @@
   .plan-dot { width:8px; height:8px; border-radius:50%; }
 
   /* 섹션 전환 — position:absolute 방식 (flex 높이 체인 의존성 제거) */
-  .sec { display: none; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+  /* .sec 는 #app-layout 직속 자식 → 사이드바(192px) 이후부터 시작해야 겹침 방지 */
+  .sec { display: none; position: absolute; top: 0; left: 192px; right: 0; bottom: 0;
          flex-direction: column; gap: 16px; padding: 20px 24px; overflow-y: auto; }
   .sec.active { display: flex; }
   /* ── 수치 미표시 이유 박스 (데이터 없음 원인 안내) ─────────────────────────── */
@@ -515,7 +516,7 @@
       border-top: 1px solid var(--border);
       position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
     }
-    .sec { padding: 10px; padding-bottom: 60px; }
+    .sec { left: 0 !important; padding: 10px; padding-bottom: 60px; }
     .nav-group-label { display: none; }
     .nav-item { flex-direction: column; gap: 1px; padding: 4px 8px; font-size: 9px; }
     .nav-icon { font-size: 17px; }
@@ -1154,7 +1155,8 @@
     #sidebar.drawer-open { transform: translateX(0); }
     #app-layout { flex-direction: row !important; }
     #content-area { overflow-y: auto; padding-bottom: calc(70px + env(safe-area-inset-bottom, 0px)); }
-    .sec { padding-bottom: calc(78px + env(safe-area-inset-bottom, 0px)) !important; }
+    /* 모바일: 사이드바 숨김 → .sec 는 화면 전체 사용 */
+    .sec { left: 0 !important; padding-bottom: calc(78px + env(safe-area-inset-bottom, 0px)) !important; }
   }
 
   /* ── 1-3. 헤더 햄버거 버튼 ── */
