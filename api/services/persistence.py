@@ -95,6 +95,30 @@ def get_manual_env(farm_id: str) -> dict:
         return dict(_mem_env.get(farm_id, {}))
 
 
+def get_env_history(farm_id: str, limit: int = 20) -> list:
+    """수동 환경값 입력 이력 조회 (최신순)."""
+    engine = _get_engine()
+    if engine is None:
+        item = _mem_env.get(farm_id)
+        return [{"payload": item, "recorded_at": None}] if item else []
+    try:
+        from sqlalchemy import text
+        with engine.connect() as conn:
+            rows = conn.execute(
+                text("""
+                    SELECT payload, recorded_at FROM manual_inputs
+                    WHERE farm_id = :fid AND input_type = 'env'
+                    ORDER BY recorded_at DESC LIMIT :lim
+                """),
+                {"fid": farm_id, "lim": limit},
+            ).fetchall()
+        return [{"payload": dict(r[0]), "recorded_at": str(r[1])} for r in rows]
+    except Exception as e:
+        logger.error("[persistence] get_env_history 오류: %s", e)
+        item = _mem_env.get(farm_id)
+        return [{"payload": item, "recorded_at": None}] if item else []
+
+
 def set_manual_env(farm_id: str, env: dict) -> None:
     """수동 환경 값 저장."""
     engine = _get_engine()

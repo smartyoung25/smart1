@@ -685,6 +685,20 @@ def submit_manual_env(farm_id: str, body: ManualEnvInput):
 
 
 # ---------------------------------------------------------------------------
+# GET /journal/env  — 환경 수동 입력 이력
+# ---------------------------------------------------------------------------
+
+@router.get("/journal/env", summary="환경 수동 입력 이력 조회")
+def get_env_journal(
+    farm_id: str,
+    limit: int = Query(20, ge=1, le=100, description="반환할 최대 레코드 수"),
+):
+    """농장의 수동 환경 입력 이력을 최신순으로 반환합니다."""
+    history = persistence.get_env_history(farm_id, limit=limit)
+    return {"farm_id": farm_id, "records": history, "total": len(history)}
+
+
+# ---------------------------------------------------------------------------
 # GET /environment
 # ---------------------------------------------------------------------------
 

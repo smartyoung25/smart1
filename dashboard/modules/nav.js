@@ -48,6 +48,7 @@ const SECTION_LOADERS = {
       loadWeatherForecast();
       loadEnvAnomalies();
       loadLEDSpectrum();
+      if (fid) loadEnvHistory(fid);
     };
     if (!_farmsData.length) {
       loadFarmsOverview().then(_doLoadEnviron).catch(_doLoadEnviron);
@@ -105,6 +106,8 @@ const SECTION_LOADERS = {
         _autoSel('sfrop-farm-sel',   fid);
         loadGrowthHarvestRevenue();
         loadSfropScenarios();
+        loadGrowthHistory(fid);
+        loadHarvestHistory(fid);
       }
     };
     if (!_farmsData.length) {

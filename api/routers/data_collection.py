@@ -396,6 +396,52 @@ def receive_harvest(
     )
 
 
+@router.get("/growth", summary="생육 측정 기록 이력 조회")
+def get_growth_history(
+    farm_id: str = Query(..., description="농장 ID"),
+    limit: int  = Query(50, ge=1, le=200, description="반환할 최대 레코드 수"),
+) -> dict:
+    """특정 농장의 생육 측정 기록 이력을 JSON 파일에서 읽어 반환합니다."""
+    records: list[dict] = []
+    if _GROWTH_DIR.exists():
+        for fpath in _GROWTH_DIR.glob("*.json"):
+            try:
+                data = json.loads(fpath.read_text(encoding="utf-8"))
+                if data.get("farm_id") == farm_id:
+                    records.append(data)
+            except Exception:
+                pass
+    # recorded_date 기준 내림차순
+    records.sort(
+        key=lambda r: r.get("recorded_date") or (r.get("recorded_at") or "")[:10],
+        reverse=True,
+    )
+    return {"farm_id": farm_id, "records": records[:limit], "total": len(records)}
+
+
+@router.get("/harvest", summary="수확량 기록 이력 조회")
+def get_harvest_history(
+    farm_id: str = Query(..., description="농장 ID"),
+    limit: int  = Query(50, ge=1, le=200, description="반환할 최대 레코드 수"),
+) -> dict:
+    """특정 농장의 수확량 기록 이력을 JSON 파일에서 읽어 반환합니다."""
+    records: list[dict] = []
+    if _HARVEST_DIR.exists():
+        for fpath in _HARVEST_DIR.glob("*.json"):
+            try:
+                data = json.loads(fpath.read_text(encoding="utf-8"))
+                if data.get("farm_id") == farm_id:
+                    records.append(data)
+            except Exception:
+                pass
+    # harvest_date 기준 내림차순
+    records.sort(
+        key=lambda r: r.get("harvest_date") or (r.get("recorded_at") or "")[:10],
+        reverse=True,
+    )
+    return {"farm_id": farm_id, "records": records[:limit], "total": len(records)}
+
+
 @router.get("/status", response_model=DataStatusResponse, summary="전체 수집 현황")
 def get_data_status() -> DataStatusResponse:
     """전체 작목별 데이터 수집 현황을 반환합니다."""

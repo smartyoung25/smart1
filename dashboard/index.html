@@ -534,6 +534,29 @@
     <div class="card-title">🤖 작물별 M2 모델 현황</div>
     <div id="crop-models-body"><div class="spinner"></div></div>
   </div>
+
+  <!-- 생육·수확 기록 이력 -->
+  <div class="row row-2">
+    <div class="card">
+      <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+        <span>🌱 생육 측정 기록 이력</span>
+        <button class="hdr-btn" onclick="loadGrowthHistory()">↻</button>
+      </div>
+      <div id="growth-hist-body">
+        <div class="empty-state"><div class="empty-state-icon">🌱</div>농장을 선택하면 생육 측정 이력을 표시합니다<div class="empty-state-sub">초장·엽수·착과수·경경·온도·VPD 추이</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+        <span>📦 수확량 기록 이력</span>
+        <button class="hdr-btn" onclick="loadHarvestHistory()">↻</button>
+      </div>
+      <div id="harvest-hist-body">
+        <div class="empty-state"><div class="empty-state-icon">📦</div>농장을 선택하면 수확량 기록 이력을 표시합니다<div class="empty-state-sub">수확일·수확량·면적·재배일수 추이</div></div>
+      </div>
+    </div>
+  </div>
+
 </div> <!-- /sec-growth -->
 
 <!-- ══════════════ 관수·양액 Period 관리 (G3) ══════════════ -->
@@ -1098,6 +1121,17 @@
     </div>
   </div>
 
+  <!-- 환경값 수동 입력 이력 -->
+  <div class="card">
+    <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+      <span>📋 환경값 수동 입력 이력</span>
+      <button class="hdr-btn" onclick="loadEnvHistory()">↻</button>
+    </div>
+    <div id="env-hist-body">
+      <div class="empty-state"><div class="empty-state-icon">📋</div>수동 입력 이력이 없습니다<div class="empty-state-sub">위의 폼으로 환경값을 입력하면 이력이 누적됩니다</div></div>
+    </div>
+  </div>
+
   <!-- LED 스펙트럼 추천 카드 (SFROP v2.0 혁신③) -->
   <div class="card">
     <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
@@ -1420,6 +1454,7 @@
 <script src="/dashboard/modules/market.js"></script>
 <script src="/dashboard/modules/irrigation.js"></script>
 <script src="/dashboard/modules/chat.js"></script>
+<script src="/dashboard/modules/journal.js"></script>
 <script src="/dashboard/modules/nav.js"></script>
 
 <!-- ── 하단 탭 바 (Bottom Navigation, 모바일 전용) ── -->
