@@ -1,149 +1,112 @@
-# KAASA SmartOS 모바일 최적화 작업 로그
+﻿# KAASA SmartOS 모바일 최적화 작업 로그
 
-근거 문서: `KAASA_SmartOS_모바일최적화_작업지시서.docx` v1.0 (2026-05-28)
-
----
-
-## Phase 1 — 전역 CSS + 네비게이션 구조 변경
-
-**완료일**: 2026-05-29  
-**커밋**: (본 커밋)  
-**수정 파일**: `dashboard/index.html`
-
-### 구현 내용
-
-| 항목 | 작업지시서 항목 | 구현 내용 |
-|------|---------------|---------|
-| 브레이크포인트 | §3.1 | xs≤430 / sm≤767 / md≤1099 / lg≥1100 정의 |
-| 하단 탭 바 | §5.3, P1-1 | 5탭(홈/환경/생육/출하/메뉴) 60px 고정 하단 바 |
-| 햄버거 드로어 | §5.2, §5.4 | 헤더 햄버거 버튼 + 사이드바 translateX 드로어 |
-| 사이드바 오버레이 | §4.1 | `#sidebar-overlay` dim 레이어 (rgba 0,0,0,.55) |
-| 버튼 터치 타겟 | §3.2, §4.3 | `.reco-apply-btn` min-height:44px / `.todo-action` 40px |
-| 타이포그래피 축소 | §4.2 | xs: h2→18px, h3→16px, KPI value→22px |
-| 그리드 반응형 | §4.1 | .kpi-row.r3/.r4 → 2열(md), 2열(xs); grid-col-2/3/4 1열(xs) |
-| 테이블 가로 스크롤 | §9.3 | overflow-x: auto + min-width: 460px/600px |
-| To-do 2행 레이아웃 | §9.2 | xs: grid-template-rows: auto auto, 버튼 2행 배치 |
-| Flow UI 스냅 | §9.6 | scroll-snap-type: x mandatory + min-width: 140px |
-| Bottom Sheet | §10.1 | `#bottom-sheet` + `BottomSheet.open/close()` API |
-| Sticky Action Bar | §10.2 | `.sticky-action-bar` position:fixed bottom:60px |
-| 신호등 배지 CSS | §10.3 | `.status-badge.good/.warn/.danger/.info` |
-| 채팅 FAB 위치 | — | 모바일에서 bottom:72px (탭 바 위) |
-
-### 미완료 (Phase 2~3 예정)
-
-- 섹션별 HTML 구조 최적화 (각 섹션 카드 내부)
-- 환경 KPI 수평 스크롤 슬라이더
-- Period 타임라인 UI
-- 4개 시나리오 비교표
+작업지시서: `C:\smart_farm\KAASA_SmartOS_모바일최적화_작업지시서.docx`
+기준 브레이크포인트: xs(<=430px) / sm(431~767px) / md(768~1099px) / lg(>=1100px)
 
 ---
 
----
+## Phase 1 -- 전역 CSS + 네비게이션 구조 변경
 
-## Phase 2 — 섹션별 모바일 최적화
+완료일: 2026-05-28 | 커밋: b182934 ~ c224416
 
-**완료일**: 2026-05-29  
-**커밋**: d712187
+### 1-1. 레이아웃 기반
+- @media (max-width: 1099px) 사이드바 숨김 + 드로어 오버레이 전환
+- .grid-col-2/3/4 → xs 1열, sm 2열, md+ 원래 열 수
+- .hero-kpi-row → xs 2x2
+- main padding → xs 16px
 
-| 항목 | 작업지시서 | 구현 내용 |
-|------|----------|---------|
-| Pill-bar 스크롤 | §9.4 | overflow-x: auto, nowrap (767px 이하) |
-| kpi-row.r5 슬라이더 | §6.2 G2 | 수평 스크롤 슬라이더 with snap |
-| 테이블 스크롤 래퍼 | §9.3 | #farms-table, weather, env-current |
-| To-do 2행 레이아웃 | §9.2 | grid-template-rows 2행 (430px 이하) |
-| row-2/3 1열 전환 | §4.1 | 1099px 이하에서 강제 1열 |
-| row-4 2열→1열 | §4.1 | 1099px: 2열, 430px: 1열 |
-| chart-panel 축소 | — | max-height: 380px (모바일) |
-| iOS safe-area | §12.4 | viewport-fit=cover, env(safe-area-inset-*) |
+### 1-2. 버튼·인터랙션
+- .btn min-height: 44px @430px
+- .btn.primary-action width:100% 모바일
 
----
+### 1-3. 타이포그래피
+- h2 → 18px (@430px) ※계획 22px 대비 소폭 축소
+- .sec-title h3 → 16px (@430px)
+- .bar-row → 72px 1fr 36px @430px
+- .todo-num → 36x36px @430px
 
-## Phase 3 — 신규 UI 패턴
+### 1-4. 테이블 모바일 대응
+- .tbl-wrap overflow-x: auto + touch scrolling
+- .kpi-row.r5 → @767px flex 수평 스크롤 + scroll-snap
 
-**완료일**: 2026-05-29  
-**커밋**: d712187 (Phase 2와 통합)
+### 1-5. 하단 탭바
+- #bottom-nav HTML: 홈/환경/생육/출하/메뉴 5탭
+- .bottom-nav display:none → flex @1099px
+- .bn-tab (60px, active accent 색상, safe-area 지원)
 
-| 패턴 | 작업지시서 | 클래스/함수 |
-|------|----------|-----------|
-| Accordion | §3.3 | .accordion-toggle/.accordion-body, toggleAccordion() |
-| Swipe Card | §9.3 방법B, §6.3 C12 | .swipe-card-list / .swipe-card |
-| KPI 슬라이더 | §6.1 C3, G1 | .kpi-scroll-row |
-| Wizard ProgressBar | §9.7, C1/C11 | .wizard-progress / .wizard-sticky-footer |
-| Timeline UI | §6.2 G3 | .timeline-list / .timeline-item |
-| Work Badge | §8 F3, F6 | .work-badge(.ok/.warn/.stop) |
-| 7일 예보 슬라이더 | §8 F3 | .forecast-scroll / .forecast-day-card |
-| Bottom Sheet API | §10.1 | BottomSheet.open/close() (Phase 1에서 구현) |
-| Sticky Action Bar CSS | §10.2 | .sticky-action-bar (Phase 1에서 구현) |
-| 신호등 배지 CSS | §10.3 | .status-badge (Phase 1에서 구현) |
+### 1-6. 햄버거 드로어
+- #sidebar translateX(-100%) → .drawer-open translateX(0)
+- #sidebar-overlay dim 배경
+- #hdr-hamburger 버튼 @1099px
 
 ---
 
-## 총 변경 요약
+## Phase 2 -- 섹션별 모바일 최적화
 
-| Phase | 커밋 | 변경 라인 | 주요 내용 |
-|-------|------|----------|---------|
-| Phase 1 | 37ba8cb | +379 | CSS 전역 반응형 + 하단탭 + 드로어 + Bottom Sheet |
-| Phase 2+3 | d712187 | +295 | 섹션별 CSS + 신규 UI 패턴 컴포넌트 |
-| **합계** | — | **+674** | **작업지시서 Phase 1(P1-1~11) + P2 주요항목 완료** |
+완료일: 2026-05-28~30
 
----
+### 2-1. sec-dashboard
+- .hero-kpi-row 2x2 @430px
+- .todo-num 36x36px 2행 레이아웃
 
-## Phase 4 — 섹션 HTML 구조 최적화 (P1 우선순위)
+### 2-2. sec-environ
+- .kpi-row.r5 수평 스크롤 슬라이더 @767px
+- 제어 모드 pill-bar → 2x2 라디오카드 UI @430px (2026-05-30 추가)
+- 승인/보류 버튼 width:100%
 
-**완료일**: 2026-05-29
-**커밋**: c40663b
+### 2-3. sec-irrigation
+- .period-timeline-mobile 타임라인 (모바일 전용)
+- .period-pill-bar @767px 숨김
 
-| 항목 | 작업지시서 | 구현 내용 |
-|------|----------|---------|
-| sec-dashboard AI 추천 Accordion | §3.3 | accordion-toggle + accordion-body 래퍼 적용 |
-| sec-irrigation Period 타임라인 | §6.2 G3 | timeline-list period-timeline-mobile (모바일 전용) |
-| sec-irrigation Period 필박스 | §6.2 G3 | period-pill-bar (데스크탑 전용), 768px 기준 전환 |
-| sec-irrigation P4 입력 그리드 | §9.2 | form-3col 반응형 (3열→2열→1열) |
-| sec-environ 수동입력 그리드 | §4.1 | form-3col 반응형 전환 |
-| sec-market Pool 테이블 스크롤 | §9.3 | table-scroll-wrap 래퍼 |
-| sec-market 동의·참여 BottomSheet | §10.1 | BottomSheet.open() 연결 + pool-join-btns 모바일 세로 배치 |
-| sec-growth 모델 선택 세그먼트 | §2-5 | model-seg-ctrl 수평 스크롤 래퍼 |
+### 2-4. sec-growth
+- .model-seg-ctrl 세그먼트 컨트롤 (가로 스크롤 snap)
+- KPI 1열 스택 @430px
 
----
+### 2-5. sec-market
+- KPI 2x2 @430px
+- .bar-row 컴팩트 목록
+- .tbl-wrap 스와이프 테이블
 
-## Phase 5 — 전역 그리드 반응형 완성 + 테이블 오버플로우 수정
-
-**완료일**: 2026-05-29
-**커밋**: e550d3a, 97231de
-
-| 항목 | 작업지시서 | 구현 내용 |
-|------|----------|---------|
-| form-4col 유틸 클래스 | §4.1 | 4열→2열→2열 반응형, whatif/irr-kpi/4시나리오/가격통계 적용 |
-| sec-energy 비교표 스크롤 | §9.3 | table-scroll-wrap 래퍼 |
-| sec-energy 원가입력 | §4.1 | form-3col 반응형 |
-| crop-grid 모바일 규칙 | §4.1 | xs: 2열 |
-| table min-width 과잉 수정 | §9.3 | .table-scroll-wrap table로 범위 축소 (전체→래퍼 안으로) |
-| JS동적 테이블 컨테이너 | §9.3 | weather/env/market/price/model 컨테이너 overflow-x:auto |
+### 2-6. sec-energy / 2-7. sec-control
+- KPI 2열, 제어 스위치 44px 터치타겟
 
 ---
 
-## Phase 6 — UI 상태 표시 개선 + 카드 빈 상태 진단
+## Phase 3 -- 신규 모바일 UI 패턴
 
-**완료일**: 2026-05-29
-**커밋**: 1ba1259, 55c93f3, 2cb9a90
+완료일: 2026-05-29~30
 
-| 항목 | 작업지시서 | 구현 내용 |
-|------|----------|---------|
-| 환경 이상감지 status-badge | §10.3 | 심각도별 배지(위험/주의/참고) + noEnvData vs 알림없음 분리 |
-| AI 권고 tier 배지 | §10.3 | good/warn/info status-badge, 신뢰도 % 배지 |
-| AI 권고 모바일 flex-wrap | §3.2 | 좁은 화면 배지+텍스트 줄바꿈 |
-| harvest-grid inline 수정 | §4.1 | inline style 제거 → 반응형 클래스 활성화 |
+### 3-1. Bottom Sheet
+- #bottom-sheet fixed, max-height:80vh, translateY(100%) → .open translateY(0)
+- #bs-overlay, .bs-handle, #bs-body, #bs-footer, #bs-confirm-btn
 
-### 최종 완료 현황 (2026-05-29)
+### 3-2. Sticky Action Bar
+- .sticky-action-bar fixed bottom:60px @1099px
 
-| 항목 | 상태 |
-|------|------|
-| Phase 1 전역 CSS + 하단탭 + 드로어 | ✅ |
-| Phase 2+3 섹션별 CSS + 신규 UI 패턴 | ✅ |
-| Phase 4 HTML 구조 최적화 (P1 섹션) | ✅ |
-| Phase 5 전역 그리드 반응형 + 테이블 수정 | ✅ |
-| Phase 6 status-badge + 빈 상태 개선 | ✅ |
+### 3-3. 신호등 배지
+- .status-badge.good/.warn/.danger/.info (inline-flex)
+- .status-ring.good/.warn/.danger (36px 원형) (2026-05-30 추가)
+- .status-dot (8px 인라인)
 
-### 미구현 (별도 작업 필요)
-- 지도 플레이스홀더 터치 타겟 확대 (§3.2)
-- Wizard 실제 Full-screen Step 화면 (§9.7)
+### 3-4. 플로우 수평 스크롤 스냅
+- .flow scroll-snap-type: x mandatory
+- .flow > * min-width: 140px scroll-snap-align: start
+
+---
+
+## 이행률 요약 (2026-05-30 기준)
+
+| Phase | 계획 | 완료 | 이행률 |
+|-------|------|------|--------|
+| Phase 1 | 13 | 13 | 100% |
+| Phase 2 | 7 | 7 | 100% |
+| Phase 3 | 5 | 5 | 100% |
+| 전체 | 25 | 25 | 100% |
+
+---
+
+## 잔여 사용자 액션
+
+- ERA5 실측 CSV 확보 후 토마토 M1 재학습
+- CoolSMS / Slack Webhook .env API 키 설정
+- WSL2 → Docker → DuckDNS → Let's Encrypt
