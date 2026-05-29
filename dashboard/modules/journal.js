@@ -324,6 +324,7 @@ function _renderEnvTimeline(records, total) {
 
   return `<div class="tbl-hdr">
     <span class="tbl-hdr-title">📋 환경값 수동 입력 이력</span>${badge}
+    <button class="hdr-btn" onclick="_exportEnvCsv()" title="CSV 내보내기" style="margin-left:auto">⬇ CSV</button>
   </div>
   <div class="tbl-wrap">
     <table style="min-width:420px">
@@ -424,6 +425,8 @@ function _exportHarvestCsv() {
   showToast(`✅ ${rows.length}건 CSV 내보내기 완료`);
 }
 
+let _envRecordsCache = [];  // CSV export용 캐시
+
 async function loadEnvHistory(farmId) {
   farmId = farmId || _defaultFarm();
   const el = $('env-hist-body');
@@ -432,13 +435,35 @@ async function loadEnvHistory(farmId) {
   try {
     const data = await apiFetch(`/api/farms/${encodeURIComponent(farmId)}/journal/env?limit=20`);
     if (!data.records || !data.records.length) {
+      _envRecordsCache = [];
       el.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📋</div>환경값 수동 입력 이력이 없습니다<div class="empty-state-sub">위의 폼으로 환경값을 입력하면 이력이 표시됩니다</div></div>';
       return;
     }
+    _envRecordsCache = data.records;
     el.innerHTML = _renderEnvTimeline(data.records, data.total);
   } catch (e) {
     el.innerHTML = _errBoxHtml(e, '환경 이력 조회 실패');
   }
+}
+
+function _exportEnvCsv() {
+  if (!_envRecordsCache.length) { showToast('⚠️ 내보낼 데이터가 없습니다'); return; }
+  const headers = ['입력시각', '온도(°C)', '습도(%)', 'CO2(ppm)', 'EC(dS/m)', 'pH', 'VPD(kPa)'];
+  const rows = _envRecordsCache.map(r => {
+    const p = r.payload || {};
+    return [
+      r.recorded_at ? String(r.recorded_at).slice(0, 16).replace('T', ' ') : '',
+      p.temp_internal != null ? p.temp_internal : '',
+      p.humidity_int  != null ? p.humidity_int  : '',
+      p.co2_ppm       != null ? p.co2_ppm       : '',
+      p.ec_dsm        != null ? p.ec_dsm        : '',
+      p.ph            != null ? p.ph            : '',
+      p.vpd_kpa       != null ? p.vpd_kpa       : '',
+    ];
+  });
+  const today = new Date().toISOString().slice(0, 10);
+  _downloadCsv(`env_records_${today}.csv`, rows, headers);
+  showToast(`✅ ${rows.length}건 CSV 내보내기 완료`);
 }
 
 // ── 관수 이력 렌더 ─────────────────────────────────────────────────────────
@@ -482,6 +507,7 @@ function _renderIrrigationTimeline(records, dataDays) {
 
   return `<div class="tbl-hdr">
     <span class="tbl-hdr-title">💧 관수 기록 이력</span>${badge}
+    <button class="hdr-btn" onclick="_exportIrrigationCsv()" title="CSV 내보내기" style="margin-left:auto">⬇ CSV</button>
   </div>
   <div class="tbl-wrap">
     <table style="min-width:480px">
@@ -505,6 +531,8 @@ function _renderIrrigationTimeline(records, dataDays) {
 }
 
 // ── 관수 이력 로더 ─────────────────────────────────────────────────────────
+let _irrRecordsCache = [];  // CSV export용 캐시
+
 async function loadIrrigationHistory(farmId) {
   farmId = farmId || _defaultFarm();
   const el = $('irr-hist-body');
@@ -513,11 +541,30 @@ async function loadIrrigationHistory(farmId) {
   try {
     const data = await apiFetch(`/api/farms/${encodeURIComponent(farmId)}/irrigation/analysis?days=30`);
     if (!data.records || !data.records.length) {
+      _irrRecordsCache = [];
       el.innerHTML = '<div class="empty-state"><div class="empty-state-icon">💧</div>관수 기록이 없습니다<div class="empty-state-sub">P4 관수 데이터를 입력하면 이력이 표시됩니다</div></div>';
       return;
     }
+    _irrRecordsCache = data.records;
     el.innerHTML = _renderIrrigationTimeline(data.records, data.data_days);
   } catch (e) {
     el.innerHTML = _errBoxHtml(e, '관수 이력 로드 실패');
   }
+}
+
+function _exportIrrigationCsv() {
+  if (!_irrRecordsCache.length) { showToast('⚠️ 내보낼 데이터가 없습니다'); return; }
+  const headers = ['날짜', '함수율(%)', '배액률(%)', '배액EC(dS/m)', '총공급량(ml)', '관수횟수(회)', '야간소실(%)'];
+  const rows = _irrRecordsCache.map(r => [
+    r.date || '',
+    r.wc_mean       != null ? r.wc_mean       : '',
+    r.dr_pct_mean   != null ? r.dr_pct_mean   : '',
+    r.ec_drain      != null ? r.ec_drain      : '',
+    r.supply_total  != null ? r.supply_total  : '',
+    r.irr_count     != null ? r.irr_count     : '',
+    r.nl_pct        != null ? r.nl_pct        : '',
+  ]);
+  const today = new Date().toISOString().slice(0, 10);
+  _downloadCsv(`irrigation_records_${today}.csv`, rows, headers);
+  showToast(`✅ ${rows.length}건 CSV 내보내기 완료`);
 }
