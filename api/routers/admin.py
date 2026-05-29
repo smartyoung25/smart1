@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
@@ -446,25 +447,46 @@ def get_pipeline_runs():
 # POST /pipeline/trigger
 # ---------------------------------------------------------------------------
 
+_ALLOWED_CROPS = frozenset(
+    {"strawberry", "cherry_tomato", "tomato", "paprika", "melon", "cucumber"}
+)
+
 @router.post("/pipeline/trigger", response_model=TriggerResponse)
 def trigger_pipeline(body: TriggerRequest):
     """재학습 파이프라인 트리거 — 백그라운드 subprocess로 실제 실행."""
+    # 의도치 않은 트리거 방지: confirm=True 필수
+    if not body.confirm:
+        raise HTTPException(
+            status_code=400,
+            detail="confirm=true 를 명시해야 재학습이 시작됩니다. 의도한 요청인지 확인하세요.",
+        )
+
+    # crops 화이트리스트 검증 (command injection 방지)
+    crops: list[str] | None = None
+    if body.crops:
+        invalid = [c for c in body.crops if c not in _ALLOWED_CROPS]
+        if invalid:
+            raise HTTPException(
+                status_code=400,
+                detail=f"허용되지 않는 작목명: {invalid}. 허용: {sorted(_ALLOWED_CROPS)}",
+            )
+        crops = [c for c in body.crops if c in _ALLOWED_CROPS]
+
     import threading
     run_id = f"run_{uuid4().hex[:8]}"
 
     def _run_bg():
         try:
-            from pipeline.retrain_trigger import retrain_crop
-            crops = [c.strip() for c in body.crops.split(",")] if getattr(body, "crops", None) else None
-            import sys
-            py = sys.executable
+            import sys, subprocess as _sp
+            py  = sys.executable
             cmd = [py, str(ROOT / "pipeline" / "retrain_trigger.py"), "--force"]
             if crops:
                 cmd += ["--crops", ",".join(crops)]
-            import subprocess as _sp
-            _sp.Popen(cmd, stdout=_sp.DEVNULL, stderr=_sp.DEVNULL)
+            proc = _sp.Popen(cmd, stdout=_sp.PIPE, stderr=_sp.PIPE, text=True)
+            # 비동기 실행이므로 즉시 반환 — 결과 로그만 기록
+            logger.info("[trigger_pipeline] 재학습 subprocess 시작 (run_id=%s, pid=%d)", run_id, proc.pid)
         except Exception as exc:
-            logger.warning("[trigger_pipeline] 재학습 실행 실패: %s", exc)
+            logger.warning("[trigger_pipeline] 재학습 실행 실패 (run_id=%s): %s", run_id, exc)
 
     threading.Thread(target=_run_bg, daemon=True).start()
     return TriggerResponse(
@@ -774,6 +796,12 @@ class CompareResponse(BaseModel):
 @router.get("/models/versions", response_model=ModelVersionsResponse, tags=["model_versioning"])
 def get_model_versions(crop_en: str = Query(..., description="작목 영문명 (예: strawberry)")):
     """특정 작목의 모델 버전 이력 반환 (최신순)."""
+    # 허용된 작목명만 수락 (path traversal 방지)
+    if crop_en not in _ALLOWED_CROPS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"허용되지 않는 작목명: {crop_en!r}. 허용: {sorted(_ALLOWED_CROPS)}",
+        )
     from pipeline.model_registry import get_versions, _load_registry
 
     reg = _load_registry()
@@ -815,19 +843,25 @@ def rollback_model(body: RollbackRequest):
 
     롤백 후 model_loader의 lru_cache를 무효화합니다.
     """
+    # 허용된 작목명만 수락
+    if body.crop_en not in _ALLOWED_CROPS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"허용되지 않는 작목명: {body.crop_en!r}",
+        )
     from pipeline.model_registry import rollback, _load_registry
+
+    # 캐시 무효화를 먼저 수행하여 롤백과 캐시 사이 경쟁 상태(race condition) 방지
+    try:
+        from api.services.model_loader import load_4stage_model, load_model
+        load_4stage_model.cache_clear()
+        load_model.cache_clear()
+    except Exception:
+        pass
 
     success = rollback(body.crop_en, target_version=body.target_version)
 
     if success:
-        # lru_cache 무효화 → 다음 예측 시 새 버전 자동 로드
-        try:
-            from api.services.model_loader import load_4stage_model, load_model
-            load_4stage_model.cache_clear()
-            load_model.cache_clear()
-        except Exception:
-            pass
-
         reg = _load_registry()
         rolled_to = reg.get(body.crop_en, {}).get("active_version")
         return RollbackResponse(
@@ -852,6 +886,8 @@ def compare_model_versions(
     version_b: int = Query(..., description="비교 대상 버전"),
 ):
     """두 버전의 MAPE/R² 지표 비교."""
+    if crop_en not in _ALLOWED_CROPS:
+        raise HTTPException(status_code=400, detail=f"허용되지 않는 작목명: {crop_en!r}")
     from pipeline.model_registry import compare_versions
 
     result = compare_versions(crop_en, version_a, version_b)
@@ -1017,6 +1053,8 @@ class FarmHistoryResponse(BaseModel):
     source:     str   # "csv" | "mqtt_buffer" | "empty"
 
 
+_FARM_ID_RE = re.compile(r'^[a-zA-Z0-9_\-]{1,64}$')
+
 @router.get("/farms/{farm_id}/history", response_model=FarmHistoryResponse, tags=["monitoring"])
 def get_farm_history(
     farm_id: str,
@@ -1026,6 +1064,10 @@ def get_farm_history(
 
     Chart.js 시계열 차트에 필요한 ts·온도·습도·CO₂ 등을 시간순 정렬해서 반환.
     """
+    # Path traversal 방지: farm_id는 영숫자·언더스코어·하이픈만 허용
+    if not _FARM_ID_RE.match(farm_id):
+        raise HTTPException(status_code=400, detail=f"유효하지 않은 farm_id 형식: {farm_id!r}")
+
     import csv as _csv
     import os
 

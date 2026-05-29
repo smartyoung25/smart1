@@ -113,6 +113,8 @@ class PipelineRunsResponse(BaseModel):
 
 class TriggerRequest(BaseModel):
     reason: Optional[str] = None
+    crops:   Optional[list[str]] = None  # 재학습 대상 작목 (None = 전체)
+    confirm: bool = False                # 반드시 True로 설정해야 실행 (의도치 않은 트리거 방지)
 
 
 class TriggerResponse(BaseModel):
