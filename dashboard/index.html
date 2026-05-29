@@ -2,7 +2,11 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#010409">
 <title>KAASA SmartOS — 스마트팜 AI 플랫폼</title>
 <style>
   :root {
@@ -34,7 +38,11 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; }
   body { background: var(--bg); color: var(--text); font-family: var(--font); font-size: 14px;
-         display: flex; flex-direction: column; overflow: hidden; line-height: 1.55; }
+         display: flex; flex-direction: column; overflow: hidden; line-height: 1.55;
+         /* iOS 고정 요소 safe-area 지원 */ }
+  @supports (padding: max(0px)) {
+    body { padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); }
+  }
 
   /* ── 로그인 오버레이 ── */
   #login-overlay {
@@ -999,9 +1007,10 @@
   #bottom-nav {
     display: none;
     position: fixed; bottom: 0; left: 0; right: 0;
-    height: 60px; background: #010409;
+    height: calc(60px + env(safe-area-inset-bottom, 0px));
+    background: #010409;
     border-top: 1px solid var(--border); z-index: 200;
-    align-items: stretch;
+    align-items: flex-start; padding-bottom: env(safe-area-inset-bottom, 0px);
   }
   @media (max-width: 1099px) { #bottom-nav { display: flex; } }
   .bn-tab {
@@ -1033,8 +1042,8 @@
     }
     #sidebar.drawer-open { transform: translateX(0); }
     #app-layout { flex-direction: row !important; }
-    #content-area { overflow-y: auto; padding-bottom: 70px; }
-    .sec { padding-bottom: 78px !important; }
+    #content-area { overflow-y: auto; padding-bottom: calc(70px + env(safe-area-inset-bottom, 0px)); }
+    .sec { padding-bottom: calc(78px + env(safe-area-inset-bottom, 0px)) !important; }
   }
 
   /* ── 1-3. 헤더 햄버거 버튼 ── */
@@ -1209,8 +1218,277 @@
     .nav-group-label { display: block !important; }
     .nav-item { flex-direction: row !important; font-size: 13px !important; padding: 8px 12px !important; }
     .nav-icon { font-size: 15px !important; }
-    .sec { padding: 16px !important; padding-bottom: 78px !important; }
+    .sec { padding: 16px !important; padding-bottom: calc(78px + env(safe-area-inset-bottom, 0px)) !important; }
   }
+
+  /* ══════════════════════════════════════════════════════════════════
+     PHASE 2 — 섹션별 모바일 최적화 (2026-05-29)
+  ══════════════════════════════════════════════════════════════════ */
+
+  /* ── 2-1. 공통 Pill Bar 수평 스크롤 ── */
+  @media (max-width: 767px) {
+    .pill-bar {
+      overflow-x: auto; flex-wrap: nowrap !important;
+      -webkit-overflow-scrolling: touch; padding-bottom: 4px;
+      scrollbar-width: none;
+    }
+    .pill-bar::-webkit-scrollbar { display: none; }
+    .pill-tag { flex-shrink: 0; }
+  }
+
+  /* ── 2-2. screen-hdr 모바일 래핑 ── */
+  @media (max-width: 430px) {
+    .screen-hdr { flex-direction: column; align-items: flex-start; gap: 6px; }
+    .screen-hdr h4 { font-size: 14px; }
+    .screen-hdr .meta { font-size: 11px; }
+  }
+
+  /* ── 2-3. 인라인 3열 그리드 → 2열(sm) / 1열(xs) 반응형 ── */
+  /* 수동 입력 폼, 환경값, 비용 입력 폼 등 div[style*="repeat(3"] 처리 */
+  @media (max-width: 767px) {
+    #env-manual-form-grid,
+    .form-3col { grid-template-columns: 1fr 1fr !important; }
+  }
+  @media (max-width: 430px) {
+    #env-manual-form-grid,
+    .form-3col { grid-template-columns: 1fr !important; }
+  }
+
+  /* ── 2-4. sec-environ 5개 KPI 수평 스크롤 슬라이더 ── */
+  @media (max-width: 767px) {
+    .kpi-row.r5 {
+      display: flex; overflow-x: auto; flex-wrap: nowrap;
+      scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch;
+      padding-bottom: 6px; gap: 10px;
+    }
+    .kpi-row.r5 .kpi-card {
+      min-width: 120px; flex-shrink: 0; scroll-snap-align: start;
+    }
+    .kpi-row.r5::-webkit-scrollbar { display: none; }
+  }
+
+  /* ── 2-5. sec-growth 모델 선택 세그먼트 ── */
+  @media (max-width: 767px) {
+    .model-seg-ctrl { display: flex; overflow-x: auto; flex-wrap: nowrap;
+      gap: 6px; padding-bottom: 4px; }
+    .model-seg-ctrl .pill { flex-shrink: 0; }
+  }
+
+  /* ── 2-6. weather / 예보 테이블 스크롤 ── */
+  @media (max-width: 767px) {
+    .weather-tbl-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .weather-tbl { min-width: 420px; }
+    #weather-body table, #env-current-body table { min-width: 380px; }
+  }
+
+  /* ── 2-7. 바 차트 (bar-row) 레이블 축소 ── */
+  @media (max-width: 430px) {
+    .bar-row { grid-template-columns: 72px 1fr 36px; gap: 6px; }
+    .bar-row .br-label { font-size: 11px; }
+    .br-row .br-label { font-size: 11px; min-width: 72px; }
+  }
+
+  /* ── 2-8. 진행바 레이블 축소 ── */
+  @media (max-width: 430px) {
+    .prog-label { min-width: 70px; font-size: 11px; }
+    .prog-val { min-width: 36px; font-size: 11px; }
+  }
+
+  /* ── 2-9. 비용/수익 카드 (sec-energy) ── */
+  @media (max-width: 430px) {
+    .cost-row { font-size: 11px; }
+    .cost-section-title { font-size: 10px; }
+    .wi-result-grid { grid-template-columns: 1fr 1fr; }
+    .wi-result-item .wi-label { font-size: 9px; }
+    .wi-result-item .wi-val { font-size: 14px; }
+  }
+
+  /* ── 2-10. 병해 위험 카드 1열 (xs) ── */
+  @media (max-width: 430px) {
+    .disease-grid { grid-template-columns: 1fr !important; }
+    .disease-card { padding: 10px; }
+  }
+
+  /* ── 2-11. 관수 스케줄 그리드 2열 ── */
+  @media (max-width: 430px) {
+    .irr-sched-grid { grid-template-columns: 1fr 1fr !important; }
+    .irr-kpi .ik-val { font-size: 18px; }
+  }
+
+  /* ── 2-12. 이상값 토스트 위치 (탭바 위) ── */
+  @media (max-width: 1099px) {
+    #anomaly-toast { bottom: 72px; right: 12px; left: 12px; right: auto; max-width: none; }
+  }
+
+  /* ── 2-13. 농장 현황 테이블 전체 너비 스크롤 ── */
+  @media (max-width: 767px) {
+    .table-scroll-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; display: block; }
+    #farms-table { min-width: 580px; }
+    .farms-stat-chip { display: none; }
+  }
+
+  /* ── 2-14. chart-panel 높이 조정 ── */
+  @media (max-width: 767px) {
+    #chart-panel.open { max-height: 380px; }
+    #farm-chart-canvas { height: 220px !important; }
+  }
+
+  /* ── 2-15. hero-banner 모바일 패딩 ── */
+  @media (max-width: 430px) {
+    .hero-banner { padding: 16px 18px; border-radius: 16px; }
+    .hero-kpi-card { padding: 10px 12px; }
+    .hero-kpi-card .hk-val { font-size: 20px; }
+  }
+
+  /* ── 2-16. 섹션 헤더 카드 모바일 ── */
+  @media (max-width: 430px) {
+    .kpi-card { padding: 12px 14px; border-radius: 12px; }
+    .kpi-card .kc-val { font-size: 22px; }
+    .kpi-card .kc-label { font-size: 10px; }
+  }
+
+  /* ── 2-17. 모바일에서 row-2가 1열이 되도록 (1099px까지) ── */
+  @media (max-width: 1099px) {
+    .row-2 { grid-template-columns: 1fr !important; }
+    .row-3 { grid-template-columns: 1fr !important; }
+    .row-4 { grid-template-columns: 1fr 1fr !important; }
+  }
+  @media (max-width: 430px) {
+    .row-4 { grid-template-columns: 1fr !important; }
+  }
+
+  /* ══════════════════════════════════════════════════════════════════
+     PHASE 3 — 신규 모바일 UI 패턴 (2026-05-29)
+  ══════════════════════════════════════════════════════════════════ */
+
+  /* ── 3-1. Accordion (AI 추천 설명 접기/펼치기) ── */
+  .accordion-toggle {
+    display: flex; align-items: center; justify-content: space-between;
+    cursor: pointer; padding: 8px 0; font-size: 13px; font-weight: 600;
+    color: var(--text); border: none; background: transparent; width: 100%;
+    text-align: left; -webkit-tap-highlight-color: transparent;
+  }
+  .accordion-toggle .acc-arrow {
+    width: 16px; height: 16px; transition: transform .2s;
+    fill: none; stroke: var(--muted); stroke-width: 2;
+    stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0;
+  }
+  .accordion-toggle.open .acc-arrow { transform: rotate(180deg); }
+  .accordion-body {
+    display: none; padding: 0 0 8px;
+  }
+  .accordion-body.open { display: block; }
+
+  /* ── 3-2. 스와이프 카드 리스트 (공동출하 Pool) ── */
+  .swipe-card-list {
+    display: flex; overflow-x: auto; gap: 12px;
+    scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch;
+    padding-bottom: 8px; scrollbar-width: none;
+  }
+  .swipe-card-list::-webkit-scrollbar { display: none; }
+  .swipe-card {
+    min-width: 240px; flex-shrink: 0; scroll-snap-align: start;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 14px; padding: 14px 16px;
+  }
+  @media (min-width: 768px) {
+    .swipe-card-list { flex-wrap: wrap; overflow-x: visible; }
+    .swipe-card { min-width: unset; flex: 1 1 220px; }
+  }
+
+  /* ── 3-3. KPI 수평 스크롤 슬라이더 (모바일 전용) ── */
+  .kpi-scroll-row {
+    display: flex; overflow-x: auto; gap: 10px;
+    scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px; scrollbar-width: none;
+  }
+  .kpi-scroll-row::-webkit-scrollbar { display: none; }
+  .kpi-scroll-row .kpi-card {
+    min-width: 120px; flex-shrink: 0; scroll-snap-align: start;
+  }
+  @media (min-width: 768px) {
+    .kpi-scroll-row { flex-wrap: wrap; overflow-x: visible; }
+    .kpi-scroll-row .kpi-card { min-width: unset; flex: 1; }
+  }
+
+  /* ── 3-4. 진행 Wizard 바 ── */
+  .wizard-progress {
+    display: flex; align-items: center; gap: 0; margin-bottom: 20px;
+  }
+  .wizard-step-pip {
+    width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; color: var(--muted); flex-shrink: 0;
+    background: var(--card);
+  }
+  .wizard-step-pip.active { border-color: var(--accent); color: var(--accent); background: var(--green-soft); }
+  .wizard-step-pip.done { border-color: var(--accent); background: var(--accent); color: #fff; }
+  .wizard-connector { flex: 1; height: 2px; background: var(--border); }
+  .wizard-connector.done { background: var(--accent); }
+
+  /* ── 3-5. Full-screen Step (C1, C11 Wizard) ── */
+  .wizard-fullscreen-step {
+    display: flex; flex-direction: column; gap: 16px; min-height: 100%;
+  }
+  .wizard-sticky-footer {
+    position: sticky; bottom: 0; background: var(--card);
+    padding: 12px 0; border-top: 1px solid var(--border); margin-top: auto;
+    display: flex; gap: 10px;
+  }
+  .wizard-sticky-footer .ws-back-btn {
+    flex: 1; min-height: 48px; background: var(--card-soft);
+    border: 1px solid var(--border); border-radius: 12px;
+    color: var(--text); font-size: 14px; font-weight: 600; cursor: pointer;
+  }
+  .wizard-sticky-footer .ws-next-btn {
+    flex: 2; min-height: 48px; background: var(--accent);
+    border: none; border-radius: 12px;
+    color: #fff; font-size: 15px; font-weight: 700; cursor: pointer;
+    transition: opacity .15s;
+  }
+  .wizard-sticky-footer .ws-next-btn:hover { opacity: .88; }
+
+  /* ── 3-6. 타임라인 UI (G3 Period) ── */
+  .timeline-list { display: flex; flex-direction: column; gap: 0; }
+  .timeline-item {
+    display: flex; gap: 14px; align-items: flex-start; padding: 10px 0;
+    border-left: 2px solid var(--border); padding-left: 16px; position: relative;
+  }
+  .timeline-item::before {
+    content: ''; width: 10px; height: 10px; border-radius: 50%;
+    background: var(--border); position: absolute; left: -6px; top: 14px;
+  }
+  .timeline-item.active { border-left-color: var(--accent); }
+  .timeline-item.active::before { background: var(--accent); }
+  .timeline-item.done { border-left-color: var(--green); }
+  .timeline-item.done::before { background: var(--green); }
+  .tl-label { font-size: 12px; font-weight: 700; color: var(--text); }
+  .tl-meta  { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  /* ── 3-7. 색상 배지 (작업가능 / 주의 / 연기) ── */
+  .work-badge { display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+  .work-badge.ok   { background: var(--green-soft); color: var(--green); }
+  .work-badge.warn { background: var(--orange-soft); color: var(--orange); }
+  .work-badge.stop { background: var(--red-soft); color: var(--red); }
+
+  /* ── 3-8. 7일 예보 가로 스크롤 카드 ── */
+  .forecast-scroll {
+    display: flex; overflow-x: auto; gap: 8px;
+    scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch;
+    padding: 4px 0 8px; scrollbar-width: none;
+  }
+  .forecast-scroll::-webkit-scrollbar { display: none; }
+  .forecast-day-card {
+    min-width: 72px; flex-shrink: 0; scroll-snap-align: start;
+    background: var(--card-soft); border: 1px solid var(--border);
+    border-radius: 12px; padding: 10px 8px; text-align: center;
+  }
+  .forecast-day-card.today { border-color: var(--accent); background: var(--green-soft); }
+  .fdc-day { font-size: 10px; color: var(--muted); font-weight: 700; margin-bottom: 4px; }
+  .fdc-icon { font-size: 18px; margin-bottom: 4px; }
+  .fdc-temp { font-size: 12px; font-weight: 700; color: var(--text); }
+  .fdc-rain { font-size: 10px; color: var(--blue); margin-top: 2px; }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
 </head>
@@ -6076,7 +6354,7 @@ const _TIMERS = [
   setInterval(() => { if (_token) refreshAll(); }, 60_000),
 ];
 
-// ── Phase 1 — 모바일 드로어 / 하단 탭 / Bottom Sheet ──────────────────────
+// ── Phase 1~3 — 모바일 유틸리티 (드로어 / 하단 탭 / Bottom Sheet / Accordion) ──
 function toggleDrawer() {
   const sb = document.getElementById('sidebar');
   const ov = document.getElementById('sidebar-overlay');
@@ -6097,6 +6375,15 @@ function closeDrawer() {
   if (sb) sb.classList.remove('drawer-open');
   if (ov) ov.classList.remove('open');
   document.body.style.overflow = '';
+}
+
+// Accordion toggle
+function toggleAccordion(btn) {
+  btn.classList.toggle('open');
+  const body = btn.nextElementSibling;
+  if (body && body.classList.contains('accordion-body')) {
+    body.classList.toggle('open');
+  }
 }
 
 // Bottom Sheet API
