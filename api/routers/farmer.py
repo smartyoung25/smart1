@@ -2667,14 +2667,14 @@ def get_erp_realtime(
     plant_m   = meta.get("plant_month")
 
     # 최근 수확량 추정 (M2 예측 또는 메타 기본값)
+    _Y_DEFAULT = {"딸기": 0.95, "방울토마토": 2.5, "완숙토마토": 3.0,
+                  "참외": 1.1, "파프리카": 1.5, "오이": 4.0}
     try:
         from models.m2_yield import predict_yield
-        yres = predict_yield(farm_id)
-        yield_per_m2 = yres.get("yield_per_m2", 0.8)
+        yres = predict_yield(crop_ko, {}, area_m2=area_m2, farm_id=farm_id)
+        # yield_kg_m2_monthly: 월평균 kg/m² 사용 (연간값보다 ERP 적합)
+        yield_per_m2 = yres.get("yield_kg_m2_monthly") or yres.get("yield_kg_m2", 0.8)
     except Exception:
-        # 작목별 월 평균 수확량 기본값 (RDA 실측 기준)
-        _Y_DEFAULT = {"딸기": 0.95, "방울토마토": 2.5, "완숙토마토": 3.0,
-                      "참외": 1.1, "파프리카": 1.5, "오이": 4.0}
         yield_per_m2 = _Y_DEFAULT.get(crop_ko, 1.0)
 
     result = calc_erp(
