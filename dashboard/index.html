@@ -4187,6 +4187,32 @@ function showAnomalyToast(msg) {
   setTimeout(() => toast.classList.remove('show'), 5000);
 }
 
+// 일반 토스트 — 성공(✅)/실패(❌)/경고(⚠️) 메시지용
+let _toastTimer = null;
+function showToast(msg, durationMs = 3000) {
+  let el = $('general-toast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'general-toast';
+    el.style.cssText = [
+      'position:fixed', 'bottom:80px', 'left:50%', 'transform:translateX(-50%)',
+      'background:rgba(30,35,50,.96)', 'color:#fff', 'padding:10px 20px',
+      'border-radius:10px', 'font-size:13px', 'font-weight:600',
+      'z-index:500', 'box-shadow:0 4px 16px rgba(0,0,0,.4)',
+      'opacity:0', 'transition:opacity .2s', 'pointer-events:none',
+      'max-width:320px', 'text-align:center',
+    ].join(';');
+    document.body.appendChild(el);
+  }
+  const isOk  = msg.startsWith('✅');
+  const isErr = msg.startsWith('❌');
+  el.style.borderLeft = isOk ? '3px solid var(--green)' : isErr ? '3px solid var(--red)' : '3px solid var(--accent)';
+  el.textContent = msg;
+  el.style.opacity = '1';
+  if (_toastTimer) clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => { el.style.opacity = '0'; }, durationMs);
+}
+
 // HTTP 폴백 30초 polling (백그라운드 탭·미로그인 시 스킵)
 setInterval(async () => {
   if (_wsActive || !_token || document.hidden) return;
