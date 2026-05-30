@@ -116,15 +116,18 @@
 
 <!-- ── 헤더 ── -->
 <header>
-  <div style="display:flex;align-items:center;gap:10px">
+  <div style="display:flex;align-items:center;gap:12px">
     <button id="hdr-hamburger" onclick="toggleDrawer()" aria-label="메뉴 열기">
       <svg viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
     </button>
-    <h1>🌿 KAASA <span>SmartOS</span></h1>
+    <h1>
+      <span style="font-size:20px">🌿</span>
+      KAASA <span>SmartOS</span>
+    </h1>
   </div>
-  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end">
-    <span id="last-refresh" class="hdr-kpis" style="font-size:11px;color:rgba(255,255,255,.5)">—</span>
-    <span id="logged-as" class="hdr-kpis" style="font-size:12px;color:rgba(255,255,255,.7)"></span>
+  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end">
+    <span id="last-refresh" class="hdr-kpis" style="font-size:11px;color:rgba(255,255,255,.45)">—</span>
+    <span id="logged-as" class="hdr-kpis" style="font-size:12px;color:rgba(255,255,255,.6)"></span>
     <button class="hdr-btn" onclick="refreshAll()" title="전체 새로고침 (Ctrl+R)">↻</button>
     <button class="hdr-btn" id="btn-logout" onclick="doLogout()">로그아웃</button>
     <div id="status-badge" class="offline"><div class="dot"></div><span>연결 확인 중</span></div>
@@ -452,7 +455,7 @@
 <div id="sec-growth" class="sec">
 
   <!-- G4 생육모델 헤더 -->
-  <div class="card" style="background:linear-gradient(135deg,rgba(63,185,80,.08),rgba(46,160,67,.05));border:1px solid rgba(63,185,80,.2)">
+  <div class="card sec-intro-card" style="background:linear-gradient(135deg,rgba(63,185,80,.08),rgba(46,160,67,.05));border:1px solid rgba(63,185,80,.2)">
     <div class="screen-hdr">
       <h4>🌱 온실 생육모델·재배력</h4>
       <div class="model-seg-ctrl" id="model-seg-ctrl" style="display:flex;gap:6px;align-items:center">
@@ -779,7 +782,7 @@
 <div id="sec-irrigation" class="sec">
 
   <!-- G3 헤더 -->
-  <div class="card" style="background:linear-gradient(135deg,rgba(88,166,255,.07),rgba(56,139,253,.04));border:1px solid rgba(88,166,255,.18)">
+  <div class="card sec-intro-card blue-theme" style="background:linear-gradient(135deg,rgba(88,166,255,.07),rgba(56,139,253,.04));border:1px solid rgba(88,166,255,.18)">
     <div class="screen-hdr">
       <h4>💧 관수·양액 Dashboard</h4>
       <span class="meta">첫 관수 · 정오 고부하 · 마감 관수</span>
@@ -965,7 +968,7 @@
 <div id="sec-energy" class="sec">
 
   <!-- C5 헤더 KPI -->
-  <div class="card" style="background:linear-gradient(135deg,rgba(245,158,11,.10),rgba(245,158,11,.05));border:1px solid rgba(245,158,11,.25)">
+  <div class="card sec-intro-card orange-theme" style="background:linear-gradient(135deg,rgba(245,158,11,.10),rgba(245,158,11,.05));border:1px solid rgba(245,158,11,.25)">
     <div class="screen-hdr">
       <h4>💰 농장 경영 KPI</h4>
       <span class="meta">월간 / 작기 / 온실동·필지별</span>
@@ -1170,7 +1173,7 @@
 <div id="sec-control" class="sec">
 
   <!-- G5 병해·품질 헤더 -->
-  <div class="card" style="background:linear-gradient(135deg,rgba(219,109,40,.08),rgba(219,109,40,.05));border:1px solid rgba(219,109,40,.2)">
+  <div class="card sec-intro-card orange-theme" style="background:linear-gradient(135deg,rgba(219,109,40,.08),rgba(219,109,40,.05));border:1px solid rgba(219,109,40,.2)">
     <div class="screen-hdr">
       <h4>🔬 온실 병해·품질 이미지 진단</h4>
       <span class="meta">병반·트랩·과실·생장점 AI 판정</span>
@@ -1284,7 +1287,7 @@
   </div>
 
   <!-- G2 환경제어 헤더 -->
-  <div class="card" style="background:linear-gradient(135deg,rgba(63,185,80,.08),rgba(46,160,67,.05));border:1px solid rgba(63,185,80,.2)">
+  <div class="card sec-intro-card" style="background:linear-gradient(135deg,rgba(63,185,80,.08),rgba(46,160,67,.05));border:1px solid rgba(63,185,80,.2)">
     <div class="screen-hdr">
       <h4>🌡️ 환경제어 콘솔</h4>
       <span class="meta">수동보조 / 권고형 / 승인형 / 자동제어</span>
@@ -1482,7 +1485,7 @@
 <div id="sec-market" class="sec">
 
   <!-- C12 공동출하 헤더 -->
-  <div class="card" style="background:linear-gradient(135deg,rgba(63,185,80,.08),rgba(46,160,67,.05));border:1px solid rgba(63,185,80,.2)">
+  <div class="card sec-intro-card" style="background:linear-gradient(135deg,rgba(63,185,80,.08),rgba(46,160,67,.05));border:1px solid rgba(63,185,80,.2)">
     <div class="screen-hdr">
       <h4>📦 공동출하 운영 대시보드</h4>
       <span class="meta">Pool 생성 · 참여요청 · 정산</span>
@@ -1607,7 +1610,7 @@
 <div id="sec-system" class="sec">
 
   <!-- C8 이기종 연동·진단 헤더 -->
-  <div class="card" style="background:linear-gradient(135deg,rgba(88,166,255,.08),rgba(88,166,255,.04));border:1px solid rgba(88,166,255,.20)">
+  <div class="card sec-intro-card blue-theme" style="background:linear-gradient(135deg,rgba(88,166,255,.08),rgba(88,166,255,.04));border:1px solid rgba(88,166,255,.20)">
     <div class="screen-hdr">
       <h4>🔌 연동·진단 현황 (C8)</h4>
       <span class="meta">장비탐색 → 표준매핑 → 캘리브레이션</span>
