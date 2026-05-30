@@ -58,7 +58,7 @@ function renderAdvisoryFeed() {
 
     const itemsHtml = (entry.advices || []).map(a => {
       const fname = FIELD_LABELS[a.field] || a.field;
-      const optStr = `최적 ${a.optimal[0]}–${a.optimal[1]}`;
+      const optStr = (a.optimal && a.optimal.length >= 2) ? `최적 ${a.optimal[0]}–${a.optimal[1]}` : '';
       const arrow  = a.side === 'high' ? '↑' : a.side === 'low' ? '↓' : '↕';
       return `<div class="adv-item">
         <span class="adv-field">${arrow} ${_esc(fname)}</span>
