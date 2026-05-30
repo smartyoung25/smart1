@@ -102,7 +102,15 @@ async function sendChat() {
     }
     _refreshChatQuota();
   } catch(e) {
-    loadDiv.innerHTML = `<div class="chat-who">SMART FARM AI</div><span style="color:var(--red)">오류: ${_esc(e.message)}</span>`;
+    const { msg: _em, action: _ea } = _errReason(e);
+    const _special = e.code === 402
+      ? '💳 현재 플랜에서는 AI 채팅을 사용할 수 없습니다. 설정 탭에서 업그레이드하세요.'
+      : e.code === 429
+      ? '⏳ 이번 달 AI 채팅 쿼터를 모두 사용했습니다. 다음 달 초 초기화됩니다.'
+      : null;
+    loadDiv.innerHTML = `<div class="chat-who">SMART FARM AI</div>
+      <span style="color:var(--red)">${_special || _em}</span>
+      ${_ea && !_special ? `<span style="color:var(--muted);font-size:11px;display:block;margin-top:4px">${_esc(_ea)}</span>` : ''}`;
     if (_chatHistory.length && _chatHistory[_chatHistory.length-1].role === 'user') {
       _chatHistory.pop();
     }

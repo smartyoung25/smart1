@@ -42,15 +42,40 @@ function _setResult(elId, status, msg) {
 }
 
 // ── API 헬퍼 ─────────────────────────────────────────────────────────────────
+// GET 요청 중복 취소: 같은 path로 진행 중인 요청이 있으면 이전 요청 abort
+const _inflightGet = new Map();
+
 async function apiFetch(path, opts = {}) {
+  const isGet = !opts.method || opts.method.toUpperCase() === 'GET';
+  let controller;
+  if (isGet) {
+    if (_inflightGet.has(path)) _inflightGet.get(path).abort();
+    controller = new AbortController();
+    _inflightGet.set(path, controller);
+  }
+
   let r;
   try {
+    const timeoutSignal = AbortSignal.timeout(15000);
+    const signal = isGet
+      ? (controller.signal.aborted ? timeoutSignal
+          : (typeof AbortSignal.any === 'function'
+            ? AbortSignal.any([controller.signal, timeoutSignal])
+            : timeoutSignal))
+      : timeoutSignal;
     r = await fetch(`${_apiBase}${path}`, {
       ...opts,
       headers: { Authorization: `Bearer ${_token}`, ...(opts.headers||{}) },
-      signal: AbortSignal.timeout(15000),
+      signal,
     });
+    if (isGet) _inflightGet.delete(path);
   } catch(netErr) {
+    if (isGet) _inflightGet.delete(path);
+    if (netErr.name === 'AbortError') {
+      const e = new Error('요청 취소됨');
+      e.code = 'ABORTED';
+      throw e;
+    }
     const e = new Error(netErr.name === 'TimeoutError' ? '응답 시간 초과 (15초)' : '서버에 연결할 수 없음');
     e.code = netErr.name === 'TimeoutError' ? 'TIMEOUT' : 'NETWORK';
     e.cause = netErr;
@@ -81,6 +106,7 @@ function _esc(s) {
 function _errReason(e) {
   if (!e) return { msg: '알 수 없는 오류', action: null };
   const code = e.code;
+  if (code === 'ABORTED')  return { msg: '', action: null };
   if (code === 'NETWORK')  return { msg: '🔴 서버에 연결할 수 없습니다', action: 'API 서버(uvicorn)가 실행 중인지 확인하세요.' };
   if (code === 'TIMEOUT')  return { msg: '⏱️ 응답 시간 초과 (15초)', action: '서버 부하 또는 네트워크 문제. 잠시 후 새로고침하세요.' };
   if (code === 401)        return { msg: '🔑 로그인 세션이 만료되었습니다', action: null };
@@ -93,6 +119,7 @@ function _errReason(e) {
 
 // ── 에러 박스 HTML ────────────────────────────────────────────────────────────
 function _errBoxHtml(e, contextTitle = '데이터 조회 실패') {
+  if (e?.code === 'ABORTED') return '';   // 중복 요청 취소 — 조용히 무시
   const { msg, action } = _errReason(e);
   return `<div class="data-err-box">
     <span>❌ ${contextTitle}</span>
