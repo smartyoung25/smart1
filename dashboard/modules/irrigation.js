@@ -178,7 +178,7 @@ async function loadIrrigationAnalysis(farmId) {
   try {
     const d = await apiFetch(`/api/farms/${farmId}/irrigation/analysis?days=7`);
     if (!d.data_days) {
-      el.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:12px 0;text-align:center">저장된 관수 데이터 없음</div>';
+      el.innerHTML = _emptyHtml('💧', '관수 데이터 없음', '최근 7일 관수 기록이 없습니다');
       return;
     }
     if (d.alerts && d.alerts.length) {

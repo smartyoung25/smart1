@@ -151,3 +151,91 @@ function setBar(barId, pct, valId, label) {
   const b = $(barId); if (b) b.style.width = Math.min(100, pct) + '%';
   if (valId) { const v = $(valId); if (v) v.textContent = label != null ? label : pct + '%'; }
 }
+
+// ── 숫자 카운터 애니메이션 ─────────────────────────────────────────────────────
+// el: DOM element, to: 목표값, opts: {decimals, unit, duration, suffix}
+function animateNumber(el, to, opts = {}) {
+  if (!el) return;
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    const d = opts.decimals ?? 0;
+    el.textContent = (d > 0 ? to.toFixed(d) : Math.round(to)) + (opts.suffix || '');
+    return;
+  }
+  const from = parseFloat(el.textContent.replace(/[^0-9.\-]/g, '')) || 0;
+  const dur  = opts.duration ?? 500;
+  const dec  = opts.decimals ?? 0;
+  const sfx  = opts.suffix || '';
+  const start = performance.now();
+  const easeOut = t => 1 - Math.pow(1 - t, 3);
+  const step = (now) => {
+    const t = Math.min((now - start) / dur, 1);
+    const v = from + (to - from) * easeOut(t);
+    el.textContent = (dec > 0 ? v.toFixed(dec) : Math.round(v)) + sfx;
+    if (t < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+
+// ── VPD 계산 (kPa) ─────────────────────────────────────────────────────────
+// 포화수증기압 Tetens: 0.6108 × exp(17.27 × T / (T + 237.3))
+function calcVpd(tempC, humidityPct) {
+  if (tempC == null || humidityPct == null) return null;
+  const svp = 0.6108 * Math.exp(17.27 * tempC / (tempC + 237.3));
+  const vpd = svp * (1 - humidityPct / 100);
+  return Math.max(0, vpd);
+}
+
+// ── VPD 상태 등급 반환 ─────────────────────────────────────────────────────
+function vpdStatus(vpd) {
+  if (vpd === null) return 'none';
+  if (vpd < 0.3 || vpd > 2.0) return 'critical';
+  if (vpd < 0.5 || vpd > 1.5) return 'warning';
+  return 'optimal';
+}
+
+// ── 알림 배지 업데이트 ─────────────────────────────────────────────────────
+// sectionId: 'dashboard'|'environ'|'control' 등
+// count: 알림 수
+function setNavBadge(sectionId, count) {
+  // 사이드바 nav-item 배지
+  const navBtn = document.querySelector(`.nav-item[onclick*="'${sectionId}'"]`);
+  if (navBtn) {
+    let badge = navBtn.querySelector('.nav-badge');
+    if (!badge) {
+      badge = document.createElement('span');
+      badge.className = 'nav-badge';
+      navBtn.appendChild(badge);
+    }
+    badge.textContent = count > 99 ? '99+' : count;
+    badge.dataset.count = count;
+    badge.style.display = count > 0 ? '' : 'none';
+  }
+  // 하단 탭 bn-tab 배지
+  const bnTab = document.querySelector(`#bn-${sectionId}, .bn-tab[data-section="sec-${sectionId}"]`);
+  if (bnTab) {
+    let badge = bnTab.querySelector('.nav-badge');
+    if (!badge) {
+      badge = document.createElement('span');
+      badge.className = 'nav-badge';
+      bnTab.appendChild(badge);
+    }
+    badge.textContent = count > 99 ? '99+' : count;
+    badge.dataset.count = count;
+    badge.style.display = count > 0 ? '' : 'none';
+  }
+}
+
+// ── 스켈레톤 ON/OFF 헬퍼 ──────────────────────────────────────────────────
+function skelOn(el)  { if (el) el.classList.add('skeleton'); }
+function skelOff(el) { if (el) el.classList.remove('skeleton'); }
+
+// ── 공통 Empty State HTML ─────────────────────────────────────────────────
+// icon: 이모지 문자열, title: 짧은 제목, desc: 부제목(옵션), actionHtml: 버튼(옵션)
+function _emptyHtml(icon = '📭', title = '데이터 없음', desc = '', actionHtml = '') {
+  return `<div class="empty-state">
+    <div class="empty-state-icon">${icon}</div>
+    <div class="empty-state-title">${_esc(title)}</div>
+    ${desc ? `<div class="empty-state-desc">${_esc(desc)}</div>` : ''}
+    ${actionHtml || ''}
+  </div>`;
+}

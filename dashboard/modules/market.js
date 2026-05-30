@@ -254,7 +254,7 @@ async function loadMarketPrices() {
   try {
     const d = await apiFetch('/api/admin/prices/latest');
     const prices = d.prices || d.data || (Array.isArray(d) ? d : []);
-    if (!prices.length) { el.innerHTML = '<div style="color:var(--muted);text-align:center;padding:16px">가격 데이터 없음</div>'; return; }
+    if (!prices.length) { el.innerHTML = _emptyHtml('📊', '가격 데이터 없음', '공판장 데이터가 아직 수집되지 않았습니다'); return; }
     const rows = prices.map(p => {
       const chg = p.change_pct ?? p.change_rate ?? null;
       const chgHtml = chg != null
@@ -305,16 +305,16 @@ async function loadPriceHistory() {
   const cropKo = $('price-hist-crop')?.value;
   const el = $('price-hist-body');
   if (!el) return;
-  if (!cropKo) { el.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:12px 0;text-align:center">작목을 선택하세요</div>'; return; }
+  if (!cropKo) { el.innerHTML = _emptyHtml('🌱', '작목을 선택하세요', '위 드롭다운에서 작목을 선택하면 시세 이력이 표시됩니다'); return; }
 
   const farmId = _myFarmId || _farmsData[0]?.farm_id;
-  if (!farmId) { el.innerHTML = '<div style="color:var(--muted);font-size:12px">농장 정보 로딩 중…</div>'; return; }
+  if (!farmId) { el.innerHTML = '<div class="spinner"></div>'; return; }
 
   el.innerHTML = '<div class="spinner"></div>';
   try {
     const d = await apiFetch(`/api/farms/${farmId}/market/price-history?days=30&crop_ko=${encodeURIComponent(cropKo)}`);
     const items = d.history || [];
-    if (!items.length) { el.innerHTML = '<div style="color:var(--muted);text-align:center;padding:12px">이력 없음</div>'; return; }
+    if (!items.length) { el.innerHTML = _emptyHtml('📈', '가격 이력 없음', '최근 30일 시세 데이터가 없습니다'); return; }
 
     const stats = d.stats || {};
     const trendIcon = {up:'↑', down:'↓', flat:'→'}[d.trend] || '→';
@@ -322,7 +322,7 @@ async function loadPriceHistory() {
     const src = d.source === 'kamis_cache' ? 'KAMIS 실시간' : d.source === 'rda_static_estimated' ? '통계 추정' : '통계 기반';
 
     const prices = items.map(i => i.price_krw_kg).filter(p => p != null);
-    if (!prices.length) { el.innerHTML = '<div style="color:var(--muted);text-align:center;padding:12px">시세 데이터 없음</div>'; return; }
+    if (!prices.length) { el.innerHTML = _emptyHtml('📉', '시세 데이터 없음', '가격 데이터를 불러올 수 없습니다'); return; }
     const minP = Math.min(...prices), maxP = Math.max(...prices);
     const W = 340, H = 60, pad = 4;
     const toX = i => prices.length > 1 ? pad + (i / (prices.length - 1)) * (W - 2*pad) : W / 2;

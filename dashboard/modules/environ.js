@@ -63,6 +63,26 @@ function applyEnvMessage(msg) {
   sv('sv-solar', msg.solar_rad);
   sv('sv-soil',  msg.soil_temp);
   sv('sv-ec',    msg.ec_dsm);
+
+  // VPD 센서카드 업데이트
+  const vpd = calcVpd(msg.temp_internal, msg.humidity_int);
+  const vpdEl   = $('sv-vpd');
+  const badgeEl = $('sv-vpd-badge');
+  const fmlaEl  = $('sv-vpd-formula');
+  if (vpdEl) {
+    if (vpd != null) animateNumber(vpdEl, vpd, { decimals: 2, duration: 400 });
+    else vpdEl.textContent = '—';
+  }
+  if (badgeEl) {
+    const st = vpdStatus(vpd);
+    badgeEl.className = `vpd-badge ${st}`;
+    const labels = { optimal:'최적', warning:'주의', critical:'위험', none:'—' };
+    badgeEl.textContent = labels[st] || '—';
+  }
+  if (fmlaEl && msg.temp_internal != null && msg.humidity_int != null) {
+    fmlaEl.textContent = `${Number(msg.temp_internal).toFixed(1)}°C · ${Number(msg.humidity_int).toFixed(0)}% RH`;
+  }
+
   const ts = msg.ts ? new Date(msg.ts).toLocaleTimeString('ko-KR') : new Date().toLocaleTimeString('ko-KR');
   $('sensor-ts').textContent = `마지막 수신: ${ts}`;
   ['temp','humi','co2','solar','soil','ec'].forEach(k => $(`sc-${k}`)?.classList.remove('anomaly'));
@@ -105,13 +125,14 @@ async function loadCurrentEnv() {
       </div>
       ${ts?`<div style="font-size:10px;color:var(--muted);margin-top:6px;text-align:right">측정시각: ${ts}</div>`:''}`;
 
-    setText('env-kpi-temp', fmtF(d.temp_internal));
+    animateNumber($('env-kpi-temp'), d.temp_internal ?? 0, { decimals: 1 });
     if (d.temp_internal != null && d.humidity_int != null) {
       const t = d.temp_internal; const rh = d.humidity_int;
       const svp = 0.6108 * Math.exp(17.27 * t / (t + 237.3));
-      setText('env-kpi-vpd', (svp * (1 - rh / 100)).toFixed(2));
+      const vpdVal = svp * (1 - rh / 100);
+      animateNumber($('env-kpi-vpd'), vpdVal, { decimals: 2 });
     }
-    setText('env-kpi-co2', fmtF(d.co2_ppm, 0));
+    animateNumber($('env-kpi-co2'), d.co2_ppm ?? 0, { decimals: 0 });
     const solarVal = d.solar_rad ?? d.solar_radiation ?? d.solar_rad_est ?? null;
     // 위도 37°N 기준 월별 일조시간 추정 (4~9월: 장일, 10~3월: 단일)
     const _dliHours = [9,10,11,12,13,14,14,13,12,11,10,9][new Date().getMonth()];
@@ -157,7 +178,7 @@ async function loadWeatherForecast() {
     const days = Array.isArray(_fc) ? _fc
                : (_fc && Array.isArray(_fc.days) ? _fc.days
                : (Array.isArray(d.days) ? d.days : []));
-    if (!days.length) { el.innerHTML = '<div style="color:var(--muted);text-align:center;padding:20px">예보 데이터 없음</div>'; return; }
+    if (!days.length) { el.innerHTML = _emptyHtml('🌤️', '예보 데이터 없음', '기상청 API 응답을 대기 중입니다'); return; }
     const rows = days.map(day => {
       let dtStr = '—';
       if (day.date) {

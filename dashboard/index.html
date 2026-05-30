@@ -308,6 +308,16 @@
       <div class="sensor-card" id="sc-solar"><div class="sensor-icon">☀️</div><div class="sensor-label">일사량</div><div class="sensor-val normal" id="sv-solar">—</div><div class="sensor-unit">W/m²</div></div>
       <div class="sensor-card" id="sc-soil"><div class="sensor-icon">🌱</div><div class="sensor-label">지온</div><div class="sensor-val normal" id="sv-soil">—</div><div class="sensor-unit">°C</div></div>
       <div class="sensor-card" id="sc-ec"><div class="sensor-icon">⚡</div><div class="sensor-label">EC(양액)</div><div class="sensor-val normal" id="sv-ec">—</div><div class="sensor-unit">dS/m</div></div>
+      <!-- VPD 통합 카드 (온도·습도 조합 계산) -->
+      <div class="sensor-card vpd-card" id="sc-vpd">
+        <div class="vpd-card-main">
+          <div class="sensor-label">증기압포차 (VPD)</div>
+          <div class="sensor-val normal" id="sv-vpd" style="font-size:20px">—</div>
+          <div class="sensor-unit">kPa</div>
+          <div class="vpd-card-formula" id="sv-vpd-formula">T − Hu 조합 계산</div>
+        </div>
+        <span class="vpd-badge none" id="sv-vpd-badge">—</span>
+      </div>
     </div>
   </div>
 
@@ -1763,19 +1773,19 @@
 
 <!-- ── 하단 탭 바 (Bottom Navigation, 모바일 전용) ── -->
 <nav id="bottom-nav" role="navigation" aria-label="하단 메인 메뉴">
-  <button class="bn-tab active" data-sec="dashboard" onclick="showSection('dashboard')" aria-label="통합 홈">
+  <button id="bn-dashboard" class="bn-tab active" data-sec="dashboard" onclick="showSection('dashboard')" aria-label="통합 홈">
     <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
     <span>홈</span>
   </button>
-  <button class="bn-tab" data-sec="environ" onclick="showSection('environ')" aria-label="환경·기후">
+  <button id="bn-environ" class="bn-tab" data-sec="environ" onclick="showSection('environ')" aria-label="환경·기후">
     <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
     <span>환경</span>
   </button>
-  <button class="bn-tab" data-sec="growth" onclick="showSection('growth')" aria-label="생육·재배력">
+  <button id="bn-growth" class="bn-tab" data-sec="growth" onclick="showSection('growth')" aria-label="생육·재배력">
     <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
     <span>생육</span>
   </button>
-  <button class="bn-tab" data-sec="market" onclick="showSection('market')" aria-label="공동출하·유통">
+  <button id="bn-market" class="bn-tab" data-sec="market" onclick="showSection('market')" aria-label="공동출하·유통">
     <svg viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 5v4h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
     <span>출하</span>
   </button>

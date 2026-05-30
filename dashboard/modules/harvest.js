@@ -308,7 +308,7 @@ async function loadGrowthHarvestRevenue() {
       if (h.yield_kg_forecast) { setText('harvest-quality-rate', '—'); const qEl=$('harvest-quality-rate'); if(qEl && !qEl.nextElementSibling?.classList.contains('kc-hint2')) { const hint=document.createElement('span'); hint.className='kc-hint kc-hint2'; hint.textContent='데이터 준비 중'; qEl.after(hint); } }
     }
     if (h?.yield_kg_forecast) {
-      setText('harvest-7d-kg', Number(h.yield_kg_forecast).toFixed(1));
+      animateNumber($('harvest-7d-kg'), Number(h.yield_kg_forecast), { decimals: 1 });
     }
   } catch(e) {
     if (hEl) hEl.innerHTML = `<span class="err-inline">조회 실패: ${_esc(e.message)}</span>`;
@@ -382,7 +382,7 @@ async function loadCtrlRecommendations() {
     const d = await apiFetch(`/api/farms/${farmId}/recommendations`);
     const items = d.recommendations || d.items || [];
     if (!items.length) {
-      el.innerHTML = '<div style="color:var(--muted);text-align:center;padding:20px">현재 권고 사항이 없습니다 ✅</div>';
+      el.innerHTML = _emptyHtml('✅', '권고 사항 없음', '현재 모든 환경 지표가 정상 범위입니다');
       return;
     }
     const { listHtml, gainHtml } = _renderRecoItems(items, farmId);
@@ -427,15 +427,19 @@ async function loadHeroDashboard(farmId) {
   try {
     const d = await apiFetch(`/api/farms/${farmId}/erp/realtime`);
     const mc = (d.margin_per_kg ?? 0) > 0 ? '#22c55e' : '#ef4444';
-    setText('hero-cost',   fmt(d.cost_per_kg));
+    animateNumber($('hero-cost'),   d.cost_per_kg   ?? 0, { decimals: 0 });
     setText('hero-cost-hint', `원/kg${d.growth_stage ? ' · '+d.growth_stage : ''}`);
-    setText('hero-margin', fmt(d.margin_per_kg));
+    animateNumber($('hero-margin'), d.margin_per_kg ?? 0, { decimals: 0 });
     const marginHint = d.harvest_timing?.diff > 300 ? '내일 출하 유리 ↑' : '오늘 출하 기준';
     setText('hero-margin-hint', marginHint);
     const incRate = fmtF(d.income_rate_pct);
-    setText('hero-income', incRate !== '—' ? incRate + '%' : '—');
-    const el = $('hero-income');
-    if (el) el.style.color = (d.income_rate_pct ?? 0) >= 50 ? '#22c55e' : (d.income_rate_pct ?? 0) >= 30 ? '#f59e0b' : '#ef4444';
+    const incEl = $('hero-income');
+    if (d.income_rate_pct != null) {
+      animateNumber(incEl, d.income_rate_pct, { decimals: 1, suffix: '%' });
+    } else {
+      if (incEl) incEl.textContent = '—';
+    }
+    if (incEl) incEl.style.color = (d.income_rate_pct ?? 0) >= 50 ? '#22c55e' : (d.income_rate_pct ?? 0) >= 30 ? '#f59e0b' : '#ef4444';
 
     setText('c5-cost-kg',   fmt(d.cost_per_kg));
     setText('c5-margin-kg', fmt(d.margin_per_kg));
@@ -473,7 +477,7 @@ async function loadHeroDashboard(farmId) {
     setBar('cost-bar-logistics', lgPct, 'cost-pct-logistics');
 
     if (d.harvest_7d_kg != null) {
-      setText('harvest-7d-kg', fmt(d.harvest_7d_kg));
+      animateNumber($('harvest-7d-kg'), d.harvest_7d_kg, { decimals: 0 });
       setText('harvest-pool-margin', poolMgn !== 0 ? fmt(poolMgn) + '원/kg' : '—');
     }
 
@@ -525,10 +529,12 @@ async function loadHeroDashboard(farmId) {
     });
 
     // 이상감지 항목 보강 (anomaly API)
+    let _anomalyCount = 0;
     try {
       const anomRes = await apiFetch(`/api/farms/${farmId}/anomalies/latest`);
       const anomList = anomRes.anomalies || anomRes.items || [];
       const criticals = anomList.filter(a => a.severity === 'critical' || a.severity === 'high');
+      _anomalyCount = criticals.length;
       criticals.slice(0, 2).forEach(a => {
         allItems.push(`<div class="todo-item">
           <div class="todo-num red">🚨</div>
@@ -540,12 +546,17 @@ async function loadHeroDashboard(farmId) {
           <button class="todo-action orange" onclick="showSection('environ')">확인</button>
         </div>`);
       });
+      // 환경 탭 네비 배지 업데이트
+      if (typeof setNavBadge === 'function') setNavBadge('environ', _anomalyCount);
     } catch(_) { /* 이상감지 API 없으면 무시 */ }
 
     const todoHtml = allItems.join('');
     const tb = $('todo-body');
     if (tb) tb.innerHTML = todoHtml;
     setText('todo-meta', `AI 생성 ${recs.length}건`);
+    // 홈 탭 네비 배지: 즉시조치(auto) + 이상감지 합산
+    const _urgentCount = recs.filter(r => r.tier_action === 'auto').length + _anomalyCount;
+    if (typeof setNavBadge === 'function') setNavBadge('dashboard', _urgentCount);
 
     const immediate = recs.filter(r => r.tier_action === 'auto').length;
     const growth    = recs.filter(r => r.tier_action === 'checklist').length;

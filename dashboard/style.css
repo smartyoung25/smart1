@@ -1630,6 +1630,199 @@
   .tl-label { font-size: 12px; font-weight: 700; color: var(--text); }
   .tl-meta  { font-size: 11px; color: var(--muted); margin-top: 2px; }
 
+  /* ══════════════════════════════════════════════════════════════════
+     PHASE 4 — UI 품질 개선 (2026-05-30)
+     · 스켈레톤 로딩 · 알림 배지 · KPI 트렌드 · VPD 카드
+     · 이상 토스트 모바일 위치 수정 · 접근성(prefers-reduced-motion)
+  ══════════════════════════════════════════════════════════════════ */
+
+  /* ── 4-1. 이상 토스트 모바일 위치 버그 수정 ────────────────────────── */
+  /* 하단 탭 바(60px) 위로 이동 */
+  @media (max-width: 1099px) {
+    #anomaly-toast {
+      bottom: calc(68px + env(safe-area-inset-bottom, 0px));
+      right: 12px; left: 12px;
+      max-width: none;
+    }
+  }
+
+  /* ── 4-2. 스켈레톤 로딩 ─────────────────────────────────────────── */
+  @keyframes shimmer {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+  .skeleton {
+    background: linear-gradient(
+      90deg,
+      var(--card-soft) 25%,
+      rgba(48,54,61,.8) 50%,
+      var(--card-soft) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.6s ease infinite;
+    border-radius: 6px;
+    color: transparent !important;
+    pointer-events: none;
+    user-select: none;
+  }
+  .skeleton * { visibility: hidden; }
+  /* 스켈레톤 블록 (높이 지정 필요) */
+  .sk-line   { height: 12px; border-radius: 4px; margin: 6px 0; }
+  .sk-line.w60  { width: 60%; }
+  .sk-line.w80  { width: 80%; }
+  .sk-line.w100 { width: 100%; }
+  .sk-circle { border-radius: 50% !important; }
+  .sk-card   { min-height: 80px; border-radius: 12px; }
+
+  /* ── 4-3. 알림 배지 (nav-item / bn-tab 공통) ────────────────────── */
+  .nav-item  { position: relative; }
+  .bn-tab    { position: relative; }
+  .nav-badge {
+    position: absolute;
+    min-width: 16px; height: 16px;
+    background: var(--red); color: #fff;
+    font-size: 9px; font-weight: 800; line-height: 1;
+    border-radius: 999px; display: inline-flex; align-items: center; justify-content: center;
+    padding: 0 4px; pointer-events: none; z-index: 10;
+    border: 1.5px solid var(--bg);
+  }
+  /* 사이드바 nav-item 배지: 오른쪽 가운데 */
+  .nav-item .nav-badge {
+    top: 50%; right: 10px; transform: translateY(-50%);
+  }
+  /* 하단 탭 배지: 아이콘 우상단 */
+  .bn-tab .nav-badge {
+    top: 6px; right: calc(50% - 18px);
+    transform: none;
+  }
+  /* 배지가 0이면 숨김 (JS에서 data-count="0" 시 display:none) */
+  .nav-badge[data-count="0"],
+  .nav-badge:empty { display: none; }
+
+  /* ── 4-4. KPI 트렌드 화살표 ──────────────────────────────────────── */
+  .kpi-trend {
+    display: inline-flex; align-items: center; gap: 2px;
+    font-size: 10px; font-weight: 700; line-height: 1;
+    padding: 2px 6px; border-radius: 10px;
+    margin-left: 4px; vertical-align: middle;
+    transition: opacity .2s;
+  }
+  .kpi-trend.up   { background: var(--green-soft); color: var(--green); }
+  .kpi-trend.down { background: var(--red-soft);   color: var(--red); }
+  .kpi-trend.flat { background: var(--card-soft);  color: var(--muted); }
+  /* KPI 카드 안 트렌드 배치 */
+  .kpi-card .kc-label-row {
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 4px;
+  }
+
+  /* ── 4-5. VPD 인디케이터 배지 ───────────────────────────────────── */
+  .vpd-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 10px; border-radius: 20px;
+    font-size: 12px; font-weight: 700;
+    transition: all .3s;
+  }
+  .vpd-badge.optimal  { background: var(--green-soft);  color: var(--green); }
+  .vpd-badge.warning  { background: var(--orange-soft); color: var(--orange); }
+  .vpd-badge.critical { background: var(--red-soft);    color: var(--red); }
+  .vpd-badge.none     { background: var(--card-soft);   color: var(--muted); }
+  /* VPD 센서 카드 확장 (sensor-grid 7번째 카드) */
+  .sensor-card.vpd-card {
+    grid-column: span 2;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 10px; text-align: left; flex-direction: row;
+  }
+  @media (max-width: 430px) {
+    .sensor-card.vpd-card { grid-column: span 2; }
+  }
+  .vpd-card-main { display: flex; flex-direction: column; }
+  .vpd-card-formula { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+  /* ── 4-6. 카운터 숫자 애니메이션 지원 클래스 ─────────────────────── */
+  .kc-val.counting,
+  .hk-val.counting,
+  .kpi .val.counting {
+    transition: none; /* JS requestAnimationFrame으로 처리 */
+  }
+
+  /* ── 4-7. filter-input 호버/포커스 개선 ─────────────────────────── */
+  .filter-input {
+    background: var(--card-soft) !important;
+    border: 1px solid var(--border) !important;
+    color: var(--text) !important;
+    border-radius: 8px !important;
+    padding: 6px 10px !important;
+    font-size: 12px !important;
+    transition: border-color .15s !important;
+  }
+  .filter-input:hover  { border-color: var(--muted) !important; }
+  .filter-input:focus  { outline: none !important; border-color: var(--accent) !important; box-shadow: 0 0 0 3px rgba(63,185,80,.15) !important; }
+
+  /* ── 4-8. 키보드 포커스 링 (접근성) ──────────────────────────────── */
+  button:focus-visible,
+  select:focus-visible,
+  input:focus-visible {
+    outline: 2px solid var(--accent) !important;
+    outline-offset: 2px !important;
+  }
+  /* 마우스 클릭 시 포커스 링 제거 */
+  button:focus:not(:focus-visible),
+  select:focus:not(:focus-visible),
+  input:focus:not(:focus-visible) {
+    outline: none !important;
+  }
+
+  /* ── 4-9. 모션 감소 지원 (접근성) ────────────────────────────────── */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: .01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: .01ms !important;
+    }
+    .skeleton { animation: none !important; background: var(--border) !important; }
+  }
+
+  /* ── 4-10. 실시간 데이터 갱신 펄스 (센서 카드) ───────────────────── */
+  @keyframes live-pulse {
+    0%   { box-shadow: 0 0 0 0   rgba(63,185,80,.5); }
+    70%  { box-shadow: 0 0 0 8px rgba(63,185,80,0);  }
+    100% { box-shadow: 0 0 0 0   rgba(63,185,80,0);  }
+  }
+  .sensor-card.live-update {
+    animation: live-pulse .6s ease-out 1;
+  }
+
+  /* ── 4-11. 카드 엔트리 애니메이션 ────────────────────────────────── */
+  @keyframes card-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .card-animate-in { animation: card-in .3s ease both; }
+
+  /* ── 4-12. 헤더 상태 배지 개선 ───────────────────────────────────── */
+  #status-badge {
+    display: flex; align-items: center; gap: 5px;
+    padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;
+    background: rgba(88,166,255,.1); color: var(--muted);
+    border: 1px solid rgba(88,166,255,.2);
+    transition: all .3s;
+  }
+  #status-badge.online  { background: var(--green-soft); color: var(--green); border-color: rgba(63,185,80,.3); }
+  #status-badge.offline { background: var(--red-soft);   color: var(--red);   border-color: rgba(248,81,73,.3); }
+  #status-badge .dot    { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  #status-badge.online .dot { animation: pulse 1.2s ease-in-out infinite; }
+
+  /* ── 4-13. 빈 상태(empty state) 공통 스타일 ──────────────────────── */
+  .empty-state {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 32px 16px; color: var(--muted); text-align: center; gap: 8px;
+  }
+  .empty-state-icon { font-size: 32px; opacity: .6; }
+  .empty-state-title { font-size: 13px; font-weight: 700; color: var(--text); }
+  .empty-state-desc  { font-size: 12px; line-height: 1.6; max-width: 240px; }
+  .empty-state-action { margin-top: 8px; }
+
   /* ── 3-7. 색상 배지 (작업가능 / 주의 / 연기) ── */
   .work-badge { display: inline-flex; align-items: center; gap: 5px;
     padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; }
