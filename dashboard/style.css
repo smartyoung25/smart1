@@ -1860,7 +1860,8 @@
   @media (max-width: 430px)  { .form-3col { grid-template-columns: 1fr; } }
   .form-4col { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
   @media (max-width: 1099px) { .form-4col { grid-template-columns: repeat(2, 1fr); } }
-  @media (max-width: 430px)  { .form-4col { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 767px)  { .form-4col { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 430px)  { .form-4col { grid-template-columns: 1fr; } }  /* 360px 단일열 수정 Phase D */
   /* 모바일에서 주요 submit 버튼 전체 너비 */
   @media (max-width: 767px) {
     .reco-apply-btn.full-mobile, .btn-danger.full-mobile { width: 100%; justify-content: center; }

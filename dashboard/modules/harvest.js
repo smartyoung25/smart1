@@ -427,9 +427,9 @@ async function loadHeroDashboard(farmId) {
   try {
     const d = await apiFetch(`/api/farms/${farmId}/erp/realtime`);
     const mc = (d.margin_per_kg ?? 0) > 0 ? '#22c55e' : '#ef4444';
-    animateNumber($('hero-cost'),   d.cost_per_kg   ?? 0, { decimals: 0 });
+    animateNumber($('hero-cost'),   d.cost_per_kg   ?? 0, { decimals: 0, format: 'locale' });
     setText('hero-cost-hint', `원/kg${d.growth_stage ? ' · '+d.growth_stage : ''}`);
-    animateNumber($('hero-margin'), d.margin_per_kg ?? 0, { decimals: 0 });
+    animateNumber($('hero-margin'), d.margin_per_kg ?? 0, { decimals: 0, format: 'locale' });
     const marginHint = d.harvest_timing?.diff > 300 ? '내일 출하 유리 ↑' : '오늘 출하 기준';
     setText('hero-margin-hint', marginHint);
     const incRate = fmtF(d.income_rate_pct);
@@ -477,7 +477,7 @@ async function loadHeroDashboard(farmId) {
     setBar('cost-bar-logistics', lgPct, 'cost-pct-logistics');
 
     if (d.harvest_7d_kg != null) {
-      animateNumber($('harvest-7d-kg'), d.harvest_7d_kg, { decimals: 0 });
+      animateNumber($('harvest-7d-kg'), d.harvest_7d_kg, { decimals: 0, format: 'locale' });
       setText('harvest-pool-margin', poolMgn !== 0 ? fmt(poolMgn) + '원/kg' : '—');
     }
 

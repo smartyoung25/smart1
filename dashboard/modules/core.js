@@ -158,7 +158,8 @@ function animateNumber(el, to, opts = {}) {
   if (!el) return;
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     const d = opts.decimals ?? 0;
-    el.textContent = (d > 0 ? to.toFixed(d) : Math.round(to)) + (opts.suffix || '');
+    const raw = d > 0 ? to.toFixed(d) : Math.round(to);
+    el.textContent = (opts.format === 'locale' ? Math.round(to).toLocaleString('ko-KR') : raw) + (opts.suffix || '');
     return;
   }
   const from = parseFloat(el.textContent.replace(/[^0-9.\-]/g, '')) || 0;
@@ -166,11 +167,13 @@ function animateNumber(el, to, opts = {}) {
   const dec  = opts.decimals ?? 0;
   const sfx  = opts.suffix || '';
   const start = performance.now();
+  const isLocale = opts.format === 'locale';
   const easeOut = t => 1 - Math.pow(1 - t, 3);
   const step = (now) => {
     const t = Math.min((now - start) / dur, 1);
     const v = from + (to - from) * easeOut(t);
-    el.textContent = (dec > 0 ? v.toFixed(dec) : Math.round(v)) + sfx;
+    const raw = dec > 0 ? v.toFixed(dec) : Math.round(v);
+    el.textContent = (isLocale ? Math.round(v).toLocaleString('ko-KR') : raw) + sfx;
     if (t < 1) requestAnimationFrame(step);
   };
   requestAnimationFrame(step);
