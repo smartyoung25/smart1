@@ -2629,3 +2629,124 @@ input:focus, select:focus, textarea:focus {
   .card-hdr { gap: 6px; margin-bottom: 12px; padding-bottom: 10px; }
   .kpi-ico-badge { width: 34px; height: 34px; font-size: 15px; }
 }
+
+/* ════════════════════════════════════════════════════════════════
+   WIREFRAME v3.2 — 섹션 전환 애니메이션 · 네비 개선 · 마이크로 폴리시
+   (2026-05-30)
+   ════════════════════════════════════════════════════════════════ */
+
+/* ── T1. Section Fade Transition ─────────────────────────────── */
+.sec {
+  animation: secFadeIn .22s ease-out both;
+}
+@keyframes secFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sec { animation: none; }
+}
+
+/* ── T2. Hero Chip ────────────────────────────────────────────── */
+.hero-chip {
+  background: rgba(255,255,255,.15);
+  border: 1px solid rgba(255,255,255,.2);
+  border-radius: 20px; padding: 4px 12px;
+  font-size: 11px; font-weight: 700; color: rgba(255,255,255,.9);
+  white-space: nowrap; letter-spacing: .02em;
+  backdrop-filter: blur(4px);
+}
+
+/* ── T3. Sidebar nav-item active indicator ───────────────────── */
+.nav-item.active {
+  background: linear-gradient(90deg, rgba(63,185,80,.14) 0%, rgba(63,185,80,.04) 100%) !important;
+  box-shadow: inset 3px 0 0 var(--accent, #3fb950);
+}
+.nav-item:not(.active):hover {
+  box-shadow: inset 3px 0 0 rgba(255,255,255,.08);
+}
+
+/* ── T4. Bottom nav tab active glow ─────────────────────────── */
+.bn-tab.active {
+  position: relative;
+}
+.bn-tab.active::before {
+  content: '';
+  position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+  width: 24px; height: 2px;
+  background: var(--accent, #3fb950);
+  border-radius: 0 0 2px 2px;
+}
+
+/* ── T5. Card hover depth ─────────────────────────────────────── */
+.card {
+  transition: box-shadow .2s, border-color .2s;
+}
+
+/* ── T6. Compact sub-header label inside cards ───────────────── */
+.card-sub-label {
+  font-size: 11px; font-weight: 700; letter-spacing: .04em;
+  text-transform: uppercase; color: var(--muted);
+  margin: 12px 0 8px;
+}
+
+/* ── T7. kpi-row spacing refinement ──────────────────────────── */
+.kpi-row { margin-bottom: 0; }
+.kpi-row + .kpi-row { margin-top: 12px; }
+
+/* ── T8. Screen-hdr inside sec-intro-card (bigger title) ──────── */
+.sec-intro-card .screen-hdr h4 {
+  font-size: 15px;
+}
+
+/* ── T9. Improved todo-item layout ───────────────────────────── */
+.todo-item {
+  transition: background .15s;
+}
+.todo-item:hover {
+  background: rgba(255,255,255,.03);
+  border-radius: var(--r-sm, 8px);
+}
+
+/* ── T10. Data summary row ────────────────────────────────────── */
+.data-summary-row {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  margin: 8px 0;
+}
+
+/* ── T11. br-row hover ───────────────────────────────────────── */
+.br-row {
+  transition: opacity .15s;
+}
+.br-row:hover { opacity: .85; }
+
+/* ── T12. pill-tag active ─────────────────────────────────────── */
+.pill-tag:hover {
+  filter: brightness(1.1);
+  cursor: default;
+}
+
+/* ── T13. chart-panel slide animation ───────────────────────── */
+#chart-panel {
+  transition: max-height .3s cubic-bezier(.4,0,.2,1), opacity .25s ease;
+}
+
+/* ── T14. Empty state improvement ───────────────────────────── */
+.empty-state {
+  animation: emptyFadeIn .3s ease-out;
+}
+@keyframes emptyFadeIn {
+  from { opacity: 0; transform: scale(.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* ── T15. Mobile: card-hdr stacks title + controls ──────────── */
+@media (max-width: 600px) {
+  .card-hdr {
+    flex-direction: column; align-items: flex-start;
+  }
+  .card-hdr > div:not(:first-child),
+  .card-hdr > .chr {
+    width: 100%; justify-content: flex-start;
+  }
+}

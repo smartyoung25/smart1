@@ -228,7 +228,7 @@
         <p class="hero-sub">AI 추천 To-do · 실시간 수익성 · 공동출하 현황</p>
       </div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-        <span id="hero-mode-pill" style="background:rgba(255,255,255,.2);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:700">Private 모드</span>
+        <span id="hero-mode-pill" class="hero-chip">Private 모드</span>
       </div>
     </div>
     <div class="hero-kpi-row">
@@ -547,12 +547,12 @@
           <button class="hdr-btn" onclick="loadGrowthHarvestRevenue()">↻</button>
         </div>
       </div>
-      <div id="growth-harvest-body" style="min-height:80px;color:var(--muted);font-size:12px;padding:16px 0;text-align:center">농장을 선택하세요</div>
+      <div id="growth-harvest-body"><div class="empty-center">🌾 농장을 선택하면 수확량 예측이 표시됩니다</div></div>
     </div>
     <!-- 소득 예측 카드 (M2×시세 / M3) -->
     <div class="card">
       <div class="card-title">💰 소득 예측 (수확량·매출·순이익)</div>
-      <div id="growth-revenue-body" style="min-height:80px;color:var(--muted);font-size:12px;padding:16px 0;text-align:center">농장 선택 후 자동 표시</div>
+      <div id="growth-revenue-body"><div class="empty-center">💰 농장 선택 후 소득 예측이 자동 표시됩니다</div></div>
     </div>
   </div>
 
@@ -732,6 +732,7 @@
     </div>
   </div>
 
+  <div class="sec-sub-label">What-if · SFROP 시뮬레이션</div>
   <!-- What-if 시뮬레이션 -->
   <div class="card">
     <div class="card-hdr">
@@ -797,6 +798,7 @@
     <div id="crop-models-body"><div class="spinner"></div></div>
   </div>
 
+  <div class="sec-sub-label">생육·수확 이력</div>
   <!-- 생육·수확 기록 이력 -->
   <div class="row row-2">
     <div class="card">
@@ -883,6 +885,7 @@
     <div class="explain-box" style="margin-top:8px"><b>Period 관리:</b> 관수는 일일 총량보다 시간대별 반응이 중요합니다. P4 정오 급액량·배액률·EC/pH를 기반으로 오후 전략을 자동 조정합니다.</div>
   </div>
 
+  <div class="sec-sub-label">관수 스케줄 · ET₀ 예측</div>
   <!-- 관수 스케줄 예측 -->
   <div class="card">
     <div class="card-hdr">
@@ -1100,6 +1103,7 @@
     </div>
   </div>
 
+  <div class="sec-sub-label">비용 내역 · 손익 분석</div>
   <div class="row row-2">
     <!-- 비용 내역 조회 -->
     <div class="card">
@@ -1531,7 +1535,7 @@
       </div>
     </div>
     <div id="env-anomaly-body">
-      <div style="color:var(--muted);font-size:12px;padding:16px 0;text-align:center">농장을 선택하세요</div>
+      <div class="empty-center">📊 농장을 선택하면 데이터가 표시됩니다</div>
     </div>
   </div>
 
@@ -1651,10 +1655,11 @@
       </div>
     </div>
     <div id="market-prices-body">
-      <div style="color:var(--muted);font-size:12px;padding:16px 0;text-align:center"><div class="spinner"></div></div>
+      <div class="empty-center"><div class="spinner" style="margin:0 auto 8px"></div>시세 데이터 로딩 중…</div>
     </div>
   </div>
 
+  <div class="sec-sub-label">KAMIS 가격 이력 · 수확·매출 분석</div>
   <!-- 가격 이력 조회 -->
   <div class="card">
     <div class="card-hdr">
@@ -1673,7 +1678,7 @@
       </div>
     </div>
     <div id="price-hist-body">
-      <div style="color:var(--muted);font-size:12px;padding:16px 0;text-align:center">작목을 선택하세요</div>
+      <div class="empty-center">🌿 작목을 선택하면 수확·매출 분석이 표시됩니다</div>
     </div>
   </div>
 
@@ -1689,7 +1694,7 @@
           <button class="hdr-btn" onclick="loadMarketHarvest()">↻</button>
         </div>
       </div>
-      <div id="market-harvest-body" style="min-height:80px;color:var(--muted);font-size:12px;padding:16px 0;text-align:center">농장을 선택하세요</div>
+      <div id="market-harvest-body"><div class="empty-center">📊 농장을 선택하면 수확·매출 분석이 표시됩니다</div></div>
     </div>
 
     <!-- 어드바이저 최적 환경 (전작목) -->
@@ -1709,7 +1714,7 @@
           <button class="hdr-btn" onclick="loadAdvisorOptimal()">↻</button>
         </div>
       </div>
-      <div id="advisor-opt-body" style="min-height:80px;color:var(--muted);font-size:12px;padding:16px 0;text-align:center">작목을 선택하세요</div>
+      <div id="advisor-opt-body"><div class="empty-center">🏆 작목을 선택하면 최적 재배 환경 기준이 표시됩니다</div></div>
     </div>
   </div>
 
