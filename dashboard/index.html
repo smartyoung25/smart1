@@ -13,6 +13,15 @@
 </head>
 <body>
 
+<!-- ── 앱 로딩 스크린 (JS 로드 전 백지 방지) ── -->
+<div id="app-loader" aria-hidden="true">
+  <div class="apl-inner">
+    <div class="apl-logo">🌱</div>
+    <div class="apl-bar"><div class="apl-progress"></div></div>
+    <p class="apl-hint">KAASA SmartOS 로딩 중…</p>
+  </div>
+</div>
+
 <!-- ── 로그인 오버레이 ── -->
 <div id="login-overlay">
   <div class="login-box">
@@ -34,7 +43,7 @@
         <input id="in-pass" type="password" placeholder="••••••••" autocomplete="current-password">
       </div>
       <div id="login-err"></div>
-      <button id="btn-login" class="auth-btn" onclick="doLogin()">로그인</button>
+      <button id="btn-login" class="auth-btn" onclick="doLogin()" disabled>로그인</button>
       <div class="login-cfg">
         <label>API 서버 URL</label>
         <input id="login-api-url" placeholder="http://localhost:8000">
@@ -1805,6 +1814,17 @@
     <button id="bs-confirm-btn"></button>
   </div>
 </div>
+
+<script>
+(function(){
+  /* 로그인 버튼 활성화 — 모든 모듈 JS 로드 완료 시점 */
+  var b = document.getElementById('btn-login');
+  if (b) b.disabled = false;
+  /* 앱 로더 페이드아웃 */
+  var l = document.getElementById('app-loader');
+  if (l) { l.style.opacity = '0'; setTimeout(function(){ if(l.parentNode) l.parentNode.removeChild(l); }, 300); }
+})();
+</script>
 
 </body>
 </html>
