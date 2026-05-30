@@ -234,7 +234,6 @@ def get_user_by_username(username: str) -> Optional[dict]:
         logger.error("[persistence] get_user_by_username 오류: %s", e)
         # DB 접속 실패 → env 기반 dev 사용자 폴백 (테스트·개발 환경 호환)
         admin_username = os.environ.get("ADMIN_USERNAME", "admin")
-        admin_username = os.environ.get("ADMIN_USERNAME", "admin")
         _dev_users: dict[str, dict] = {
             admin_username: {
                 "id": 1,
