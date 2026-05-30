@@ -53,7 +53,7 @@ async function loadPrivaSchedule() {
         ${d.note ? '· ' + _esc(d.note.slice(0,80)) : ''}
       </div>`;
   } catch(e) {
-    el.innerHTML = `<span class="err-inline">조회 실패: ${_esc(e.message)}</span>`;
+    el.innerHTML = _errBoxHtml(e, 'ET₀ 스케줄 조회 실패');
   }
 }
 
@@ -89,7 +89,7 @@ async function loadIrrigationSchedule() {
         📡 ${d.source === 'kma_asos_yesterday' ? 'ASOS 전일 실측 기반' : '계절 평균 기반'} — ${_esc(d.note ?? '')}
       </div>`;
   } catch(e) {
-    el.innerHTML = `<span class="err-inline">조회 실패: ${_esc(e.message)}</span>`;
+    el.innerHTML = _errBoxHtml(e, '관수 일정 조회 실패');
   }
 }
 

@@ -161,7 +161,7 @@ async function loadCurrentEnv() {
       fsEl.style.opacity = '1';
     }
   } catch(e) {
-    el.innerHTML = `<span class="err-inline">조회 실패: ${_esc(e.message)}</span>`;
+    el.innerHTML = _errBoxHtml(e, '환경 데이터 조회 실패');
   }
 }
 
@@ -203,7 +203,7 @@ async function loadWeatherForecast() {
       <thead><tr><th>날짜</th><th>날씨</th><th>기온</th><th>강수확률</th><th>풍속</th></tr></thead>
       <tbody>${rows}</tbody></table></div>`;
   } catch(e) {
-    el.innerHTML = `<span class="err-inline">예보 조회 실패: ${_esc(e.message)}</span>`;
+    el.innerHTML = _errBoxHtml(e, '기상 예보 조회 실패');
   }
 }
 
@@ -276,7 +276,7 @@ async function loadDiseaseDetect(farmId) {
     setText('g5-quality-risk', '보통');
     setText('g5-disease-hint', ((d.reasons||[]).slice(0,1).join('') || 'AI 탐지 결과').slice(0, 20));
   } catch(e) {
-    el.innerHTML = `<span class="err-inline">조회 실패: ${_esc(e.message)}</span>`;
+    el.innerHTML = _errBoxHtml(e, '병해 위험도 조회 실패');
   }
 }
 
@@ -420,6 +420,6 @@ async function loadLEDSpectrum() {
         ${led.note ? `<div style="font-size:10px;color:var(--muted);margin-top:2px">${_esc(led.note)}</div>` : ''}
       </div>`;
   } catch(e) {
-    el.innerHTML = `<span class="err-inline">조회 실패: ${_esc(e.message)}</span>`;
+    el.innerHTML = _errBoxHtml(e, 'LED 스펙트럼 조회 실패');
   }
 }

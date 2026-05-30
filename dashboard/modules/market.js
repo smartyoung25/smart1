@@ -79,7 +79,7 @@ async function loadCostBreakdown() {
       </div>
       ${d.electricity_kwh_month != null ? `<div style="font-size:10px;color:var(--muted);margin-top:4px">전기 ${Math.round(d.electricity_kwh_month).toLocaleString('ko-KR')} kWh / 용수 ${Math.round(d.water_m3_month||0).toLocaleString('ko-KR')} m³</div>` : ''}`;
   } catch(e) {
-    el.innerHTML = `<span class="err-inline">조회 실패: ${_esc(e.message)}</span>`;
+    el.innerHTML = _errBoxHtml(e, '비용 내역 조회 실패');
   }
 }
 
@@ -297,7 +297,7 @@ async function loadMarketPrices() {
       }
     }
   } catch(e) {
-    el.innerHTML = `<span class="err-inline">조회 실패: ${_esc(e.message)}</span>`;
+    el.innerHTML = _errBoxHtml(e, '시장 가격 조회 실패');
   }
 }
 
@@ -366,7 +366,7 @@ async function loadPriceHistory() {
       </table></div>
       <div style="font-size:10px;color:var(--muted);margin-top:6px;text-align:right">출처: ${src}</div>`;
   } catch(e) {
-    el.innerHTML = `<span class="err-inline">조회 실패: ${_esc(e.message)}</span>`;
+    el.innerHTML = _errBoxHtml(e, '가격 이력 조회 실패');
   }
 }
 
@@ -398,7 +398,7 @@ async function loadMarketHarvest() {
           <div class="ao-range">${r?.price_source==='kamis_live'?'🟢실시간 시세':'📊 평균 시세'}</div></div>
       </div>`;
   } catch(e) {
-    el.innerHTML = `<span class="err-inline">조회 실패: ${_esc(e.message)}</span>`;
+    el.innerHTML = _errBoxHtml(e, '출하 일정 조회 실패');
   }
 }
 
@@ -428,6 +428,6 @@ async function loadWholesaleMarket(farmId) {
       ${boundsHtml}
       <div style="margin-top:8px">${srcBadges}</div>`;
   } catch(e) {
-    el.innerHTML = `<span class="err-inline">조회 실패: ${_esc(e.message)}</span>`;
+    el.innerHTML = _errBoxHtml(e, '도매 시장 가격 조회 실패');
   }
 }
