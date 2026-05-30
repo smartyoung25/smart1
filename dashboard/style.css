@@ -17,6 +17,7 @@
     --orange-soft:rgba(219,109,40,.12);
     --purple:     #bc8cff;
     --text:       #e6edf3;
+    --fg:         #e6edf3;  /* --text 별칭 (하위 호환) */
     --muted:      #8b949e;
     --shadow:     0 8px 32px rgba(0,0,0,.48);
     --radius:     16px;
