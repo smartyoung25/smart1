@@ -126,6 +126,7 @@
     </h1>
   </div>
   <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end">
+    <span id="hdr-sec-label" style="font-size:11px;color:rgba(255,255,255,.4);font-weight:600;letter-spacing:.04em;text-transform:uppercase;display:none"></span>
     <span id="last-refresh" class="hdr-kpis" style="font-size:11px;color:rgba(255,255,255,.45)">—</span>
     <span id="logged-as" class="hdr-kpis" style="font-size:12px;color:rgba(255,255,255,.6)"></span>
     <button class="hdr-btn" onclick="refreshAll()" title="전체 새로고침 (Ctrl+R)">↻</button>
@@ -143,16 +144,16 @@
 <div id="app-layout">
 <!-- ── 사이드바 ── -->
 <nav id="sidebar">
-  <div class="nav-group-label">운영 메뉴</div>
-  <button class="nav-item active" onclick="showSection('dashboard')"><span class="nav-icon">🏠</span>통합 홈</button>
-  <button class="nav-item" onclick="showSection('environ')"><span class="nav-icon">🌡️</span>환경·기후</button>
-  <button class="nav-item" onclick="showSection('control')"><span class="nav-icon">🔬</span>병해·AI 진단</button>
-  <button class="nav-item" onclick="showSection('irrigation')"><span class="nav-icon">💧</span>관수·양액</button>
-  <button class="nav-item" onclick="showSection('growth')"><span class="nav-icon">🌱</span>생육·재배력</button>
-  <div class="nav-group-label" style="margin-top:8px">유통·경영</div>
-  <button class="nav-item" onclick="showSection('market')"><span class="nav-icon">📦</span>공동출하·유통</button>
-  <button class="nav-item" onclick="showSection('energy')"><span class="nav-icon">💰</span>수익성·ERP</button>
-  <button class="nav-item" onclick="showSection('system')"><span class="nav-icon">🔧</span>연동·모델관리</button>
+  <div class="nav-group-label">운영</div>
+  <button class="nav-item active" onclick="showSection('dashboard')" title="통합 홈 대시보드 — AI 권고·실시간 IoT"><span class="nav-icon">🏠</span>통합 홈</button>
+  <button class="nav-item" onclick="showSection('environ')" title="환경·기후 제어 — 실시간 환경값·기상예보"><span class="nav-icon">🌡️</span>환경·기후</button>
+  <button class="nav-item" onclick="showSection('control')" title="병해·AI 진단 콘솔 — 이미지 탐지·AI 권고"><span class="nav-icon">🔬</span>병해·AI 진단</button>
+  <button class="nav-item" onclick="showSection('irrigation')" title="관수·양액 관리 — Period P1~P6·ET₀ 스케줄"><span class="nav-icon">💧</span>관수·양액</button>
+  <button class="nav-item" onclick="showSection('growth')" title="생육·재배력 — 수확량 예측·What-if 시뮬레이션"><span class="nav-icon">🌱</span>생육·재배력</button>
+  <div class="nav-group-label" style="margin-top:6px">유통·경영</div>
+  <button class="nav-item" onclick="showSection('market')" title="공동출하·유통 — Pool 현황·KAMIS 시세"><span class="nav-icon">📦</span>공동출하·유통</button>
+  <button class="nav-item" onclick="showSection('energy')" title="수익성·ERP — 원가·마진·소득률 분석"><span class="nav-icon">💰</span>수익성·ERP</button>
+  <button class="nav-item" onclick="showSection('system')" title="연동·모델관리 — AI 학습·드리프트 모니터링"><span class="nav-icon">🔧</span>연동·모델관리</button>
   <!-- 구독 플랜 배지 -->
   <div id="plan-badge-wrap">
     <div class="plan-badge" onclick="openUpgradeModal()" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){openUpgradeModal();event.preventDefault()}" title="플랜 업그레이드">
@@ -201,19 +202,33 @@
 <!-- ══════════════ 대시보드 (C3 통합 홈) ══════════════ -->
 <div id="sec-dashboard" class="sec active" style="display:flex">
 
+  <!-- 섹션 스트립 -->
+  <div class="sec-strip" data-sec="dashboard">
+    <div class="sec-strip-left">
+      <span class="sec-strip-icon">🏠</span>
+      <div>
+        <div class="sec-strip-name">통합 홈 대시보드</div>
+        <div class="sec-strip-sub">실시간 IoT · AI 권고 · 수익성 · 공동출하 현황</div>
+      </div>
+    </div>
+    <div class="sec-strip-right">
+      <span class="sec-tag">C3</span>
+      <div class="ws-badge disconnected" id="ws-badge">
+        <div class="ws-dot" id="ws-dot"></div>
+        <span id="ws-label">IoT</span>
+      </div>
+    </div>
+  </div>
+
   <!-- ── Hero 배너 ── -->
   <div class="hero-banner">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px">
       <div>
-        <h2 style="margin:0;font-size:22px;font-weight:800;letter-spacing:-.04em">🌿 오늘의 농장 운영상태</h2>
-        <p style="font-size:12px;opacity:.85;margin:6px 0 0">AI 추천 To-do · 실시간 수익성 · 공동출하 현황</p>
+        <h2 class="hero-title">🌿 오늘의 농장 운영상태</h2>
+        <p class="hero-sub">AI 추천 To-do · 실시간 수익성 · 공동출하 현황</p>
       </div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
         <span id="hero-mode-pill" style="background:rgba(255,255,255,.2);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:700">Private 모드</span>
-        <div class="ws-badge disconnected" id="ws-badge" style="background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.3)">
-          <div class="ws-dot" id="ws-dot"></div>
-          <span id="ws-label">IoT 연결 확인</span>
-        </div>
       </div>
     </div>
     <div class="hero-kpi-row">
@@ -454,8 +469,23 @@
 <!-- ══════════════ 생육·재배력 (G4 + G6) ══════════════ -->
 <div id="sec-growth" class="sec">
 
+  <!-- 섹션 스트립 -->
+  <div class="sec-strip" data-sec="growth">
+    <div class="sec-strip-left">
+      <span class="sec-strip-icon">🌱</span>
+      <div>
+        <div class="sec-strip-name">생육·재배력 관리</div>
+        <div class="sec-strip-sub">생육 모델 · 수확량 예측 · What-if 시뮬레이션 · SFROP v2.0</div>
+      </div>
+    </div>
+    <div class="sec-strip-right">
+      <span class="sec-tag">G4</span>
+      <span class="sec-tag">G6</span>
+    </div>
+  </div>
+
   <!-- G4 생육모델 헤더 -->
-  <div class="card sec-intro-card" style="background:linear-gradient(135deg,rgba(63,185,80,.08),rgba(46,160,67,.05));border:1px solid rgba(63,185,80,.2)">
+  <div class="card sec-intro-card sic-green">
     <div class="screen-hdr">
       <h4>🌱 온실 생육모델·재배력</h4>
       <div class="model-seg-ctrl" id="model-seg-ctrl" style="display:flex;gap:6px;align-items:center">
@@ -473,7 +503,7 @@
   </div>
 
   <!-- G6 수확·공동출하 헤더 -->
-  <div class="card" style="background:linear-gradient(135deg,rgba(88,166,255,.08),rgba(88,166,255,.05));border:1px solid rgba(88,166,255,.2)">
+  <div class="card sec-intro-card sic-blue">
     <div class="screen-hdr">
       <h4>📦 온실 수확·유통·공동출하</h4>
       <span class="meta">개별출하 vs 공동출하 의사결정</span>
@@ -781,8 +811,22 @@
 <!-- ══════════════ 관수·양액 Period 관리 (G3) ══════════════ -->
 <div id="sec-irrigation" class="sec">
 
+  <!-- 섹션 스트립 -->
+  <div class="sec-strip blue" data-sec="irrigation">
+    <div class="sec-strip-left">
+      <span class="sec-strip-icon">💧</span>
+      <div>
+        <div class="sec-strip-name">관수·양액 관리</div>
+        <div class="sec-strip-sub">Period P1~P6 · ET₀ 관수 스케줄 · 배액률 · pH/EC 모니터링</div>
+      </div>
+    </div>
+    <div class="sec-strip-right">
+      <span class="sec-tag blue">G3</span>
+    </div>
+  </div>
+
   <!-- G3 헤더 -->
-  <div class="card sec-intro-card blue-theme" style="background:linear-gradient(135deg,rgba(88,166,255,.07),rgba(56,139,253,.04));border:1px solid rgba(88,166,255,.18)">
+  <div class="card sec-intro-card sic-blue">
     <div class="screen-hdr">
       <h4>💧 관수·양액 Dashboard</h4>
       <span class="meta">첫 관수 · 정오 고부하 · 마감 관수</span>
@@ -967,8 +1011,22 @@
 <!-- ══════════════ 수익성·ERP 원가·마진 관리 (C5) ══════════════ -->
 <div id="sec-energy" class="sec">
 
+  <!-- 섹션 스트립 -->
+  <div class="sec-strip orange" data-sec="energy">
+    <div class="sec-strip-left">
+      <span class="sec-strip-icon">💰</span>
+      <div>
+        <div class="sec-strip-name">수익성·ERP 관리</div>
+        <div class="sec-strip-sub">원가·마진 · 소득률 · 손익분기 · 공동출하 수익 비교</div>
+      </div>
+    </div>
+    <div class="sec-strip-right">
+      <span class="sec-tag orange">C5</span>
+    </div>
+  </div>
+
   <!-- C5 헤더 KPI -->
-  <div class="card sec-intro-card orange-theme" style="background:linear-gradient(135deg,rgba(245,158,11,.10),rgba(245,158,11,.05));border:1px solid rgba(245,158,11,.25)">
+  <div class="card sec-intro-card sic-orange">
     <div class="screen-hdr">
       <h4>💰 농장 경영 KPI</h4>
       <span class="meta">월간 / 작기 / 온실동·필지별</span>
@@ -1172,8 +1230,23 @@
 <!-- ══════════════ 병해·품질 이미지 진단 + AI 최적 권고 (G5 + C4) ══════════════ -->
 <div id="sec-control" class="sec">
 
+  <!-- 섹션 스트립 -->
+  <div class="sec-strip orange" data-sec="control">
+    <div class="sec-strip-left">
+      <span class="sec-strip-icon">🔬</span>
+      <div>
+        <div class="sec-strip-name">병해·AI 진단 콘솔</div>
+        <div class="sec-strip-sub">이미지 병해 탐지 · AI 최적 권고 · 재배 권고 이력 · 빈도 히트맵</div>
+      </div>
+    </div>
+    <div class="sec-strip-right">
+      <span class="sec-tag orange">G5</span>
+      <span class="sec-tag orange">C4</span>
+    </div>
+  </div>
+
   <!-- G5 병해·품질 헤더 -->
-  <div class="card sec-intro-card orange-theme" style="background:linear-gradient(135deg,rgba(219,109,40,.08),rgba(219,109,40,.05));border:1px solid rgba(219,109,40,.2)">
+  <div class="card sec-intro-card sic-orange" style="border-color:rgba(219,109,40,.2)">
     <div class="screen-hdr">
       <h4>🔬 온실 병해·품질 이미지 진단</h4>
       <span class="meta">병반·트랩·과실·생장점 AI 판정</span>
@@ -1193,7 +1266,7 @@
   </div>
 
   <!-- C4 AI 진단 헤더 -->
-  <div class="card" style="background:linear-gradient(135deg,rgba(188,140,255,.10),rgba(188,140,255,.05));border:1px solid rgba(188,140,255,.25)">
+  <div class="card sec-intro-card sic-purple">
     <div class="screen-hdr">
       <h4>🤖 AI 진단 콘솔 (C4)</h4>
       <span class="meta">질문 → 근거 → 추천 → 전문가 연결</span>
@@ -1279,6 +1352,20 @@
 <!-- ══════════════ 환경·기후·에너지 제어 (G2) ══════════════ -->
 <div id="sec-environ" class="sec">
 
+  <!-- 섹션 스트립 -->
+  <div class="sec-strip" data-sec="environ">
+    <div class="sec-strip-left">
+      <span class="sec-strip-icon">🌡️</span>
+      <div>
+        <div class="sec-strip-name">환경·기후 제어</div>
+        <div class="sec-strip-sub">실시간 환경값 · 기상예보 + ET₀ · 환경 이력 · 수동입력</div>
+      </div>
+    </div>
+    <div class="sec-strip-right">
+      <span class="sec-tag">G2</span>
+    </div>
+  </div>
+
   <!-- G2 탭 전환 (환경현황 / 수동입력 / 이력) — 작업지시서 §10.4 -->
   <div class="seg-ctrl env-seg-ctrl" role="tablist" aria-label="환경제어 탭">
     <button class="seg-btn active" role="tab" aria-selected="true" data-envtab="realtime" onclick="switchEnvTab('realtime',this)">🌡️ 환경현황</button>
@@ -1287,7 +1374,7 @@
   </div>
 
   <!-- G2 환경제어 헤더 -->
-  <div class="card sec-intro-card" style="background:linear-gradient(135deg,rgba(63,185,80,.08),rgba(46,160,67,.05));border:1px solid rgba(63,185,80,.2)">
+  <div class="card sec-intro-card sic-green">
     <div class="screen-hdr">
       <h4>🌡️ 환경제어 콘솔</h4>
       <span class="meta">수동보조 / 권고형 / 승인형 / 자동제어</span>
@@ -1484,8 +1571,22 @@
 <!-- ══════════════ 공동출하·유통관리 센터 (C12) ══════════════ -->
 <div id="sec-market" class="sec">
 
+  <!-- 섹션 스트립 -->
+  <div class="sec-strip teal" data-sec="market">
+    <div class="sec-strip-left">
+      <span class="sec-strip-icon">📦</span>
+      <div>
+        <div class="sec-strip-name">공동출하·유통관리</div>
+        <div class="sec-strip-sub">Pool 현황 · KAMIS 시세 · 가격 이력 · 출하 일정 · 유통마진</div>
+      </div>
+    </div>
+    <div class="sec-strip-right">
+      <span class="sec-tag teal">C12</span>
+    </div>
+  </div>
+
   <!-- C12 공동출하 헤더 -->
-  <div class="card sec-intro-card" style="background:linear-gradient(135deg,rgba(63,185,80,.08),rgba(46,160,67,.05));border:1px solid rgba(63,185,80,.2)">
+  <div class="card sec-intro-card sic-green">
     <div class="screen-hdr">
       <h4>📦 공동출하 운영 대시보드</h4>
       <span class="meta">Pool 생성 · 참여요청 · 정산</span>
@@ -1609,8 +1710,23 @@
 <!-- ══════════════ 이기종 연동·모델관리 (C8 + C6) ══════════════ -->
 <div id="sec-system" class="sec">
 
+  <!-- 섹션 스트립 -->
+  <div class="sec-strip purple" data-sec="system">
+    <div class="sec-strip-left">
+      <span class="sec-strip-icon">🔧</span>
+      <div>
+        <div class="sec-strip-name">연동·모델관리 센터</div>
+        <div class="sec-strip-sub">이기종 연동 · AI 학습 파이프라인 · 모델 성능 · 드리프트 모니터링</div>
+      </div>
+    </div>
+    <div class="sec-strip-right">
+      <span class="sec-tag purple">C8</span>
+      <span class="sec-tag purple">C6</span>
+    </div>
+  </div>
+
   <!-- C8 이기종 연동·진단 헤더 -->
-  <div class="card sec-intro-card blue-theme" style="background:linear-gradient(135deg,rgba(88,166,255,.08),rgba(88,166,255,.04));border:1px solid rgba(88,166,255,.20)">
+  <div class="card sec-intro-card sic-blue" style="border-color:rgba(88,166,255,.20)">
     <div class="screen-hdr">
       <h4>🔌 연동·진단 현황 (C8)</h4>
       <span class="meta">장비탐색 → 표준매핑 → 캘리브레이션</span>
@@ -1633,7 +1749,7 @@
   </div>
 
   <!-- C6 AI 학습·모델관리 헤더 -->
-  <div class="card" style="background:linear-gradient(135deg,rgba(188,140,255,.10),rgba(188,140,255,.05));border:1px solid rgba(188,140,255,.25)">
+  <div class="card sec-intro-card sic-purple">
     <div class="screen-hdr">
       <h4>🤖 AI 학습·모델관리 센터 (C6)</h4>
       <span class="meta">Private 데이터 제외</span>

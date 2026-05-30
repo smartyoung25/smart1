@@ -2454,3 +2454,74 @@ input:focus, select:focus, textarea:focus {
     from { transform: translateY(-100%); }
     to   { transform: translateY(0); }
   }
+
+/* ════════════════════════════════════════════════════════════════
+   SECTION WIREFRAME v3 — 섹션 스트립 + 통합 시각 구조 (2026-05-30)
+   ════════════════════════════════════════════════════════════════ */
+
+/* ── S1. Section Title Strip ─────────────────────────────────── */
+.sec-strip {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 20px; gap: 12px; flex-wrap: wrap;
+  background: linear-gradient(90deg, rgba(63,185,80,.07) 0%, transparent 55%);
+  border-radius: var(--r-lg, 16px);
+  border: 1px solid rgba(255,255,255,.06);
+  border-left: 3px solid var(--accent, #3fb950);
+  margin-bottom: 2px;
+}
+.sec-strip.blue   { background: linear-gradient(90deg,rgba(88,166,255,.07),transparent 55%); border-left-color: #58a6ff; }
+.sec-strip.orange { background: linear-gradient(90deg,rgba(245,158,11,.07),transparent 55%); border-left-color: #db6d28; }
+.sec-strip.purple { background: linear-gradient(90deg,rgba(188,140,255,.07),transparent 55%); border-left-color: #bc8cff; }
+.sec-strip.teal   { background: linear-gradient(90deg,rgba(46,212,191,.07),transparent 55%); border-left-color: #2ed4bf; }
+.sec-strip-left   { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.sec-strip-icon   { font-size: 24px; flex-shrink: 0; }
+.sec-strip-name   { font-size: 15px; font-weight: 800; letter-spacing: -.04em; color: var(--text, #e6edf3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sec-strip-sub    { font-size: 11px; color: var(--muted, #8b949e); margin-top: 2px; line-height: 1.4; }
+.sec-strip-right  { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
+/* Section code badges */
+.sec-tag { display: inline-block; font-size: 9px; font-weight: 700; padding: 3px 9px; border-radius: 20px; letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; background: rgba(63,185,80,.15); color: #3fb950; border: 1px solid rgba(63,185,80,.3); }
+.sec-tag.blue   { background: rgba(88,166,255,.15); color: #58a6ff; border-color: rgba(88,166,255,.3); }
+.sec-tag.orange { background: rgba(245,158,11,.15); color: #db6d28; border-color: rgba(245,158,11,.3); }
+.sec-tag.purple { background: rgba(188,140,255,.15); color: #bc8cff; border-color: rgba(188,140,255,.3); }
+.sec-tag.teal   { background: rgba(46,212,191,.15); color: #2ed4bf; border-color: rgba(46,212,191,.3); }
+
+@media (max-width: 767px) {
+  .sec-strip { padding: 10px 14px; }
+  .sec-strip-icon { font-size: 20px; }
+  .sec-strip-name { font-size: 13px; }
+  .sec-strip-sub  { display: none; }
+}
+
+/* ── S2. Hero Banner v3 (overrides) ─────────────────────────── */
+.hero-banner { position: relative; overflow: hidden; }
+.hero-banner::after {
+  content: ''; position: absolute; bottom: -40px; left: 8%;
+  width: 150px; height: 150px; border-radius: 50%;
+  background: radial-gradient(circle,rgba(88,166,255,.07) 0%,transparent 70%);
+  pointer-events: none;
+}
+.hero-title { margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -.05em; line-height: 1.2; }
+.hero-sub   { font-size: 11px; opacity: .75; margin: 6px 0 0; }
+.hero-kpi-card {
+  background: rgba(255,255,255,.07);
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: var(--r-md, 12px); padding: 12px 14px;
+  backdrop-filter: blur(8px);
+  transition: background .2s, border-color .2s, transform .2s;
+}
+.hero-kpi-card:hover { background: rgba(255,255,255,.11); border-color: rgba(63,185,80,.3); transform: translateY(-2px); }
+.hk-label { display: block; font-size: 10px; color: rgba(255,255,255,.55); font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+.hk-val   { display: block; font-size: 20px; font-weight: 800; letter-spacing: -.04em; margin: 4px 0 2px; }
+.hk-hint  { display: block; font-size: 10px; color: rgba(255,255,255,.45); }
+
+/* ── S3. Section intro card — color utilities ───────────────── */
+.sic-green  { background: linear-gradient(135deg,rgba(63,185,80,.08),rgba(46,160,67,.04)) !important; border-color: rgba(63,185,80,.2) !important; }
+.sic-blue   { background: linear-gradient(135deg,rgba(88,166,255,.08),rgba(56,139,253,.04)) !important; border-color: rgba(88,166,255,.18) !important; }
+.sic-orange { background: linear-gradient(135deg,rgba(245,158,11,.09),rgba(245,158,11,.04)) !important; border-color: rgba(245,158,11,.22) !important; }
+.sic-purple { background: linear-gradient(135deg,rgba(188,140,255,.10),rgba(188,140,255,.05)) !important; border-color: rgba(188,140,255,.22) !important; }
+
+/* ── S4. Bottom nav improvements ────────────────────────────── */
+#bottom-nav { border-top: 1px solid rgba(63,185,80,.12); }
+.bn-tab.active svg  { stroke: var(--accent, #3fb950); }
+.bn-tab.active span { color: var(--accent, #3fb950); font-weight: 700; }

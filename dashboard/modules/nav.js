@@ -178,6 +178,13 @@ const SECTION_LOADERS = {
 };
 
 // ── 섹션 전환 ────────────────────────────────────────────────────────────────
+// ── 섹션 이름 맵 (헤더 레이블) ──────────────────────────────────────────────
+const _SEC_LABELS = {
+  dashboard: '통합 홈', environ: '환경·기후', control: '병해·AI 진단',
+  irrigation: '관수·양액', growth: '생육·재배력',
+  market: '공동출하', energy: '수익성·ERP', system: '연동·모델',
+};
+
 function showSection(name) {
   const secEl = document.getElementById(`sec-${name}`);
   if (!secEl) { console.warn('[showSection] 섹션 없음:', name); name = 'dashboard'; }
@@ -188,6 +195,13 @@ function showSection(name) {
   const bnTab = document.querySelector(`.bn-tab[data-sec="${name}"]`);
   if (bnTab) bnTab.classList.add('active');
   closeDrawer();
+
+  // 헤더 섹션 레이블 업데이트 (데스크탑: 홈이면 숨김, 나머지 표시)
+  const _lbl = document.getElementById('hdr-sec-label');
+  if (_lbl) {
+    if (name === 'dashboard') { _lbl.style.display = 'none'; }
+    else { _lbl.textContent = _SEC_LABELS[name] || name; _lbl.style.display = ''; }
+  }
 
   document.querySelectorAll('.sec').forEach(s => {
     s.classList.remove('active');
