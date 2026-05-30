@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -296,38 +296,50 @@
 
   <!-- ── KPI 요약 4개 ── -->
   <div class="kpi-row r4">
-    <div class="kpi-card">
-      <span class="kc-label">API 상태</span>
-      <span class="kc-val green" id="kpi-api">—</span>
-      <span class="kc-hint" id="kpi-api-ver">FastAPI</span>
+    <div class="kpi-card kpi-card-ico">
+      <div class="kpi-ico-badge">🔗</div>
+      <div class="kpi-ico-body">
+        <span class="kc-label">API 상태</span>
+        <span class="kc-val green" id="kpi-api">—</span>
+        <span class="kc-hint" id="kpi-api-ver">FastAPI</span>
+      </div>
     </div>
-    <div class="kpi-card">
-      <span class="kc-label">모델 로드</span>
-      <span class="kc-val green" id="kpi-models">—</span>
-      <span class="kc-hint">작목 모델</span>
+    <div class="kpi-card kpi-card-ico">
+      <div class="kpi-ico-badge">🧠</div>
+      <div class="kpi-ico-body">
+        <span class="kc-label">모델 로드</span>
+        <span class="kc-val green" id="kpi-models">—</span>
+        <span class="kc-hint">작목 모델</span>
+      </div>
     </div>
-    <div class="kpi-card">
-      <span class="kc-label">공동출하 예정</span>
-      <span class="kc-val blue" id="kpi-pool-ready">—</span>
-      <span class="kc-hint">Pool 후보</span>
+    <div class="kpi-card kpi-card-ico">
+      <div class="kpi-ico-badge blue">🤝</div>
+      <div class="kpi-ico-body">
+        <span class="kc-label">공동출하 예정</span>
+        <span class="kc-val blue" id="kpi-pool-ready">—</span>
+        <span class="kc-hint">Pool 후보</span>
+      </div>
     </div>
-    <div class="kpi-card">
-      <span class="kc-label">실시간 IoT</span>
-      <span class="kc-val" id="kpi-iot-status">—</span>
-      <span class="kc-hint">
-        <select class="sensor-farm-sel" id="sensor-farm-sel" onchange="switchFarm(this.value)" style="font-size:10px;padding:1px 4px;border-radius:4px;border:1px solid var(--border)">
-          <option value="farm_001">farm_001</option>
-          <option value="farm_002">farm_002</option>
-          <option value="farm_003">farm_003</option>
-          <option value="farm_004">farm_004</option>
-        </select>
-      </span>
+    <div class="kpi-card kpi-card-ico">
+      <div class="kpi-ico-badge orange">📡</div>
+      <div class="kpi-ico-body">
+        <span class="kc-label">실시간 IoT</span>
+        <span class="kc-val" id="kpi-iot-status">—</span>
+        <span class="kc-hint">
+          <select class="sensor-farm-sel" id="sensor-farm-sel" onchange="switchFarm(this.value)" style="font-size:10px;padding:1px 4px;border-radius:4px;border:1px solid var(--border)">
+            <option value="farm_001">farm_001</option>
+            <option value="farm_002">farm_002</option>
+            <option value="farm_003">farm_003</option>
+            <option value="farm_004">farm_004</option>
+          </select>
+        </span>
+      </div>
     </div>
   </div>
 
   <!-- ── 실시간 센서 그리드 (축약) ── -->
   <div class="card" id="sensor-panel">
-    <div class="card-title-row">
+    <div class="card-hdr">
       <span class="ct">📡 실시간 센서 (IoT)</span>
       <div style="display:flex;gap:8px;align-items:center">
         <button class="hdr-btn" onclick="wsConnect()" style="font-size:11px;padding:3px 10px">↺ 재연결</button>
@@ -356,9 +368,9 @@
 
   <!-- ── 전체 농장 현황 (멀티 농장 비교) ── -->
   <div class="card" id="farms-overview-card">
-    <div class="farms-hdr">
-      <div class="card-title" style="margin:0">🏭 전체 농장 현황</div>
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+    <div class="card-hdr">
+      <span class="cht">🏭 전체 농장 현황</span>
+      <div class="chr">
         <input id="farm-search" type="search" placeholder="농장 ID·지역·작목 검색" oninput="renderFarmsTable()" class="filter-input">
         <select id="farm-crop-filter" onchange="renderFarmsTable()" class="filter-input">
           <option value="">전체 작목</option>
@@ -495,13 +507,14 @@
       </div>
     </div>
     <div class="kpi-row r3" style="margin-bottom:12px">
-      <div class="kpi-card"><span class="kc-label">정식 후</span><span class="kc-val" id="growth-days-since">—</span><span class="kc-hint">일</span></div>
-      <div class="kpi-card"><span class="kc-label">현재 생육단계</span><span class="kc-val green" id="growth-stage-label">—</span><span class="kc-hint">자동 감지</span></div>
-      <div class="kpi-card"><span class="kc-label">AI 보정</span><span class="kc-val orange" id="growth-ai-adjust">—</span><span class="kc-hint">표준 대비</span></div>
+      <div class="kpi-card kpi-card-ico"><div class="kpi-ico-badge">📅</div><div class="kpi-ico-body"><span class="kc-label">정식 후</span><span class="kc-val" id="growth-days-since">—</span><span class="kc-hint">일</span></div></div>
+      <div class="kpi-card kpi-card-ico"><div class="kpi-ico-badge">🌿</div><div class="kpi-ico-body"><span class="kc-label">현재 생육단계</span><span class="kc-val green" id="growth-stage-label">—</span><span class="kc-hint">자동 감지</span></div></div>
+      <div class="kpi-card kpi-card-ico"><div class="kpi-ico-badge orange">🤖</div><div class="kpi-ico-body"><span class="kc-label">AI 보정</span><span class="kc-val orange" id="growth-ai-adjust">—</span><span class="kc-hint">표준 대비</span></div></div>
     </div>
     <div class="explain-box" style="margin-top:0"><b>재배력:</b> 정식일·생육단계·환경·관수·병해·수확 일정을 반영해 자동 갱신됩니다.</div>
   </div>
 
+  <div class="sec-sub-label">수확·유통·공동출하 (G6)</div>
   <!-- G6 수확·공동출하 헤더 -->
   <div class="card sec-intro-card sic-blue">
     <div class="screen-hdr">
@@ -509,9 +522,9 @@
       <span class="meta">개별출하 vs 공동출하 의사결정</span>
     </div>
     <div class="kpi-row r3" style="margin-bottom:12px">
-      <div class="kpi-card"><span class="kc-label">7일 예상수확</span><span class="kc-val blue" id="harvest-7d-kg">—</span><span class="kc-hint">kg</span></div>
-      <div class="kpi-card"><span class="kc-label">상품과율</span><span class="kc-val" id="harvest-quality-rate">—</span><span class="kc-hint">%</span></div>
-      <div class="kpi-card"><span class="kc-label">공동출하 마진</span><span class="kc-val green" id="harvest-pool-margin">—</span><span class="kc-hint">원/kg</span></div>
+      <div class="kpi-card kpi-card-ico"><div class="kpi-ico-badge blue">🌾</div><div class="kpi-ico-body"><span class="kc-label">7일 예상수확</span><span class="kc-val blue" id="harvest-7d-kg">—</span><span class="kc-hint">kg</span></div></div>
+      <div class="kpi-card kpi-card-ico"><div class="kpi-ico-badge">⭐</div><div class="kpi-ico-body"><span class="kc-label">상품과율</span><span class="kc-val" id="harvest-quality-rate">—</span><span class="kc-hint">%</span></div></div>
+      <div class="kpi-card kpi-card-ico"><div class="kpi-ico-badge">💹</div><div class="kpi-ico-body"><span class="kc-label">공동출하 마진</span><span class="kc-val green" id="harvest-pool-margin">—</span><span class="kc-hint">원/kg</span></div></div>
     </div>
     <div class="grid-col-2">
       <div class="explain-box" style="margin-top:0"><b>AI 출하 추천:</b> 공동출하 Pool 단가와 개별출하 마진을 자동 비교하여 최적 출하 전략을 제안합니다.</div>
@@ -525,7 +538,7 @@
   <div class="row row-2">
     <!-- 수확량 예측 -->
     <div class="card">
-      <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+      <div class="card-hdr">
         <span>🌾 수확량 예측 (M2)</span>
         <div style="display:flex;gap:6px">
           <select id="growth-farm-sel" class="profit-farm-sel" onchange="loadGrowthHarvestRevenue()">
@@ -545,7 +558,7 @@
 
   <!-- 생육 측정 등록 폼 -->
   <div class="card">
-    <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="toggleCard(this.parentElement.querySelector('.accordion-body'),this.querySelector('.acc-arrow'))">
+    <div class="card-hdr" style="cursor:pointer" onclick="toggleCard(this.parentElement.querySelector('.accordion-body'),this.querySelector('.acc-arrow'))">
       <span>📏 생육 측정 등록 <span style="font-size:11px;font-weight:400;color:var(--muted)">— 주간 측정값 입력 → M1 모델 자동 개선</span></span>
       <svg class="acc-arrow" viewBox="0 0 24 24" style="width:16px;height:16px;flex-shrink:0;transition:transform .25s;fill:none;stroke:var(--muted);stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><polyline points="6 9 12 15 18 9"/></svg>
     </div>
@@ -640,7 +653,7 @@
 
   <!-- 수확량 등록 폼 -->
   <div class="card">
-    <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="toggleCard(this.parentElement.querySelector('.accordion-body'),this.querySelector('.acc-arrow'))">
+    <div class="card-hdr" style="cursor:pointer" onclick="toggleCard(this.parentElement.querySelector('.accordion-body'),this.querySelector('.acc-arrow'))">
       <span>📦 수확량 실측 등록 <span style="font-size:11px;font-weight:400;color:var(--muted)">— 시즌 수확 데이터 입력 → M2 자동 재학습</span></span>
       <svg class="acc-arrow" viewBox="0 0 24 24" style="width:16px;height:16px;flex-shrink:0;transition:transform .25s;fill:none;stroke:var(--muted);stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><polyline points="6 9 12 15 18 9"/></svg>
     </div>
@@ -721,7 +734,7 @@
 
   <!-- What-if 시뮬레이션 -->
   <div class="card">
-    <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+    <div class="card-hdr">
       <span>🔮 What-if 환경 시뮬레이션</span>
       <select id="whatif-farm-sel" class="profit-farm-sel" onchange="resetWhatIf()">
         <option value="">농장 선택…</option>
@@ -767,7 +780,7 @@
 
   <!-- SFROP v2.0 — 4개 시나리오 비교 패널 (혁신④) -->
   <div class="card">
-    <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+    <div class="card-hdr">
       <span>🔬 SFROP v2.0 — 4개 최적화 시나리오 비교</span>
       <select id="sfrop-farm-sel" class="profit-farm-sel" onchange="loadSfropScenarios()">
         <option value="">농장 선택…</option>
@@ -787,7 +800,7 @@
   <!-- 생육·수확 기록 이력 -->
   <div class="row row-2">
     <div class="card">
-      <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+      <div class="card-hdr">
         <span>🌱 생육 측정 기록 이력</span>
         <button class="hdr-btn" onclick="loadGrowthHistory($('growth-farm-sel')?.value || _defaultFarm())">↻</button>
       </div>
@@ -796,7 +809,7 @@
       </div>
     </div>
     <div class="card">
-      <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+      <div class="card-hdr">
         <span>📦 수확량 기록 이력</span>
         <button class="hdr-btn" onclick="loadHarvestHistory($('hv-farm')?.value || _defaultFarm())">↻</button>
       </div>
@@ -832,10 +845,10 @@
       <span class="meta">첫 관수 · 정오 고부하 · 마감 관수</span>
     </div>
     <div class="kpi-row r4" style="margin-bottom:12px">
-      <div class="kpi-card"><span class="kc-label">관수횟수</span><span class="kc-val blue" id="irr-count-today">—</span><span class="kc-hint">회/일</span></div>
-      <div class="kpi-card"><span class="kc-label">배액률</span><span class="kc-val" id="irr-drain-rate">—</span><span class="kc-hint">목표 20~30%</span></div>
-      <div class="kpi-card"><span class="kc-label">배액 EC</span><span class="kc-val" id="irr-drain-ec">—</span><span class="kc-hint">dS/m</span></div>
-      <div class="kpi-card"><span class="kc-label">급액 pH</span><span class="kc-val" id="irr-supply-ph">—</span><span class="kc-hint">목표 5.8~6.2</span></div>
+      <div class="kpi-card kpi-card-ico"><div class="kpi-ico-badge blue">🔁</div><div class="kpi-ico-body"><span class="kc-label">관수횟수</span><span class="kc-val blue" id="irr-count-today">—</span><span class="kc-hint">회/일</span></div></div>
+      <div class="kpi-card kpi-card-ico"><div class="kpi-ico-badge">💦</div><div class="kpi-ico-body"><span class="kc-label">배액률</span><span class="kc-val" id="irr-drain-rate">—</span><span class="kc-hint">목표 20~30%</span></div></div>
+      <div class="kpi-card kpi-card-ico"><div class="kpi-ico-badge">⚡</div><div class="kpi-ico-body"><span class="kc-label">배액 EC</span><span class="kc-val" id="irr-drain-ec">—</span><span class="kc-hint">dS/m</span></div></div>
+      <div class="kpi-card kpi-card-ico"><div class="kpi-ico-badge">🧪</div><div class="kpi-ico-body"><span class="kc-label">급액 pH</span><span class="kc-val" id="irr-supply-ph">—</span><span class="kc-hint">목표 5.8~6.2</span></div></div>
     </div>
     <!-- P1~P6 Period 탭 — 데스크탑: pill-bar / 모바일: timeline-list -->
     <div class="pill-bar period-pill-bar" id="period-bar">
@@ -872,7 +885,7 @@
 
   <!-- 관수 스케줄 예측 -->
   <div class="card">
-    <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+    <div class="card-hdr">
       <span>☀️ KMA 일사량 기반 관수 스케줄 예측</span>
       <div style="display:flex;gap:6px;align-items:center">
         <select id="irr-sched-farm" class="profit-farm-sel" onchange="loadIrrigationSchedule()">
@@ -960,7 +973,7 @@
 
     <!-- 관수 이상 감지 결과 -->
     <div class="card">
-      <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+      <div class="card-hdr">
         <span>⚠️ 관수 이상 감지</span>
         <button class="hdr-btn" onclick="checkIrrigationAnomalies()">↻</button>
       </div>
@@ -972,7 +985,7 @@
 
   <!-- ── 관수 기록 이력 타임라인 ── -->
   <div class="card">
-    <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+    <div class="card-hdr">
       <span>📋 관수 기록 이력 (최근 30일)</span>
       <button class="hdr-btn" onclick="loadIrrigationHistory($('irri-farm-sel2')?.value || _defaultFarm())">↻</button>
     </div>
@@ -983,7 +996,7 @@
 
   <!-- ── Priva ET₀ 기반 관수 스케줄 ── -->
   <div class="card" style="margin-top:12px">
-    <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+    <div class="card-hdr">
       <span>🌱 Priva ET₀ 증산량 기반 관수 스케줄</span>
       <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
         <select id="priva-farm-sel" class="profit-farm-sel" onchange="loadPrivaSchedule()">
@@ -1032,10 +1045,10 @@
       <span class="meta">월간 / 작기 / 온실동·필지별</span>
     </div>
     <div class="kpi-row r4" style="margin-bottom:14px">
-      <div class="kpi-card"><span class="kc-label">kg당 원가</span><span class="kc-val orange" id="c5-cost-kg">—</span><span class="kc-hint" id="c5-cost-hint">원/kg</span></div>
-      <div class="kpi-card"><span class="kc-label">kg당 마진</span><span class="kc-val green" id="c5-margin-kg">—</span><span class="kc-hint" id="c5-margin-hint">원/kg</span></div>
-      <div class="kpi-card"><span class="kc-label">소득률</span><span class="kc-val" id="c5-income-rate">—</span><span class="kc-hint">목표 60%</span></div>
-      <div class="kpi-card"><span class="kc-label">손익분기</span><span class="kc-val" id="c5-breakeven">—</span><span class="kc-hint">kg</span></div>
+      <div class="kpi-card kpi-card-ico"><div class="kpi-ico-badge orange">💸</div><div class="kpi-ico-body"><span class="kc-label">kg당 원가</span><span class="kc-val orange" id="c5-cost-kg">—</span><span class="kc-hint" id="c5-cost-hint">원/kg</span></div></div>
+      <div class="kpi-card kpi-card-ico"><div class="kpi-ico-badge">📈</div><div class="kpi-ico-body"><span class="kc-label">kg당 마진</span><span class="kc-val green" id="c5-margin-kg">—</span><span class="kc-hint" id="c5-margin-hint">원/kg</span></div></div>
+      <div class="kpi-card kpi-card-ico"><div class="kpi-ico-badge">🎯</div><div class="kpi-ico-body"><span class="kc-label">소득률</span><span class="kc-val" id="c5-income-rate">—</span><span class="kc-hint">목표 60%</span></div></div>
+      <div class="kpi-card kpi-card-ico"><div class="kpi-ico-badge red">⚖️</div><div class="kpi-ico-body"><span class="kc-label">손익분기</span><span class="kc-val" id="c5-breakeven">—</span><span class="kc-hint">kg</span></div></div>
     </div>
     <div class="grid-col-2">
       <!-- 원가 구조 바 -->
@@ -1073,7 +1086,7 @@
 
   <!-- ERP 실시간 원가·마진 카드 (SFROP v2.0 혁신④) -->
   <div class="card">
-    <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+    <div class="card-hdr">
       <span>📊 실시간 수익성 분석 (ERP — SFROP v2.0)</span>
       <div style="display:flex;gap:6px;align-items:center">
         <select id="erp-farm-sel" class="profit-farm-sel" onchange="loadERPRealtime()">
@@ -1090,7 +1103,7 @@
   <div class="row row-2">
     <!-- 비용 내역 조회 -->
     <div class="card">
-      <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+      <div class="card-hdr">
         <span>💳 비용 내역 조회 (M4)</span>
         <div style="display:flex;gap:6px">
           <select id="cost-farm-sel" class="profit-farm-sel" onchange="loadCostBreakdown()">
@@ -1103,7 +1116,7 @@
     </div>
     <!-- 이번 시즌 손익 예측 -->
     <div class="card">
-      <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <div class="card-hdr">
         <span>📊 시즌 손익 예측</span>
         <div style="display:flex;gap:6px;align-items:center">
           <select id="profit-farm-sel" class="profit-farm-sel" onchange="loadProfitForecast()">
@@ -1120,7 +1133,7 @@
 
   <!-- 수동 비용 입력 -->
   <div class="card">
-    <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+    <div class="card-hdr">
       <span>✏️ 실제 비용 직접 입력</span>
       <select id="cost-manual-farm" class="profit-farm-sel" onchange="loadCostManualForm()">
         <option value="">농장 선택…</option>
@@ -1252,9 +1265,9 @@
       <span class="meta">병반·트랩·과실·생장점 AI 판정</span>
     </div>
     <div class="kpi-row r3" style="margin-bottom:14px">
-      <div class="kpi-card"><span class="kc-label">병해 위험</span><span class="kc-val" id="g5-disease-risk">—</span><span class="kc-hint" id="g5-disease-hint">AI 탐지</span></div>
-      <div class="kpi-card"><span class="kc-label">해충 위험</span><span class="kc-val orange" id="g5-pest-risk">—</span><span class="kc-hint" id="g5-pest-hint">트랩 포획</span></div>
-      <div class="kpi-card"><span class="kc-label">품질 위험</span><span class="kc-val" id="g5-quality-risk">—</span><span class="kc-hint">공동출하 기준</span></div>
+      <div class="kpi-card kpi-card-ico"><div class="kpi-ico-badge red">🦠</div><div class="kpi-ico-body"><span class="kc-label">병해 위험</span><span class="kc-val" id="g5-disease-risk">—</span><span class="kc-hint" id="g5-disease-hint">AI 탐지</span></div></div>
+      <div class="kpi-card kpi-card-ico"><div class="kpi-ico-badge orange">🐛</div><div class="kpi-ico-body"><span class="kc-label">해충 위험</span><span class="kc-val orange" id="g5-pest-risk">—</span><span class="kc-hint" id="g5-pest-hint">트랩 포획</span></div></div>
+      <div class="kpi-card kpi-card-ico"><div class="kpi-ico-badge">🏷️</div><div class="kpi-ico-body"><span class="kc-label">품질 위험</span><span class="kc-val" id="g5-quality-risk">—</span><span class="kc-hint">공동출하 기준</span></div></div>
     </div>
     <div class="grid-col-2">
       <div class="explain-box" style="margin-top:0"><b>AI 이미지 판정:</b> 병해 이미지는 전문가 처방과 병해모델 학습에 반영됩니다. 품질 이미지는 공동출하 등급 판정의 근거가 됩니다.</div>
@@ -1265,6 +1278,7 @@
     </div>
   </div>
 
+  <div class="sec-sub-label">AI 진단 콘솔 (C4)</div>
   <!-- C4 AI 진단 헤더 -->
   <div class="card sec-intro-card sic-purple">
     <div class="screen-hdr">
@@ -1284,7 +1298,7 @@
 
   <!-- 최적 권고 요약 -->
   <div class="card">
-    <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+    <div class="card-hdr">
       <span>🤖 AI 최적 권고 (실시간)</span>
       <div style="display:flex;gap:6px">
         <select id="ctrl-farm-sel" class="profit-farm-sel" onchange="loadCtrlRecommendations()">
@@ -1298,7 +1312,7 @@
 
   <!-- 권고 이력 피드 -->
   <div class="card">
-    <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+    <div class="card-hdr">
       <span>🌿 재배 권고 이력</span>
       <div class="adv-filter">
         <input  id="adv-filter-farm" placeholder="농장 ID" oninput="renderAdvisoryFeed()" />
@@ -1318,7 +1332,7 @@
 
   <!-- 권고 빈도 히트맵 -->
   <div class="card">
-    <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+    <div class="card-hdr">
       <span>🔥 권고 빈도 히트맵</span>
       <div style="display:flex;gap:6px;align-items:center">
         <select id="heatmap-days-sel" onchange="loadAdvisorySummary()"
@@ -1389,11 +1403,11 @@
     </div>
     <!-- 5개 실시간 KPI -->
     <div class="kpi-row r5" style="margin-bottom:14px">
-      <div class="kpi-card"><span class="kc-label">온도</span><span class="kc-val" id="env-kpi-temp">—</span><span class="kc-hint">°C</span></div>
-      <div class="kpi-card"><span class="kc-label">VPD</span><span class="kc-val" id="env-kpi-vpd">—</span><span class="kc-hint">kPa</span></div>
-      <div class="kpi-card"><span class="kc-label">CO₂</span><span class="kc-val" id="env-kpi-co2">—</span><span class="kc-hint">ppm</span></div>
-      <div class="kpi-card"><span class="kc-label">DLI</span><span class="kc-val" id="env-kpi-dli">—</span><span class="kc-hint">mol/m²d</span></div>
-      <div class="kpi-card"><span class="kc-label">에너지</span><span class="kc-val orange" id="env-kpi-energy">—</span><span class="kc-hint" id="env-kpi-energy-hint">피크여부</span></div>
+      <div class="kpi-card kpi-card-ico"><div class="kpi-ico-badge red">🌡️</div><div class="kpi-ico-body"><span class="kc-label">온도</span><span class="kc-val" id="env-kpi-temp">—</span><span class="kc-hint">°C</span></div></div>
+      <div class="kpi-card kpi-card-ico"><div class="kpi-ico-badge blue">💧</div><div class="kpi-ico-body"><span class="kc-label">VPD</span><span class="kc-val" id="env-kpi-vpd">—</span><span class="kc-hint">kPa</span></div></div>
+      <div class="kpi-card kpi-card-ico"><div class="kpi-ico-badge">🌫️</div><div class="kpi-ico-body"><span class="kc-label">CO₂</span><span class="kc-val" id="env-kpi-co2">—</span><span class="kc-hint">ppm</span></div></div>
+      <div class="kpi-card kpi-card-ico"><div class="kpi-ico-badge">☀️</div><div class="kpi-ico-body"><span class="kc-label">DLI</span><span class="kc-val" id="env-kpi-dli">—</span><span class="kc-hint">mol/m²d</span></div></div>
+      <div class="kpi-card kpi-card-ico"><div class="kpi-ico-badge orange">⚡</div><div class="kpi-ico-body"><span class="kc-label">에너지</span><span class="kc-val orange" id="env-kpi-energy">—</span><span class="kc-hint" id="env-kpi-energy-hint">피크여부</span></div></div>
     </div>
     <div class="grid-col-2">
       <div class="explain-box" style="margin-top:0"><b>자동제어:</b> 센서 오류·통신장애·제어편차가 발생하면 수동모드로 전환합니다. Fail-safe는 항상 활성화됩니다.</div>
@@ -1407,7 +1421,7 @@
   <div class="row row-2 env-panel" data-envpanel="realtime">
     <!-- 현재 환경값 조회 -->
     <div class="card">
-      <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+      <div class="card-hdr">
         <span>🌡️ 현재 환경값</span>
         <div style="display:flex;gap:6px">
           <select id="env-view-farm" class="profit-farm-sel" onchange="loadCurrentEnv()">
@@ -1420,7 +1434,7 @@
     </div>
     <!-- 7일 기상 예보 + ET₀ -->
     <div class="card">
-      <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+      <div class="card-hdr">
         <span>🌤️ 7일 기상 예보 + ET₀ (KMA/Open-Meteo)</span>
         <div style="display:flex;gap:6px">
           <select id="weather-farm-sel" class="profit-farm-sel" onchange="loadWeatherForecast()">
@@ -1436,7 +1450,7 @@
 
   <!-- 수동 환경값 입력 -->
   <div class="card env-panel" data-envpanel="manual" style="display:none">
-    <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+    <div class="card-hdr">
       <span>✏️ 환경값 수동 입력</span>
       <span style="font-size:11px;color:var(--muted)">IoT 미구축 농장 전용</span>
     </div>
@@ -1507,7 +1521,7 @@
 
   <!-- 환경 이상 감지 패널 -->
   <div class="card env-panel" data-envpanel="realtime">
-    <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+    <div class="card-hdr">
       <span>🚨 환경 이상 감지 (VPD·온도·습도·CO₂·EC)</span>
       <div style="display:flex;gap:6px;align-items:center">
         <select id="env-anomaly-farm" class="profit-farm-sel" onchange="loadEnvAnomalies()">
@@ -1523,7 +1537,7 @@
 
   <!-- 환경값 수동 입력 이력 -->
   <div class="card env-panel" data-envpanel="history" style="display:none">
-    <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+    <div class="card-hdr">
       <span>📋 환경값 수동 입력 이력</span>
       <button class="hdr-btn" onclick="loadEnvHistory($('env-manual-farm')?.value || _defaultFarm())">↻</button>
     </div>
@@ -1534,7 +1548,7 @@
 
   <!-- LED 스펙트럼 추천 카드 (SFROP v2.0 혁신③) -->
   <div class="card env-panel" data-envpanel="manual" style="display:none">
-    <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+    <div class="card-hdr">
       <span>💡 LED 스펙트럼 최적화 (작기단계별 자동 권장)</span>
       <select id="led-farm-sel" class="profit-farm-sel" onchange="loadLEDSpectrum()">
         <option value="">농장 선택…</option>
@@ -1592,10 +1606,10 @@
       <span class="meta">Pool 생성 · 참여요청 · 정산</span>
     </div>
     <div class="kpi-row r4" style="margin-bottom:14px">
-      <div class="kpi-card"><span class="kc-label">가입 농가 수</span><span class="kc-val green" id="pool-farm-count">—</span><span class="kc-hint" id="pool-farm-approved">승인 —</span></div>
-      <div class="kpi-card"><span class="kc-label">7일 예상물량</span><span class="kc-val blue" id="pool-volume-7d">—</span><span class="kc-hint" id="pool-quality-rate">특·상 —%</span></div>
-      <div class="kpi-card"><span class="kc-label">예상 평균단가</span><span class="kc-val" id="pool-avg-price">—</span><span class="kc-hint" id="pool-price-change">전주 대비</span></div>
-      <div class="kpi-card"><span class="kc-label">예상 공동마진</span><span class="kc-val green" id="pool-margin-vs-ind">—</span><span class="kc-hint">개별출하 대비</span></div>
+      <div class="kpi-card kpi-card-ico"><div class="kpi-ico-badge">👨‍🌾</div><div class="kpi-ico-body"><span class="kc-label">가입 농가 수</span><span class="kc-val green" id="pool-farm-count">—</span><span class="kc-hint" id="pool-farm-approved">승인 —</span></div></div>
+      <div class="kpi-card kpi-card-ico"><div class="kpi-ico-badge blue">📦</div><div class="kpi-ico-body"><span class="kc-label">7일 예상물량</span><span class="kc-val blue" id="pool-volume-7d">—</span><span class="kc-hint" id="pool-quality-rate">특·상 —%</span></div></div>
+      <div class="kpi-card kpi-card-ico"><div class="kpi-ico-badge teal">🏷️</div><div class="kpi-ico-body"><span class="kc-label">예상 평균단가</span><span class="kc-val" id="pool-avg-price">—</span><span class="kc-hint" id="pool-price-change">전주 대비</span></div></div>
+      <div class="kpi-card kpi-card-ico"><div class="kpi-ico-badge">💰</div><div class="kpi-ico-body"><span class="kc-label">예상 공동마진</span><span class="kc-val green" id="pool-margin-vs-ind">—</span><span class="kc-hint">개별출하 대비</span></div></div>
     </div>
     <div class="grid-col-2">
       <!-- Pool 현황 테이블 -->
@@ -1630,7 +1644,7 @@
 
   <!-- KAMIS 작목별 시세 현황 -->
   <div class="card">
-    <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+    <div class="card-hdr">
       <span>💹 KAMIS 작목별 시세 현황</span>
       <div style="display:flex;gap:6px;align-items:center">
         <button class="hdr-btn" onclick="loadMarketPrices()">↻ 갱신</button>
@@ -1643,7 +1657,7 @@
 
   <!-- 가격 이력 조회 -->
   <div class="card">
-    <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+    <div class="card-hdr">
       <span>📈 가격 이력 (30일)</span>
       <div style="display:flex;gap:6px;align-items:center">
         <select id="price-hist-crop" class="profit-farm-sel" onchange="loadPriceHistory()">
@@ -1666,7 +1680,7 @@
   <div class="row row-2">
     <!-- 수확량 예측 요약 (생산측) -->
     <div class="card">
-      <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+      <div class="card-hdr">
         <span>🌾 출하 예측</span>
         <div style="display:flex;gap:6px">
           <select id="market-harvest-farm" class="profit-farm-sel" onchange="loadMarketHarvest()">
@@ -1680,7 +1694,7 @@
 
     <!-- 어드바이저 최적 환경 (전작목) -->
     <div class="card">
-      <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+      <div class="card-hdr">
         <span>🏆 최적 재배 환경 기준</span>
         <div style="display:flex;gap:6px;align-items:center">
           <select id="advisor-crop-sel" class="profit-farm-sel" onchange="loadAdvisorOptimal()">
@@ -1732,10 +1746,10 @@
       <span class="meta">장비탐색 → 표준매핑 → 캘리브레이션</span>
     </div>
     <div class="kpi-row r4" style="margin-bottom:14px">
-      <div class="kpi-card"><span class="kc-label">센서 연결률</span><span class="kc-val green" id="sys-sensor-conn">—</span><span class="kc-hint" id="sys-sensor-hint">점검 필요</span></div>
-      <div class="kpi-card"><span class="kc-label">제어기 연결</span><span class="kc-val" id="sys-ctrl-conn">—</span><span class="kc-hint" id="sys-ctrl-hint">양액기</span></div>
-      <div class="kpi-card"><span class="kc-label">API 연결률</span><span class="kc-val" id="sys-api-conn">—</span><span class="kc-hint" id="sys-api-hint">KAMIS·KMA</span></div>
-      <div class="kpi-card"><span class="kc-label">제어 성공률</span><span class="kc-val green" id="sys-ctrl-success">—</span><span class="kc-hint">Fail-safe 정상</span></div>
+      <div class="kpi-card kpi-card-ico"><div class="kpi-ico-badge">📡</div><div class="kpi-ico-body"><span class="kc-label">센서 연결률</span><span class="kc-val green" id="sys-sensor-conn">—</span><span class="kc-hint" id="sys-sensor-hint">점검 필요</span></div></div>
+      <div class="kpi-card kpi-card-ico"><div class="kpi-ico-badge blue">🎛️</div><div class="kpi-ico-body"><span class="kc-label">제어기 연결</span><span class="kc-val" id="sys-ctrl-conn">—</span><span class="kc-hint" id="sys-ctrl-hint">양액기</span></div></div>
+      <div class="kpi-card kpi-card-ico"><div class="kpi-ico-badge">🌐</div><div class="kpi-ico-body"><span class="kc-label">API 연결률</span><span class="kc-val" id="sys-api-conn">—</span><span class="kc-hint" id="sys-api-hint">KAMIS·KMA</span></div></div>
+      <div class="kpi-card kpi-card-ico"><div class="kpi-ico-badge">✅</div><div class="kpi-ico-body"><span class="kc-label">제어 성공률</span><span class="kc-val green" id="sys-ctrl-success">—</span><span class="kc-hint">Fail-safe 정상</span></div></div>
     </div>
     <!-- 연동 흐름 -->
     <div class="flow-row" style="margin-bottom:12px">
@@ -1748,6 +1762,7 @@
     <div class="explain-box" style="margin-top:0"><b>연동 품질:</b> 이기종 연동은 단순 연결이 아니라 물리적 성능 보정까지 포함합니다. 연동 품질은 AI 추천 신뢰도의 전제입니다.</div>
   </div>
 
+  <div class="sec-sub-label">AI 학습·모델관리 (C6)</div>
   <!-- C6 AI 학습·모델관리 헤더 -->
   <div class="card sec-intro-card sic-purple">
     <div class="screen-hdr">
@@ -1761,10 +1776,10 @@
       <span class="pill-tag" style="background:rgba(188,140,255,.12);color:#bc8cff;border-color:rgba(188,140,255,.3)">통합수익모델</span>
     </div>
     <div class="kpi-row r4" style="margin-bottom:14px">
-      <div class="kpi-card"><span class="kc-label">학습데이터</span><span class="kc-val blue" id="ml-train-rows">—</span><span class="kc-hint">익명동의 기준</span></div>
-      <div class="kpi-card"><span class="kc-label">데이터품질</span><span class="kc-val green" id="ml-data-quality">—</span><span class="kc-hint">결측률</span></div>
-      <div class="kpi-card"><span class="kc-label">평균 R²</span><span class="kc-val" id="ml-avg-r2">—</span><span class="kc-hint">작목별 상이</span></div>
-      <div class="kpi-card"><span class="kc-label">최신 학습일</span><span class="kc-val" id="ml-last-train">—</span><span class="kc-hint">승인 후 배포</span></div>
+      <div class="kpi-card kpi-card-ico"><div class="kpi-ico-badge blue">🗄️</div><div class="kpi-ico-body"><span class="kc-label">학습데이터</span><span class="kc-val blue" id="ml-train-rows">—</span><span class="kc-hint">익명동의 기준</span></div></div>
+      <div class="kpi-card kpi-card-ico"><div class="kpi-ico-badge">🔍</div><div class="kpi-ico-body"><span class="kc-label">데이터품질</span><span class="kc-val green" id="ml-data-quality">—</span><span class="kc-hint">결측률</span></div></div>
+      <div class="kpi-card kpi-card-ico"><div class="kpi-ico-badge purple">📊</div><div class="kpi-ico-body"><span class="kc-label">평균 R²</span><span class="kc-val" id="ml-avg-r2">—</span><span class="kc-hint">작목별 상이</span></div></div>
+      <div class="kpi-card kpi-card-ico"><div class="kpi-ico-badge">🗓️</div><div class="kpi-ico-body"><span class="kc-label">최신 학습일</span><span class="kc-val" id="ml-last-train">—</span><span class="kc-hint">승인 후 배포</span></div></div>
     </div>
     <!-- 학습 파이프라인 흐름 -->
     <div class="flow-row">
@@ -1780,7 +1795,7 @@
 
   <div class="row row-2">
     <div class="card">
-      <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+      <div class="card-hdr">
         <span>파이프라인 — 재학습 임계값 진행률</span>
         <button class="hdr-btn" id="retrain-trigger-btn" onclick="triggerRetrainManual()" title="수동 재학습 트리거 (어드민 전용)">⚡ 수동 재학습</button>
       </div>
@@ -1793,7 +1808,7 @@
     </div>
   </div>
   <div class="card">
-    <div class="card-title" style="display:flex;justify-content:space-between">
+    <div class="card-hdr">
       <span>ETL 로그 (최근 30줄)</span>
       <span id="etl-mtime" style="font-size:10px;color:var(--muted)"></span>
     </div>
@@ -1802,7 +1817,7 @@
 
   <!-- 모델 성능 매트릭스 -->
   <div class="card">
-    <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+    <div class="card-hdr">
       <span>🤖 ML 모델 성능 매트릭스 (M1~M5)</span>
       <button class="hdr-btn" onclick="loadModelPerformance()">↻</button>
     </div>
@@ -1811,7 +1826,7 @@
 
   <!-- M2 드리프트 모니터링 -->
   <div class="card">
-    <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+    <div class="card-hdr">
       <span>📉 M2 예측 드리프트 모니터링</span>
       <button class="hdr-btn" onclick="loadModelDrift()">↻</button>
     </div>
@@ -1823,7 +1838,7 @@
 
   <!-- 외부 API 연결 상태 -->
   <div class="card">
-    <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+    <div class="card-hdr">
       <span>🔌 외부 API 연결 상태</span>
       <button class="hdr-btn" onclick="loadApiStatus()">↻</button>
     </div>
@@ -1833,7 +1848,7 @@
   <!-- 병해 탐지 통합 + 도매가격 카드 -->
   <div class="row row-2" style="margin-top:12px">
     <div class="card">
-      <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+      <div class="card-hdr">
         <span>🔬 병해 탐지 (Plant.id + NCPMS + M5)</span>
         <button class="hdr-btn" onclick="loadDiseaseDetect()">↻ 재진단</button>
       </div>
@@ -1847,7 +1862,7 @@
       </div>
     </div>
     <div class="card">
-      <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+      <div class="card-hdr">
         <span>💰 도매시장 가격 + M2 수확량 기준</span>
         <button class="hdr-btn" onclick="loadWholesaleMarket()">↻</button>
       </div>

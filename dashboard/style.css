@@ -2525,3 +2525,107 @@ input:focus, select:focus, textarea:focus {
 #bottom-nav { border-top: 1px solid rgba(63,185,80,.12); }
 .bn-tab.active svg  { stroke: var(--accent, #3fb950); }
 .bn-tab.active span { color: var(--accent, #3fb950); font-weight: 700; }
+
+/* ════════════════════════════════════════════════════════════════
+   WIREFRAME v3.1 — 통합 카드헤더 · KPI 아이콘 · 섹션 구분선
+   (2026-05-30)
+   ════════════════════════════════════════════════════════════════ */
+
+/* ── C1. Card Header — Unified ───────────────────────────────── */
+/* 기존 card-title inline-style 패턴을 대체하는 표준 카드 헤더 */
+.card-hdr {
+  display: flex; justify-content: space-between; align-items: center;
+  flex-wrap: wrap; gap: 8px;
+  margin-bottom: 16px; padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255,255,255,.07);
+}
+/* 왼쪽: 타이틀 텍스트 (직접 <span> 또는 .cht 사용) */
+.card-hdr > .cht,
+.card-hdr > span:first-child,
+.card-hdr > h4:first-child {
+  font-size: 14px; font-weight: 800; letter-spacing: -.03em;
+  color: var(--text); display: flex; align-items: center; gap: 6px; margin: 0;
+}
+/* 하위호환: card-title-row의 .ct */
+.card-hdr > .ct {
+  font-size: 14px; font-weight: 800; letter-spacing: -.025em; color: var(--text);
+}
+/* 오른쪽: 컨트롤 영역 (.chr 또는 마지막 div) */
+.card-hdr > .chr,
+.card-hdr > div:not(:first-child) {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+/* meta 텍스트 */
+.card-hdr .meta { font-size: 11px; color: var(--muted); font-weight: 500; }
+
+/* ── C2. KPI Card — Icon Variant ─────────────────────────────── */
+.kpi-card-ico {
+  display: flex; align-items: flex-start; gap: 12px;
+}
+.kpi-ico-badge {
+  width: 40px; height: 40px; flex-shrink: 0;
+  border-radius: var(--r-md, 12px);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  background: rgba(63,185,80,.12);
+}
+.kpi-ico-badge.blue   { background: rgba(88,166,255,.12); }
+.kpi-ico-badge.orange { background: rgba(245,158,11,.12); }
+.kpi-ico-badge.red    { background: rgba(248,81,73,.12); }
+.kpi-ico-badge.purple { background: rgba(188,140,255,.12); }
+.kpi-ico-badge.teal   { background: rgba(46,212,191,.12); }
+.kpi-ico-body { flex: 1; min-width: 0; }
+
+/* ── C3. Section Sub-label Divider ───────────────────────────── */
+.sec-sub-label {
+  font-size: 10px; font-weight: 700; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--muted);
+  display: flex; align-items: center; gap: 8px;
+  margin: 6px 0 10px;
+}
+.sec-sub-label::after {
+  content: ''; flex: 1; height: 1px;
+  background: rgba(255,255,255,.07);
+}
+
+/* ── C4. Stat Chip (inline key=value badge) ──────────────────── */
+.stat-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.09);
+  border-radius: 20px; padding: 3px 10px;
+  font-size: 11px; font-weight: 600; color: var(--text);
+  white-space: nowrap;
+}
+.stat-chip.green  { background: rgba(63,185,80,.1);  border-color: rgba(63,185,80,.2);  color: #3fb950; }
+.stat-chip.blue   { background: rgba(88,166,255,.1); border-color: rgba(88,166,255,.2); color: #58a6ff; }
+.stat-chip.orange { background: rgba(245,158,11,.1); border-color: rgba(245,158,11,.2); color: #db6d28; }
+.stat-chip.red    { background: rgba(248,81,73,.1);  border-color: rgba(248,81,73,.2);  color: #f85149; }
+
+/* ── C5. farms-hdr alias ──────────────────────────────────────── */
+.farms-hdr { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.farms-hdr .card-title { margin-bottom: 0; }
+
+/* ── C6. Section Intro Card spacing ─────────────────────────── */
+.sec-intro-card > .card-hdr { border-bottom-color: rgba(255,255,255,.1); }
+.sec-intro-card > .screen-hdr { border-bottom-color: rgba(255,255,255,.1); }
+
+/* ── C7. Animated status dot ──────────────────────────────────── */
+.status-dot {
+  display: inline-block; width: 8px; height: 8px;
+  border-radius: 50%; flex-shrink: 0; vertical-align: middle;
+  background: var(--muted);
+}
+.status-dot.ok     { background: var(--green); box-shadow: 0 0 0 2px rgba(63,185,80,.25); }
+.status-dot.warn   { background: var(--yellow); box-shadow: 0 0 0 2px rgba(210,153,34,.25); }
+.status-dot.err    { background: var(--red); box-shadow: 0 0 0 2px rgba(248,81,73,.25); }
+.status-dot.pulse  { animation: dotPulse 1.8s ease-in-out infinite; }
+@keyframes dotPulse {
+  0%,100% { box-shadow: 0 0 0 2px rgba(63,185,80,.25); }
+  50%     { box-shadow: 0 0 0 5px rgba(63,185,80,.08); }
+}
+
+/* ── C8. Mobile tweaks ───────────────────────────────────────── */
+@media (max-width: 767px) {
+  .card-hdr { gap: 6px; margin-bottom: 12px; padding-bottom: 10px; }
+  .kpi-ico-badge { width: 34px; height: 34px; font-size: 15px; }
+}
