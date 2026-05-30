@@ -2750,3 +2750,17 @@ input:focus, select:focus, textarea:focus {
     width: 100%; justify-content: flex-start;
   }
 }
+
+/* ── T16. Card Note + Footer Note ───────────────────────────── */
+.card-note {
+  font-size: 10px; color: var(--muted); margin-bottom: 8px;
+  line-height: 1.5;
+}
+.card-footer-note {
+  margin-top: 10px; font-size: 10px; color: var(--muted);
+  border-top: 1px solid var(--border); padding-top: 6px;
+  line-height: 1.5;
+}
+
+/* ── T17. System section sub-group spacing ───────────────────── */
+#sec-system .row.row-2 { margin-top: 0; }
