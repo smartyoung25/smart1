@@ -88,11 +88,11 @@ services:
       - "${NGINX_PORT:-80}:80"
       - "${NGINX_SSL_PORT:-443}:443"
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/nginx-selfsigned.conf:/etc/nginx/nginx.conf:ro
       - ./dashboard:/usr/share/nginx/html:ro
       - certbot_www:/var/www/certbot:ro
       - certbot_certs:/etc/letsencrypt:ro
-      # Self-signed 사용 시: ./nginx/certs:/etc/nginx/certs:ro
+      - C:/nginx/ssl:/etc/nginx/certs:ro   # self-signed 인증서 (Let's Encrypt 전환 전 사용)
     depends_on:
       api:
         condition: service_healthy

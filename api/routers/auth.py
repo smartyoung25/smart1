@@ -70,8 +70,12 @@ def _verify_password(plain: str, hashed: str) -> bool:
         import bcrypt
         return bcrypt.checkpw(plain.encode(), hashed.encode())
     except ImportError:
-        logger.warning("[auth] bcrypt 미설치 — 평문 비교 사용 (개발 전용)")
-        return plain == hashed
+        # 평문 폴백 제거 — 무음 보안 취약점 차단
+        raise RuntimeError(
+            "[auth] bcrypt 미설치. 서버를 종료하고 "
+            "`pip install bcrypt>=4.1.0` 실행 후 재시작하세요. "
+            "(requirements.api.txt 에 이미 명시됨)"
+        )
 
 
 def _hash_password(plain: str) -> str:
@@ -79,7 +83,10 @@ def _hash_password(plain: str) -> str:
         import bcrypt
         return bcrypt.hashpw(plain.encode(), bcrypt.gensalt()).decode()
     except ImportError:
-        return plain   # 개발 전용 평문 폴백
+        raise RuntimeError(
+            "[auth] bcrypt 미설치 — 회원가입 불가. "
+            "`pip install bcrypt>=4.1.0` 실행 후 재시작하세요."
+        )
 
 
 def _build_token_response(user: dict, onboarding_required: bool = False) -> TokenResponse:
