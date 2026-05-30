@@ -184,6 +184,12 @@ const _SEC_LABELS = {
   irrigation: '관수·양액', growth: '생육·재배력',
   market: '공동출하', energy: '수익성·ERP', system: '연동·모델',
 };
+// 섹션별 강조색 (CSS 변수 or hex)
+const _SEC_COLORS = {
+  dashboard: '#3fb950', environ: '#3fb950', growth: '#3fb950',
+  irrigation: '#58a6ff', control: '#db6d28', energy: '#db6d28',
+  market: '#2ed4bf', system: '#bc8cff',
+};
 
 function showSection(name) {
   const secEl = document.getElementById(`sec-${name}`);
@@ -199,8 +205,13 @@ function showSection(name) {
   // 헤더 섹션 레이블 업데이트 (데스크탑: 홈이면 숨김, 나머지 표시)
   const _lbl = document.getElementById('hdr-sec-label');
   if (_lbl) {
-    if (name === 'dashboard') { _lbl.style.display = 'none'; }
-    else { _lbl.textContent = _SEC_LABELS[name] || name; _lbl.style.display = ''; }
+    if (name === 'dashboard') {
+      _lbl.style.display = 'none';
+    } else {
+      _lbl.textContent = _SEC_LABELS[name] || name;
+      _lbl.style.display = '';
+      _lbl.style.color = _SEC_COLORS[name] || 'rgba(255,255,255,.4)';
+    }
   }
 
   document.querySelectorAll('.sec').forEach(s => {
