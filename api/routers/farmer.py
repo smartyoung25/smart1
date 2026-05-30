@@ -60,6 +60,22 @@ from api.services.model_loader import predict_revenue_per_m2, get_model_meta, pr
 from models.m5_disease import env_risk_predict as _env_risk_predict
 from adapters.irrigation_adapter import adapt_irrigation
 from models.crop_config import CROP_CONFIGS
+import time as _time, hashlib as _hashlib, json as _json_mod
+
+# ── in-memory TTL 캐시 (Redis 없이 ML 추론 결과 캐싱) ────────────────────────
+_RECO_CACHE:   dict[str, tuple[float, object]] = {}
+_WHATIF_CACHE: dict[str, tuple[float, object]] = {}
+_RECO_TTL   = 300   # 5분
+_WHATIF_TTL = 120   # 2분
+
+def _mk_cache_key(data: dict) -> str:
+    return _hashlib.md5(_json_mod.dumps(data, sort_keys=True, default=str).encode()).hexdigest()
+
+def _cache_evict() -> None:
+    now = _time.monotonic()
+    for store in (_RECO_CACHE, _WHATIF_CACHE):
+        for k in [k for k, (exp, _) in store.items() if exp < now]:
+            del store[k]
 
 async def _verify_farm_ownership(
     farm_id: str, user: dict = Depends(require_auth)
@@ -601,6 +617,13 @@ def get_recommendations(farm_id: str):
     merged_env = {**base, **env_values}
     current_env = EnvState(farm_id=farm_id, values=merged_env)
 
+    _cache_evict()
+    _reco_ck = _mk_cache_key({"farm_id": farm_id, "env": merged_env})
+    _reco_hit = _RECO_CACHE.get(_reco_ck)
+    if _reco_hit and _reco_hit[0] > _time.monotonic():
+        logger.info("[reco] cache hit farm=%s", farm_id)
+        return _reco_hit[1]
+
     recs = optimize(
         farm_id=farm_id,
         tier=meta["tier"],
@@ -622,11 +645,13 @@ def get_recommendations(farm_id: str):
         )
         for r in recs
     ]
-    return RecommendationsResponse(
+    _resp = RecommendationsResponse(
         farm_id=farm_id,
         updated_at=_now(),
         recommendations=items,
     )
+    _RECO_CACHE[_reco_ck] = (_time.monotonic() + _RECO_TTL, _resp)
+    return _resp
 
 
 # ---------------------------------------------------------------------------
@@ -1376,6 +1401,13 @@ def whatif(farm_id: str, body: WhatIfInput):
     # 가상 환경값: 현재값 위에 body 값 덮어쓰기
     hypo_env = {**base_env, **body.model_dump(exclude_none=True)}
 
+    _cache_evict()
+    _wi_ck = _mk_cache_key({"farm_id": farm_id, "hypo": hypo_env, "crop": crop, "month": month})
+    _wi_hit = _WHATIF_CACHE.get(_wi_ck)
+    if _wi_hit and _wi_hit[0] > _time.monotonic():
+        logger.info("[whatif] cache hit farm=%s", farm_id)
+        return _wi_hit[1]
+
     baseline_rev, src  = _predict(base_env,  crop, area, month)
     whatif_rev,   _    = _predict(hypo_env,  crop, area, month)
     delta              = whatif_rev - baseline_rev
@@ -1389,7 +1421,7 @@ def whatif(farm_id: str, body: WhatIfInput):
     _price = get_price_krw_kg(crop) or 1.0
     _yield_est = round(whatif_rev / _price, 1) if _price and whatif_rev else None
 
-    return WhatIfResult(
+    _wi_result = WhatIfResult(
         baseline_revenue_krw=round(baseline_rev),
         whatif_revenue_krw=round(whatif_rev),
         delta_krw=round(delta),
@@ -1402,6 +1434,8 @@ def whatif(farm_id: str, body: WhatIfInput):
         revenue_krw=round(whatif_rev),
         yield_kg_forecast=_yield_est,
     )
+    _WHATIF_CACHE[_wi_ck] = (_time.monotonic() + _WHATIF_TTL, _wi_result)
+    return _wi_result
 
 
 # ---------------------------------------------------------------------------
@@ -1905,7 +1939,11 @@ def post_chat(farm_id: str, body: ChatRequest):
         if max_q == 0:
             raise HTTPException(
                 status_code=402,
-                detail=f"AI 채팅은 Smart 플랜 이상에서 사용할 수 있습니다 (현재: {tier}). 업그레이드 후 이용해 주세요.",
+                detail=(
+                    f"AI 채팅은 Smart 플랜 이상에서 사용 가능합니다 (현재: {tier} 플랜). "
+                    "설정 탭에서 플랜 업그레이드 후 이용해 주세요. "
+                    "※ 이 오류는 쿼터 소진이 아닌 플랜 미포함 항목입니다."
+                ),
             )
         raise HTTPException(
             status_code=429,
