@@ -401,22 +401,22 @@ async function reloadChart() {
         plugins: {
           legend: { display: false },
           tooltip: {
-            backgroundColor: '#0d1117',
-            borderColor:     '#1f7a4d',
+            backgroundColor: '#161b22',
+            borderColor:     cfg.color + '88',
             borderWidth:     1,
-            titleColor:      '#a8d5bc',
-            bodyColor:       '#ffffff',
+            titleColor:      '#8b949e',
+            bodyColor:       '#e6edf3',
           },
         },
         scales: {
           x: {
-            ticks: { color:'#607066', maxTicksLimit:10, maxRotation:0, font:{size:10} },
-            grid:  { color:'rgba(220,230,220,.8)' },
+            ticks: { color:'#8b949e', maxTicksLimit:10, maxRotation:0, font:{size:10} },
+            grid:  { color:'rgba(48,54,61,.7)' },
           },
           y: {
-            title: { display:true, text:cfg.yLabel, color:'#607066', font:{size:10} },
-            ticks: { color:'#607066', font:{size:10} },
-            grid:  { color:'rgba(220,230,220,.8)' },
+            title: { display:true, text:cfg.yLabel, color:'#8b949e', font:{size:10} },
+            ticks: { color:'#8b949e', font:{size:10} },
+            grid:  { color:'rgba(48,54,61,.7)' },
           },
         },
       },
