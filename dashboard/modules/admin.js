@@ -127,6 +127,46 @@ function triggerRetrainManual() {
   );
 }
 
+// ── drift 🔴 작목 선택 재학습 ───────────────────────────────────────────────
+async function triggerRetrain(redCrops) {
+  // 작목명 → API 영문 키 매핑
+  const CROP_MAP = {
+    '딸기':'strawberry','방울토마토':'cherry_tomato','완숙토마토':'tomato',
+    '파프리카':'paprika','참외':'melon','오이':'cucumber',
+  };
+  const cropKeys = redCrops.map(c => CROP_MAP[c] || c).filter(Boolean);
+  const cropLabel = redCrops.join('·');
+
+  BottomSheet.open(
+    '🔄 재학습 권고 작목 재학습',
+    `<p style="line-height:1.7;font-size:13px">
+      <b>${_esc(cropLabel)}</b> 작목의 AI 모델을 재학습합니다.<br>
+      약 <b>5~15분</b> 소요될 수 있습니다.</p>`,
+    '재학습 시작',
+    async () => {
+      const btn = document.getElementById('btn-retrain-trigger');
+      if (btn) btn.disabled = true;
+      showToast('🔄 재학습 요청 중…');
+      try {
+        const d = await apiFetch('/api/admin/pipeline/trigger', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            reason: `드리프트 경보 — ${cropLabel} 자동 트리거`,
+            confirm: true,
+            crops: cropKeys,
+          }),
+        });
+        showToast(`✅ 재학습 시작 (run_id: ${d.run_id || '—'})`, 8000);
+        setTimeout(() => { loadModelDrift(); loadRetrainHistory(); }, 3000);
+      } catch(e) {
+        showToast(`❌ 재학습 실패: ${e.message}`);
+        if (btn) btn.disabled = false;
+      }
+    }
+  );
+}
+
 // ── ETL status ────────────────────────────────────────────────────────────────
 async function loadEtlStatus() {
   const el = $('etl-log');
@@ -910,8 +950,12 @@ async function loadModelDrift() {
     const retrainHint = hasRedCrop
       ? `<div style="margin-top:10px;padding:8px 10px;background:var(--red-soft);border-radius:8px;
                     border-left:3px solid var(--red);font-size:11px">
-          ⚠️ <b>재학습 권고 작목 있음</b> — 수확량 기록(<code>POST /api/data/harvest</code>)에
-          <code>season_avg_temp</code> / <code>season_avg_humidity</code> 포함 시 정확도 개선
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+            <span>⚠️ <b>재학습 권고 작목 있음</b> — 수확량 기록에
+              <code>season_avg_temp</code>/<code>season_avg_humidity</code> 포함 시 정확도 개선</span>
+            <button id="btn-retrain-trigger" class="btn btn-sm" style="white-space:nowrap"
+              onclick="triggerRetrain(${JSON.stringify(redCrops)})">🔄 재학습 시작</button>
+          </div>
         </div>`
       : `<div style="margin-top:8px;font-size:10px;color:var(--muted)">
           수확량 기록 시 <code>season_avg_temp · humidity</code> 입력 권장 (예측 정확도 향상)
@@ -934,3 +978,4 @@ async function loadModelDrift() {
     el.innerHTML = _errBoxHtml(e, '모델 드리프트 조회 실패');
   }
 }
+
