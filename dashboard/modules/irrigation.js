@@ -182,12 +182,14 @@ async function loadIrrigationAnalysis(farmId) {
       return;
     }
     if (d.alerts && d.alerts.length) {
-      el.innerHTML = '<div class="irr-anomaly-list">' + d.alerts.map(a =>
-        `<div class="irr-alert-row ${a.severity === 'major' ? 'major' : 'minor'}">
-          <span>${a.severity === 'major' ? '🟡' : 'ℹ️'}</span>
+      el.innerHTML = '<div class="irr-anomaly-list">' + d.alerts.map(a => {
+        const sevClass = a.severity === 'critical' ? 'critical' : a.severity === 'major' ? 'major' : 'minor';
+        const icon = a.severity === 'critical' ? '🔴' : a.severity === 'major' ? '🟡' : 'ℹ️';
+        return `<div class="irr-alert-row ${sevClass}">
+          <span>${icon}</span>
           <div><strong>${_esc(a.label_ko)}</strong> — ${_esc(a.message_ko)}</div>
-        </div>`
-      ).join('') + '</div>';
+        </div>`;
+      }).join('') + '</div>';
     } else {
       el.innerHTML = '<div style="color:var(--green);font-size:12px;padding:8px 0;text-align:center">✅ 최근 7일 관수 지표 정상</div>';
     }

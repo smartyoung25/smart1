@@ -1709,9 +1709,9 @@
       font-size: 10px; color: var(--muted); font-weight: 600;
       margin-right: 4px; white-space: nowrap;
     }
-    /* 테이블 컨테이너 스크롤 제거 */
-    .table-scroll-wrap table thead { display: none; }
-    .table-scroll-wrap table { min-width: unset !important; }
+    /* Pool 테이블 헤더 숨김 + min-width 해제 (다른 테이블에 영향 없도록 한정) */
+    .pool-table-wrap table thead { display: none; }
+    .pool-table-wrap table { min-width: unset !important; }
   }
 
   /* ── 공통 단위 표시 텍스트 ── */
