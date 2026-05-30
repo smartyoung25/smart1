@@ -2726,3 +2726,101 @@ def get_api_status(farm_id: str):
         },
     }
     return safe
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# GET /anomalies/latest  — 최신 환경 이상 감지 결과 (대시보드 To-Do 연동)
+# ══════════════════════════════════════════════════════════════════════════════
+
+@router.get("/anomalies/latest",
+            summary="최신 환경 이상 감지 결과 (critical/major/minor)")
+def get_anomalies_latest(farm_id: str):
+    """현재 환경 센서값을 anomaly_detector로 분석해 이상 항목을 반환합니다.
+
+    대시보드 To-Do 리스트의 🚨 이상감지 항목에 자동 표시됩니다.
+
+    severity 등급:
+    - **critical**: 정상 범위(p5~p95) 완전 이탈 → 즉시 조치 필요
+    - **major**   : 평균 ±2σ 이탈 → 주의 필요
+    - **minor**   : 평균 ±1σ 이탈 → 모니터링 권고
+
+    응답 항목:
+    - `variable`    : 정규 변수명 (temp_internal 등)
+    - `variable_ko` : 한국어 변수명
+    - `value`       : 현재 측정값
+    - `unit`        : 단위
+    - `severity`    : critical | major | minor
+    - `message_ko`  : 상세 한국어 메시지
+    - `season_stage`: 작기 단계 (early/mid/late/unknown)
+    """
+    import datetime as _dt
+    meta   = _require_farm(farm_id)
+    crop   = meta.get("crop", "딸기")
+    env    = _get_env(farm_id) or {}
+    month  = _dt.date.today().month
+
+    # 숫자 값만 추출 (dict 형태 센서값 처리)
+    env_flat: dict[str, float] = {}
+    for k, v in env.items():
+        try:
+            env_flat[k] = float(v["value"] if isinstance(v, dict) else v)
+        except (TypeError, ValueError, KeyError):
+            pass
+
+    anomalies: list[dict] = []
+
+    if env_flat:
+        from api.services.anomaly_detector import detect_anomalies
+        try:
+            alerts = detect_anomalies(crop, env_flat, month=month)
+            for a in alerts:
+                anomalies.append({
+                    "variable":    a.variable,
+                    "variable_ko": a.variable_ko,
+                    "value":       a.current_value,
+                    "unit":        a.unit,
+                    "severity":    a.severity,     # critical | major | minor
+                    "message_ko":  a.message_ko,
+                    "season_stage": a.season_stage,
+                    "normal_min":  a.normal_min,
+                    "normal_max":  a.normal_max,
+                })
+        except Exception as _e:
+            logger.warning("[anomalies/latest] detect_anomalies 실패 farm=%s: %s", farm_id, _e)
+
+    # _detect_alerts 결과도 보강 (FarmAlert → critical/high 매핑)
+    if env:
+        static_alerts = _detect_alerts(farm_id, env, crop_ko=crop)
+        existing_vars = {a["variable"] for a in anomalies}
+        _sev_map = {"danger": "critical", "warning": "high", "info": "minor"}
+        for fa in static_alerts:
+            if fa.variable not in existing_vars:
+                anomalies.append({
+                    "variable":    fa.variable,
+                    "variable_ko": fa.variable,
+                    "value":       fa.value,
+                    "unit":        fa.unit,
+                    "severity":    _sev_map.get(fa.severity, fa.severity),
+                    "message_ko":  fa.message_ko,
+                    "season_stage": "unknown",
+                    "normal_min":  None,
+                    "normal_max":  None,
+                })
+
+    # 심각도 순 정렬 (critical 우선)
+    _sev_order = {"critical": 0, "high": 1, "major": 2, "minor": 3}
+    anomalies.sort(key=lambda x: _sev_order.get(x["severity"], 9))
+
+    critical_count = sum(1 for a in anomalies if a["severity"] in ("critical", "high"))
+
+    logger.info("[anomalies/latest] farm=%s crop=%s total=%d critical=%d",
+                farm_id, crop, len(anomalies), critical_count)
+
+    return {
+        "farm_id":        farm_id,
+        "updated_at":     _now().isoformat(),
+        "anomalies":      anomalies,
+        "count":          len(anomalies),
+        "critical_count": critical_count,
+        "has_data":       bool(env_flat),
+    }
