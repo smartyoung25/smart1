@@ -31,13 +31,6 @@ from typing import Optional
 
 logger = logging.getLogger(__name__)
 
-# 티어 → Claude 모델 (변경 없음)
-_TIER_MODEL: dict[str, str] = {
-    "pro":        "claude-haiku-4-5",
-    "enterprise": "claude-sonnet-4-5",
-}
-
-
 def _cfg(key: str, default: str = "") -> str:
     """.env → 환경변수 순서로 값을 읽는다.
 

@@ -40,7 +40,7 @@ CROP_EN: dict[str, str] = {
     "완숙토마토": "tomato",
     "참외":       "melon",
     "파프리카":   "paprika",
-    "오이":       "cucumber",    # 미학습 — None 반환
+    "오이":       "cucumber",    # 재학습 완료 (MAPE 22.8%, R² 0.826)
 }
 
 # 작목별 작기 개월 수 (연간 yield → 월간 환산)
