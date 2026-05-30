@@ -1,0 +1,40 @@
+{
+  "name": "KAASA SmartOS",
+  "short_name": "SmartOS",
+  "description": "스마트팜 AI 플랫폼 — 환경·수확·출하 통합 대시보드",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0d1117",
+  "theme_color": "#3fb950",
+  "orientation": "any",
+  "lang": "ko",
+  "icons": [
+    {
+      "src": "/dashboard/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/dashboard/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "환경 모니터링",
+      "short_name": "환경",
+      "url": "/?sec=environ",
+      "description": "온도·습도·CO₂ 실시간 현황"
+    },
+    {
+      "name": "수확량 예측",
+      "short_name": "수확",
+      "url": "/?sec=growth",
+      "description": "AI 수확량 예측 및 권고"
+    }
+  ],
+  "categories": ["productivity", "business"]
+}

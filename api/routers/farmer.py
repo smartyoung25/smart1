@@ -1459,6 +1459,16 @@ def whatif_multi(farm_id: str, body: WhatIfMultiInput):
     current_env = _get_env(farm_id)
     base_env    = {**(_FARM_ENV.get(farm_id) or _FARM_ENV.get("farm_001") or {}), **current_env}
 
+    _cache_evict()
+    _wm_ck = _mk_cache_key({
+        "farm_id": farm_id, "crop": crop, "month": month,
+        "scenarios": [s.model_dump() for s in body.scenarios],
+    })
+    _wm_hit = _WHATIF_CACHE.get(_wm_ck)
+    if _wm_hit and _wm_hit[0] > _time.monotonic():
+        logger.info("[whatif_multi] cache hit farm=%s", farm_id)
+        return _wm_hit[1]
+
     # 베이스라인 매출
     baseline_rev, baseline_src = _predict(base_env, crop, area, month)
 
@@ -1489,13 +1499,15 @@ def whatif_multi(farm_id: str, body: WhatIfMultiInput):
         "[whatif_multi] farm=%s crop=%s scenarios=%d best='%s' delta=%.0f",
         farm_id, crop, len(results), best.label, best.delta_krw,
     )
-    return WhatIfMultiResult(
+    _wm_result = WhatIfMultiResult(
         farm_id=farm_id,
         baseline_revenue_krw=round(baseline_rev),
         scenarios=results,
         best_label=best.label,
         best_delta_krw=round(best.delta_krw),
     )
+    _WHATIF_CACHE[_wm_ck] = (_time.monotonic() + _WHATIF_TTL, _wm_result)
+    return _wm_result
 
 
 # _predict 헬퍼: whatif / whatif_multi 공용

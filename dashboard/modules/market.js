@@ -33,7 +33,7 @@ async function loadProfitForecast() {
       <div class="profit-note">${_esc(d.crop_ko || '')} · ${d.season_months || '—'}개월 시즌 · 이익률 ${marginPct}% · ${_esc(d.note || '')}</div>
     `;
   } catch(e) {
-    body.innerHTML = `<div style="color:var(--muted);font-size:12px;padding:8px">조회 실패: ${_esc(e.message)}</div>`;
+    body.innerHTML = _errBoxHtml(e, '손익 예측 조회 실패');
   }
 }
 
