@@ -25,7 +25,7 @@ async function loadAdvisoryHistory() {
   } catch(e) {
     console.warn('[advisor] 이력 조회 실패:', e);
     const feed = $('advisory-feed');
-    if (feed) feed.innerHTML = `<div class="data-err-box">권고 이력 조회 실패<span class="data-err-reason">${_esc(e.message)}</span></div>`;
+    if (feed) feed.innerHTML = _errBoxHtml(e, '권고 이력 조회 실패');
   }
 }
 
@@ -575,7 +575,7 @@ async function loadHeroDashboard(farmId) {
     if (exEl && topRec) exEl.innerHTML = `<b>추천:</b> ${_esc(topRec.action_ko || '')}`;
   } catch(e) {
     const tb = $('todo-body');
-    if (tb) tb.innerHTML = `<div class="todo-item"><div class="todo-num">!</div><div class="todo-text"><b>AI 권고 조회 실패</b><span>${_esc(e.message)||'서버 연결 확인'}</span></div><button class="todo-action gray">재시도</button></div>`;
+    if (tb) tb.innerHTML = _errBoxHtml(e, 'AI 권고 조회 실패');
   }
 }
 

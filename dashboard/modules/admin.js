@@ -900,6 +900,13 @@ async function loadModelDrift() {
     }).join('');
 
     const hasRedCrop  = Object.values(crops).some(b => b.alert === 'red' && !isNaN(b.mape));
+    const redCrops    = Object.entries(crops).filter(([,b]) => b.alert === 'red' && !isNaN(b.mape)).map(([c]) => c);
+    if (redCrops.length) {
+      setNavBadge('system', redCrops.length);
+      showToast(`🔴 재학습 권고: ${redCrops.join('·')} (시스템 탭 드리프트 확인)`, 6000);
+    } else {
+      setNavBadge('system', 0);
+    }
     const retrainHint = hasRedCrop
       ? `<div style="margin-top:10px;padding:8px 10px;background:var(--red-soft);border-radius:8px;
                     border-left:3px solid var(--red);font-size:11px">

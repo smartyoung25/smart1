@@ -405,6 +405,55 @@ const BottomSheet = {
   }
 };
 
+// ── 오프라인 감지 배너 ────────────────────────────────────────────────────────
+(function _initOfflineBanner() {
+  const BANNER_ID = 'offline-banner';
+  function _getOrCreate() {
+    let el = document.getElementById(BANNER_ID);
+    if (!el) {
+      el = document.createElement('div');
+      el.id = BANNER_ID;
+      el.style.cssText = [
+        'position:fixed','top:0','left:0','right:0','z-index:9000',
+        'background:#b91c1c','color:#fff','text-align:center',
+        'padding:7px 16px','font-size:13px','font-weight:600',
+        'display:none','align-items:center','justify-content:center','gap:8px',
+        'box-shadow:0 2px 8px rgba(0,0,0,.4)',
+      ].join(';');
+      document.body.appendChild(el);
+    }
+    return el;
+  }
+  function _update() {
+    const el = _getOrCreate();
+    if (!navigator.onLine) {
+      el.innerHTML = '🔴 오프라인 — 인터넷 연결을 확인하세요. 마지막 데이터를 표시 중입니다.';
+      el.style.display = 'flex';
+    } else {
+      el.style.display = 'none';
+    }
+  }
+  window.addEventListener('online',  _update);
+  window.addEventListener('offline', _update);
+  _update();
+})();
+
+// ── 자동 새로고침 (30초, 화면 표시 중일 때만) ─────────────────────────────
+(function _initAutoRefresh() {
+  const INTERVAL_MS = 30_000;
+  const REFRESH_MAP = {
+    dashboard: () => { const fid = _defaultFarm(); if (fid) loadHeroDashboard(fid); },
+    environ:   () => { if (_defaultFarm()) { loadCurrentEnv(); loadWeatherForecast(); } },
+  };
+  setInterval(() => {
+    if (document.hidden) return;
+    const active = document.querySelector('.sec.active, .sec[style*="flex"]');
+    const secId  = active?.id?.replace('sec-', '');
+    const fn     = secId && REFRESH_MAP[secId];
+    if (fn) fn();
+  }, INTERVAL_MS);
+})();
+
 // ── 초기화 (토큰이 있으면 즉시 대시보드 진입) ─────────────────────────────
 if (_token) {
   $('login-overlay')?.classList.add('hidden');

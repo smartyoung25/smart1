@@ -1956,3 +1956,18 @@
   .auth-btn:disabled {
     opacity: .45; cursor: not-allowed; pointer-events: none;
   }
+
+  /* ── 오프라인 배너 ── */
+  #offline-banner {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 9000;
+    background: var(--red, #b91c1c); color: #fff;
+    text-align: center; padding: 7px 16px;
+    font-size: 13px; font-weight: 600;
+    display: none; align-items: center; justify-content: center; gap: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.4);
+    animation: slideDown .2s ease;
+  }
+  @keyframes slideDown {
+    from { transform: translateY(-100%); }
+    to   { transform: translateY(0); }
+  }
