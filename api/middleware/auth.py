@@ -44,6 +44,9 @@ _PUBLIC_PATHS: set[str] = {
     "/openapi.json",
     "/",            # 대시보드 index.html (프리뷰/단일포트)
     "/dashboard",   # 정적 파일
+    "/screens",     # SmartOS 모바일 화면 (정적 HTML)
+    "/components",  # SmartOS CSS/JS 컴포넌트 (정적)
+    "/smartos",     # SmartOS 네비게이터
     "/favicon.ico",
     "/api/data",    # IoT 기기 데이터 수집 (JWT 불필요 — 센서/자동화 시스템 호출)
 }

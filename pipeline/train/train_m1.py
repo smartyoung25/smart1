@@ -87,7 +87,7 @@ for tgt in TGT_ALL:
     r2e = r2_score(y_va, pe)
     r2x = r2_score(y_va, px)
     r2l = r2_score(y_va, pl)
-    gate = "✅" if r2e >= 0.62 else "⚠"
+    gate = "OK" if r2e >= 0.62 else "LOW"
     mae = mean_absolute_error(y_va, pe)
     print(f"  {tgt:<16}: R²={r2e:.4f} {gate}  XGB={r2x:.3f} LGB={r2l:.3f}  MAE={mae:.2f}")
 

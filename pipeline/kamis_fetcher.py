@@ -52,38 +52,40 @@ _MARKET  = _get_market()
 # ── 품목 코드 매핑 ─────────────────────────────────────────────────────────────
 # KAMIS 표준 품목 코드 (도매 기준)
 ITEM_CODES: dict[str, dict] = {
+    # KAMIS 실제 확인된 코드 (2026-06-01 기준)
+    # 확인 방법: dailyPriceByCategoryList category=200, item_name 일치
     "딸기": {
-        "item_code":          "220",
+        "item_code":          "226",   # 실제 코드 (구 220 오류)
         "item_name":          "딸기",
-        "item_category_code": "200",   # 채소류
+        "item_category_code": "200",
         "unit":               "kg",
     },
     "완숙토마토": {
-        "item_code":          "226",
+        "item_code":          "225",   # 실제 코드 (구 226 오류)
         "item_name":          "토마토",
         "item_category_code": "200",
         "unit":               "kg",
     },
     "방울토마토": {
-        "item_code":          "227",
+        "item_code":          "422",   # 실제 코드 (구 227 오류)
         "item_name":          "방울토마토",
         "item_category_code": "200",
         "unit":               "kg",
     },
     "참외": {
-        "item_code":          "225",
+        "item_code":          "222",   # 실제 코드 (구 225 오류)
         "item_name":          "참외",
         "item_category_code": "200",
         "unit":               "kg",
     },
     "오이": {
-        "item_code":          "244",
+        "item_code":          "223",   # 실제 코드 (구 244 오류)
         "item_name":          "오이",
         "item_category_code": "200",
         "unit":               "kg",
     },
     "파프리카": {
-        "item_code":          "259",
+        "item_code":          "256",   # 실제 코드 (구 259 오류)
         "item_name":          "파프리카",
         "item_category_code": "200",
         "unit":               "kg",
@@ -137,6 +139,26 @@ def _make_ssl_context() -> ssl.SSLContext:
     return ctx
 
 
+# 단위 → kg 환산 테이블 (KAMIS p_convert_kg_yn=Y 미적용 품목)
+# 근거: 농촌진흥청 원예작물 규격 기준
+_UNIT_TO_KG: dict[str, float] = {
+    "100개": 12.5,   # 오이 다다기계통 100개 ≈ 12.5kg
+    "50개":  15.0,   # 오이 취청 50개 ≈ 15.0kg
+    "10개":   2.0,   # 가지 등 10개 ≈ 2.0kg
+    "1개":    0.2,   # 기본 fallback
+}
+
+def _unit_to_kg(unit_str: str) -> float:
+    """KAMIS unit 문자열 → kg 환산 계수. 이미 kg 단위면 1.0 반환."""
+    u = str(unit_str).strip().lower()
+    if "kg" in u or "g" not in u and "개" not in u:
+        return 1.0   # 이미 kg 기준
+    for key, factor in _UNIT_TO_KG.items():
+        if key in unit_str:
+            return factor
+    return 1.0   # 알 수 없으면 그대로
+
+
 def _fetch_price_from_api(
     crop_ko: str,
     regday: str,
@@ -170,18 +192,34 @@ def _fetch_price_from_api(
                 return None
 
             # 해당 품목 코드 필터링 후 평균가 추출
+            # KAMIS 응답 필드: item_code (not itemcode), dpr1=당일 dpr2=1일전 (not price)
             prices = []
             for it in items:
-                if it.get("itemcode") != item_info["item_code"]:
+                if it.get("item_code") != item_info["item_code"]:
                     continue
-                price_str = str(it.get("price", "")).replace(",", "").strip()
-                if price_str and price_str != "-":
+                unit_str = it.get("unit", "")
+                kg_factor = _unit_to_kg(unit_str)  # 개수 단위 → kg 환산
+                # dpr1(당일) → dpr2(1일전) → dpr3(1주일전) 순으로 폴백
+                raw_price = "-"
+                for field in ("dpr1", "dpr2", "dpr3"):
+                    v = str(it.get(field, "")).replace(",", "").strip()
+                    if v and v != "-":
+                        raw_price = v
+                        break
+                if raw_price and raw_price != "-":
                     try:
-                        prices.append(float(price_str))
+                        price_per_unit = float(raw_price)
+                        prices.append(round(price_per_unit / kg_factor, 1))
+                        if kg_factor != 1.0:
+                            logger.debug("[kamis] %s 단위 환산: %.0f원/%s → %.0f원/kg",
+                                         crop_ko, price_per_unit, unit_str,
+                                         price_per_unit / kg_factor)
                     except ValueError:
                         pass
 
             if not prices:
+                logger.warning("[kamis] %s %s 가격 데이터 없음 (해당 품목 미발견 또는 휴장일)",
+                               crop_ko, regday)
                 return None
             avg_price = sum(prices) / len(prices)
             logger.info("[kamis] %s %s → %.0f원/kg (%d개 가격 평균)",
@@ -235,6 +273,23 @@ def get_cached_price(crop_ko: str) -> Optional[float]:
 
 # ── 갱신 메인 로직 ────────────────────────────────────────────────────────────
 
+def _latest_trading_date(ref: Optional[date] = None) -> date:
+    """KAMIS 데이터가 있을 가능성이 높은 가장 최근 평일 반환.
+
+    - 오전 9시(KST) 이전: 전일 기준 (당일 시장 아직 미개장)
+    - 주말 자동 제외 (최대 7일 소급)
+    """
+    now_kst = datetime.now(tz=timezone(timedelta(hours=9)))
+    # 오전 9시 이전이면 전일 기준
+    start = ref or (date.today() if now_kst.hour >= 9 else date.today() - timedelta(days=1))
+    d = start
+    for _ in range(7):
+        if d.weekday() < 5:  # 0=월 ~ 4=금
+            return d
+        d = d - timedelta(days=1)
+    return d  # fallback
+
+
 def refresh_prices(
     target_date: Optional[date] = None,
     dry_run: bool = False,
@@ -243,7 +298,7 @@ def refresh_prices(
     """KAMIS에서 도매가격을 가져와 캐시에 저장.
 
     Args:
-        target_date: 조회 날짜 (기본: 오늘)
+        target_date: 조회 날짜 (기본: 가장 최근 평일)
         dry_run:     True면 API 미호출, Mock 데이터 반환
         crops:       갱신할 작목 리스트 (기본: 전체)
 
@@ -251,8 +306,9 @@ def refresh_prices(
         {crop_ko: price_krw_kg} dict
     """
     if target_date is None:
-        target_date = date.today()
+        target_date = _latest_trading_date()  # 주말이면 최근 평일로 자동 조정
     regday = target_date.strftime("%Y-%m-%d")
+    logger.info("[kamis] 조회 날짜: %s (원요일 자동 조정)", regday)
 
     target_crops = crops or list(ITEM_CODES.keys())
     use_api      = bool(_get_api_key()) and not dry_run

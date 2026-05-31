@@ -86,24 +86,31 @@ def _save_state(new_env: int, new_prod: int) -> None:
 
 
 # ── env_measurements → env_daily.parquet ──────────────────────────────────────
-def export_env(conn) -> int:
+def export_env(conn, since: str | None = None) -> int:
     """
     env_measurements (long) → wide daily pivot.
     컬럼: farm_id, crop, season, year, date, temp_internal_mean, humidity_int_mean, ...
+
+    Args:
+        since: 이 날짜 이후 데이터 강제 추출 (YYYY-MM-DD). None이면 parquet cutoff 자동 사용.
     """
     import pandas as pd
 
     log.info("env_measurements 읽는 중...")
 
     # 마지막 parquet 날짜 이후 데이터만 추출 (증분)
-    cutoff = "1900-01-01"
-    if ENV_PARQUET.exists():
-        try:
-            existing = pd.read_parquet(ENV_PARQUET, columns=["date"])
-            if len(existing):
-                cutoff = existing["date"].max()
-        except Exception:
-            pass
+    if since:
+        cutoff = since
+        log.info("env: --since 강제 cutoff=%s", cutoff)
+    else:
+        cutoff = "1900-01-01"
+        if ENV_PARQUET.exists():
+            try:
+                existing = pd.read_parquet(ENV_PARQUET, columns=["date"])
+                if len(existing):
+                    cutoff = existing["date"].max()
+            except Exception:
+                pass
 
     # DB-side CASE WHEN aggregation (avoids loading 600k rows into Python memory)
     query = f"""
@@ -123,14 +130,15 @@ def export_env(conn) -> int:
             SUM(CASE WHEN em.canonical_name = 'solar_rad'     THEN em.value END) AS solar_rad_sum,
             AVG(CASE WHEN em.canonical_name = 'ec_dsm'        THEN em.value END) AS ec_dsm_mean,
             AVG(CASE WHEN em.canonical_name = 'soil_temp'     THEN em.value END) AS soil_temp_mean,
-            AVG(CASE WHEN em.canonical_name = 'wc'            THEN em.value END) AS wc_mean,
-            MAX(CASE WHEN em.canonical_name = 'wc'            THEN em.value END) AS wc_max,
-            MIN(CASE WHEN em.canonical_name = 'wc'            THEN em.value END) AS wc_min,
-            AVG(CASE WHEN em.canonical_name = 'dr_pct'        THEN em.value END) AS dr_pct_mean,
-            AVG(CASE WHEN em.canonical_name = 'ec_drain'      THEN em.value END) AS ec_drain_mean,
-            SUM(CASE WHEN em.canonical_name = 'supply_total'  THEN em.value END) AS supply_total_sum,
-            SUM(CASE WHEN em.canonical_name = 'irr_count'     THEN em.value END) AS irr_count_sum,
-            AVG(CASE WHEN em.canonical_name = 'nl_pct'        THEN em.value END) AS nl_pct_mean
+            -- 관수 피처 (irrigation_store 저장명 기준, ML prep_m1.py IRR_BASE와 동일)
+            AVG(CASE WHEN em.canonical_name IN ('wc','wc_mean')       THEN em.value END) AS wc_mean,
+            MAX(CASE WHEN em.canonical_name IN ('wc','wc_mean')       THEN em.value END) AS wc_max,
+            MIN(CASE WHEN em.canonical_name IN ('wc','wc_min')        THEN em.value END) AS wc_min,
+            AVG(CASE WHEN em.canonical_name IN ('dr_pct','dr_pct_mean') THEN em.value END) AS dr_pct_mean,
+            AVG(CASE WHEN em.canonical_name = 'ec_drain'              THEN em.value END) AS ec_drain,
+            SUM(CASE WHEN em.canonical_name = 'supply_total'          THEN em.value END) AS supply_total,
+            SUM(CASE WHEN em.canonical_name = 'irr_count'             THEN em.value END) AS irr_count,
+            AVG(CASE WHEN em.canonical_name = 'nl_pct'                THEN em.value END) AS nl_pct
         FROM env_measurements em
         JOIN farms f ON f.farm_id = em.farm_id
         WHERE em.time::date > '{cutoff}'
@@ -275,7 +283,14 @@ def _merge_parquet(path: Path, new_df, key_cols: list[str]) -> int:
 
 # ── 메인 ────────────────────────────────────────────────────────────────────────
 def main() -> int:
-    log.info("=== 야간 DB→Parquet ETL 시작 ===")
+    import argparse
+    parser = argparse.ArgumentParser(description="야간 DB→Parquet ETL")
+    parser.add_argument("--since", default=None,
+                        help="이 날짜 이후 데이터 강제 추출 (YYYY-MM-DD). "
+                             "기본: parquet 마지막 날짜 자동 감지")
+    args, _ = parser.parse_known_args()
+
+    log.info("=== 야간 DB→Parquet ETL 시작 (since=%s) ===", args.since or "auto")
     db_url = _get_db_url()
 
     try:
@@ -295,7 +310,7 @@ def main() -> int:
     # env: independent connection
     try:
         with engine.connect() as conn:
-            new_env = export_env(conn)
+            new_env = export_env(conn, since=args.since)
     except Exception as e:
         log.exception("env ETL 오류: %s", e)
 

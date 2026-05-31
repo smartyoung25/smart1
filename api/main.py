@@ -65,23 +65,39 @@ app.include_router(data_collection_router)
 
 @app.on_event("startup")
 async def startup_event():
-    """앱 시작 시 MQTT→WebSocket 브리지 등록 + KAMIS 가격 갱신."""
+    """앱 시작 시 MQTT→WebSocket 브리지 등록 + KAMIS 가격 갱신 + 일일 갱신 스케줄."""
     _setup_mqtt_bridge()
 
-    # KAMIS 당일 가격 갱신 (백그라운드 — API 키 없으면 mock 폴백)
     import asyncio, logging as _log
     _kamis_logger = _log.getLogger("kamis_startup")
-    async def _refresh_kamis():
+
+    async def _refresh_kamis_once():
         try:
-            import sys as _sys, pathlib as _pl
-            _sys.path.insert(0, str(_pl.Path(__file__).parent.parent))
             from pipeline.kamis_fetcher import refresh_prices
             loop = asyncio.get_event_loop()
             updated = await loop.run_in_executor(None, refresh_prices)
-            _kamis_logger.info("[startup] KAMIS 가격 갱신 완료: %d개 작목", len(updated))
+            _kamis_logger.info("[kamis] 가격 갱신 완료: %d개 작목", len(updated))
         except Exception as e:
-            _kamis_logger.warning("[startup] KAMIS 갱신 실패 (무시): %s", e)
-    asyncio.create_task(_refresh_kamis())
+            _kamis_logger.warning("[kamis] 갱신 실패 (무시): %s", e)
+
+    async def _daily_kamis_scheduler():
+        """매일 오전 7시 KAMIS 가격 자동 갱신 (KAMIS 도매시장 오전 개장 반영)."""
+        from datetime import datetime, timezone, timedelta
+        await asyncio.sleep(2)  # 시작 시 즉시 1회 갱신
+        await _refresh_kamis_once()
+        while True:
+            now = datetime.now(tz=timezone(timedelta(hours=9)))  # KST
+            # 다음 오전 7시까지 대기
+            next_run = now.replace(hour=7, minute=0, second=0, microsecond=0)
+            if now >= next_run:
+                next_run += timedelta(days=1)
+            wait_secs = (next_run - now).total_seconds()
+            _kamis_logger.info("[kamis] 다음 자동 갱신: %s (%.0f초 후)",
+                               next_run.strftime("%Y-%m-%d %H:%M KST"), wait_secs)
+            await asyncio.sleep(wait_secs)
+            await _refresh_kamis_once()
+
+    asyncio.create_task(_daily_kamis_scheduler())
 
 
 @app.get("/health", tags=["system"])
@@ -101,3 +117,18 @@ if _DASHBOARD.exists():
         resp.headers["Pragma"] = "no-cache"
         resp.headers["Expires"] = "0"
         return resp
+
+# ── SmartOS 모바일 화면 정적 서빙 (/screens, /components, /index.html) ─────────
+_SMARTOS_ROOT = Path(__file__).parent.parent
+for _sub in ("screens", "components"):
+    _p = _SMARTOS_ROOT / _sub
+    if _p.exists():
+        app.mount(f"/{_sub}", StaticFiles(directory=str(_p)), name=_sub)
+
+# SmartOS 네비게이터 index.html 직접 서빙
+_SMARTOS_INDEX = _SMARTOS_ROOT / "index.html"
+if _SMARTOS_INDEX.exists():
+    @app.get("/smartos", include_in_schema=False)
+    @app.get("/smartos/", include_in_schema=False)
+    def serve_smartos_index():
+        return FileResponse(str(_SMARTOS_INDEX))

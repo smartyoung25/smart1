@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <title>홈 — KAASA SmartOS</title>
+  <link rel="stylesheet" href="../components/base.css"/>
+  <style>
+    /* ── C3 홈 전용 스타일 ── */
+
+    /* 날짜·Period 히어로 배너 */
+    .hero-banner {
+      background: linear-gradient(135deg, var(--green-dark) 0%, var(--green) 100%);
+      color: #fff;
+      border-radius: var(--radius);
+      padding: 18px 20px 16px;
+      margin-bottom: 14px;
+      position: relative; overflow: hidden;
+    }
+    .hero-banner::after {
+      content: '';
+      position: absolute; inset: 0;
+      background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='30' cy='30' r='28' fill='none' stroke='rgba(255,255,255,.06)' stroke-width='1'/%3E%3C/svg%3E") repeat;
+    }
+    .hero-date  { font-size: 13px; opacity: .75; margin-bottom: 4px; }
+    .hero-title { font-size: 22px; font-weight: 900; letter-spacing: -.5px; }
+    .hero-sub   { font-size: 13px; opacity: .85; margin-top: 6px; }
+    .hero-period-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(255,255,255,.18); border-radius: 20px;
+      padding: 4px 12px; font-size: 12px; font-weight: 700;
+      margin-top: 10px;
+    }
+
+    /* KPI 2×2 그리드 */
+    .kpi-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+      margin-bottom: 14px;
+    }
+    .kpi-card {
+      background: var(--panel); border-radius: var(--radius-sm);
+      padding: 14px 16px; box-shadow: var(--shadow);
+    }
+    .kpi-label { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .5px; }
+    .kpi-value { font-size: 24px; font-weight: 900; margin: 4px 0 2px; font-variant-numeric: tabular-nums; line-height: 1; }
+    .kpi-delta { font-size: 11px; color: var(--muted); }
+    .kpi-delta.up   { color: var(--green); }
+    .kpi-delta.down { color: var(--red); }
+
+    /* To-do 리스트 */
+    .todo-list { display: flex; flex-direction: column; gap: 8px; }
+    .todo-item {
+      display: flex; align-items: flex-start; gap: 12px;
+      background: var(--panel); border-radius: var(--radius-sm);
+      padding: 12px 14px; box-shadow: var(--shadow);
+      cursor: pointer; border: 1.5px solid transparent;
+      transition: border-color .2s, opacity .2s;
+    }
+    .todo-item.done { opacity: .55; }
+    .todo-item.done .todo-title { text-decoration: line-through; }
+    .todo-item.urgent { border-color: var(--red); }
+    .todo-item.warn   { border-color: var(--orange); }
+    .todo-check {
+      width: 22px; height: 22px; border-radius: 50%;
+      border: 2px solid var(--border); flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; margin-top: 1px;
+    }
+    .todo-item.done .todo-check { background: var(--green); border-color: var(--green); color: #fff; }
+    .todo-body { flex: 1; min-width: 0; }
+    .todo-title { font-size: 14px; font-weight: 700; }
+    .todo-desc  { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .todo-meta  { display: flex; gap: 8px; margin-top: 5px; flex-wrap: wrap; }
+    .todo-badge {
+      font-size: 10px; font-weight: 700; padding: 2px 8px;
+      border-radius: 10px; background: var(--gray-soft); color: var(--muted);
+    }
+    .todo-badge.p1 { background: var(--p1-soft); color: var(--p1-color); }
+    .todo-badge.p2 { background: var(--p2-soft); color: var(--p2-color); }
+    .todo-badge.p3 { background: var(--p3-soft); color: var(--p3-color); }
+    .todo-badge.p4 { background: var(--p4-soft); color: var(--p4-color); }
+    .todo-badge.p5 { background: var(--p5-soft); color: var(--p5-color); }
+    .todo-badge.ai { background: var(--blue-soft); color: var(--blue); }
+
+    /* AI 추천 신뢰도 바 */
+    .confidence-bar-wrap { background: var(--gray-soft); border-radius: 6px; height: 8px; overflow: hidden; }
+    .confidence-bar-fill { height: 100%; border-radius: 6px; background: var(--green); transition: width .6s; }
+
+    /* 온실/노지/출하 요약 탭 */
+    .summary-tabs {
+      display: flex; gap: 8px; margin-bottom: 8px;
+    }
+    .sum-tab {
+      flex: 1; padding: 8px; border-radius: var(--radius-sm);
+      border: 1.5px solid var(--border); background: var(--panel);
+      font-size: 12px; font-weight: 700; text-align: center; cursor: pointer;
+      transition: border-color .2s, background .2s;
+    }
+    .sum-tab.active { border-color: var(--green); background: var(--green-soft); color: var(--green-dark); }
+    .sum-panel { display: none; }
+    .sum-panel.active { display: block; }
+
+    /* 가격 스트립 */
+    .price-strip {
+      display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px;
+      scrollbar-width: none;
+    }
+    .price-strip::-webkit-scrollbar { display: none; }
+    .price-chip {
+      flex-shrink: 0; background: var(--panel); border-radius: var(--radius-sm);
+      padding: 8px 12px; text-align: center; min-width: 80px; box-shadow: var(--shadow);
+    }
+    .price-chip-name  { font-size: 10px; color: var(--muted); }
+    .price-chip-value { font-size: 14px; font-weight: 800; margin-top: 2px; }
+    .price-chip-src   { font-size: 9px; color: var(--muted); }
+
+    /* 알림 배너 */
+    .alert-banner {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 14px; border-radius: var(--radius-sm);
+      font-size: 13px; font-weight: 600; margin-bottom: 8px;
+    }
+    .alert-banner.danger { background: var(--red-soft); color: var(--red); }
+    .alert-banner.warn   { background: var(--orange-soft); color: var(--orange); }
+    .alert-banner.ok     { background: var(--green-soft); color: var(--green-dark); }
+
+    /* WS 상태 점 */
+    .ws-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); display: inline-block; }
+    .ws-dot.connected    { background: var(--green); box-shadow: 0 0 0 3px rgba(31,122,77,.2); }
+    .ws-dot.reconnecting { background: var(--orange); animation: blink 1s infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+  </style>
+</head>
+<body>
+
+<!-- ══ 헤더 ══ -->
+<header class="sf-header">
+  <div style="display:flex;align-items:center;gap:8px;">
+    <span class="ws-dot" id="wsDot"></span>
+    <span style="font-size:12px;color:rgba(255,255,255,.8)" id="wsLabel">연결 중…</span>
+  </div>
+  <span style="font-size:15px;font-weight:800;color:#fff;letter-spacing:-.3px">KAASA SmartOS</span>
+  <div style="display:flex;align-items:center;gap:6px;">
+    <select id="farmSel" onchange="onFarmChange(this.value)"
+            style="font-size:12px;background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:8px;padding:4px 8px;cursor:pointer;outline:none;">
+      <option value="farm_001">🌿 farm_001</option>
+    </select>
+  </div>
+</header>
+
+<!-- ══ 본문 ══ -->
+<main class="sf-main" style="padding:14px;max-width:480px;margin:0 auto;">
+
+  <!-- 히어로 배너 -->
+  <div class="hero-banner" id="heroBanner">
+    <div class="hero-date" id="heroDate">—</div>
+    <div class="hero-title" id="heroTitle">안녕하세요 👋</div>
+    <div class="hero-sub" id="heroSub">오늘의 온실 현황을 확인하세요</div>
+    <div><span class="hero-period-badge" id="heroPeriod">⏳ Period 확인 중…</span></div>
+  </div>
+
+  <!-- 경보 배너 -->
+  <div id="alertBanners"></div>
+
+  <!-- KPI 2×2 -->
+  <div class="section-label">오늘 경영 현황</div>
+  <div class="kpi-grid" style="margin-bottom:16px;">
+    <div class="kpi-card">
+      <div class="kpi-label">오늘 수확예측</div>
+      <div class="kpi-value" id="kpiYield">—<span style="font-size:13px;font-weight:400"> kg</span></div>
+      <div class="kpi-delta" id="kpiYieldDelta">예측 중…</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">예상 매출</div>
+      <div class="kpi-value" id="kpiRevenue" style="font-size:18px;">—<span style="font-size:12px;font-weight:400"> 원</span></div>
+      <div class="kpi-delta" id="kpiRevenueDelta">가격 × 수확량</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">배액률</div>
+      <div class="kpi-value" id="kpiDrain" style="color:var(--muted)">—<span style="font-size:13px;font-weight:400">%</span></div>
+      <div class="kpi-delta">목표 20~30%</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">VPD</div>
+      <div class="kpi-value" id="kpiVpd" style="font-size:20px;color:var(--muted)">—<span style="font-size:12px;font-weight:400"> kPa</span></div>
+      <div class="kpi-delta" id="kpiVpdStatus">적정 0.6~1.2</div>
+    </div>
+  </div>
+
+  <!-- 오늘 할 일 (Period 연동) -->
+  <div class="section-label" style="display:flex;align-items:center;justify-content:space-between;">
+    <span>오늘 할 일</span>
+    <span id="todoProgress" style="font-size:12px;color:var(--muted)">0/0 완료</span>
+  </div>
+  <div class="todo-list" id="todoList">
+    <div style="text-align:center;padding:16px;color:var(--muted);font-size:13px;">할 일 로드 중…</div>
+  </div>
+
+  <!-- AI 추천 신뢰도 -->
+  <div class="section-label" style="margin-top:16px;">AI 추천</div>
+  <div class="card" id="aiRecommendCard">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <span style="font-size:13px;font-weight:700;">관수 추천 신뢰도</span>
+      <span id="aiConfBadge" style="font-size:12px;font-weight:800;color:var(--green);">—%</span>
+    </div>
+    <div class="confidence-bar-wrap"><div class="confidence-bar-fill" id="aiConfBar" style="width:0%"></div></div>
+    <div id="aiRecommendText" style="font-size:12px;color:var(--muted);margin-top:8px;">AI 추천을 불러오는 중…</div>
+    <button class="btn full" style="margin-top:10px;" onclick="location.href='g3_period.html'">
+      관수 Period 상세 보기 →
+    </button>
+  </div>
+
+  <!-- 온실/노지/출하 요약 -->
+  <div class="section-label" style="margin-top:16px;">현황 요약</div>
+  <div class="summary-tabs">
+    <button class="sum-tab active" onclick="switchSum('greenhouse')">🏡 온실</button>
+    <button class="sum-tab" onclick="switchSum('field')">🌿 노지</button>
+    <button class="sum-tab" onclick="switchSum('market')">🚛 출하</button>
+  </div>
+
+  <div class="sum-panel active" id="sumGreenhouse">
+    <div class="card">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div>
+          <div style="font-size:11px;color:var(--muted);">내부 온도</div>
+          <div style="font-size:18px;font-weight:800;" id="sumTemp">—</div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--muted);">내부 습도</div>
+          <div style="font-size:18px;font-weight:800;" id="sumHumid">—</div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--muted);">CO₂</div>
+          <div style="font-size:18px;font-weight:800;" id="sumCo2">—</div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--muted);">일사량</div>
+          <div style="font-size:18px;font-weight:800;" id="sumSolar">—</div>
+        </div>
+      </div>
+      <button class="btn full secondary" style="margin-top:12px;" onclick="location.href='g2_env.html'">
+        환경 제어 상세 →
+      </button>
+    </div>
+  </div>
+
+  <div class="sum-panel" id="sumField">
+    <div class="card" style="text-align:center;padding:24px;color:var(--muted);">
+      🌿 노지 화면은 준비 중입니다
+      <br><small style="font-size:12px;">F1 노지 홈에서 토양수분·기상을 확인하세요</small>
+    </div>
+  </div>
+
+  <div class="sum-panel" id="sumMarket">
+    <div class="section-label" style="margin-top:0;margin-bottom:8px;">오늘 도매 시세</div>
+    <div class="price-strip" id="priceStrip">
+      <div style="color:var(--muted);font-size:12px;padding:8px;">시세 로드 중…</div>
+    </div>
+    <button class="btn full secondary" style="margin-top:8px;" onclick="location.href='c12_joint.html'">
+      공동출하 상세 →
+    </button>
+  </div>
+
+</main>
+
+<!-- ══ 하단 탭 바 ══ -->
+<nav class="sf-bottom-nav">
+  <button class="bnav-tab active">
+    <span class="bnav-icon">🏠</span>홈
+  </button>
+  <button class="bnav-tab" onclick="location.href='g3_period.html'">
+    <span class="bnav-icon">💧</span>관수
+  </button>
+  <button class="bnav-tab" onclick="location.href='g2_env.html'">
+    <span class="bnav-icon">🌡️</span>환경
+  </button>
+  <button class="bnav-tab" onclick="location.href='f1_field.html'">
+    <span class="bnav-icon">🌿</span>노지
+  </button>
+  <button class="bnav-tab" onclick="location.href='c12_joint.html'">
+    <span class="bnav-icon">🚛</span>출하
+  </button>
+</nav>
+
+<script src="../components/data.js"></script>
+<script>
+'use strict';
+
+// ── 상태 ──────────────────────────────────────────────────────────────────────
+let _env   = {};
+let _todos = [];   // { id, title, desc, period, done, urgent }
+let _prices = [];
+
+// ── 초기화 ──────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  const farmId = new URLSearchParams(location.search).get('farm') ||
+                 sessionStorage.getItem('sf_farm_id') || 'farm_001';
+  document.getElementById('farmSel').value = farmId;
+
+  _updateHero();
+  _buildTodos();
+
+  _ensureToken().then(token => {
+    KaasaData.init({
+      farmId, token,
+      onSensor:    _onSensor,
+      onRecommend: _onRecommend,
+      onStatus:    _onWsStatus,
+    });
+    KaasaData.loadEnvironment();
+    KaasaData.loadRecommend({ crop: '토마토', tier: 'semi_auto', areaMeter: 1000 });
+    _loadPrices(token);
+    _loadYieldForecast(token, farmId);
+  });
+});
+
+function onFarmChange(farmId) {
+  sessionStorage.setItem('sf_farm_id', farmId);
+  location.reload();
+}
+
+// ── 토큰 자동 확보 ─────────────────────────────────────────────────────────
+async function _ensureToken() {
+  const stored = sessionStorage.getItem('sf_token');
+  if (stored) return stored;
+  try {
+    const apiBase = sessionStorage.getItem('sf_api') ||
+      (location.protocol !== 'file:' ? location.origin : 'http://localhost:8000');
+    const res = await fetch(`${apiBase}/api/v1/auth/token`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: 'admin', password: '1250' }),
+    });
+    if (res.ok) {
+      const d = await res.json();
+      sessionStorage.setItem('sf_token', d.access_token);
+      return d.access_token;
+    }
+  } catch (e) { console.warn('[C3] 자동 로그인 실패:', e.message); }
+  return '';
+}
+
+// ── 히어로 배너 ────────────────────────────────────────────────────────────
+function _updateHero() {
+  const now  = new Date();
+  const days = ['일','월','화','수','목','금','토'];
+  const date = `${now.getFullYear()}년 ${now.getMonth()+1}월 ${now.getDate()}일 (${days[now.getDay()]})`;
+  document.getElementById('heroDate').textContent = date;
+
+  const h = now.getHours();
+  let greeting = h < 6 ? '새벽 작업 중 🌙' : h < 10 ? '좋은 아침입니다 ☀️' :
+                  h < 13 ? '점심 시간대입니다 🌤️' : h < 17 ? '오후 관리 중 🌞' : '저녁 마무리 🌇';
+  document.getElementById('heroTitle').textContent = greeting;
+
+  const p = KaasaData.getCurrentPeriod();
+  document.getElementById('heroPeriod').textContent =
+    `${p.icon} ${p.label} ${p.name} (${p.timeRange})`;
+
+  const tips = {
+    P1: '야간 배액 잔량 확인 · EC/pH 기준값 점검',
+    P2: '첫 급액 — 배액률 20~30% 달성 확인',
+    P3: '일사 상승 대응 — VPD·DLI 모니터링',
+    P4: '고부하 급액 — 배액률 12% 미만 즉시 추가 관수',
+    P5: 'EC 상향 조정 · 마지막 급액 확인',
+  };
+  document.getElementById('heroSub').textContent = tips[p.id] || '오늘 온실 현황을 확인하세요';
+}
+
+// ── To-do 리스트 (Period 기반) ─────────────────────────────────────────────
+function _buildTodos() {
+  const p = KaasaData.getCurrentPeriod();
+  const now = new Date();
+
+  const BASE_TODOS = [
+    // P1
+    { id: 't1', title: '야간 배액 잔량 확인', desc: '슬랩 무게 기록 · 새벽 EC/pH 체크', period: 'P1', urgent: false },
+    // P2
+    { id: 't2', title: '첫 관수 급액 확인', desc: `배액률 목표 20~30% — 현재 Period: ${p.id}`, period: 'P2', urgent: p.id === 'P2' },
+    // P3
+    { id: 't3', title: 'VPD·DLI 모니터링', desc: 'VPD 0.6~1.2 kPa · DLI 일사 누적 확인', period: 'P3', urgent: false },
+    // P4
+    { id: 't4', title: 'P4 배액률 체크', desc: '12% 미만이면 즉시 추가 관수 실행', period: 'P4', urgent: p.id === 'P4' },
+    // P5
+    { id: 't5', title: '마감 관수 EC 상향', desc: 'EC 3.5~4.0 dS/m 설정 · 배액 완료 확인', period: 'P5', urgent: p.id === 'P5' },
+    // 공통
+    { id: 't6', title: '관수 기록 입력', desc: '오늘 급액·배액 실측값 → AI 학습 반영', period: 'ALL', urgent: now.getHours() >= 17 },
+    { id: 't7', title: 'AI 추천 검토', desc: '수익 최적화 추천 확인 및 수용 여부 결정', period: 'AI', urgent: false },
+  ];
+
+  // 완료 상태 로컬스토리지 복원
+  const doneKey = `sf_todo_done_${new Date().toDateString()}`;
+  const doneSet = new Set(JSON.parse(localStorage.getItem(doneKey) || '[]'));
+  _todos = BASE_TODOS.map(t => ({ ...t, done: doneSet.has(t.id) }));
+
+  _renderTodos();
+}
+
+function _renderTodos() {
+  const doneCount = _todos.filter(t => t.done).length;
+  document.getElementById('todoProgress').textContent = `${doneCount}/${_todos.length} 완료`;
+
+  const list = _todos.map(t => `
+    <div class="todo-item ${t.done ? 'done' : ''} ${t.urgent && !t.done ? 'urgent' : ''}"
+         onclick="_toggleTodo('${t.id}')">
+      <div class="todo-check">${t.done ? '✓' : ''}</div>
+      <div class="todo-body">
+        <div class="todo-title">${t.title}</div>
+        <div class="todo-desc">${t.desc}</div>
+        <div class="todo-meta">
+          ${t.period !== 'ALL' && t.period !== 'AI'
+            ? `<span class="todo-badge ${t.period.toLowerCase()}">${t.period}</span>`
+            : t.period === 'AI'
+            ? `<span class="todo-badge ai">AI</span>`
+            : ''}
+          ${t.urgent && !t.done ? '<span class="todo-badge" style="background:var(--red-soft);color:var(--red);">긴급</span>' : ''}
+        </div>
+      </div>
+    </div>
+  `).join('');
+  document.getElementById('todoList').innerHTML = list;
+}
+
+function _toggleTodo(id) {
+  const t = _todos.find(x => x.id === id);
+  if (!t) return;
+  t.done = !t.done;
+
+  const doneKey = `sf_todo_done_${new Date().toDateString()}`;
+  const doneIds = _todos.filter(x => x.done).map(x => x.id);
+  localStorage.setItem(doneKey, JSON.stringify(doneIds));
+  _renderTodos();
+}
+
+// ── WebSocket 상태 ──────────────────────────────────────────────────────────
+function _onWsStatus(state) {
+  const dot   = document.getElementById('wsDot');
+  const label = document.getElementById('wsLabel');
+  if (dot) dot.className = 'ws-dot ' + state;
+  if (label) label.textContent = state === 'connected' ? '실시간 연결 중' :
+                                  state === 'reconnecting' ? '재연결 중…' : '연결 안 됨';
+}
+
+// ── 센서 수신 ───────────────────────────────────────────────────────────────
+let _recommendLoaded = false;
+function _onSensor(env) {
+  _env = env;
+  _updateKpiFromEnv(env);
+  _updateGreenhouseSummary(env);
+  _checkAlerts(env);
+  // 센서 실데이터가 처음 들어오면 추천 재요청 (null env 폴백에서 실데이터로 업그레이드)
+  if (!_recommendLoaded && (env.temp_internal != null || env.solar_rad != null)) {
+    _recommendLoaded = true;
+    KaasaData.loadRecommend({ crop: '오이', tier: 'semi_auto', areaMeter: 1000 });
+  }
+}
+
+function _updateKpiFromEnv(env) {
+  const f1 = v => v != null ? Number(v).toFixed(1) : '—';
+  const f0 = v => v != null ? Math.round(v).toString() : '—';
+
+  // 배액률 — innerHTML로 한 번에 설정해 %가 중복 추가되지 않도록
+  const dr = env.dr_pct ?? env.dr_pct_mean ?? null;
+  const drEl = document.getElementById('kpiDrain');
+  if (drEl) {
+    drEl.innerHTML = dr != null
+      ? `${f1(dr)}<span style="font-size:13px;font-weight:400">%</span>`
+      : '—<span style="font-size:13px;font-weight:400;color:var(--muted)">%</span>';
+    const status = KaasaData.getDrainStatus(dr, KaasaData.getCurrentPeriod());
+    drEl.style.color = status === 'ok' ? 'var(--green)' : status === 'warn' ? 'var(--orange)' : status === 'danger' ? 'var(--red)' : 'var(--muted)';
+  }
+
+  // VPD
+  const vpd = env.vpd ?? null;
+  const vpdEl = document.getElementById('kpiVpd');
+  if (vpdEl) {
+    vpdEl.innerHTML = vpd != null
+      ? `${f1(vpd)}<span style="font-size:12px;font-weight:400"> kPa</span>`
+      : '—<span style="font-size:12px;font-weight:400;color:var(--muted)"> kPa</span>';
+    vpdEl.style.color = vpd == null ? 'var(--muted)' : vpd < 0.6 || vpd > 1.8 ? 'var(--red)' : vpd > 1.2 ? 'var(--orange)' : 'var(--green)';
+    const vpdSt = document.getElementById('kpiVpdStatus');
+    if (vpdSt) {
+      vpdSt.textContent = vpd == null ? '적정 0.6~1.2' :
+        vpd < 0.6 ? '낮음 — 환기 강화' : vpd > 1.8 ? '높음 — 급액 증가' : vpd > 1.2 ? '주의 범위' : '정상';
+      vpdSt.className = 'kpi-delta ' + (vpd == null ? '' : vpd < 0.6 || vpd > 1.8 ? 'down' : vpd > 1.2 ? '' : 'up');
+    }
+  }
+}
+
+function _updateGreenhouseSummary(env) {
+  const f1 = v => v != null ? Number(v).toFixed(1) : '—';
+  const setEl = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  const t = env.temp_internal ?? env.temp_internal_mean ?? null;
+  const h = env.humidity_int ?? env.humidity_int_mean ?? null;
+  setEl('sumTemp', t != null ? `${f1(t)}°C` : '—');
+  setEl('sumHumid', h != null ? `${f1(h)}%` : '—');
+  setEl('sumCo2', env.co2_ppm != null ? `${Math.round(env.co2_ppm)} ppm` : '—');
+  setEl('sumSolar', env.solar_rad != null ? `${Math.round(env.solar_rad)} W/m²` : '—');
+}
+
+function _checkAlerts(env) {
+  const alerts = [];
+  const p = KaasaData.getCurrentPeriod();
+  const dr = env.dr_pct ?? env.dr_pct_mean ?? null;
+  if (dr != null && dr < 12) alerts.push({ level: 'danger', msg: `배액률 ${dr.toFixed(1)}% — 즉시 추가 관수 필요 (${p.label})` });
+  else if (dr != null && dr < 20) alerts.push({ level: 'warn', msg: `배액률 ${dr.toFixed(1)}% — 목표(20~30%) 미달` });
+
+  const vpd = env.vpd ?? null;
+  if (vpd != null && vpd > 1.8) alerts.push({ level: 'warn', msg: `VPD ${vpd.toFixed(1)} kPa — 증산 과다, 급액 확인` });
+
+  const container = document.getElementById('alertBanners');
+  if (!container) return;
+  container.innerHTML = alerts.map(a =>
+    `<div class="alert-banner ${a.level}">
+       <span>${a.level === 'danger' ? '🚨' : '⚠️'}</span>
+       <span>${a.msg}</span>
+     </div>`
+  ).join('');
+}
+
+// ── AI 추천 ─────────────────────────────────────────────────────────────────
+function _onRecommend(data) {
+  if (!data) return;
+  const recs = data.recommendations || [];
+  const conf = recs.length ? Math.round((recs[0].confidence ?? 0) * 100) : 0;
+
+  const badge = document.getElementById('aiConfBadge');
+  const bar   = document.getElementById('aiConfBar');
+  const text  = document.getElementById('aiRecommendText');
+
+  if (badge) badge.textContent = `${conf}%`;
+  if (bar)   bar.style.width   = `${conf}%`;
+  if (text)  {
+    const top = recs.slice(0, 2).map(r => r.action_ko || r.title_ko || '').filter(Boolean);
+    text.textContent = top.length ? `추천: ${top.join(' · ')}` :
+      (data._modelLayer === '농진청표준' ? '농진청 표준 기준값 적용 중' : 'AI 추천 없음');
+  }
+
+  // KPI 수확량/매출 업데이트 (추천에서 수익 정보 있으면)
+  if (recs[0]?.profit_delta != null) {
+    const rev = document.getElementById('kpiRevenueDelta');
+    if (rev) rev.textContent = `예상 마진 +${(recs[0].profit_delta/10000).toFixed(0)}만원`;
+    rev?.classList.add('up');
+  }
+}
+
+// ── 가격 조회 ───────────────────────────────────────────────────────────────
+async function _loadPrices(token) {
+  try {
+    const apiBase = KaasaData.getApiBase();
+    const res = await fetch(`${apiBase}/api/admin/prices/latest`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return;
+    const d = await res.json();
+    _prices = d.prices || [];
+    _renderPrices();
+  } catch (e) { console.warn('[C3] 가격 조회 실패:', e.message); }
+}
+
+function _renderPrices() {
+  const strip = document.getElementById('priceStrip');
+  if (!strip || !_prices.length) return;
+  strip.innerHTML = _prices.map(p => {
+    const price = p.price_krw_kg;
+    const name  = p.crop_ko || '?';
+    const src   = p.source === 'kamis_cache' || p.source === 'kamis_live' ? 'KAMIS' : '기준가';
+    return `<div class="price-chip">
+      <div class="price-chip-name">${name}</div>
+      <div class="price-chip-value">${price != null ? Math.round(price).toLocaleString() : '—'}<span style="font-size:9px;">원</span></div>
+      <div class="price-chip-src">${src}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── 수확 예측 조회 ──────────────────────────────────────────────────────────
+async function _loadYieldForecast(token, farmId) {
+  try {
+    const apiBase = KaasaData.getApiBase();
+    const res = await fetch(`${apiBase}/api/farms/${farmId}/summary`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return;
+    const d = await res.json();
+    const yield_kg = d.predicted_yield_kg ?? d.yield_forecast_kg ?? null;
+    const yEl = document.getElementById('kpiYield');
+    if (yEl && yield_kg != null) {
+      yEl.innerHTML = `${Number(yield_kg).toFixed(1)}<span style="font-size:13px;font-weight:400"> kg</span>`;
+    }
+    // 가격 × 수확량 = 매출 계산
+    const crop = d.crop_ko || '오이';
+    const priceItem = _prices.find(p => p.crop_ko === crop);
+    if (priceItem && yield_kg != null) {
+      const revenue = Math.round(yield_kg * priceItem.price_krw_kg);
+      const rEl = document.getElementById('kpiRevenue');
+      if (rEl) rEl.innerHTML = `${(revenue/10000).toFixed(0)}<span style="font-size:12px;font-weight:400"> 만원</span>`;
+      const rdEl = document.getElementById('kpiRevenueDelta');
+      if (rdEl) rdEl.textContent = `${Math.round(priceItem.price_krw_kg).toLocaleString()}원/kg × ${Number(yield_kg).toFixed(1)}kg`;
+    }
+  } catch (e) { /* silent */ }
+}
+
+// ── 요약 탭 전환 ────────────────────────────────────────────────────────────
+function switchSum(tab) {
+  document.querySelectorAll('.sum-tab').forEach((el, i) => {
+    const ids = ['greenhouse','field','market'];
+    el.classList.toggle('active', ids[i] === tab);
+  });
+  document.querySelectorAll('.sum-panel').forEach(el => el.classList.remove('active'));
+  const panel = document.getElementById('sum' + tab.charAt(0).toUpperCase() + tab.slice(1));
+  if (panel) panel.classList.add('active');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <title>G3 — 관수·양액 Period 관리 | KAASA SmartOS</title>
+  <link rel="stylesheet" href="../components/base.css"/>
+  <style>
+    /* ── G3 전용 스타일 ── */
+    .period-timeline { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+
+    .period-card {
+      border-radius: var(--radius); border: 1.5px solid var(--border);
+      background: var(--panel); overflow: hidden;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .period-card.active-period  { border-color: var(--p4-color); box-shadow: 0 0 0 3px rgba(217,119,6,.18); }
+    .period-card.done           { opacity: .7; }
+    .period-card.alert-danger   { border-color: var(--red) !important; box-shadow: 0 0 0 3px rgba(220,38,38,.2) !important; }
+    .period-card.alert-warn     { border-color: var(--orange) !important; }
+
+    .period-head {
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 14px; cursor: pointer; min-height: 56px;
+      user-select: none; -webkit-user-select: none;
+    }
+    .period-icon  { font-size: 22px; flex-shrink: 0; }
+    .period-label { flex-shrink: 0; }
+    .period-name  { font-size: 14px; font-weight: 800; line-height: 1.2; }
+    .period-time  { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .period-status { margin-left: auto; display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+    .period-chevron { font-size: 12px; color: var(--muted); transition: transform .2s; }
+    .period-card.expanded .period-chevron { transform: rotate(180deg); }
+
+    .period-body { display: none; padding: 0 14px 14px; border-top: 1px solid var(--border); }
+    .period-card.expanded .period-body { display: block; }
+
+    /* 센서 값 그리드 */
+    .sensor-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 12px 0; }
+    .sensor-item {
+      background: var(--panel-soft); border-radius: var(--radius-sm);
+      padding: 10px; text-align: center;
+    }
+    .sensor-label { font-size: 10px; color: var(--muted); display: block; }
+    .sensor-val   { font-size: 18px; font-weight: 800; display: block; margin-top: 2px; font-variant-numeric: tabular-nums; }
+    .sensor-unit  { font-size: 11px; font-weight: 400; }
+    .sensor-val.ok     { color: var(--green); }
+    .sensor-val.warn   { color: var(--orange); }
+    .sensor-val.danger { color: var(--red); }
+
+    /* 배액률 바 */
+    .drain-bar-wrap { margin: 10px 0 6px; }
+    .drain-bar-label { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-bottom: 5px; }
+    .drain-bar { height: 12px; background: #e4ebe4; border-radius: 99px; overflow: hidden; position: relative; }
+    .drain-fill { height: 100%; border-radius: 99px; background: var(--green-2); transition: width .5s; }
+    .drain-target-min, .drain-target-max {
+      position: absolute; top: 0; bottom: 0; width: 2px; background: rgba(0,0,0,.2);
+    }
+    .drain-target-label { font-size: 11px; color: var(--muted); text-align: center; margin-top: 4px; }
+
+    /* Priva 추천값 */
+    .priva-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 7px 10px; background: var(--gray-soft); border-radius: 8px; margin-bottom: 6px;
+      font-size: 13px;
+    }
+    .priva-key  { color: var(--muted); }
+    .priva-val  { font-weight: 700; }
+
+    /* AI 추천 칩 */
+    .ai-chip {
+      display: flex; align-items: flex-start; gap: 10px;
+      background: var(--green-soft); border: 1px solid #cbe7d5;
+      border-radius: var(--radius-sm); padding: 11px 13px; margin: 10px 0; font-size: 13px;
+    }
+    .ai-chip .ai-icon { font-size: 18px; flex-shrink: 0; }
+    .ai-chip-body { flex: 1; }
+    .ai-chip-title { font-weight: 700; color: var(--green-dark); font-size: 13px; }
+    .ai-chip-text  { color: #34433a; margin-top: 3px; font-size: 12px; }
+    .ai-chip-conf  { font-size: 11px; color: var(--muted); margin-top: 4px; }
+    .ai-chip.warn  { background: var(--orange-soft); border-color: #ffe1a8; }
+    .ai-chip.warn .ai-chip-title { color: #7c4a00; }
+    .ai-chip.danger { background: var(--red-soft); border-color: #ffc7c7; }
+    .ai-chip.danger .ai-chip-title { color: #7f1d1d; }
+    .ai-model-badge { font-size: 10px; background: rgba(0,0,0,.08); border-radius: 4px; padding: 2px 6px; }
+
+    /* 적용 버튼 행 */
+    .action-row { display: flex; gap: 8px; margin-top: 12px; }
+    .action-row .btn { flex: 1; }
+
+    /* 상단 요약 KPI */
+    .kpi .kpi-value.ok     { color: var(--green); }
+    .kpi .kpi-value.warn   { color: var(--orange); }
+    .kpi .kpi-value.danger { color: var(--red); }
+
+    /* 경보 배너 */
+    #alert-zone > .alert-banner { animation: slideIn .3s ease; }
+    @keyframes slideIn { from { opacity: 0; transform: translateY(-6px); } }
+
+    /* 관수 기록 입력 시트 */
+    .input-field {
+      width: 100%; padding: 12px 14px; border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm); font-size: 15px; color: var(--text);
+      background: var(--panel); outline: none; transition: border-color .15s;
+      -webkit-appearance: none;
+    }
+    .input-field:focus { border-color: var(--green); }
+    .field-label { display: block; font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+    .field-group { margin-bottom: 14px; }
+    .field-hint  { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+    /* 스크롤 Period 점프 버튼 */
+    .jump-bar { display: flex; gap: 6px; margin-bottom: 14px; overflow-x: auto; padding-bottom: 4px; }
+    .jump-bar::-webkit-scrollbar { display: none; }
+    .jump-btn {
+      flex-shrink: 0; padding: 6px 14px; border-radius: 99px;
+      border: 1.5px solid var(--border); background: var(--panel);
+      font-size: 12px; font-weight: 700; cursor: pointer; color: var(--muted);
+      min-height: 34px; white-space: nowrap; transition: all .15s;
+    }
+    .jump-btn.active-period { border-color: var(--p4-color); color: var(--p4-color); background: var(--p4-soft); }
+    .jump-btn[data-p="P1"].active-period { border-color: var(--p1-color); color: var(--p1-color); background: var(--p1-soft); }
+    .jump-btn[data-p="P2"].active-period { border-color: var(--p2-color); color: var(--p2-color); background: var(--p2-soft); }
+    .jump-btn[data-p="P3"].active-period { border-color: var(--p3-color); color: var(--p3-color); background: var(--p3-soft); }
+    .jump-btn[data-p="P5"].active-period { border-color: var(--p5-color); color: var(--p5-color); background: var(--p5-soft); }
+
+    /* WS 상태 */
+    .ws-bar { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+
+<!-- ══ 상단 헤더 ══ -->
+<header class="sf-header">
+  <div class="brand">
+    G3 관수·양액 Period
+    <small>KAASA SmartOS</small>
+  </div>
+  <div class="hdr-right">
+    <span class="ws-dot" id="wsDot"></span>
+    <button class="icon-btn" onclick="location.href='../index.html'" aria-label="홈">🏠</button>
+    <button class="icon-btn" onclick="openSheet('sheetRecord')" aria-label="관수 기록">✏️</button>
+  </div>
+</header>
+
+<main>
+
+  <!-- ══ 농장·작기 선택 ══ -->
+  <div class="ws-bar">
+    <span class="ws-dot" id="wsDot2"></span>
+    <span id="wsLabel">연결 중…</span>
+    <span style="margin-left:auto;">
+      농장:
+      <select id="farmSel" style="border:none;background:none;font-size:12px;color:var(--muted);cursor:pointer;"
+              onchange="onFarmChange(this.value)">
+        <option value="farm_001">farm_001</option>
+        <option value="farm_002">farm_002</option>
+      </select>
+    </span>
+  </div>
+
+  <!-- ══ 경보 존 ══ -->
+  <div id="alertZone"></div>
+
+  <!-- ══ KPI 상단 요약 ══ -->
+  <div class="kpi-grid" style="margin-bottom:14px;">
+    <div class="kpi">
+      <span class="kpi-label">배액률</span>
+      <span class="kpi-value" id="kpiDrain">—<span class="kpi-unit">%</span></span>
+      <span class="kpi-hint" id="kpiDrainHint">목표 20~30%</span>
+    </div>
+    <div class="kpi">
+      <span class="kpi-label">배액 EC</span>
+      <span class="kpi-value" id="kpiEcDrain">—<span class="kpi-unit"> dS/m</span></span>
+      <span class="kpi-hint" id="kpiEcHint">정상 3.0~4.5</span>
+    </div>
+    <div class="kpi">
+      <span class="kpi-label">급액 pH</span>
+      <span class="kpi-value" id="kpiPh">—</span>
+      <span class="kpi-hint">정상 5.5~6.5</span>
+    </div>
+    <div class="kpi">
+      <span class="kpi-label">온도/VPD</span>
+      <span class="kpi-value" id="kpiTempVpd" style="font-size:16px;">—</span>
+      <span class="kpi-hint" id="kpiVpdHint"></span>
+    </div>
+  </div>
+
+  <!-- ══ Period 점프 바 ══ -->
+  <div class="jump-bar" id="jumpBar"></div>
+
+  <!-- ══ P1~P5 Period 타임라인 ══ -->
+  <div class="section-label">오늘의 관수 Period (P1~P5)</div>
+  <div class="period-timeline" id="periodTimeline">
+    <div style="text-align:center;padding:20px;"><div class="spinner"></div></div>
+  </div>
+
+  <!-- ══ Priva ET₀ 일간 요약 ══ -->
+  <section>
+    <div class="section-label">Priva ET₀ 일간 스케줄</div>
+    <div class="card" id="privaSummary">
+      <div class="spinner"></div>
+    </div>
+  </section>
+
+  <!-- ══ AI 추천 요약 ══ -->
+  <section>
+    <div class="section-label">AI 관수 추천</div>
+    <div id="aiSummary">
+      <div class="card"><div class="spinner"></div></div>
+    </div>
+  </section>
+
+  <!-- ══ 관수 분석 7일 ══ -->
+  <section>
+    <div class="section-label">관수 품질 분석 (7일)</div>
+    <div class="card" id="analysisCard">
+      <div class="spinner"></div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ══ 하단 탭 바 ══ -->
+<nav class="sf-bottom-nav">
+  <button class="bnav-tab" onclick="location.href='c3_home.html'">
+    <span class="bnav-icon">🏠</span>홈
+  </button>
+  <button class="bnav-tab active">
+    <span class="bnav-icon">💧</span>관수
+  </button>
+  <button class="bnav-tab" onclick="location.href='g2_env.html'">
+    <span class="bnav-icon">🌡️</span>환경
+  </button>
+  <button class="bnav-tab" onclick="location.href='f1_field.html'">
+    <span class="bnav-icon">🌿</span>노지
+  </button>
+  <button class="bnav-tab" onclick="location.href='c12_joint.html'">
+    <span class="bnav-icon">🚛</span>출하
+  </button>
+</nav>
+
+<!-- ══ Bottom Sheet: 관수 기록 입력 ══ -->
+<div class="sheet-backdrop" id="backdropRecord" onclick="closeSheet('sheetRecord')"></div>
+<div class="sheet" id="sheetRecord">
+  <div class="sheet-handle"></div>
+  <h4>관수 기록 입력</h4>
+  <p style="font-size:13px;color:var(--muted);margin-bottom:14px;">
+    Period별 급액·배액 실측값을 입력합니다. 입력 후 AI 모델 학습에 반영됩니다.
+  </p>
+  <div id="recordFields">
+    <!-- JS로 Period별 필드 생성 -->
+  </div>
+  <div class="sheet-btn-row">
+    <button class="btn full" onclick="submitRecord()">저장 및 분석 업데이트</button>
+    <button class="btn full secondary" onclick="closeSheet('sheetRecord')">취소</button>
+  </div>
+  <div id="recordResult" style="margin-top:10px;font-size:13px;text-align:center;"></div>
+</div>
+
+<!-- ══ Bottom Sheet: 관수 추가 실행 확인 ══ -->
+<div class="sheet-backdrop" id="backdropApply" onclick="closeSheet('sheetApply')"></div>
+<div class="sheet" id="sheetApply">
+  <div class="sheet-handle"></div>
+  <h4 id="applyTitle">관수 추가 실행</h4>
+  <div id="applyBody" style="margin-bottom:14px;"></div>
+  <div class="sheet-btn-row">
+    <button class="btn full" id="applyConfirmBtn">승인 — 지금 실행</button>
+    <button class="btn full secondary" onclick="closeSheet('sheetApply')">보류</button>
+  </div>
+</div>
+
+<script src="../components/data.js"></script>
+<script>
+/* ── 전역 상태 ── */
+let _privaData     = null;
+let _recommendData = null;
+let _currentPeriod = null;
+let _periodData    = {}; // periodId → { supplyMl, drainMl, ec, ph }
+
+/* ── 초기화 ── */
+window.addEventListener('DOMContentLoaded', () => {
+  const farmId = new URLSearchParams(location.search).get('farm') ||
+                 sessionStorage.getItem('sf_farm_id') || 'farm_001';
+  document.getElementById('farmSel').value = farmId;
+
+  // 토큰 자동 확보 후 KaasaData 초기화
+  _ensureToken().then(token => {
+    KaasaData.init({
+      farmId, token,
+      onSensor:    handleSensor,
+      onPriva:     handlePriva,
+      onRecommend: handleRecommend,
+      onStatus:    handleWsStatus,
+      onAlert:     handlePeriodAlert
+    });
+    renderPeriodTimeline();
+    renderJumpBar();
+    buildRecordFields();
+    KaasaData.loadEnvironment();
+    loadAll();
+  });
+});
+
+/* ── 토큰 자동 확보 (sessionStorage 캐시 → 자동 로그인 폴백) ── */
+async function _ensureToken() {
+  const stored = sessionStorage.getItem('sf_token');
+  if (stored) return stored;
+  try {
+    const apiBase = sessionStorage.getItem('sf_api') ||
+      (location.protocol !== 'file:' ? location.origin : 'http://localhost:8000');
+    const res = await fetch(`${apiBase}/api/v1/auth/token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: 'admin', password: '1250' })
+    });
+    if (res.ok) {
+      const d = await res.json();
+      sessionStorage.setItem('sf_token', d.access_token);
+      return d.access_token;
+    }
+  } catch (e) { console.warn('[G3] 자동 로그인 실패:', e.message); }
+  return '';
+}
+
+function loadAll() {
+  KaasaData.loadPrivaSchedule({ growthStage: 'mid', plantSizePct: 100 });
+  KaasaData.loadRecommend({ crop: '토마토', tier: 'semi_auto', areaMeter: 1000 });
+  KaasaData.loadIrrigationAnalysis(7).then(renderAnalysis);
+}
+
+function onFarmChange(farmId) {
+  sessionStorage.setItem('sf_farm_id', farmId);
+  location.reload();
+}
+
+/* ── WebSocket 상태 ── */
+function handleWsStatus(state) {
+  const dots = [document.getElementById('wsDot'), document.getElementById('wsDot2')];
+  const label = document.getElementById('wsLabel');
+  dots.forEach(d => { if (d) { d.className = 'ws-dot ' + state; } });
+  if (label) {
+    label.textContent = state === 'connected' ? '실시간 연결 중' : state === 'reconnecting' ? '재연결 중…' : '연결 안 됨';
+  }
+}
+
+/* ── 센서 수신 ── */
+function handleSensor(env) {
+  // KPI 업데이트
+  const drain = env.drain_pct ?? env.dr_pct_mean;
+  const ecDrain = env.ec_drain ?? env.ec_dsm;
+  const ph = env.ph ?? env.ph_supply;
+  const temp = env.temp_internal;
+  const vpd = env.vpd ?? computeVpd(temp, env.humidity_int);
+
+  const cur = KaasaData.getCurrentPeriod();
+  if (!_currentPeriod || _currentPeriod.id !== cur.id) {
+    _currentPeriod = cur;
+    renderPeriodTimeline(); // Period 전환 시 재렌더
+  }
+
+  // 배액률 KPI
+  setKpiValue('kpiDrain', drain != null ? KaasaData.fmtPct(drain) : '—', getDrainCls(drain, cur));
+  document.getElementById('kpiDrainHint').textContent =
+    drain != null ? `목표 ${cur.targets?.drainPct?.min ?? 20}~${cur.targets?.drainPct?.max ?? 30}%` : '목표 20~30%';
+
+  // EC KPI
+  setKpiValue('kpiEcDrain', ecDrain != null ? KaasaData.fmt1(ecDrain) : '—', getEcCls(ecDrain));
+
+  // pH KPI
+  setKpiValue('kpiPh', ph != null ? KaasaData.fmt1(ph) : '—', getPhCls(ph));
+
+  // 온도/VPD
+  const tempStr = temp != null ? `${KaasaData.fmt1(temp)}℃` : '—';
+  const vpdStr  = vpd  != null ? ` / ${KaasaData.fmt1(vpd)}` : '';
+  document.getElementById('kpiTempVpd').textContent = tempStr + vpdStr;
+  document.getElementById('kpiVpdHint').textContent =
+    vpd != null ? (vpd > 2.0 ? '⚠ VPD 높음' : vpd < 0.8 ? '⚠ VPD 낮음' : 'VPD 정상') : '';
+
+  // Period별 센서 업데이트
+  updatePeriodSensors(env);
+}
+
+/* ── Priva ET₀ 수신 ── */
+function handlePriva({ raw, periods }) {
+  _privaData = { raw, periods };
+  renderPrivaSummary(raw, periods);
+  updatePeriodPriva(periods);
+}
+
+/* ── AI 추천 수신 ── */
+function handleRecommend(data) {
+  _recommendData = data;
+  renderAiSummary(data);
+  updatePeriodAi(data);
+}
+
+/* ── Period 경보 ── */
+function handlePeriodAlert(alerts) {
+  const zone = document.getElementById('alertZone');
+  zone.innerHTML = '';
+  alerts.forEach(alert => {
+    const div = document.createElement('div');
+    div.className = `alert-banner ${alert.severity === 'danger' ? 'danger' : 'warn'}`;
+    div.innerHTML = `<span class="alert-icon">${alert.severity === 'danger' ? '🚨' : '⚠️'}</span>
+      <span><b>${alert.period || ''}</b> ${esc(alert.msg || '')}</span>`;
+    zone.appendChild(div);
+  });
+}
+
+/* ── Period 타임라인 렌더 ── */
+function renderPeriodTimeline() {
+  _currentPeriod = KaasaData.getCurrentPeriod();
+  const now = new Date();
+  const hm  = now.getHours() + now.getMinutes() / 60;
+
+  const container = document.getElementById('periodTimeline');
+  container.innerHTML = '';
+
+  KaasaData.PERIODS.forEach((p, i) => {
+    const isDone   = hm > parseFloat(p.timeRange.split('~')[0].replace(':','.')); // 간이 판별
+    const isActive = _currentPeriod.id === p.id;
+
+    const card = document.createElement('div');
+    card.className = `period-card ${isActive ? 'active-period' : ''} ${isDone && !isActive ? 'done' : ''}`;
+    card.id = `period-${p.id}`;
+    if (isActive) card.classList.add('expanded');
+
+    const colorVar = p.colorVar;
+    const softVar  = p.softVar;
+
+    card.innerHTML = `
+      <div class="period-head" onclick="togglePeriod('${p.id}')">
+        <div class="period-icon">${p.icon}</div>
+        <div class="period-label">
+          <div class="period-name" style="color:var(${colorVar});">${p.label} <span style="color:var(--text)">${p.name}</span></div>
+          <div class="period-time">${p.timeRange}</div>
+        </div>
+        <div class="period-status">
+          ${isActive ? `<span class="badge orange">진행중</span>` : isDone ? `<span class="badge gray">완료</span>` : `<span class="badge gray">대기</span>`}
+          <span class="period-chevron">▾</span>
+        </div>
+      </div>
+      <div class="period-body">
+        <p style="font-size:12px;color:var(--muted);margin-bottom:10px;">${esc(p.description)}</p>
+
+        <!-- 센서 값 -->
+        <div class="sensor-grid" id="sensors-${p.id}">
+          ${makeSensorItem('배액률', '—', '%', 'drain-'+p.id)}
+          ${makeSensorItem('배액 EC', '—', 'dS/m', 'ecD-'+p.id)}
+          ${makeSensorItem('급액 pH', '—', '', 'ph-'+p.id)}
+        </div>
+
+        <!-- 배액률 진행바 -->
+        ${p.targets?.drainPct ? `
+        <div class="drain-bar-wrap">
+          <div class="drain-bar-label">
+            <span>배액률</span>
+            <span id="drainPctText-${p.id}">—%</span>
+          </div>
+          <div class="drain-bar">
+            <div class="drain-fill" id="drainBar-${p.id}" style="width:0%"></div>
+            <div class="drain-target-min" style="left:${p.targets.drainPct.min}%"></div>
+            <div class="drain-target-max" style="left:${p.targets.drainPct.max}%"></div>
+          </div>
+          <div class="drain-target-label">목표: ${p.targets.drainPct.min}~${p.targets.drainPct.max}%</div>
+        </div>` : ''}
+
+        <!-- Priva 추천 -->
+        <div id="priva-${p.id}">
+          <div class="priva-row"><span class="priva-key">추천 관수횟수</span><span class="priva-val" id="privaCount-${p.id}">로드 중…</span></div>
+          <div class="priva-row"><span class="priva-key">회당 공급량</span><span class="priva-val" id="privaSupply-${p.id}">—</span></div>
+          <div class="priva-row"><span class="priva-key">배액 목표</span><span class="priva-val" id="privaDrain-${p.id}">—</span></div>
+        </div>
+
+        <!-- AI 추천 -->
+        <div id="ai-${p.id}"></div>
+
+        <!-- 실행 버튼 -->
+        ${isActive ? `
+        <div class="action-row">
+          <button class="btn" onclick="confirmApply('${p.id}')">✅ 관수 승인 실행</button>
+          <button class="btn secondary" onclick="recordSkip('${p.id}')">⏭ 건너뜀</button>
+        </div>` : ''}
+      </div>`;
+
+    container.appendChild(card);
+  });
+}
+
+/* ── 점프 바 렌더 ── */
+function renderJumpBar() {
+  _currentPeriod = _currentPeriod || KaasaData.getCurrentPeriod();
+  const bar = document.getElementById('jumpBar');
+  bar.innerHTML = KaasaData.PERIODS.map(p => `
+    <button class="jump-btn ${_currentPeriod.id === p.id ? 'active-period' : ''}" data-p="${p.id}"
+            onclick="jumpToPeriod('${p.id}')">
+      ${p.icon} ${p.label} ${p.name}
+    </button>`).join('');
+}
+
+/* ── Priva 요약 렌더 ── */
+function renderPrivaSummary(raw, periods) {
+  if (!raw) { document.getElementById('privaSummary').innerHTML = '<p style="color:var(--muted);font-size:13px;">데이터 없음</p>'; return; }
+  const f1 = v => v != null ? Number(v).toFixed(1) : '—';
+  const f0 = v => v != null ? Math.round(v) : '—';
+  document.getElementById('privaSummary').innerHTML = `
+    <div class="card-title">📊 Priva ET₀ 스케줄 <span class="badge green" style="margin-left:auto;">오늘</span></div>
+    <div class="kpi-grid" style="margin-bottom:10px;">
+      <div class="kpi"><span class="kpi-label">총 관수횟수</span><span class="kpi-value">${raw.n_irrigations ?? '—'}<span class="kpi-unit">회</span></span></div>
+      <div class="kpi"><span class="kpi-label">총 공급량</span><span class="kpi-value">${f0(raw.supply_total_ml)}<span class="kpi-unit">ml</span></span></div>
+      <div class="kpi"><span class="kpi-label">ET₀</span><span class="kpi-value">${f1(raw.et0_mm)}<span class="kpi-unit">mm</span></span></div>
+      <div class="kpi"><span class="kpi-label">ETc (Kc=${f1(raw.kc)})</span><span class="kpi-value">${f1(raw.etc_mm)}<span class="kpi-unit">mm</span></span></div>
+    </div>
+    <div class="priva-row"><span class="priva-key">배액 목표</span><span class="priva-val" style="color:var(--green)">${f1(raw.drain_target_pct)}%</span></div>
+    <div class="priva-row"><span class="priva-key">P/I 교정</span><span class="priva-val">${raw.pi_correction_lm2 != null ? (Number(raw.pi_correction_lm2)>=0?'+':'') + Number(raw.pi_correction_lm2).toFixed(3) + ' L/m²' : '미적용'}</span></div>
+    <div class="priva-row"><span class="priva-key">증산량</span><span class="priva-val">${f1(raw.transpiration_mm)} mm</span></div>
+    ${raw.note ? `<div class="explain" style="margin-top:8px;"><b>비고:</b> ${esc(raw.note.slice(0,100))}</div>` : ''}
+  `;
+}
+
+/* ── AI 추천 요약 렌더 ── */
+function renderAiSummary(data) {
+  const container = document.getElementById('aiSummary');
+  if (!data) { container.innerHTML = '<div class="card"><p style="color:var(--muted);font-size:13px;">AI 추천 없음</p></div>'; return; }
+  const alerts = data.alerts || [];
+  const recs   = data.recommendations || [];
+  const layer  = data._modelLayer || data.model_source || 'AI';
+
+  let html = `<div class="card"><div class="card-title">🤖 AI 관수 추천 <span class="badge blue ai-model-badge" style="margin-left:auto;">${esc(layer)}</span></div>`;
+
+  if (alerts.length) {
+    html += alerts.map(a => `
+      <div class="alert-banner ${a.severity === 'danger' ? 'danger' : a.severity === 'warning' ? 'warn' : 'info'}">
+        <span class="alert-icon">${a.severity === 'danger' ? '🚨' : a.severity === 'warning' ? '⚠️' : 'ℹ️'}</span>
+        <div>
+          <div style="font-weight:700;font-size:13px;">${esc(a.variable_ko || a.variable || '')}</div>
+          <div style="font-size:12px;">${esc(a.message_ko || '')}</div>
+          <div style="font-size:11px;color:var(--muted);">현재값: ${a.current_value ?? '—'} (정상 ${a.normal_min ?? ''}~${a.normal_max ?? ''} ${esc(a.unit || '')})</div>
+        </div>
+      </div>`).join('');
+  }
+  if (recs.length) {
+    html += recs.map(r => `
+      <div class="ai-chip">
+        <div class="ai-icon">💡</div>
+        <div class="ai-chip-body">
+          <div class="ai-chip-title">${esc(r.title_ko || r.action || '')}</div>
+          <div class="ai-chip-text">${esc(r.value || r.description_ko || '')}</div>
+          ${r.confidence != null ? `<div class="ai-chip-conf">신뢰도 ${Math.round(r.confidence*100)}%</div>` : ''}
+        </div>
+      </div>`).join('');
+  }
+  if (!alerts.length && !recs.length) {
+    html += '<p style="font-size:13px;color:var(--muted);">현재 특이 사항 없음 — 관수 정상 범위</p>';
+  }
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+/* ── 관수 분석 렌더 ── */
+function renderAnalysis(data) {
+  const card = document.getElementById('analysisCard');
+  if (!data) { card.innerHTML = '<p style="font-size:13px;color:var(--muted);">분석 데이터 없음</p>'; return; }
+  const f1 = v => v != null ? Number(v).toFixed(1) : '—';
+  const days = data.days || data;
+
+  card.innerHTML = `
+    <div class="card-title">📈 관수 품질 분석 <span class="badge gray" style="margin-left:auto;">최근 7일</span></div>
+    <div class="table-wrap">
+      <table class="table">
+        <tr><th>항목</th><th class="num">평균</th><th class="num">최소</th><th class="num">최대</th></tr>
+        <tr><td>배액률 (%)</td><td class="num">${f1(data.dr_pct_mean)}</td><td class="num">${f1(data.dr_pct_min)}</td><td class="num">${f1(data.dr_pct_max)}</td></tr>
+        <tr><td>배액 EC (dS/m)</td><td class="num">${f1(data.ec_drain_mean)}</td><td class="num">${f1(data.ec_drain_min)}</td><td class="num">${f1(data.ec_drain_max)}</td></tr>
+        <tr><td>함수율 (%)</td><td class="num">${f1(data.wc_mean)}</td><td class="num">${f1(data.wc_min)}</td><td class="num">${f1(data.wc_max)}</td></tr>
+        <tr><td>일 공급량 (ml)</td><td class="num">${f1(data.supply_total_mean)}</td><td class="num">—</td><td class="num">—</td></tr>
+        <tr><td>일 관수횟수</td><td class="num">${f1(data.irr_count_mean)}</td><td class="num">—</td><td class="num">—</td></tr>
+      </table>
+    </div>
+    ${data.warnings?.length ? `<div class="explain" style="margin-top:8px;"><b>주의:</b> ${esc(data.warnings.join(', '))}</div>` : ''}
+  `;
+}
+
+/* ── Period 별 센서값 업데이트 ── */
+function updatePeriodSensors(env) {
+  const drain   = env.drain_pct ?? env.dr_pct_mean;
+  const ecDrain = env.ec_drain  ?? env.ec_dsm;
+  const ph      = env.ph        ?? env.ph_supply;
+
+  KaasaData.PERIODS.forEach(p => {
+    setEl(`drain-${p.id}`,  drain   != null ? KaasaData.fmtPct(drain)        : '—');
+    setEl(`ecD-${p.id}`,    ecDrain != null ? KaasaData.fmt1(ecDrain)         : '—');
+    setEl(`ph-${p.id}`,     ph      != null ? KaasaData.fmt1(ph)             : '—');
+    setEl(`drainPctText-${p.id}`, drain != null ? `${Number(drain).toFixed(1)}%` : '—%');
+
+    const bar = document.getElementById(`drainBar-${p.id}`);
+    if (bar && drain != null) {
+      const pct = Math.min(Math.max(drain, 0), 100);
+      bar.style.width = pct + '%';
+      const status = KaasaData.getDrainStatus(drain, p);
+      bar.className = `drain-fill ${status === 'danger' ? 'danger' : status === 'warn' ? 'warn' : ''}`;
+
+      const card = document.getElementById(`period-${p.id}`);
+      if (card) {
+        card.classList.remove('alert-danger', 'alert-warn');
+        if (status === 'danger') card.classList.add('alert-danger');
+        else if (status === 'warn') card.classList.add('alert-warn');
+      }
+    }
+  });
+}
+
+/* ── Priva → Period별 업데이트 ── */
+function updatePeriodPriva(periods) {
+  if (!periods) return;
+  periods.forEach(pp => {
+    const f0 = v => v != null ? Math.round(v) : '—';
+    const f1 = v => v != null ? Number(v).toFixed(1) : '—';
+    setEl(`privaCount-${pp.periodId}`, pp.nMax != null ? `${pp.nMax}회` : 'N/A (준비 구간)');
+    setEl(`privaSupply-${pp.periodId}`, pp.supplyMl != null ? `${f0(pp.supplyMl)} ml/주` : '—');
+    setEl(`privaDrain-${pp.periodId}`, pp.drainTargetPct != null ? `${f1(pp.drainTargetPct)}%` : '—');
+  });
+}
+
+/* ── AI 추천 → Period별 업데이트 ── */
+function updatePeriodAi(data) {
+  KaasaData.PERIODS.forEach(p => {
+    const el = document.getElementById(`ai-${p.id}`);
+    if (!el) return;
+    const alerts = (data.alerts || []).filter(a => a.variable?.includes('drain') || a.variable?.includes('ec'));
+    if (alerts.length && p.id === _currentPeriod?.id) {
+      el.innerHTML = alerts.slice(0,1).map(a => `
+        <div class="ai-chip ${a.severity === 'danger' ? 'danger' : a.severity === 'warning' ? 'warn' : ''}">
+          <div class="ai-icon">${a.severity === 'danger' ? '🚨' : '⚠️'}</div>
+          <div class="ai-chip-body">
+            <div class="ai-chip-title">${esc(a.message_ko || '')}</div>
+            <div class="ai-chip-conf">현재 ${a.current_value ?? '—'} ${esc(a.unit||'')} · 정상 ${a.normal_min}~${a.normal_max}</div>
+          </div>
+        </div>`).join('');
+    }
+  });
+}
+
+/* ── Period 확장/축소 토글 ── */
+function togglePeriod(id) {
+  const card = document.getElementById(`period-${id}`);
+  card.classList.toggle('expanded');
+}
+
+/* ── 점프 ── */
+function jumpToPeriod(id) {
+  const el = document.getElementById(`period-${id}`);
+  if (!el) return;
+  const card = el;
+  if (!card.classList.contains('expanded')) card.classList.add('expanded');
+  card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+/* ── 관수 승인 실행 ── */
+function confirmApply(periodId) {
+  const p = KaasaData.PERIODS.find(x => x.id === periodId);
+  const pp = _privaData?.periods?.find(x => x.periodId === periodId);
+  document.getElementById('applyTitle').textContent = `${p.icon} ${p.label} ${p.name} — 관수 실행`;
+  document.getElementById('applyBody').innerHTML = `
+    <div class="priva-row"><span class="priva-key">Priva 추천 횟수</span><span class="priva-val">${pp?.nMax ?? '—'}회</span></div>
+    <div class="priva-row"><span class="priva-key">회당 공급량</span><span class="priva-val">${pp?.supplyMl != null ? Math.round(pp.supplyMl)+' ml/주' : '—'}</span></div>
+    <div class="priva-row"><span class="priva-key">배액 목표</span><span class="priva-val">${pp?.drainTargetPct != null ? pp.drainTargetPct.toFixed(1)+'%' : '—'}</span></div>
+    <div style="margin-top:10px;font-size:12px;color:var(--muted);">승인 시 관수 실행 기록이 저장됩니다.</div>
+  `;
+  document.getElementById('applyConfirmBtn').onclick = () => {
+    applyIrrigation(periodId, pp);
+    closeSheet('sheetApply');
+  };
+  openSheet('sheetApply');
+}
+
+function applyIrrigation(periodId, pp) {
+  // 실행 기록 저장 (apply API)
+  _periodData[periodId] = {
+    period: KaasaData.PERIODS.findIndex(x => x.id === periodId) + 1,
+    supply_ml: pp?.supplyMl ?? 0,
+    drain_ml: 0, ec: null, ph: null, slab_wt_kg: null
+  };
+  showToast(`✅ ${periodId} 관수 실행 기록됨`);
+}
+
+function recordSkip(periodId) {
+  showToast(`⏭ ${periodId} 건너뜀 기록됨`);
+}
+
+/* ── 관수 기록 시트 ── */
+function buildRecordFields() {
+  const container = document.getElementById('recordFields');
+  container.innerHTML = `
+    <div class="field-group">
+      <label class="field-label">작기 날짜</label>
+      <input type="date" class="input-field" id="recDate" value="${new Date().toISOString().slice(0,10)}"/>
+    </div>
+    <div class="field-group">
+      <label class="field-label">작목</label>
+      <input type="text" class="input-field" id="recCrop" value="토마토"/>
+    </div>
+    ${KaasaData.PERIODS.filter(p => p.adapterPeriod).map(p => `
+      <div style="margin-bottom:10px;padding:12px;background:var(--panel-soft);border-radius:12px;border:1px solid var(--border);">
+        <div style="font-size:13px;font-weight:800;color:var(${p.colorVar});margin-bottom:8px;">${p.icon} ${p.label} ${p.name}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div class="field-group" style="margin-bottom:0;">
+            <label class="field-label">급액량 (ml)</label>
+            <input type="number" class="input-field" id="rec_supply_${p.id}" placeholder="0" inputmode="decimal"/>
+          </div>
+          <div class="field-group" style="margin-bottom:0;">
+            <label class="field-label">배액량 (ml)</label>
+            <input type="number" class="input-field" id="rec_drain_${p.id}" placeholder="0" inputmode="decimal"/>
+          </div>
+          <div class="field-group" style="margin-bottom:0;">
+            <label class="field-label">배액 EC (dS/m)</label>
+            <input type="number" class="input-field" id="rec_ec_${p.id}" placeholder="3.0" step="0.1" inputmode="decimal"/>
+          </div>
+          <div class="field-group" style="margin-bottom:0;">
+            <label class="field-label">급액 pH</label>
+            <input type="number" class="input-field" id="rec_ph_${p.id}" placeholder="6.0" step="0.1" inputmode="decimal"/>
+          </div>
+        </div>
+      </div>`).join('')}
+  `;
+}
+
+async function submitRecord() {
+  const date = document.getElementById('recDate')?.value;
+  const crop = document.getElementById('recCrop')?.value || '토마토';
+  const periods = KaasaData.PERIODS
+    .filter(p => p.adapterPeriod)
+    .map((p, i) => ({
+      period:     p.adapterPeriod,
+      supply_ml:  parseFloat(document.getElementById(`rec_supply_${p.id}`)?.value || 0),
+      drain_ml:   parseFloat(document.getElementById(`rec_drain_${p.id}`)?.value || 0),
+      ec:         parseFloat(document.getElementById(`rec_ec_${p.id}`)?.value || 0) || null,
+      ph:         parseFloat(document.getElementById(`rec_ph_${p.id}`)?.value || 0) || null,
+      slab_wt_kg: null
+    }));
+
+  const resultEl = document.getElementById('recordResult');
+  resultEl.textContent = '저장 중…';
+  try {
+    await KaasaData.submitIrrigation({ date, crop, periods, slabVolL: 15, maxWtKg: null, minWtKg: null, sunsetWtKg: null });
+    resultEl.style.color = 'var(--green)';
+    resultEl.textContent = '✅ 저장 완료 — 분석을 갱신합니다.';
+    setTimeout(() => {
+      closeSheet('sheetRecord');
+      KaasaData.loadIrrigationAnalysis(7).then(renderAnalysis);
+    }, 1200);
+  } catch (e) {
+    resultEl.style.color = 'var(--red)';
+    resultEl.textContent = '❌ 저장 실패: ' + e.message.slice(0, 80);
+  }
+}
+
+/* ── Sheet 유틸 ── */
+function openSheet(id) {
+  document.getElementById('backdrop' + id.replace('sheet','')).classList.add('open');
+  document.getElementById(id).classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeSheet(id) {
+  document.getElementById('backdrop' + id.replace('sheet','')).classList.remove('open');
+  document.getElementById(id).classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+/* ── DOM 헬퍼 ── */
+function setEl(id, text) { const e = document.getElementById(id); if (e) e.textContent = text; }
+function setKpiValue(id, text, cls) {
+  const e = document.getElementById(id);
+  if (!e) return;
+  e.className = `kpi-value ${cls || ''}`;
+  // textContent 유지 (kpi-unit span 보존)
+  const unit = e.querySelector('.kpi-unit');
+  e.textContent = text;
+  if (unit) e.appendChild(unit);
+}
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function makeSensorItem(label, val, unit, valId) {
+  return `<div class="sensor-item">
+    <span class="sensor-label">${esc(label)}</span>
+    <span class="sensor-val" id="${valId}">${esc(val)}</span>
+    ${unit ? `<span class="sensor-unit">${esc(unit)}</span>` : ''}
+  </div>`;
+}
+function getDrainCls(v, period) {
+  const s = KaasaData.getDrainStatus(v, period);
+  return s === 'ok' ? 'ok' : s === 'warn' ? 'warn' : s === 'danger' ? 'danger' : '';
+}
+function getEcCls(v) {
+  if (v == null) return '';
+  if (v > 5.0) return 'warn';
+  if (v < 2.0) return 'warn';
+  return 'ok';
+}
+function getPhCls(v) {
+  if (v == null) return '';
+  if (v < 5.0 || v > 7.0) return 'danger';
+  if (v < 5.5 || v > 6.5) return 'warn';
+  return 'ok';
+}
+function computeVpd(temp, hum) {
+  if (temp == null || hum == null) return null;
+  const svp = 0.6108 * Math.exp(17.27 * temp / (temp + 237.3));
+  return parseFloat((svp * (1 - hum / 100)).toFixed(2));
+}
+
+function showToast(msg) {
+  const t = document.createElement('div');
+  t.style.cssText = `position:fixed;bottom:calc(var(--tab-h) + 16px + env(safe-area-inset-bottom));
+    left:50%;transform:translateX(-50%);background:#1f2a24;color:#fff;
+    padding:10px 20px;border-radius:99px;font-size:14px;font-weight:600;
+    z-index:500;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,.25);`;
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2500);
+}
+
+/* ── 1분마다 데이터 갱신 ── */
+setInterval(loadAll, 60_000);
+/* ── Period 전환 감지 (1분마다) ── */
+setInterval(() => {
+  const cur = KaasaData.getCurrentPeriod();
+  if (!_currentPeriod || _currentPeriod.id !== cur.id) {
+    _currentPeriod = cur;
+    renderPeriodTimeline();
+    renderJumpBar();
+  }
+}, 60_000);
+</script>
+</body>
+</html>

@@ -2245,7 +2245,9 @@ def _get_priva_schedule_impl(
     # ── 기상 데이터 (KMA → Open-Meteo 폴백) ──────────────────────────────────
     wx = get_weather_forecast_full(farm_id, days=1)
     et0_mm    = float((wx.get("et0_forecast_mm") or [3.0])[0] or 3.0)
-    gsr_mj    = float((wx.get("daily", {}).get("shortwave_radiation_sum") or [12.0])[0] or 12.0)
+    _daily    = wx.get("daily") or {}
+    _daily    = _daily if isinstance(_daily, dict) else {}
+    gsr_mj    = float((_daily.get("shortwave_radiation_sum") or [12.0])[0] or 12.0)
     solar_avg = round(gsr_mj * 11.574, 1) if gsr_mj > 0 else 200.0
     try:
         from api.services.kma_service import get_latest_weather

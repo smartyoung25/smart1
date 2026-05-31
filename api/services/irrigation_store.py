@@ -79,26 +79,39 @@ def _save_log(farm_id: str, data: dict) -> None:
 
 # ── DB 저장/조회 ─────────────────────────────────────────────────────────────
 
-def _db_save(farm_id: str, date_str: str, summary: dict[str, float]) -> bool:
-    """env_measurements 테이블에 관수 canonical 레코드 저장."""
+def _get_engine():
+    """SQLAlchemy engine 싱글턴 (persistence._get_engine 공유)."""
     try:
-        from api.services.db import get_connection  # type: ignore
-        ts = datetime.fromisoformat(date_str).replace(tzinfo=timezone.utc)
-        with get_connection() as conn:
-            with conn.cursor() as cur:
-                for var, val in summary.items():
-                    if var in _IRR_VARS and val is not None:
-                        cur.execute(
-                            """INSERT INTO env_measurements
-                               (farm_id, ts, variable, value, source)
-                               VALUES (%s, %s, %s, %s, 'irrigation_p4')
-                               ON CONFLICT (farm_id, ts, variable) DO UPDATE
-                               SET value = EXCLUDED.value""",
-                            (farm_id, ts, var, float(val))
-                        )
-            conn.commit()
-        return True
+        from api.services.persistence import _get_engine as _pe
+        return _pe()
     except Exception:
+        return None
+
+
+def _db_save(farm_id: str, date_str: str, summary: dict[str, float]) -> bool:
+    """env_measurements 테이블에 관수 canonical 레코드 저장.
+
+    실제 스키마: (time, farm_id, canonical_name, value, source_id, quality_tag)
+    """
+    engine = _get_engine()
+    if engine is None:
+        return False
+    try:
+        from sqlalchemy import text
+        ts = datetime.fromisoformat(date_str).replace(tzinfo=timezone.utc)
+        with engine.begin() as conn:
+            for var, val in summary.items():
+                if var in _IRR_VARS and val is not None:
+                    conn.execute(text(
+                        """INSERT INTO env_measurements
+                           (time, farm_id, canonical_name, value, source_id, quality_tag)
+                           VALUES (:ts, :farm_id, :name, :val, 'irrigation_p4', 'FINETUNED')
+                           ON CONFLICT (time, farm_id, canonical_name) DO UPDATE
+                           SET value = EXCLUDED.value"""
+                    ), {"ts": ts, "farm_id": farm_id, "name": var, "val": float(val)})
+        return True
+    except Exception as e:
+        logger.warning("[irrigation_store] DB 저장 실패 farm=%s: %s", farm_id, e)
         return False
 
 
@@ -112,27 +125,32 @@ def _db_query(
     Returns:
         {"2026-05-20": {"wc_mean": 93.3, ...}, ...}
     """
+    engine = _get_engine()
+    if engine is None:
+        return {}
     try:
-        from api.services.db import get_connection  # type: ignore
-        with get_connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    """SELECT ts::date AS day, variable, value
-                       FROM env_measurements
-                       WHERE farm_id = %s
-                         AND variable = ANY(%s)
-                         AND ts::date BETWEEN %s AND %s
-                         AND source = 'irrigation_p4'
-                       ORDER BY day, variable""",
-                    (farm_id, _IRR_VARS, start.isoformat(), end.isoformat())
-                )
-                rows = cur.fetchall()
+        from sqlalchemy import text
+        with engine.connect() as conn:
+            rows = conn.execute(text(
+                """SELECT time::date AS day, canonical_name, value
+                   FROM env_measurements
+                   WHERE farm_id = :farm_id
+                     AND canonical_name = ANY(:vars)
+                     AND time::date BETWEEN :start AND :end
+                     AND source_id = 'irrigation_p4'
+                   ORDER BY day, canonical_name"""
+            ), {
+                "farm_id": farm_id,
+                "vars":    _IRR_VARS,
+                "start":   start.isoformat(),
+                "end":     end.isoformat(),
+            }).fetchall()
         result: dict[str, dict] = {}
         for day, var, val in rows:
-            key = str(day)
-            result.setdefault(key, {})[var] = float(val)
+            result.setdefault(str(day), {})[var] = float(val)
         return result
-    except Exception:
+    except Exception as e:
+        logger.warning("[irrigation_store] DB 조회 실패 farm=%s: %s", farm_id, e)
         return {}
 
 
