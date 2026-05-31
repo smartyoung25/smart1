@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <title>G2 — 환경·기후 제어 | KAASA SmartOS</title>
+  <link rel="stylesheet" href="../components/base.css"/>
+  <style>
+    /* ── G2 전용 스타일 ── */
+
+    /* 환경 KPI 카드 그리드 */
+    .env-kpi-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px;
+    }
+    .env-kpi-card {
+      background: var(--panel); border-radius: var(--radius-sm);
+      padding: 14px 14px 12px; box-shadow: var(--shadow);
+      border: 1.5px solid var(--border); position: relative;
+      transition: border-color .2s;
+    }
+    .env-kpi-card.warn   { border-color: var(--orange); }
+    .env-kpi-card.danger { border-color: var(--red); box-shadow: 0 0 0 3px rgba(220,38,38,.12); }
+    .env-kpi-card.ok     { border-color: var(--green); }
+
+    .env-icon   { font-size: 20px; margin-bottom: 6px; display: block; }
+    .env-label  { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
+    .env-value  { font-size: 26px; font-weight: 900; line-height: 1; margin: 4px 0 2px; font-variant-numeric: tabular-nums; }
+    .env-unit   { font-size: 12px; font-weight: 400; }
+    .env-status { font-size: 11px; margin-top: 4px; font-weight: 600; }
+    .env-status.ok     { color: var(--green); }
+    .env-status.warn   { color: var(--orange); }
+    .env-status.danger { color: var(--red); }
+    .env-range  { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+    /* 게이지 바 */
+    .gauge-wrap { height: 4px; background: var(--gray-soft); border-radius: 3px; margin-top: 8px; overflow: hidden; }
+    .gauge-fill { height: 100%; border-radius: 3px; transition: width .5s; }
+    .gauge-fill.ok     { background: var(--green); }
+    .gauge-fill.warn   { background: var(--orange); }
+    .gauge-fill.danger { background: var(--red); }
+
+    /* 제어 모드 선택 */
+    .mode-tabs {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 14px;
+    }
+    .mode-tab {
+      background: var(--panel); border-radius: var(--radius-sm);
+      border: 1.5px solid var(--border);
+      padding: 10px 4px; text-align: center; cursor: pointer;
+      transition: all .2s; font-size: 11px; font-weight: 700; color: var(--muted);
+    }
+    .mode-tab .mode-icon { font-size: 18px; display: block; margin-bottom: 4px; }
+    .mode-tab.active {
+      border-color: var(--blue); background: var(--blue-soft);
+      color: var(--blue);
+    }
+    .mode-tab:not(.active):active { transform: scale(.96); }
+
+    /* AI 제어 추천 카드 */
+    .control-card {
+      background: var(--panel); border-radius: var(--radius);
+      border: 1.5px solid var(--border); overflow: hidden;
+      margin-bottom: 10px; box-shadow: var(--shadow);
+    }
+    .control-card-head {
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 14px; background: var(--panel-soft);
+      border-bottom: 1px solid var(--border);
+    }
+    .control-card-icon { font-size: 20px; }
+    .control-card-title { font-size: 14px; font-weight: 800; flex: 1; }
+    .control-card-conf  { font-size: 12px; font-weight: 700; color: var(--green); }
+    .control-card-body  { padding: 12px 14px; }
+    .control-desc { font-size: 13px; color: var(--text); margin-bottom: 10px; line-height: 1.5; }
+    .control-meta {
+      display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px;
+    }
+    .control-badge {
+      font-size: 10px; font-weight: 700; padding: 3px 9px;
+      border-radius: 10px;
+    }
+    .control-badge.urgent { background: var(--red-soft); color: var(--red); }
+    .control-badge.suggest{ background: var(--blue-soft); color: var(--blue); }
+    .control-badge.info   { background: var(--gray-soft); color: var(--muted); }
+
+    .action-row { display: flex; gap: 8px; }
+    .btn-accept {
+      flex: 1; padding: 12px; border: none; border-radius: var(--radius-sm);
+      background: var(--green); color: #fff; font-size: 13px; font-weight: 800;
+      cursor: pointer; transition: opacity .15s;
+    }
+    .btn-hold {
+      flex: 1; padding: 12px; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+      background: var(--panel); color: var(--muted); font-size: 13px; font-weight: 700;
+      cursor: pointer;
+    }
+
+    /* 외기 비교 스트립 */
+    .outdoor-strip {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+    }
+    .outdoor-item {
+      background: var(--panel); border-radius: var(--radius-sm);
+      padding: 10px; text-align: center; box-shadow: var(--shadow);
+    }
+    .outdoor-label { font-size: 10px; color: var(--muted); }
+    .outdoor-val   { font-size: 16px; font-weight: 800; margin-top: 2px; }
+
+    /* DLI 프로그레스 */
+    .dli-bar-wrap {
+      background: var(--gray-soft); border-radius: 8px; height: 16px;
+      overflow: hidden; position: relative; margin-top: 6px;
+    }
+    .dli-bar-fill {
+      height: 100%; border-radius: 8px;
+      background: linear-gradient(90deg, var(--orange-soft), var(--orange));
+      transition: width .6s;
+    }
+    .dli-bar-target {
+      position: absolute; top: 0; bottom: 0; width: 2px;
+      background: var(--green); opacity: .8;
+    }
+    .dli-bar-label {
+      position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+      font-size: 10px; font-weight: 800; color: var(--text);
+    }
+
+    /* WS 상태 점 */
+    .ws-dot { width:8px; height:8px; border-radius:50%; background:var(--muted); display:inline-block; }
+    .ws-dot.connected { background:var(--green); box-shadow:0 0 0 3px rgba(31,122,77,.2); }
+    .ws-dot.reconnecting { background:var(--orange); animation:blink 1s infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+    /* 경보 배너 */
+    .alert-strip { margin-bottom: 12px; }
+    .alert-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 9px 13px; border-radius: var(--radius-sm);
+      font-size: 12px; font-weight: 700; margin-bottom: 6px;
+    }
+    .alert-item.danger { background: var(--red-soft); color: var(--red); }
+    .alert-item.warn   { background: var(--orange-soft); color: var(--orange); }
+  </style>
+</head>
+<body>
+
+<!-- ══ 헤더 ══ -->
+<header class="sf-header">
+  <div style="display:flex;align-items:center;gap:6px;">
+    <span class="ws-dot" id="wsDot"></span>
+    <span style="font-size:12px;color:rgba(255,255,255,.8)" id="wsLabel">연결 중…</span>
+  </div>
+  <span style="font-size:15px;font-weight:800;color:#fff;letter-spacing:-.3px">G2 환경·기후 제어</span>
+  <select id="farmSel" onchange="onFarmChange(this.value)"
+          style="font-size:12px;background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:8px;padding:4px 8px;cursor:pointer;outline:none;">
+    <option value="farm_001">farm_001</option>
+  </select>
+</header>
+
+<!-- ══ 본문 ══ -->
+<main class="sf-main" style="padding:14px;max-width:480px;margin:0 auto;">
+
+  <!-- 경보 배너 -->
+  <div class="alert-strip" id="alertStrip"></div>
+
+  <!-- 실내 환경 KPI -->
+  <div class="section-label">실내 환경 (실시간)</div>
+  <div class="env-kpi-grid">
+
+    <div class="env-kpi-card" id="cardTemp">
+      <span class="env-icon">🌡️</span>
+      <div class="env-label">내부 온도</div>
+      <div class="env-value" id="envTemp">—<span class="env-unit"> °C</span></div>
+      <div class="env-status" id="envTempSt">로드 중…</div>
+      <div class="env-range">적정 18~26°C</div>
+      <div class="gauge-wrap"><div class="gauge-fill ok" id="gaugeTemp" style="width:0%"></div></div>
+    </div>
+
+    <div class="env-kpi-card" id="cardVpd">
+      <span class="env-icon">💧</span>
+      <div class="env-label">VPD</div>
+      <div class="env-value" id="envVpd">—<span class="env-unit"> kPa</span></div>
+      <div class="env-status" id="envVpdSt">로드 중…</div>
+      <div class="env-range">적정 0.6~1.2 kPa</div>
+      <div class="gauge-wrap"><div class="gauge-fill ok" id="gaugeVpd" style="width:0%"></div></div>
+    </div>
+
+    <div class="env-kpi-card" id="cardCo2">
+      <span class="env-icon">🌿</span>
+      <div class="env-label">CO₂</div>
+      <div class="env-value" id="envCo2">—<span class="env-unit"> ppm</span></div>
+      <div class="env-status" id="envCo2St">로드 중…</div>
+      <div class="env-range">적정 800~1200 ppm</div>
+      <div class="gauge-wrap"><div class="gauge-fill ok" id="gaugeCo2" style="width:0%"></div></div>
+    </div>
+
+    <div class="env-kpi-card" id="cardDli">
+      <span class="env-icon">☀️</span>
+      <div class="env-label">DLI 누적</div>
+      <div class="env-value" id="envDli">—<span class="env-unit"> mol/m²</span></div>
+      <div class="env-status" id="envDliSt">로드 중…</div>
+      <div class="env-range">목표 8~12 (딸기)</div>
+      <div class="dli-bar-wrap">
+        <div class="dli-bar-fill" id="gaugeDli" style="width:0%"></div>
+        <div class="dli-bar-target" id="dliTarget" style="left:67%"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 제어 모드 -->
+  <div class="section-label">제어 모드</div>
+  <div class="mode-tabs">
+    <div class="mode-tab" id="modeManual" onclick="setMode('manual')">
+      <span class="mode-icon">🔧</span>수동보조
+    </div>
+    <div class="mode-tab active" id="modeSuggest" onclick="setMode('suggest')">
+      <span class="mode-icon">💡</span>권고형
+    </div>
+    <div class="mode-tab" id="modeApprove" onclick="setMode('approve')">
+      <span class="mode-icon">✅</span>승인형
+    </div>
+    <div class="mode-tab" id="modeAuto" onclick="setMode('auto')">
+      <span class="mode-icon">🤖</span>자동
+    </div>
+  </div>
+  <div id="modeDesc" style="font-size:12px;color:var(--muted);margin-bottom:14px;padding:8px 12px;background:var(--panel);border-radius:var(--radius-sm);">
+    AI 추천을 표시하지만 실행은 직접 합니다.
+  </div>
+
+  <!-- AI 제어 추천 -->
+  <div class="section-label">AI 제어 추천</div>
+  <div id="aiControls">
+    <div class="card" style="text-align:center;padding:20px;color:var(--muted);">
+      <div class="spinner"></div>
+    </div>
+  </div>
+
+  <!-- 외기 현황 -->
+  <div class="section-label" style="margin-top:16px;">외기 현황 (ASOS)</div>
+  <div class="card" style="padding:14px;">
+    <div class="outdoor-strip">
+      <div class="outdoor-item">
+        <div class="outdoor-label">외기 온도</div>
+        <div class="outdoor-val" id="extTemp">—<span style="font-size:11px;font-weight:400"> °C</span></div>
+      </div>
+      <div class="outdoor-item">
+        <div class="outdoor-label">외기 습도</div>
+        <div class="outdoor-val" id="extHumid">—<span style="font-size:11px;font-weight:400"> %</span></div>
+      </div>
+      <div class="outdoor-item">
+        <div class="outdoor-label">풍속</div>
+        <div class="outdoor-val" id="extWind">—<span style="font-size:11px;font-weight:400"> m/s</span></div>
+      </div>
+    </div>
+    <div style="margin-top:10px;font-size:11px;color:var(--muted);" id="extUpdated">데이터 로드 중…</div>
+  </div>
+
+  <!-- 습도 상세 -->
+  <div class="section-label" style="margin-top:16px;">습도 · 토양온도</div>
+  <div class="env-kpi-grid">
+    <div class="env-kpi-card">
+      <span class="env-icon">💦</span>
+      <div class="env-label">내부 습도</div>
+      <div class="env-value" id="envHumid">—<span class="env-unit"> %</span></div>
+      <div class="env-status" id="envHumidSt">로드 중…</div>
+      <div class="env-range">적정 60~80%</div>
+      <div class="gauge-wrap"><div class="gauge-fill ok" id="gaugeHumid" style="width:0%"></div></div>
+    </div>
+    <div class="env-kpi-card">
+      <span class="env-icon">🌱</span>
+      <div class="env-label">토양 온도</div>
+      <div class="env-value" id="envSoil">—<span class="env-unit"> °C</span></div>
+      <div class="env-status" id="envSoilSt">로드 중…</div>
+      <div class="env-range">적정 16~20°C</div>
+      <div class="gauge-wrap"><div class="gauge-fill ok" id="gaugeSoil" style="width:0%"></div></div>
+    </div>
+  </div>
+
+</main>
+
+<!-- ══ 하단 탭 바 ══ -->
+<nav class="sf-bottom-nav">
+  <button class="bnav-tab" onclick="location.href='c3_home.html'">
+    <span class="bnav-icon">🏠</span>홈
+  </button>
+  <button class="bnav-tab" onclick="location.href='g3_period.html'">
+    <span class="bnav-icon">💧</span>관수
+  </button>
+  <button class="bnav-tab active">
+    <span class="bnav-icon">🌡️</span>환경
+  </button>
+  <button class="bnav-tab" onclick="location.href='f1_field.html'">
+    <span class="bnav-icon">🌿</span>노지
+  </button>
+  <button class="bnav-tab" onclick="location.href='c12_joint.html'">
+    <span class="bnav-icon">🚛</span>출하
+  </button>
+</nav>
+
+<script src="../components/data.js"></script>
+<script>
+'use strict';
+
+// ── 상태 ──────────────────────────────────────────────────────────────────────
+let _env = {};
+let _mode = 'suggest';
+let _dliStart = null; // 오늘 첫 센서 수신 시간 (DLI 누적 기준)
+let _dliAccum = 0;    // mol/m²/day 누적값
+let _lastSolarTs = null;
+
+const MODE_DESC = {
+  manual:  '제어는 수동으로 합니다. AI 추천 없이 직접 판단합니다.',
+  suggest: 'AI 추천을 표시하지만 실행은 직접 합니다.',
+  approve: 'AI 추천을 표시하고 승인 후 자동 실행합니다.',
+  auto:    '⚠️ AI가 자동으로 제어합니다. 주의해서 사용하세요.',
+};
+
+// ── 제어 추천 데이터 (실데이터 없으면 규칙 기반) ──────────────────────────────
+const CONTROL_RULES = [
+  {
+    id: 'ventilation',
+    icon: '🌬️',
+    title: '환기 제어',
+    check: env => {
+      const vpd = _calcVpd(env.temp_internal, env.humidity_int);
+      const co2 = env.co2_ppm;
+      if (vpd != null && vpd < 0.5) return { level: 'warn', action: '환기창 20% 개방', reason: `VPD ${vpd.toFixed(2)} kPa — 낮음, 환기 필요`, conf: 0.78 };
+      if (co2 != null && co2 > 1500) return { level: 'danger', action: '환기 즉시 강화', reason: `CO₂ ${Math.round(co2)} ppm — 과농도`, conf: 0.92 };
+      if (vpd != null && vpd > 1.8) return { level: 'warn', action: '차광 + 환기 강화', reason: `VPD ${vpd.toFixed(2)} kPa — 높음, 증산 과다`, conf: 0.85 };
+      return null;
+    }
+  },
+  {
+    id: 'heating',
+    icon: '🔥',
+    title: '난방 제어',
+    check: env => {
+      const t = env.temp_internal;
+      const now = new Date().getHours();
+      if (t != null && t < 16 && now >= 22) return { level: 'warn', action: '야간 난방 ON (목표 18°C)', reason: `온도 ${t.toFixed(1)}°C — 야간 저온`, conf: 0.88 };
+      if (t != null && t < 14) return { level: 'danger', action: '난방 긴급 가동', reason: `온도 ${t.toFixed(1)}°C — 임계 저온`, conf: 0.96 };
+      return null;
+    }
+  },
+  {
+    id: 'co2',
+    icon: '🌿',
+    title: 'CO₂ 시비',
+    check: env => {
+      const co2 = env.co2_ppm;
+      const solar = env.solar_rad;
+      if (co2 != null && co2 < 600 && solar != null && solar > 100) {
+        return { level: 'suggest', action: `CO₂ 목표 1000 ppm 설정`, reason: `CO₂ ${Math.round(co2)} ppm — 광합성 부족`, conf: 0.75 };
+      }
+      return null;
+    }
+  },
+  {
+    id: 'shading',
+    icon: '⛅',
+    title: '차광 제어',
+    check: env => {
+      const solar = env.solar_rad;
+      if (solar != null && solar > 600) return { level: 'warn', action: '차광막 40% 가동', reason: `일사 ${Math.round(solar)} W/m² — 과다`, conf: 0.80 };
+      return null;
+    }
+  },
+];
+
+// ── 초기화 ──────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  const farmId = new URLSearchParams(location.search).get('farm') ||
+                 sessionStorage.getItem('sf_farm_id') || 'farm_001';
+
+  _ensureToken().then(token => {
+    KaasaData.init({
+      farmId, token,
+      onSensor: _onSensor,
+      onStatus: _onWsStatus,
+    });
+    KaasaData.loadEnvironment();
+    _loadEnvFull(token, farmId);
+  });
+});
+
+function onFarmChange(id) { sessionStorage.setItem('sf_farm_id', id); location.reload(); }
+
+async function _ensureToken() {
+  const s = sessionStorage.getItem('sf_token');
+  if (s) return s;
+  try {
+    const api = sessionStorage.getItem('sf_api') || (location.protocol !== 'file:' ? location.origin : 'http://localhost:8000');
+    const r = await fetch(`${api}/api/v1/auth/token`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({username:'admin',password:'1250'}),
+    });
+    if (r.ok) { const d = await r.json(); sessionStorage.setItem('sf_token', d.access_token); return d.access_token; }
+  } catch {}
+  return '';
+}
+
+// ── REST 환경 데이터 (외기 포함 전체) ────────────────────────────────────────
+async function _loadEnvFull(token, farmId) {
+  try {
+    const api = KaasaData.getApiBase();
+    const res = await fetch(`${api}/api/farms/${farmId}/environment`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!res.ok) return;
+    const d = await res.json();
+    // 측정값 배열 → 플랫 객체
+    const flat = {};
+    for (const m of (d.measurements || [])) flat[m.canonical_name] = m.value;
+    _onSensor({ ...flat, ...d });
+
+    // 외기
+    const outdoor = d.outdoor?.measurements || [];
+    for (const m of outdoor) flat[m.canonical_name] = m.value;
+    _updateOutdoor(flat, d.updated_at);
+  } catch (e) { console.warn('[G2] env 로드 실패:', e.message); }
+}
+
+// ── WebSocket 상태 ─────────────────────────────────────────────────────────
+function _onWsStatus(state) {
+  const dot = document.getElementById('wsDot');
+  const lbl = document.getElementById('wsLabel');
+  if (dot) dot.className = 'ws-dot ' + state;
+  if (lbl) lbl.textContent = state === 'connected' ? '실시간 연결 중' : state === 'reconnecting' ? '재연결 중…' : '연결 안 됨';
+}
+
+// ── 센서 수신 ───────────────────────────────────────────────────────────────
+function _onSensor(env) {
+  _env = { ..._env, ...env };
+  _updateKpis(_env);
+  _updateDli(_env);
+  _updateOutdoor(_env, env.updated_at || env.timestamp);
+  _updateAiControls(_env);
+  _updateAlerts(_env);
+}
+
+// ── KPI 업데이트 ────────────────────────────────────────────────────────────
+function _updateKpis(env) {
+  const f1 = v => v != null ? Number(v).toFixed(1) : '—';
+
+  // 온도
+  const t = env.temp_internal ?? null;
+  const vpd = _calcVpd(t, env.humidity_int);
+  _setKpi('envTemp', `${f1(t)}<span class="env-unit"> °C</span>`,
+    t == null ? '' : t < 16 ? 'danger' : t < 18 ? 'warn' : t > 30 ? 'danger' : t > 27 ? 'warn' : 'ok',
+    t == null ? '—' : t < 16 ? '⚠ 저온 위험' : t < 18 ? '낮음' : t > 30 ? '⚠ 고온 위험' : t > 27 ? '높음' : '정상',
+    t != null ? Math.min(((t - 10) / 25) * 100, 100) : 0);
+
+  // VPD
+  _setKpi('envVpd', `${vpd != null ? vpd.toFixed(2) : '—'}<span class="env-unit"> kPa</span>`,
+    vpd == null ? '' : vpd < 0.4 ? 'danger' : vpd < 0.6 ? 'warn' : vpd > 2.0 ? 'danger' : vpd > 1.5 ? 'warn' : 'ok',
+    vpd == null ? '—' : vpd < 0.4 ? '⚠ 매우 낮음' : vpd < 0.6 ? '낮음' : vpd > 2.0 ? '⚠ 매우 높음' : vpd > 1.5 ? '높음' : '정상',
+    vpd != null ? Math.min((vpd / 2.5) * 100, 100) : 0);
+
+  // CO₂
+  const co2 = env.co2_ppm ?? null;
+  _setKpi('envCo2', `${co2 != null ? Math.round(co2) : '—'}<span class="env-unit"> ppm</span>`,
+    co2 == null ? '' : co2 < 400 ? 'warn' : co2 > 1800 ? 'danger' : co2 > 1500 ? 'warn' : 'ok',
+    co2 == null ? '—' : co2 < 400 ? '낮음' : co2 > 1800 ? '⚠ 과농도' : co2 > 1500 ? '높음' : '정상',
+    co2 != null ? Math.min((co2 / 2000) * 100, 100) : 0);
+
+  // 습도
+  const h = env.humidity_int ?? null;
+  _setKpi('envHumid', `${f1(h)}<span class="env-unit"> %</span>`,
+    h == null ? '' : h < 50 ? 'warn' : h > 90 ? 'warn' : 'ok',
+    h == null ? '—' : h < 50 ? '낮음' : h > 90 ? '높음' : '정상',
+    h != null ? Math.min(h, 100) : 0);
+
+  // 토양온도
+  const st = env.soil_temp ?? null;
+  _setKpi('envSoil', `${f1(st)}<span class="env-unit"> °C</span>`,
+    st == null ? '' : st < 14 ? 'warn' : st > 22 ? 'warn' : 'ok',
+    st == null ? '—' : st < 14 ? '낮음' : st > 22 ? '높음' : '정상',
+    st != null ? Math.min(((st - 10) / 20) * 100, 100) : 0);
+}
+
+function _setKpi(valueId, html, status, statusText, gaugePct) {
+  const valEl = document.getElementById(valueId);
+  const stEl  = document.getElementById(valueId + 'St');
+  const gaugeEl = document.getElementById('gauge' + valueId.replace('env',''));
+  const cardEl  = document.getElementById('card' + valueId.replace('env',''));
+
+  if (valEl) valEl.innerHTML = html;
+  if (stEl)  { stEl.textContent = statusText; stEl.className = `env-status ${status}`; }
+  if (gaugeEl) { gaugeEl.style.width = `${gaugePct}%`; gaugeEl.className = `gauge-fill ${status || 'ok'}`; }
+  if (cardEl && status) { cardEl.className = `env-kpi-card ${status}`; }
+}
+
+// ── DLI 누적 ───────────────────────────────────────────────────────────────
+function _updateDli(env) {
+  const solar = env.solar_rad ?? null;
+  const now   = Date.now();
+
+  if (solar != null && _lastSolarTs) {
+    const dtHr = (now - _lastSolarTs) / 3_600_000;
+    // DLI (mol/m²) = solar_rad(W/m²) × 3600s × dt × 0.0217 / 1e6
+    // 간략: W/m² × dtHr × 3.6kJ → mol PAR (×4.57 PAR 변환 계수)
+    const increment = solar * dtHr * 3600 * 4.57 / 1_000_000;
+    _dliAccum += increment;
+  }
+  _lastSolarTs = now;
+
+  const target = 10; // 딸기 목표 DLI
+  const pct    = Math.min((_dliAccum / target) * 100, 100);
+  const el     = document.getElementById('envDli');
+  const gauge  = document.getElementById('gaugeDli');
+  const stEl   = document.getElementById('envDliSt');
+  if (el)    el.innerHTML = `${_dliAccum.toFixed(1)}<span class="env-unit"> mol/m²</span>`;
+  if (gauge) gauge.style.width = `${pct}%`;
+  if (stEl)  {
+    const status = _dliAccum >= target ? 'ok' : _dliAccum >= target * 0.7 ? 'warn' : '';
+    stEl.textContent = `목표 ${target} mol/m²의 ${Math.round(pct)}% 달성`;
+    stEl.className = `env-status ${status}`;
+  }
+}
+
+// ── 외기 업데이트 ───────────────────────────────────────────────────────────
+function _updateOutdoor(env, updatedAt) {
+  const f1 = v => v != null ? Number(v).toFixed(1) : '—';
+  const setEl = (id, v) => { const el = document.getElementById(id); if (el) el.innerHTML = v; };
+  setEl('extTemp',  `${f1(env.temp_external)}<span style="font-size:11px;font-weight:400"> °C</span>`);
+  setEl('extHumid', `${f1(env.humidity_ext)}<span style="font-size:11px;font-weight:400"> %</span>`);
+  setEl('extWind',  `${f1(env.wind_speed_ext)}<span style="font-size:11px;font-weight:400"> m/s</span>`);
+  const updEl = document.getElementById('extUpdated');
+  if (updEl && updatedAt) {
+    const dt = new Date(updatedAt);
+    updEl.textContent = `ASOS 갱신: ${dt.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})}`;
+  }
+}
+
+// ── AI 제어 추천 (규칙 기반) ────────────────────────────────────────────────
+function _updateAiControls(env) {
+  const results = CONTROL_RULES.map(rule => ({ rule, result: rule.check(env) }))
+                               .filter(x => x.result !== null);
+
+  const container = document.getElementById('aiControls');
+  if (!container) return;
+
+  if (results.length === 0) {
+    container.innerHTML = `<div class="card" style="text-align:center;padding:20px;color:var(--muted);">
+      <div style="font-size:24px;margin-bottom:6px;">✅</div>
+      <div style="font-size:14px;font-weight:700;">현재 환경 양호</div>
+      <div style="font-size:12px;margin-top:4px;">AI 제어 추천 없음</div>
+    </div>`;
+    return;
+  }
+
+  container.innerHTML = results.map(({ rule, result }) => {
+    const levelBadge = result.level === 'danger' ? 'urgent' : result.level === 'warn' ? 'suggest' : 'info';
+    const levelText  = result.level === 'danger' ? '즉시 조치' : result.level === 'warn' ? '권고' : '제안';
+    const conf = Math.round(result.conf * 100);
+    const actionBtns = _mode !== 'manual' ? `
+      <div class="action-row">
+        <button class="btn-accept" onclick="_acceptControl('${rule.id}','${result.action.replace(/'/g,"\\'")}')">✓ 적용 (${_mode === 'auto' ? '자동' : '수동'})</button>
+        <button class="btn-hold" onclick="_holdControl('${rule.id}')">보류</button>
+      </div>` : `<div style="font-size:11px;color:var(--muted);">수동 모드 — 직접 제어하세요</div>`;
+
+    return `<div class="control-card" id="ctrl-${rule.id}">
+      <div class="control-card-head">
+        <span class="control-card-icon">${rule.icon}</span>
+        <span class="control-card-title">${rule.title}</span>
+        <span class="control-card-conf">${conf}%</span>
+      </div>
+      <div class="control-card-body">
+        <div class="control-desc">📌 ${result.action}</div>
+        <div class="control-meta">
+          <span class="control-badge ${levelBadge}">${levelText}</span>
+          <span class="control-badge info">근거: ${result.reason}</span>
+        </div>
+        ${actionBtns}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function _acceptControl(id, action) {
+  const card = document.getElementById(`ctrl-${id}`);
+  if (card) {
+    card.style.opacity = '.5';
+    card.querySelector('.action-row').innerHTML =
+      `<div style="font-size:13px;color:var(--green);font-weight:700;padding:8px 0;">✓ 적용 완료 — ${action}</div>`;
+  }
+  // 실제 기기 연동 시 여기서 API 호출
+  console.log(`[G2] 제어 적용: ${id} → ${action}`);
+}
+
+function _holdControl(id) {
+  const card = document.getElementById(`ctrl-${id}`);
+  if (card) {
+    card.querySelector('.action-row').innerHTML =
+      `<div style="font-size:12px;color:var(--muted);padding:8px 0;">⏸ 보류됨 — 나중에 확인하세요</div>`;
+  }
+}
+
+// ── 경보 배너 ──────────────────────────────────────────────────────────────
+function _updateAlerts(env) {
+  const vpd = _calcVpd(env.temp_internal, env.humidity_int);
+  const co2 = env.co2_ppm;
+  const t   = env.temp_internal;
+  const alerts = [];
+
+  if (t  != null && t  < 14)    alerts.push({ level:'danger', msg:`온도 ${t.toFixed(1)}°C — 임계 저온, 즉시 난방 필요` });
+  if (t  != null && t  > 32)    alerts.push({ level:'danger', msg:`온도 ${t.toFixed(1)}°C — 임계 고온, 즉시 차광 필요` });
+  if (vpd != null && vpd > 2.0) alerts.push({ level:'danger', msg:`VPD ${vpd.toFixed(2)} kPa — 심각한 증산, 급액 증가` });
+  if (co2 != null && co2 > 1800)alerts.push({ level:'danger', msg:`CO₂ ${Math.round(co2)} ppm — 과농도, 즉시 환기` });
+
+  const strip = document.getElementById('alertStrip');
+  if (!strip) return;
+  strip.innerHTML = alerts.map(a =>
+    `<div class="alert-item ${a.level}">${a.level==='danger'?'🚨':'⚠️'} ${a.msg}</div>`
+  ).join('');
+}
+
+// ── 제어 모드 전환 ──────────────────────────────────────────────────────────
+function setMode(mode) {
+  _mode = mode;
+  ['manual','suggest','approve','auto'].forEach(m => {
+    const el = document.getElementById('mode' + m.charAt(0).toUpperCase() + m.slice(1));
+    if (el) el.classList.toggle('active', m === mode);
+  });
+  const desc = document.getElementById('modeDesc');
+  if (desc) desc.textContent = MODE_DESC[mode];
+  _updateAiControls(_env);
+}
+
+// ── 유틸 ───────────────────────────────────────────────────────────────────
+function _calcVpd(tempC, humidity) {
+  if (tempC == null || humidity == null) return null;
+  const es = 0.6108 * Math.exp(17.27 * tempC / (tempC + 237.3));
+  return Math.max(0, es * (1 - humidity / 100));
+}
+</script>
+</body>
+</html>
