@@ -269,19 +269,35 @@ async function _save(){
       body:JSON.stringify(form)
     });
     if(r.ok){
-      res.style.color='var(--green)'; res.innerHTML='✓ 농장 프로필 저장 완료! 홈으로 이동합니다…';
+      res.style.color='var(--green)'; res.innerHTML='✓ 농장 프로필 저장 완료!';
       sessionStorage.setItem('sf_farm_id', form.farm_id);
-      setTimeout(()=>location.href='c3_home.html', 1500);
+      _postSaveCTA();
     } else {
       const t=await r.text();
-      res.style.color='var(--orange)'; res.textContent=`저장 응답 ${r.status} — 로컬 저장 후 계속`;
+      res.style.color='var(--orange)'; res.innerHTML=`저장 응답 ${r.status} — 로컬 저장됨`;
       localStorage.setItem('sf_onboarding', JSON.stringify(form));
-      setTimeout(()=>location.href='c3_home.html', 1800);
+      _postSaveCTA();
     }
   }catch(e){
-    res.style.color='var(--orange)'; res.textContent='네트워크 오류 — 로컬 저장';
+    res.style.color='var(--orange)'; res.innerHTML='네트워크 오류 — 로컬 저장됨';
     localStorage.setItem('sf_onboarding', JSON.stringify(form));
+    _postSaveCTA();
   }
+}
+
+// 저장 후: 시설 기자재 등록으로 이어가기 (이기종 통합 매핑)
+function _postSaveCTA(){
+  const fid=encodeURIComponent(form.farm_id||'farm_001');
+  const box=document.getElementById('saveResult');
+  box.insertAdjacentHTML('afterend', `
+    <div id="ctaBox" style="margin-top:14px;">
+      <div style="font-size:13px;color:var(--muted);text-align:center;margin-bottom:10px;line-height:1.5;">
+        다음으로 <b>시설 기자재</b>를 등록하면 보유 장비(제조사·프로토콜)를<br>표준 변수로 연동할 수 있습니다.</div>
+      <div style="display:flex;gap:10px;">
+        <button onclick="location.href='c16_equipment.html?farm=${fid}'" style="flex:1;padding:14px;background:var(--green);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:800;cursor:pointer;min-height:48px;">🔌 기자재 등록하기</button>
+        <button onclick="location.href='c3_home.html'" style="flex:0 0 110px;padding:14px;background:var(--gray-soft);color:var(--muted);border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:700;cursor:pointer;min-height:48px;">나중에</button>
+      </div>
+    </div>`);
 }
 </script>
 </body>
