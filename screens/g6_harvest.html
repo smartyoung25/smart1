@@ -240,6 +240,7 @@
 </nav>
 
 <script src="../components/data.js"></script>
+<script src="../components/tier_guard.js"></script>
 <script>
 'use strict';
 
@@ -249,6 +250,11 @@ window.addEventListener('DOMContentLoaded', () => {
   _ensureToken().then(token => {
     KaasaData.init({ farmId, token, onStatus: _onWsStatus });
     _loadAll(token, farmId);
+    // 등급 게이팅: ML 매출예측 기반 AI 출하 추천은 pro 등급 전용 (market_revenue_ml)
+    KaasaTier.init(farmId, token).then(() => {
+      KaasaTier.guard(document.getElementById('channelAdvice'), 'market_revenue_ml',
+        { onUpgrade: () => { location.href = '/smartos'; } });
+    });
   });
 });
 
