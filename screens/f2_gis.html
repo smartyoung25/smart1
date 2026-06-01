@@ -15,6 +15,14 @@
     .pr-badge{font-size:10px;font-weight:700;padding:3px 9px;border-radius:10px;}
     .mock-note{font-size:10px;color:var(--muted);background:var(--panel-soft);border-radius:8px;padding:8px 10px;margin:12px 0;}
     .ws-dot{width:8px;height:8px;border-radius:50%;background:var(--muted);display:inline-block;}
+    /* peelable 레이어 토글 (FieldView 벤치마킹) */
+    .layer-bar{display:flex;gap:6px;margin-bottom:8px;}
+    .layer-chip{flex:1;padding:8px 4px;border-radius:10px;border:1.5px solid var(--border);background:var(--panel);
+      font-size:11px;font-weight:800;color:var(--muted);cursor:pointer;text-align:center;min-height:40px;}
+    .layer-chip.active{border-color:var(--green);background:var(--green-soft);color:var(--green-dark);}
+    .layer-legend{display:flex;align-items:center;gap:10px;font-size:10px;color:var(--muted);margin:4px 0 10px;flex-wrap:wrap;}
+    .lg-grad{display:inline-block;width:60px;height:9px;border-radius:3px;vertical-align:middle;}
+    .map-parcel-val{font-size:13px;font-weight:900;}
   </style>
 </head>
 <body>
@@ -24,7 +32,14 @@
 </header>
 <main class="sf-main" style="padding:14px;max-width:480px;margin:0 auto;">
   <div class="section-label">필지 지도 <span class="trust-badge trust-mock">⚪ Mock</span></div>
-  <div class="map-box" id="mapBox"><span class="map-mock-tag">GIS Mock</span></div>
+  <!-- peelable 레이어 토글 (FieldView 벤치마킹) -->
+  <div class="layer-bar" id="layerBar">
+    <div class="layer-chip active" data-layer="boundary" onclick="setLayer('boundary')">🗺️ 필지경계</div>
+    <div class="layer-chip" data-layer="moisture" onclick="setLayer('moisture')">💧 토양수분</div>
+    <div class="layer-chip" data-layer="ndvi" onclick="setLayer('ndvi')">🌿 NDVI</div>
+  </div>
+  <div class="map-box" id="mapBox"><span class="map-mock-tag" id="mapTag">GIS Mock</span></div>
+  <div class="layer-legend" id="layerLegend"></div>
   <div class="mock-note">ℹ️ 필지 경계·구획 데이터는 실측 GIS 미연동 상태로 예시(Mock)입니다. 농지 좌표 연동 시 네이버/카카오 지도로 교체됩니다.</div>
   <div class="section-label">필지 목록</div>
   <div class="card" style="padding:14px;" id="parcelList"></div>
@@ -40,11 +55,12 @@
 'use strict';
 // 기본 Mock 좌표 (팜맵 미연동 시) — 그리드 배치
 let PARCELS=[
-  {n:'1번 필지',x:6,y:10,w:42,h:40,crop:'배추',area:0.5,status:'정상',c:'var(--green)'},
-  {n:'2번 필지',x:52,y:10,w:42,h:40,crop:'무',area:0.8,status:'관개필요',c:'var(--orange)'},
-  {n:'3번 필지',x:6,y:54,w:42,h:38,crop:'대파',area:0.4,status:'정상',c:'var(--green)'},
-  {n:'4번 필지',x:52,y:54,w:42,h:38,crop:'양파',area:0.6,status:'병해주의',c:'var(--red)'},
+  {n:'1번 필지',x:6,y:10,w:42,h:40,crop:'배추',area:0.5,status:'정상',c:'var(--green)',moisture:62,ndvi:0.74},
+  {n:'2번 필지',x:52,y:10,w:42,h:40,crop:'무',area:0.8,status:'관개필요',c:'var(--orange)',moisture:38,ndvi:0.58},
+  {n:'3번 필지',x:6,y:54,w:42,h:38,crop:'대파',area:0.4,status:'정상',c:'var(--green)',moisture:71,ndvi:0.81},
+  {n:'4번 필지',x:52,y:54,w:42,h:38,crop:'양파',area:0.6,status:'병해주의',c:'var(--red)',moisture:45,ndvi:0.42},
 ];
+let _layer='boundary';
 window.addEventListener('DOMContentLoaded',()=>{
   _render();
   const farmId=new URLSearchParams(location.search).get('farm')||sessionStorage.getItem('sf_farm_id')||'farm_001';
@@ -76,6 +92,8 @@ async function _loadParcels(farmId){
       PARCELS = list.map((p,i)=>({
         n:p.name||`${i+1}번 필지`, crop:p.crop||p.jimok||'-', area:p.area_ha??0.5,
         status:'정상', c:'var(--green)',
+        moisture: p.moisture ?? (45+((i*17)%35)),   // 실데이터 없으면 예시값
+        ndvi: p.ndvi ?? (0.45+((i*13)%40)/100),
         x: i%2===0?6:52, y: 10+Math.floor(i/2)*44, w:42, h:40,
       }));
       _render(isLive);
@@ -83,15 +101,45 @@ async function _loadParcels(farmId){
   }catch(e){ /* Mock 유지 */ }
 }
 
+// 레이어별 색상 (히트맵): 값 → rgba
+function _heat(v,lo,hi){ // lo=나쁨(빨강) → hi=좋음(녹색)
+  if(v==null) return 'rgba(148,163,184,.4)';
+  const t=Math.max(0,Math.min(1,(v-lo)/(hi-lo)));
+  const r=Math.round(220-(220-34)*t), g=Math.round(60+(197-60)*t), b=Math.round(60+(94-60)*t);
+  return `rgba(${r},${g},${b},.62)`;
+}
+function _parcelFill(p){
+  if(_layer==='moisture') return _heat(p.moisture,30,75);
+  if(_layer==='ndvi')     return _heat(p.ndvi,0.3,0.85);
+  return 'rgba(34,197,94,.4)'; // 필지경계
+}
+function _parcelLabel(p){
+  if(_layer==='moisture') return `${p.n.replace(' 필지','')}<br><span class="map-parcel-val">${p.moisture??'—'}%</span>`;
+  if(_layer==='ndvi')     return `${p.n.replace(' 필지','')}<br><span class="map-parcel-val">${p.ndvi!=null?p.ndvi.toFixed(2):'—'}</span>`;
+  return `${p.n}<br>${p.crop}`;
+}
+function setLayer(layer){
+  _layer=layer;
+  document.querySelectorAll('.layer-chip').forEach(c=>c.classList.toggle('active',c.dataset.layer===layer));
+  _render(window.__isLive);
+  const lg=document.getElementById('layerLegend');
+  if(layer==='moisture') lg.innerHTML=`토양수분 <span class="lg-grad" style="background:linear-gradient(90deg,#dc3c3c,#ea8a00,#22c55e)"></span> 건조 30% → 충분 75% · 출처 ⚪ 흙토람 미연동(예시)`;
+  else if(layer==='ndvi') lg.innerHTML=`식생지수 <span class="lg-grad" style="background:linear-gradient(90deg,#dc3c3c,#ea8a00,#22c55e)"></span> 저활력 0.3 → 고활력 0.85 · 출처 ⚪ 위성 NDVI 미연동(예시)`;
+  else lg.innerHTML='';
+}
+
 function _render(isLive){
+  window.__isLive = isLive;
   const tag = isLive?'팜맵':'Mock';
-  document.getElementById('mapBox').querySelectorAll('.map-parcel').forEach(e=>e.remove());
-  document.getElementById('mapBox').insertAdjacentHTML('beforeend',PARCELS.map(p=>`
-    <div class="map-parcel" style="left:${p.x}%;top:${p.y}%;width:${p.w}%;height:${p.h}%;background:rgba(34,197,94,.4);"
-      onclick="alert('${p.n}: ${p.crop} ${p.area}ha — ${tag}')">${p.n}<br>${p.crop}</div>`).join(''));
+  const mb=document.getElementById('mapBox');
+  mb.querySelectorAll('.map-parcel').forEach(e=>e.remove());
+  mb.insertAdjacentHTML('beforeend',PARCELS.map(p=>`
+    <div class="map-parcel" style="left:${p.x}%;top:${p.y}%;width:${p.w}%;height:${p.h}%;background:${_parcelFill(p)};"
+      onclick="alert('${p.n}: ${p.crop} ${p.area}ha · 수분 ${p.moisture??'-'}% · NDVI ${p.ndvi??'-'} — ${tag}')">${_parcelLabel(p)}</div>`).join(''));
   document.getElementById('parcelList').innerHTML=PARCELS.map(p=>`
     <div class="parcel-row"><span class="pr-ico">🌾</span>
-      <div class="pr-name"><div class="pr-title">${p.n} · ${p.crop}</div><div class="pr-sub">면적 ${p.area}ha</div></div>
+      <div class="pr-name"><div class="pr-title">${p.n} · ${p.crop}</div>
+        <div class="pr-sub">면적 ${p.area}ha · 수분 ${p.moisture??'—'}% · NDVI ${p.ndvi!=null?p.ndvi.toFixed(2):'—'}</div></div>
       <span class="pr-badge" style="background:${p.c}22;color:${p.c};">${p.status}</span></div>`).join('');
 }
 </script>
