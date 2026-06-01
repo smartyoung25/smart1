@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<title>플랫폼 개요 | KAASA SmartOS</title>
+<link rel="stylesheet" href="../components/base.css"/>
+<style>
+.kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+.kpi{background:var(--panel);border-radius:var(--radius-sm);padding:14px;box-shadow:var(--shadow);}
+.kpi-l{font-size:11px;color:var(--muted);font-weight:600;}.kpi-v{font-size:22px;font-weight:900;margin:4px 0 1px;}.kpi-s{font-size:11px;color:var(--muted);}
+.row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);}
+.row:last-child{border-bottom:none;}
+.row-ico{font-size:20px;}.row-t{flex:1;font-size:13px;font-weight:700;}.row-s{font-size:11px;color:var(--muted);margin-top:1px;}
+.badge{font-size:10px;font-weight:700;padding:3px 9px;border-radius:10px;}
+.bar-wrap{height:8px;background:var(--gray-soft);border-radius:4px;overflow:hidden;margin-top:6px;}
+.bar-fill{height:100%;border-radius:4px;}
+.mock-note{font-size:10px;color:var(--muted);background:var(--panel-soft);border-radius:8px;padding:8px 10px;margin-bottom:12px;}
+.flow-step{display:flex;gap:12px;padding:11px 0;border-bottom:1px solid var(--border);}
+.flow-step:last-child{border-bottom:none;}
+.flow-num{width:26px;height:26px;border-radius:50%;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;flex-shrink:0;}
+.mod-card{background:var(--panel);border-radius:var(--radius-sm);padding:14px;box-shadow:var(--shadow);text-decoration:none;color:var(--text);border:1.5px solid var(--border);display:block;margin-bottom:8px;}
+</style></head>
+<body>
+<header class="sf-header">
+  <span style="font-size:13px;color:rgba(255,255,255,.85);cursor:pointer;" onclick="location.href='../index.html'">‹ 메뉴</span>
+  <span style="font-size:15px;font-weight:800;color:#fff;">플랫폼 개요</span><span style="width:40px;"></span>
+</header>
+<main class="sf-main" style="padding:14px;max-width:480px;margin:0 auto;">
+
+<div class="section-label">KAASA SmartOS 4대 모듈</div>
+<a class="mod-card" href="c3_home.html"><div style="font-size:14px;font-weight:800;">🏠 공통 플랫폼 (Common)</div><div style="font-size:12px;color:var(--muted);margin-top:3px;">회원·데이터권리·AI진단·수익성·공동출하·보상</div></a>
+<a class="mod-card" href="g1_home.html"><div style="font-size:14px;font-weight:800;">🌱 온실 모델 (Greenhouse)</div><div style="font-size:12px;color:var(--muted);margin-top:3px;">환경제어·관수양액·생육·병해품질·수확유통</div></a>
+<a class="mod-card" href="f1_field.html"><div style="font-size:14px;font-weight:800;">🌾 노지 모델 (Open Field)</div><div style="font-size:12px;color:var(--muted);margin-top:3px;">필지GIS·기상재해·토양수분·원격탐사·병해충</div></a>
+<a class="mod-card" href="c12_joint.html"><div style="font-size:14px;font-weight:800;">🤝 공동출하 (Pooling)</div><div style="font-size:12px;color:var(--muted);margin-top:3px;">Pool운영·참여동의·정산·AI출하추천</div></a>
+<div class="section-label" style="margin-top:14px;">AI 모델 계층</div>
+<div class="card" style="padding:14px;">
+  <div class="flow-step"><div class="flow-num">0</div><div><div style="font-size:13px;font-weight:700;">농진청 표준모델</div><div style="font-size:11px;color:var(--muted)">정적 기준값 (폴백)</div></div></div>
+  <div class="flow-step"><div class="flow-num">1</div><div><div style="font-size:13px;font-weight:700;">KAASA 현장학습모델</div><div style="font-size:11px;color:var(--muted)">M1/M2/M5 (실데이터 학습)</div></div></div>
+  <div class="flow-step"><div class="flow-num">2</div><div><div style="font-size:13px;font-weight:700;">내 농장 맞춤모델</div><div style="font-size:11px;color:var(--muted)">농장별 보정 파라미터</div></div></div>
+</div>
+</main>
+<nav class="sf-bottom-nav">
+  <button class="bnav-tab" onclick="location.href='c3_home.html'"><span class="bnav-icon">🏠</span>홈</button>
+  <button class="bnav-tab" onclick="location.href='g1_home.html'"><span class="bnav-icon">🌱</span>온실</button>
+  <button class="bnav-tab" onclick="location.href='f1_field.html'"><span class="bnav-icon">🌾</span>노지</button>
+  <button class="bnav-tab" onclick="location.href='c12_joint.html'"><span class="bnav-icon">🚚</span>출하</button>
+  <button class="bnav-tab active"><span class="bnav-icon">≡</span>메뉴</button>
+</nav>
+</body></html>

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<title>C7 학습보상 | KAASA SmartOS</title>
+<link rel="stylesheet" href="../components/base.css"/>
+<style>
+.kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+.kpi{background:var(--panel);border-radius:var(--radius-sm);padding:14px;box-shadow:var(--shadow);}
+.kpi-l{font-size:11px;color:var(--muted);font-weight:600;}.kpi-v{font-size:22px;font-weight:900;margin:4px 0 1px;}.kpi-s{font-size:11px;color:var(--muted);}
+.row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);}
+.row:last-child{border-bottom:none;}
+.row-ico{font-size:20px;}.row-t{flex:1;font-size:13px;font-weight:700;}.row-s{font-size:11px;color:var(--muted);margin-top:1px;}
+.badge{font-size:10px;font-weight:700;padding:3px 9px;border-radius:10px;}
+.bar-wrap{height:8px;background:var(--gray-soft);border-radius:4px;overflow:hidden;margin-top:6px;}
+.bar-fill{height:100%;border-radius:4px;}
+.mock-note{font-size:10px;color:var(--muted);background:var(--panel-soft);border-radius:8px;padding:8px 10px;margin-bottom:12px;}
+.flow-step{display:flex;gap:12px;padding:11px 0;border-bottom:1px solid var(--border);}
+.flow-step:last-child{border-bottom:none;}
+.flow-num{width:26px;height:26px;border-radius:50%;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;flex-shrink:0;}
+.mod-card{background:var(--panel);border-radius:var(--radius-sm);padding:14px;box-shadow:var(--shadow);text-decoration:none;color:var(--text);border:1.5px solid var(--border);display:block;margin-bottom:8px;}
+</style></head>
+<body>
+<header class="sf-header">
+  <span style="font-size:13px;color:rgba(255,255,255,.85);cursor:pointer;" onclick="location.href='../index.html'">‹ 메뉴</span>
+  <span style="font-size:15px;font-weight:800;color:#fff;">C7 학습보상</span><span style="width:40px;"></span>
+</header>
+<main class="sf-main" style="padding:14px;max-width:480px;margin:0 auto;">
+
+<div class="kpi-grid">
+  <div class="kpi"><div class="kpi-l">기여 점수</div><div class="kpi-v" style="color:var(--purple)">820<span style="font-size:13px;font-weight:400">점</span></div><div class="kpi-s">상위 18%</div></div>
+  <div class="kpi"><div class="kpi-l">적립 포인트</div><div class="kpi-v" style="color:var(--green)">41,000<span style="font-size:13px;font-weight:400">P</span></div><div class="kpi-s">사용가능</div></div>
+</div>
+<div class="mock-note">ℹ️ 학습 기여 보상은 운영 정책 확정 후 실연동 예정 (현재 예시 Mock)</div>
+<div class="section-label">항목별 기여 점수</div>
+<div class="card" style="padding:14px;">
+  <div style="font-size:12px;font-weight:700;">환경 데이터 제공 <span style="float:right;color:var(--muted)">320점</span></div><div class="bar-wrap"><div class="bar-fill" style="width:80%;background:var(--green)"></div></div>
+  <div style="font-size:12px;font-weight:700;margin-top:12px;">관수 기록 입력 <span style="float:right;color:var(--muted)">280점</span></div><div class="bar-wrap"><div class="bar-fill" style="width:70%;background:var(--blue)"></div></div>
+  <div style="font-size:12px;font-weight:700;margin-top:12px;">수확 실측 입력 <span style="float:right;color:var(--muted)">220점</span></div><div class="bar-wrap"><div class="bar-fill" style="width:55%;background:var(--orange)"></div></div>
+</div>
+<div class="section-label" style="margin-top:14px;">포인트 사용</div>
+<div class="card" style="padding:14px;">
+  <div class="row"><span class="row-ico">🎓</span><div class="row-t" style="flex:1;">전문가 상담권<div class="row-s">10,000P</div></div><span class="badge" style="background:var(--green-soft);color:var(--green-dark)">교환</span></div>
+  <div class="row"><span class="row-ico">📊</span><div class="row-t" style="flex:1;">맞춤 분석 리포트<div class="row-s">15,000P</div></div><span class="badge" style="background:var(--green-soft);color:var(--green-dark)">교환</span></div>
+  <div class="row"><span class="row-ico">📚</span><div class="row-t" style="flex:1;">교육 프로그램<div class="row-s">20,000P</div></div><span class="badge" style="background:var(--green-soft);color:var(--green-dark)">교환</span></div>
+</div>
+</main>
+<nav class="sf-bottom-nav">
+  <button class="bnav-tab" onclick="location.href='c3_home.html'"><span class="bnav-icon">🏠</span>홈</button>
+  <button class="bnav-tab" onclick="location.href='g1_home.html'"><span class="bnav-icon">🌱</span>온실</button>
+  <button class="bnav-tab" onclick="location.href='f1_field.html'"><span class="bnav-icon">🌾</span>노지</button>
+  <button class="bnav-tab" onclick="location.href='c12_joint.html'"><span class="bnav-icon">🚚</span>출하</button>
+  <button class="bnav-tab active"><span class="bnav-icon">≡</span>메뉴</button>
+</nav>
+</body></html>

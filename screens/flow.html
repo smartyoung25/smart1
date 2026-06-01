@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<title>사용자 흐름 | KAASA SmartOS</title>
+<link rel="stylesheet" href="../components/base.css"/>
+<style>
+.kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+.kpi{background:var(--panel);border-radius:var(--radius-sm);padding:14px;box-shadow:var(--shadow);}
+.kpi-l{font-size:11px;color:var(--muted);font-weight:600;}.kpi-v{font-size:22px;font-weight:900;margin:4px 0 1px;}.kpi-s{font-size:11px;color:var(--muted);}
+.row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);}
+.row:last-child{border-bottom:none;}
+.row-ico{font-size:20px;}.row-t{flex:1;font-size:13px;font-weight:700;}.row-s{font-size:11px;color:var(--muted);margin-top:1px;}
+.badge{font-size:10px;font-weight:700;padding:3px 9px;border-radius:10px;}
+.bar-wrap{height:8px;background:var(--gray-soft);border-radius:4px;overflow:hidden;margin-top:6px;}
+.bar-fill{height:100%;border-radius:4px;}
+.mock-note{font-size:10px;color:var(--muted);background:var(--panel-soft);border-radius:8px;padding:8px 10px;margin-bottom:12px;}
+.flow-step{display:flex;gap:12px;padding:11px 0;border-bottom:1px solid var(--border);}
+.flow-step:last-child{border-bottom:none;}
+.flow-num{width:26px;height:26px;border-radius:50%;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;flex-shrink:0;}
+.mod-card{background:var(--panel);border-radius:var(--radius-sm);padding:14px;box-shadow:var(--shadow);text-decoration:none;color:var(--text);border:1.5px solid var(--border);display:block;margin-bottom:8px;}
+</style></head>
+<body>
+<header class="sf-header">
+  <span style="font-size:13px;color:rgba(255,255,255,.85);cursor:pointer;" onclick="location.href='../index.html'">‹ 메뉴</span>
+  <span style="font-size:15px;font-weight:800;color:#fff;">사용자 흐름</span><span style="width:40px;"></span>
+</header>
+<main class="sf-main" style="padding:14px;max-width:480px;margin:0 auto;">
+
+<div class="section-label">End-to-End 사용 흐름</div>
+<div class="card" style="padding:14px;">
+  <div class="flow-step"><div class="flow-num">1</div><div><div style="font-size:13px;font-weight:700;">회원가입 (C0)</div><div style="font-size:11px;color:var(--muted)">역할 선택·관심기능</div></div></div>
+  <div class="flow-step"><div class="flow-num">2</div><div><div style="font-size:13px;font-weight:700;">농장 세팅 (C1)</div><div style="font-size:11px;color:var(--muted)">7단계 Wizard</div></div></div>
+  <div class="flow-step"><div class="flow-num">3</div><div><div style="font-size:13px;font-weight:700;">데이터 동의 (C2)</div><div style="font-size:11px;color:var(--muted)">활용모드 선택</div></div></div>
+  <div class="flow-step"><div class="flow-num">4</div><div><div style="font-size:13px;font-weight:700;">일일 운영 (C3·G·F)</div><div style="font-size:11px;color:var(--muted)">To-do·관수·환경·생육·병해</div></div></div>
+  <div class="flow-step"><div class="flow-num">5</div><div><div style="font-size:13px;font-weight:700;">AI 진단·추천 (C4)</div><div style="font-size:11px;color:var(--muted)">개선 추천·전문가</div></div></div>
+  <div class="flow-step"><div class="flow-num">6</div><div><div style="font-size:13px;font-weight:700;">수확·출하 (G6·F7·C12)</div><div style="font-size:11px;color:var(--muted)">개별/공동출하 비교</div></div></div>
+  <div class="flow-step"><div class="flow-num">7</div><div><div style="font-size:13px;font-weight:700;">수익 분석·학습 (C5·C6)</div><div style="font-size:11px;color:var(--muted)">ERP·모델 개선 기여</div></div></div>
+</div>
+<div class="section-label" style="margin-top:14px;">3가지 활용 모드</div>
+<div class="card" style="padding:14px;">
+  <div class="row"><span class="row-ico">🔒</span><div class="row-t" style="flex:1;">Private<div class="row-s">내 농장 단독 운영</div></div></div>
+  <div class="row"><span class="row-ico">🧠</span><div class="row-t" style="flex:1;">Network<div class="row-s">익명 학습·벤치마킹 참여</div></div></div>
+  <div class="row"><span class="row-ico">🤝</span><div class="row-t" style="flex:1;">Organization<div class="row-s">공동출하 조직 연계</div></div></div>
+</div>
+</main>
+<nav class="sf-bottom-nav">
+  <button class="bnav-tab" onclick="location.href='c3_home.html'"><span class="bnav-icon">🏠</span>홈</button>
+  <button class="bnav-tab" onclick="location.href='g1_home.html'"><span class="bnav-icon">🌱</span>온실</button>
+  <button class="bnav-tab" onclick="location.href='f1_field.html'"><span class="bnav-icon">🌾</span>노지</button>
+  <button class="bnav-tab" onclick="location.href='c12_joint.html'"><span class="bnav-icon">🚚</span>출하</button>
+  <button class="bnav-tab active"><span class="bnav-icon">≡</span>메뉴</button>
+</nav>
+</body></html>

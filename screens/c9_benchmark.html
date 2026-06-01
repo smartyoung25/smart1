@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<title>C9 벤치마킹 | KAASA SmartOS</title>
+<link rel="stylesheet" href="../components/base.css"/>
+<style>
+.kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+.kpi{background:var(--panel);border-radius:var(--radius-sm);padding:14px;box-shadow:var(--shadow);}
+.kpi-l{font-size:11px;color:var(--muted);font-weight:600;}.kpi-v{font-size:22px;font-weight:900;margin:4px 0 1px;}.kpi-s{font-size:11px;color:var(--muted);}
+.row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);}
+.row:last-child{border-bottom:none;}
+.row-ico{font-size:20px;}.row-t{flex:1;font-size:13px;font-weight:700;}.row-s{font-size:11px;color:var(--muted);margin-top:1px;}
+.badge{font-size:10px;font-weight:700;padding:3px 9px;border-radius:10px;}
+.bar-wrap{height:8px;background:var(--gray-soft);border-radius:4px;overflow:hidden;margin-top:6px;}
+.bar-fill{height:100%;border-radius:4px;}
+.mock-note{font-size:10px;color:var(--muted);background:var(--panel-soft);border-radius:8px;padding:8px 10px;margin-bottom:12px;}
+.flow-step{display:flex;gap:12px;padding:11px 0;border-bottom:1px solid var(--border);}
+.flow-step:last-child{border-bottom:none;}
+.flow-num{width:26px;height:26px;border-radius:50%;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;flex-shrink:0;}
+.mod-card{background:var(--panel);border-radius:var(--radius-sm);padding:14px;box-shadow:var(--shadow);text-decoration:none;color:var(--text);border:1.5px solid var(--border);display:block;margin-bottom:8px;}
+</style></head>
+<body>
+<header class="sf-header">
+  <span style="font-size:13px;color:rgba(255,255,255,.85);cursor:pointer;" onclick="location.href='../index.html'">‹ 메뉴</span>
+  <span style="font-size:15px;font-weight:800;color:#fff;">C9 벤치마킹</span><span style="width:40px;"></span>
+</header>
+<main class="sf-main" style="padding:14px;max-width:480px;margin:0 auto;">
+
+<div class="mock-note">ℹ️ 벤치마킹 비교군은 익명 집계 데이터 확보 시 실연동 (현재 예시 Mock)</div>
+<div class="section-label">우수농가 대비 비교</div>
+<div class="card" style="padding:14px;">
+  <div style="font-size:12px;font-weight:700;">수확량 (kg/m²) <span style="float:right;color:var(--green)">내 15.0 / 상위 17.2</span></div><div class="bar-wrap"><div class="bar-fill" style="width:87%;background:var(--green)"></div></div>
+  <div style="font-size:12px;font-weight:700;margin-top:12px;">마진율 (%) <span style="float:right;color:var(--green)">내 89 / 상위 82</span></div><div class="bar-wrap"><div class="bar-fill" style="width:100%;background:var(--green)"></div></div>
+  <div style="font-size:12px;font-weight:700;margin-top:12px;">에너지 효율 <span style="float:right;color:var(--orange)">내 76 / 상위 88</span></div><div class="bar-wrap"><div class="bar-fill" style="width:76%;background:var(--orange)"></div></div>
+  <div style="font-size:12px;font-weight:700;margin-top:12px;">배액률 적정도 <span style="float:right;color:var(--green)">내 92 / 상위 90</span></div><div class="bar-wrap"><div class="bar-fill" style="width:92%;background:var(--green)"></div></div>
+</div>
+<div class="section-label" style="margin-top:14px;">개선 포인트</div>
+<div class="card" style="padding:14px;border-left:4px solid var(--orange);">
+  <div style="font-size:13px;font-weight:800;">⚡ 에너지 효율 개선 여지</div>
+  <div style="font-size:12px;color:var(--muted);margin-top:4px;line-height:1.5;">상위 농가 대비 에너지 효율 12%p 낮음. 피크 시간대 회피·보온커튼 이중화로 개선 가능 (G2 환경제어 참조).</div>
+</div>
+<div style="margin-top:14px;"><button style="width:100%;padding:14px;background:var(--green);color:#fff;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:800;cursor:pointer;" onclick="alert('자동 보고서 생성 — Mock')">📄 벤치마킹 보고서 생성</button></div>
+</main>
+<nav class="sf-bottom-nav">
+  <button class="bnav-tab" onclick="location.href='c3_home.html'"><span class="bnav-icon">🏠</span>홈</button>
+  <button class="bnav-tab" onclick="location.href='g1_home.html'"><span class="bnav-icon">🌱</span>온실</button>
+  <button class="bnav-tab" onclick="location.href='f1_field.html'"><span class="bnav-icon">🌾</span>노지</button>
+  <button class="bnav-tab" onclick="location.href='c12_joint.html'"><span class="bnav-icon">🚚</span>출하</button>
+  <button class="bnav-tab active"><span class="bnav-icon">≡</span>메뉴</button>
+</nav>
+</body></html>
