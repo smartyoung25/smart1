@@ -40,6 +40,9 @@
   <div class="mock-note" id="mockNote">기상은 KMA 실데이터, 작업가능시간은 강우·풍속 기반 추정입니다.</div>
   <div class="section-label">작업 가능 시간대 (오늘)</div>
   <div class="card" style="padding:14px;" id="workWindow"></div>
+  <button onclick="_openPlan()" style="width:100%;margin-top:14px;padding:15px;background:var(--green);color:#fff;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:800;cursor:pointer;min-height:48px;">📋 작업 계획 기록</button>
+  <div class="section-label" style="margin-top:16px;">예정 작업</div>
+  <div class="card" style="padding:12px 14px;" id="recentRec"></div>
 </main>
 <nav class="sf-bottom-nav">
   <button class="bnav-tab" onclick="location.href='c3_home.html'"><span class="bnav-icon">🏠</span>홈</button>
@@ -49,13 +52,30 @@
   <button class="bnav-tab" onclick="location.href='../index.html'"><span class="bnav-icon">≡</span>메뉴</button>
 </nav>
 <script src="../components/data.js"></script>
+<script src="../components/record_sheet.js"></script>
 <script>
 'use strict';
+let _tokenG='', _farmG='farm_001';
 window.addEventListener('DOMContentLoaded',()=>{
   const farmId=new URLSearchParams(location.search).get('farm')||sessionStorage.getItem('sf_farm_id')||'farm_001';
+  _farmG=farmId;
   _renderWork();
-  _ensureToken().then(t=>{KaasaData.init({farmId,token:t,onStatus:_ws});_loadWeather(t,farmId);});
+  _ensureToken().then(t=>{_tokenG=t;KaasaData.init({farmId,token:t,onStatus:_ws});_loadWeather(t,farmId);_refreshRecent();});
 });
+function _refreshRecent(){ if(window.RecordSheet) RecordSheet.renderRecent(document.getElementById('recentRec'),_farmG,_tokenG,{kinds:['todo'],limit:5}); }
+function _openPlan(){
+  RecordSheet.open({
+    title:'📋 작업 계획 기록',
+    submitLabel:'계획 저장',
+    fields:[
+      {id:'task', label:'작업 유형', type:'select', options:['파종·정식','방제','관개','시비','제초','수확','시설 점검'], required:true},
+      {id:'date', label:'예정일', type:'date', required:true},
+      {id:'memo', label:'메모', type:'text', placeholder:'예: 2번 필지 우선'},
+    ],
+    onSubmit: async (v)=>{ await RecordSheet.logActivity(_farmG,_tokenG,{
+      kind:'todo', item:`작업 계획: ${v.task}`, detail:`${v.date} · ${v.memo||'-'}` }); _refreshRecent(); }
+  });
+}
 async function _ensureToken(){const s=sessionStorage.getItem('sf_token');if(s)return s;try{const a=sessionStorage.getItem('sf_api')||location.origin;const r=await fetch(`${a}/api/v1/auth/token`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:'admin',password:'1250'})});if(r.ok){const d=await r.json();sessionStorage.setItem('sf_token',d.access_token);return d.access_token;}}catch{}return '';}
 function _ws(s){const d=document.getElementById('wsDot'),l=document.getElementById('wsLabel');if(d)d.className='ws-dot '+s;if(l)l.textContent=s==='connected'?'실시간 연결 중':'연결 안 됨';}
 async function _loadWeather(token,farmId){

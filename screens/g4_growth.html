@@ -191,6 +191,10 @@
     <div style="text-align:center;padding:16px;color:var(--muted);"><div class="spinner"></div></div>
   </div>
 
+  <button onclick="_openGrowthMeasure()" style="width:100%;margin-top:14px;padding:15px;background:var(--green);color:#fff;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:800;cursor:pointer;min-height:48px;">🌿 생육 측정값 입력</button>
+  <div class="section-label" style="margin-top:16px;">최근 생육 측정</div>
+  <div class="card" style="padding:12px 14px;" id="recentRec"></div>
+
   <!-- M1·M2 모델 성능 -->
   <div class="section-label" style="margin-top:16px;">모델 성능 현황 <span class="trust-badge trust-model">🔵 모델</span></div>
   <div class="card" style="padding:14px;">
@@ -230,19 +234,41 @@
 
 <script src="../components/data.js"></script>
 <script src="../components/tier_guard.js"></script>
+<script src="../components/record_sheet.js"></script>
 <script>
 'use strict';
 
 const CROP_SEASON_DAYS = { '딸기':120, '오이':90, '완숙토마토':120, '방울토마토':120, '파프리카':180, '참외':100 };
 const CROP_DLI_TARGET  = { '딸기':10, '오이':20, '완숙토마토':25, '방울토마토':22, '파프리카':18, '참외':18 };
+let _tokenG='', _farmG='farm_001';
+
+function _refreshRecent(){ if(window.RecordSheet&&_tokenG) RecordSheet.renderRecent(document.getElementById('recentRec'),_farmG,_tokenG,{kinds:['growth'],limit:5}); }
+function _openGrowthMeasure(){
+  RecordSheet.open({
+    title:'🌿 생육 측정값 입력',
+    submitLabel:'측정값 저장',
+    fields:[
+      {id:'height', label:'초장(생장길이)', type:'number', unit:'cm', placeholder:'예: 145', required:true},
+      {id:'leaves', label:'엽수', type:'number', unit:'장', placeholder:'예: 18'},
+      {id:'stem',   label:'줄기 굵기', type:'number', unit:'mm', placeholder:'예: 11'},
+      {id:'flower', label:'화방수/착과수', type:'number', unit:'개', placeholder:'예: 5'},
+      {id:'date',   label:'측정일', type:'date'},
+    ],
+    onSubmit: async (v)=>{ await RecordSheet.logActivity(_farmG,_tokenG,{
+      kind:'growth', item:'생육 측정', value:parseFloat(v.height)||null,
+      detail:`초장 ${v.height||'-'}cm · 엽수 ${v.leaves||'-'} · 줄기 ${v.stem||'-'}mm · 화방 ${v.flower||'-'} · ${v.date||'오늘'}` }); _refreshRecent(); }
+  });
+}
 
 window.addEventListener('DOMContentLoaded', () => {
   const farmId = new URLSearchParams(location.search).get('farm') ||
                  sessionStorage.getItem('sf_farm_id') || 'farm_001';
-
+  _farmG = farmId;
   _ensureToken().then(token => {
+    _tokenG = token;
     KaasaData.init({ farmId, token, onStatus: _onWsStatus });
     _loadAll(token, farmId);
+    _refreshRecent();
     // 등급 게이팅: 수확량 예측(M2)은 smart 등급 전용 (growth_yield_forecast)
     KaasaTier.init(farmId, token).then(() => {
       KaasaTier.guard(document.getElementById('predGrid'), 'growth_yield_forecast',
