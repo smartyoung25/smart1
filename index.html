@@ -100,9 +100,10 @@
     <h3 id="upgTitle">🔒 상위 등급 기능</h3>
     <p id="upgDesc"></p>
     <div id="upgFeats"></div>
+    <div id="upgMsg" style="display:none;font-size:13px;font-weight:700;padding:10px;border-radius:10px;margin-top:6px;"></div>
     <div class="sf-sheet-btns">
       <button class="sf-btn sf-btn-ghost" onclick="closeUpg()">나중에</button>
-      <a class="sf-btn sf-btn-primary" id="upgGo" href="screens/c10_roi.html">업그레이드 보기</a>
+      <button class="sf-btn sf-btn-primary" id="upgGo" onclick="doUpgrade()">이 등급으로 업그레이드</button>
     </div>
   </div>
 </div>
@@ -452,6 +453,7 @@
   const myTier = plan.tier || 'basic';
   const myRank = RANK(myTier);
   window.__lockedFeats = plan.locked || [];
+  window.__sfFarmId = sessionStorage.getItem('sf_farm_id') || p.farm_id || 'farm_001';
 
   // 헤더에 현재 등급 칩 추가
   const tm = TIER[myTier] || TIER.basic;
@@ -476,11 +478,33 @@
       <div class="screen-desc">${desc}</div>
     </a>`;
   }).join('');
+
+  // ── 전체 화면 그리드(핵심/모듈별)에도 등급 배지·잠금 적용 ──
+  const SCREEN_TIER = {
+    'g3_period.html':'smart','g4_growth.html':'smart','g5_disease.html':'smart',
+    'f4_soil.html':'smart','f3_weather.html':'smart','f6_pest.html':'smart',
+    'c13_chat.html':'smart','c4_diagnosis.html':'pro'
+  };
+  document.querySelectorAll('.screen-grid:not(#myFarmGrid) a.screen-card').forEach(a=>{
+    const m=(a.getAttribute('href')||'').match(/([^\/]+\.html)$/); if(!m) return;
+    const mt=SCREEN_TIER[m[1]]; if(!mt) return;
+    const tb=TIER[mt]||TIER.basic;
+    a.insertAdjacentHTML('afterbegin',
+      `<span class="tier-badge" style="background:${tb.c}">${RANK(mt)>myRank?'🔒 ':''}${tb.n}</span>`);
+    if(RANK(mt)>myRank){
+      a.classList.add('locked'); a.classList.remove('ready');
+      const nm=(a.querySelector('.screen-name')||{}).textContent||'기능';
+      a.setAttribute('href','javascript:void(0)');
+      a.addEventListener('click',ev=>{ev.preventDefault(); openUpg(nm,mt);});
+    }
+  });
 })();
 
 // 업그레이드 Bottom Sheet
+var _upgTarget = null;
 function openUpg(name, minTier){
   const TIER={basic:'기본',smart:'스마트',pro:'프로',enterprise:'엔터프라이즈'};
+  _upgTarget = minTier;
   document.getElementById('upgTitle').textContent = `🔒 ${name}`;
   document.getElementById('upgDesc').textContent =
     `이 기능은 ‘${TIER[minTier]||minTier}’ 등급부터 이용할 수 있습니다. 업그레이드 시 아래 기능이 함께 열립니다.`;
@@ -488,9 +512,41 @@ function openUpg(name, minTier){
   document.getElementById('upgFeats').innerHTML = feats.length
     ? feats.map(f=>`<div class="feat-li">✓ ${f.label_ko}</div>`).join('')
     : `<div class="feat-li">✓ ${TIER[minTier]||minTier} 등급 전용 기능</div>`;
+  const msg=document.getElementById('upgMsg'); msg.style.display='none';
+  const go=document.getElementById('upgGo'); go.disabled=false;
+  go.textContent=`‘${TIER[minTier]||minTier}’ 등급으로 업그레이드`;
   document.getElementById('upgMask').classList.add('open');
 }
 function closeUpg(){ document.getElementById('upgMask').classList.remove('open'); }
+
+async function doUpgrade(){
+  if(!_upgTarget) return;
+  const go=document.getElementById('upgGo'); const msg=document.getElementById('upgMsg');
+  go.disabled=true; go.textContent='처리 중…';
+  const fid=window.__sfFarmId||'farm_001';
+  let tk=sessionStorage.getItem('sf_token')||'';
+  try{
+    const r=await fetch(`${location.origin}/api/farms/${fid}/billing/upgrade`,{
+      method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tk},
+      body:JSON.stringify({target_tier:_upgTarget,pg_channel:'manual'})});
+    const d=await r.json();
+    if(r.ok && d.status==='approved'){
+      msg.style.display='block'; msg.style.background='var(--green-soft)'; msg.style.color='var(--green-dark)';
+      msg.textContent='✅ '+(d.message_ko||'업그레이드 완료');
+      setTimeout(()=>location.reload(),1200);
+    } else if(r.ok && d.redirect_url){
+      msg.style.display='block'; msg.style.background='var(--green-soft)'; msg.style.color='var(--green-dark)';
+      msg.textContent='결제 페이지로 이동합니다…';
+      setTimeout(()=>{ location.href=d.redirect_url; },800);
+    } else {
+      throw new Error(d.detail||d.message_ko||'업그레이드 실패');
+    }
+  }catch(e){
+    msg.style.display='block'; msg.style.background='var(--orange-soft)'; msg.style.color='var(--orange)';
+    msg.textContent='⚠ '+(e.message||'업그레이드 처리 실패'); go.disabled=false;
+    go.textContent='다시 시도';
+  }
+}
 </script>
 </body>
 </html>

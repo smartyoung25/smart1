@@ -349,6 +349,7 @@
 </nav>
 
 <script src="../components/data.js"></script>
+<script src="../components/tier_guard.js"></script>
 <script>
 'use strict';
 
@@ -432,6 +433,11 @@ window.addEventListener('DOMContentLoaded', () => {
     KaasaData.loadEnvironment();
     _loadEnvFull(token, farmId);
     _loadEnergy(token, farmId);
+    // 등급 게이팅: VPD+작기단계 분석은 pro 등급 전용 (env_vpd_stage)
+    KaasaTier.init(farmId, token).then(() => {
+      KaasaTier.guard(document.getElementById('cardVpd'), 'env_vpd_stage',
+        { onUpgrade: () => { location.href = '/smartos'; } });
+    });
   });
 });
 
