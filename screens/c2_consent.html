@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <title>C2 — 데이터 공개·활용 | KAASA SmartOS</title>
+  <link rel="stylesheet" href="../components/base.css"/>
+  <style>
+    body { padding-bottom: 84px; }
+    .consent-body { padding:14px; max-width:480px; margin:0 auto; }
+    /* 활용 모드 */
+    .mode-card { padding:14px; border:2px solid var(--border); border-radius:var(--radius-sm); margin-bottom:10px; cursor:pointer; background:var(--panel); }
+    .mode-card.sel { border-color:var(--green); background:var(--green-soft); }
+    .mode-name { font-size:15px; font-weight:800; }
+    .mode-desc { font-size:12px; color:var(--muted); margin-top:3px; line-height:1.4; }
+    /* 토글 */
+    .toggle-row { display:flex; align-items:center; gap:12px; padding:13px 0; border-bottom:1px solid var(--border); }
+    .toggle-row:last-child { border-bottom:none; }
+    .toggle-info { flex:1; }
+    .toggle-name { font-size:13px; font-weight:700; }
+    .toggle-desc { font-size:11px; color:var(--muted); margin-top:1px; }
+    .toggle { width:46px; height:26px; border-radius:13px; background:var(--gray-soft); position:relative; cursor:pointer; flex-shrink:0; transition:background .2s; }
+    .toggle.on { background:var(--green); }
+    .toggle-knob { position:absolute; top:3px; left:3px; width:20px; height:20px; border-radius:50%; background:#fff; transition:left .2s; box-shadow:0 1px 3px rgba(0,0,0,.2); }
+    .toggle.on .toggle-knob { left:23px; }
+    .footer { position:fixed; bottom:0; left:0; right:0; background:var(--panel); border-top:1px solid var(--border); padding:12px 16px; max-width:480px; margin:0 auto; }
+    .btn-save { width:100%; min-height:48px; background:var(--green); color:#fff; border:none; border-radius:var(--radius-sm); font-size:15px; font-weight:800; cursor:pointer; }
+    .ws-dot{width:8px;height:8px;border-radius:50%;background:var(--muted);display:inline-block;}
+  </style>
+</head>
+<body>
+
+<header class="sf-header">
+  <span style="font-size:13px;color:rgba(255,255,255,.85);cursor:pointer;" onclick="location.href='../index.html'">‹ 메뉴</span>
+  <span style="font-size:15px;font-weight:800;color:#fff;">C2 데이터 동의</span>
+  <span style="width:40px;"></span>
+</header>
+
+<main class="consent-body">
+  <div class="section-label">데이터 활용 모드</div>
+  <div id="modeList"></div>
+
+  <div class="section-label" style="margin-top:14px;">항목별 공개 설정</div>
+  <div class="card" style="padding:14px;">
+    <div id="toggleList"></div>
+  </div>
+
+  <div style="margin-top:12px;font-size:11px;color:var(--muted);background:var(--panel-soft);border-radius:8px;padding:10px;line-height:1.5;">
+    🔒 개별 원가·마진 등 민감 경영정보는 어떤 모드에서도 외부에 공개되지 않습니다. 활용 데이터는 AI 모델 학습·벤치마킹에만 사용됩니다.
+  </div>
+  <div id="saveResult" style="margin-top:12px;font-size:13px;text-align:center;"></div>
+</main>
+
+<div class="footer">
+  <button class="btn-save" onclick="_save()">설정 저장</button>
+</div>
+
+<script src="../components/data.js"></script>
+<script>
+'use strict';
+const MODES=[
+  ['private','🔒 Private','내 농장만 — 외부 공유 없음. AI 추천은 내 데이터로만 학습'],
+  ['learning','🧠 Learning','익명 학습 참여 — 개인정보 제외 환경·생육 데이터로 모델 개선 기여'],
+  ['benchmark','📊 Benchmark','벤치마킹 참여 — 익명 비교군에 포함되어 우수농가 대비 분석 제공'],
+  ['network','🤝 Network','조직 네트워크 — 공동출하 조직과 출하 관련 정보 공유'],
+];
+const ITEMS=[
+  ['env','환경 데이터','온도·습도·CO₂·일사',true],
+  ['irr','관수 데이터','EC·pH·배액률',true],
+  ['growth','생육 데이터','초장·엽수·수확량',true],
+  ['disease','병해 이력','병해 발생·방제 기록',false],
+  ['revenue','수익 데이터','매출·원가 (익명 집계만)',false],
+];
+let _mode='learning', _toggles={};
+
+window.addEventListener('DOMContentLoaded', ()=>{
+  ITEMS.forEach(([id,,,def])=>_toggles[id]=def);
+  document.getElementById('modeList').innerHTML=MODES.map(([id,n,d])=>`
+    <div class="mode-card ${id==='learning'?'sel':''}" id="mode-${id}" onclick="_selMode('${id}')">
+      <div class="mode-name">${n}</div><div class="mode-desc">${d}</div></div>`).join('');
+  _renderToggles();
+});
+function _selMode(id){_mode=id;document.querySelectorAll('.mode-card').forEach(x=>x.classList.remove('sel'));document.getElementById('mode-'+id).classList.add('sel');
+  // private면 전 항목 off, network면 env/irr/growth on
+  if(id==='private'){ITEMS.forEach(([i])=>_toggles[i]=false);}
+  else if(id==='learning'||id==='benchmark'){_toggles.env=true;_toggles.irr=true;_toggles.growth=true;}
+  _renderToggles();
+}
+function _renderToggles(){
+  document.getElementById('toggleList').innerHTML=ITEMS.map(([id,n,d])=>`
+    <div class="toggle-row"><div class="toggle-info"><div class="toggle-name">${n}</div><div class="toggle-desc">${d}</div></div>
+      <div class="toggle ${_toggles[id]?'on':''}" onclick="_toggle('${id}')"><div class="toggle-knob"></div></div></div>`).join('');
+}
+function _toggle(id){_toggles[id]=!_toggles[id];_renderToggles();}
+function _save(){
+  const cfg={mode:_mode,items:_toggles,ts:Date.now()};
+  localStorage.setItem('sf_consent',JSON.stringify(cfg));
+  const r=document.getElementById('saveResult');
+  r.style.color='var(--green)';
+  const onCount=Object.values(_toggles).filter(Boolean).length;
+  r.innerHTML=`✓ 저장 완료 — ${MODES.find(m=>m[0]===_mode)[1]} · 공개 ${onCount}/${ITEMS.length}항목`;
+}
+</script>
+</body>
+</html>

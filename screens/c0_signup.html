@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <title>C0 — 회원가입 | KAASA SmartOS</title>
+  <link rel="stylesheet" href="../components/base.css"/>
+  <style>
+    body { padding-bottom: 84px; }
+    .signup-body { padding:14px; max-width:480px; margin:0 auto; }
+    .role-card { display:flex; align-items:center; gap:14px; padding:16px; border:2px solid var(--border); border-radius:var(--radius-sm); margin-bottom:10px; cursor:pointer; background:var(--panel); min-height:64px; }
+    .role-card.sel { border-color:var(--green); background:var(--green-soft); }
+    .role-ico { font-size:28px; flex-shrink:0; }
+    .role-name { font-size:15px; font-weight:800; }
+    .role-desc { font-size:12px; color:var(--muted); margin-top:2px; }
+    .signup-label { font-size:13px; font-weight:700; margin:14px 0 6px; display:block; }
+    .signup-input { width:100%; min-height:48px; padding:12px 14px; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:15px; outline:none; }
+    .signup-input:focus { border-color:var(--green); }
+    .feat-chip-wrap { display:flex; flex-wrap:wrap; gap:8px; }
+    .feat-chip { padding:10px 14px; border:1.5px solid var(--border); border-radius:20px; font-size:13px; cursor:pointer; background:var(--panel); min-height:40px; }
+    .feat-chip.sel { border-color:var(--green); background:var(--green-soft); color:var(--green-dark); }
+    .footer { position:fixed; bottom:0; left:0; right:0; background:var(--panel); border-top:1px solid var(--border); padding:12px 16px; max-width:480px; margin:0 auto; }
+    .btn-submit { width:100%; min-height:48px; background:var(--green); color:#fff; border:none; border-radius:var(--radius-sm); font-size:15px; font-weight:800; cursor:pointer; }
+  </style>
+</head>
+<body>
+
+<header class="sf-header">
+  <span style="font-size:13px;color:rgba(255,255,255,.85);cursor:pointer;" onclick="location.href='../index.html'">‹ 메뉴</span>
+  <span style="font-size:15px;font-weight:800;color:#fff;">C0 회원가입</span>
+  <span style="width:40px;"></span>
+</header>
+
+<main class="signup-body">
+  <div class="section-label">회원 유형</div>
+  <div id="roleList"></div>
+
+  <div class="section-label" style="margin-top:14px;">계정 정보</div>
+  <label class="signup-label">아이디</label>
+  <input class="signup-input" id="fUser" placeholder="3자 이상"/>
+  <label class="signup-label">비밀번호</label>
+  <input class="signup-input" id="fPass" type="password" placeholder="4자 이상"/>
+  <label class="signup-label">이름</label>
+  <input class="signup-input" id="fName" placeholder="성명"/>
+  <label class="signup-label">이메일 (선택)</label>
+  <input class="signup-input" id="fEmail" type="email" placeholder="example@farm.kr"/>
+
+  <div class="section-label" style="margin-top:14px;">관심 기능 (복수 선택)</div>
+  <div class="feat-chip-wrap" id="featChips"></div>
+
+  <div id="signupResult" style="margin-top:14px;font-size:13px;text-align:center;"></div>
+</main>
+
+<div class="footer">
+  <button class="btn-submit" onclick="_submit()">가입하고 시작하기</button>
+</div>
+
+<script src="../components/data.js"></script>
+<script>
+'use strict';
+const ROLES=[
+  ['farmer','👨‍🌾','농가','온실·노지 직접 재배'],
+  ['org','🏢','생산자 조직','공동출하·조합 운영'],
+  ['expert','🔬','전문가','컨설팅·기술 지원'],
+  ['public','🏛️','공공기관','정책·통계 활용'],
+];
+const FEATS=['환경제어','관수관리','생육예측','병해진단','수익분석','공동출하','벤치마킹','AI추천'];
+let _role='', _feats=[];
+
+window.addEventListener('DOMContentLoaded', ()=>{
+  document.getElementById('roleList').innerHTML=ROLES.map(([id,ic,n,d])=>`
+    <div class="role-card" onclick="_selRole('${id}',this)"><span class="role-ico">${ic}</span>
+      <div><div class="role-name">${n}</div><div class="role-desc">${d}</div></div></div>`).join('');
+  document.getElementById('featChips').innerHTML=FEATS.map(f=>`<div class="feat-chip" onclick="_toggleFeat('${f}',this)">${f}</div>`).join('');
+});
+function _selRole(id,el){_role=id;document.querySelectorAll('.role-card').forEach(x=>x.classList.remove('sel'));el.classList.add('sel');}
+function _toggleFeat(f,el){const i=_feats.indexOf(f);if(i>=0){_feats.splice(i,1);el.classList.remove('sel');}else{_feats.push(f);el.classList.add('sel');}}
+
+async function _submit(){
+  const user=document.getElementById('fUser').value.trim();
+  const pass=document.getElementById('fPass').value;
+  const name=document.getElementById('fName').value.trim();
+  const email=document.getElementById('fEmail').value.trim();
+  const res=document.getElementById('signupResult');
+  if(!_role){res.style.color='var(--red)';res.textContent='회원 유형을 선택하세요';return;}
+  if(user.length<3){res.style.color='var(--red)';res.textContent='아이디는 3자 이상';return;}
+  if(pass.length<4){res.style.color='var(--red)';res.textContent='비밀번호는 4자 이상';return;}
+  res.style.color='var(--muted)';res.textContent='가입 처리 중…';
+  try{
+    const api=sessionStorage.getItem('sf_api')||location.origin;
+    const r=await fetch(`${api}/api/v1/auth/register`,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({username:user,password:pass,name:name,email:email})});
+    if(r.ok){
+      const d=await r.json();
+      if(d.access_token) sessionStorage.setItem('sf_token',d.access_token);
+      res.style.color='var(--green)';res.innerHTML='✓ 가입 완료! 농장 세팅으로 이동합니다…';
+      localStorage.setItem('sf_signup_feats',JSON.stringify(_feats));
+      setTimeout(()=>location.href='c1_setup.html',1500);
+    } else {
+      const t=await r.text();
+      res.style.color='var(--orange)';res.textContent=`가입 응답 ${r.status}: ${t.slice(0,60)}`;
+    }
+  }catch(e){ res.style.color='var(--red)';res.textContent='네트워크 오류: '+e.message; }
+}
+</script>
+</body>
+</html>

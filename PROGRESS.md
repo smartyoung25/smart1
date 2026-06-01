@@ -1,5 +1,5 @@
 # KAASA SmartOS — 진행 상태 (PROGRESS.md)
-> 마지막 업데이트: 2026-06-01 · 완료 화면 13개 · 에러 0건 · 하단탭 5축 + Wizard 패턴
+> 마지막 업데이트: 2026-06-01 · 완료 화면 16개 · 에러 0건 · 하단탭 5축 + Wizard + AI진단
 
 ---
 
@@ -35,6 +35,12 @@
 - ✅ **C1 농장 기본세팅** `c1_setup.html`: 7단계 Wizard (기본정보→작물→시설→규모→작기→목표→확인), 진행바+Sticky Footer, `/api/v1/auth/onboarding` 실연동
 - ✅ **C11 공동출하 가입** `c11_pool_join.html`: 6단계 Wizard (조직→품목→물량→등급→약정동의→확인), 약정 체크박스 (가입 API 미구현 → localStorage)
 - 검수: 13개 화면 전체 OK, Step 진행 정상, 콘솔 에러 0건
+
+### 배치 4a (2026-06-01 추가) — AI진단 + 가입/동의
+- ✅ **C4 AI 진단** `c4_diagnosis.html`: 종합점수(66점) + 추천 5개 Accordion + 이상값 2건 (recommendations·anomalies·summary 실연동) + 전문가 예약 Bottom Sheet
+- ✅ **C0 회원가입** `c0_signup.html`: 역할 4종 + 계정 입력 + 관심기능 (`/api/v1/auth/register` 실연동)
+- ✅ **C2 데이터 동의** `c2_consent.html`: 활용모드 4종 + 항목별 토글 5종 (localStorage)
+- 검수: 16개 화면 OK, C4 실데이터, 콘솔 에러 0건
 
 ---
 
@@ -106,15 +112,24 @@
 
 ---
 
-## Phase 2 — 미착수 화면
+## 미착수 화면 (원본 28개 중 12개 잔여)
 
-| 화면 | 상태 | 비고 |
+| 화면 | 상태 | 데이터 |
 |------|------|------|
-| C12 공동출하 운영 | ❌ | Pool 참여 · AI 출하추천 |
-| C4 AI 진단 | ❌ | 종합 농장 리포트 |
-| F1 노지 홈 | ❌ | 필지 지도 · 토양수분 |
-| F4 토양수분·관개 | ❌ | ETc 계산 연동 |
-| F7 노지 수확·유통 | ❌ | |
+| C6 AI학습 | ❌ | Mock |
+| C7 학습보상 | ❌ | Mock |
+| C8 이기종연동 | ❌ | Mock |
+| C9 벤치마킹 | ❌ | Mock |
+| C10 투자ROI | ❌ | Mock |
+| F2 필지GIS | ❌ | Mock |
+| F3 기상재해 | ❌ | weather API 일부 |
+| F5 원격탐사 | ❌ | Mock |
+| F6 병해충방제 | ❌ | disease API 일부 |
+| F7 노지수확유통 | ❌ | revenue 재사용 |
+| OVERVIEW | ❌ | 정적 |
+| FLOW | ❌ | 정적 |
+
+> 완료 16개 / 원본 28개 = **57%**
 
 ---
 
