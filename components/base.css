@@ -50,6 +50,8 @@
   --p4-soft:      #fef3c7;
   --p5-color:     #7c3aed;   /* 바이올렛 — 오후~마감 */
   --p5-soft:      #f5f3ff;
+  --p6-color:     #1e3a5f;   /* 네이비 — 야간 dry-back */
+  --p6-soft:      #e7edf3;
 
   /* 상태 색상 */
   --ok:           var(--green);

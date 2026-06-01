@@ -32,10 +32,13 @@ const KaasaData = (() => {
   let _latestPriva = null;
   let _periodCache = null;
 
-  // ── P1~P5 관수 Period 정의 ─────────────────────────────────────────────────
+  // ── P1~P6 관수 Period 정의 (Grodan/Priva 일일 WC·EC 곡선 기반) ──────────────
   /**
-   * P1~P5는 하루 관수 Period입니다 (우선순위가 아님).
-   * 기존 irrigation_adapter의 P1~P4(일출/오전/오후/일몰)를 5구간으로 확장.
+   * P1~P6은 하루 관수 Period입니다 (우선순위가 아님).
+   * 선진 벤치마킹(Grodan 함수율 전략·Priva 일사적산): 6단계 일일 곡선
+   *   P1 일출前 점검 → P2 첫관수(재포화) → P3 첫배액(≈400 J/cm²) →
+   *   P4 정오 유지 → P5 오후 dry-down(조기종료) → P6 야간 dry-back(무관수 기본)
+   * 트리거는 일사 적산(J/cm²) 우선, 시각은 폴백. 야간 dry-back은 생식/영양 조절 레버.
    *
    * 구조:
    *   adapter.period 1 → P1(일출前) + P2(첫관수) 로 분리
@@ -45,71 +48,96 @@ const KaasaData = (() => {
    */
   const PERIODS = [
     {
-      id: 'P1', label: 'P1', name: '관수 前 점검',
+      id: 'P1', label: 'P1', name: '일출 前 점검',
       timeRange: '05:00~07:00',
       colorVar: '--p1-color', softVar: '--p1-soft',
       adapterPeriod: 1,          // irrigation_adapter period 번호
       privaPhase: null,          // Priva 페이즈 해당 없음 (준비 구간)
       icon: '🌅',
-      description: '일출 前 — 야간 배액 잔량 확인, EC/pH 기준값 점검, 첫 관수 준비',
-      targets: { drainPct: null, ecDrain: null, supply: 0 },
+      radiationTrigger: '일사 적산 시작 前',
+      description: '일출 前 — 야간 dry-back(10~20%) 결과 확인, EC/pH 기준값 점검, 첫 관수량 산정',
+      targets: { drainPct: { min: 0, max: 0 }, ecDrain: { min: 3.5, max: 5.5 }, supply: 0, drybackPct: { min: 10, max: 20 } },
+      steering: '야간 농축 EC 최고점 — 과다 시 P2 첫 관수량 상향으로 보정',
       alertRules: [
-        { metric: 'slabWt', min: null, max: null, msg: '새벽 슬랩 무게 확인 필요' }
+        { metric: 'dryback', min: 25, severity: 'warn', msg: '야간 dry-back 과다(>25%) — 첫 관수 앞당김 권장' }
       ]
     },
     {
-      id: 'P2', label: 'P2', name: '첫 관수',
-      timeRange: '07:00~10:00',
+      id: 'P2', label: 'P2', name: '첫 관수(재포화)',
+      timeRange: '일출 후 2~3h',
       colorVar: '--p2-color', softVar: '--p2-soft',
       adapterPeriod: 1,
       privaPhase: 0,
       icon: '🌱',
-      description: '첫 급액 — 근권 활성화, 목표 배액률 20~30% 도달 확인',
-      targets: { drainPct: { min: 20, max: 30 }, ecDrain: { min: 2.8, max: 4.0 }, supply: null },
+      radiationTrigger: '일사 적산 ~100 J/cm² 또는 함수율 하한',
+      description: '재포화·염류 세척 — 큰 급액(슬랩량 4~6%)으로 EC 낮추고 근권 리셋. 첫 배액 前',
+      targets: { drainPct: { min: 0, max: 10 }, ecDrain: { min: 2.8, max: 4.0 }, supply: null },
+      steering: '큰 급액 = EC↓·세척. 시작 시각이 빠를수록 영양생장(vegetative)',
       alertRules: [
-        { metric: 'drainPct', max: 15, severity: 'danger', msg: '배액률 부족 — 급액량 증가 필요' },
-        { metric: 'drainPct', min: 40, severity: 'warn',   msg: '배액률 과잉 — 급액량 감소 필요' }
+        { metric: 'drainPct', max: 0, severity: 'info', msg: '첫 배액 전 — 함수율 회복 확인' }
       ]
     },
     {
-      id: 'P3', label: 'P3', name: '오전 관수',
-      timeRange: '10:00~12:00',
+      id: 'P3', label: 'P3', name: '오전 관수(첫 배액)',
+      timeRange: '일출 후 4~5h',
       colorVar: '--p3-color', softVar: '--p3-soft',
       adapterPeriod: 2,
       privaPhase: 1,
       icon: '☀️',
-      description: '일사 상승 대응 — DLI 누적에 따른 급액량 조정, VPD 상승 모니터링',
-      targets: { drainPct: { min: 20, max: 35 }, ecDrain: { min: 3.0, max: 4.5 }, supply: null },
+      radiationTrigger: '일사 적산 ≈400 J/cm² (≈600 W/m²) — 첫 배액 개시',
+      description: '일사 상승 대응 — 첫 배액 시작, 최고 일사대에서 배액 EC 최저로 유도(스트레스 방지)',
+      targets: { drainPct: { min: 20, max: 30 }, ecDrain: { min: 3.0, max: 4.5 }, supply: null },
+      steering: '최고 광량 = 배액 EC 최저. 흐린 날 EC 무리하게 낮추지 않음',
       alertRules: [
         { metric: 'vpd', max: 1.2, severity: 'warn',   msg: 'VPD 낮음 — 환기 강화 권장' },
         { metric: 'vpd', min: 2.0, severity: 'danger', msg: 'VPD 높음 — 증산 과다, 급액 증가' }
       ]
     },
     {
-      id: 'P4', label: 'P4', name: '정오 고부하',
+      id: 'P4', label: 'P4', name: '정오 고부하(유지)',
       timeRange: '12:00~15:00',
       colorVar: '--p4-color', softVar: '--p4-soft',
       adapterPeriod: 3,
       privaPhase: 2,
       icon: '🌞',
-      description: '최대 증산·고부하 급액 — 배액률 12% 미만 시 즉시 추가 관수',
-      targets: { drainPct: { min: 20, max: 35 }, ecDrain: { min: 3.0, max: 5.0 }, supply: null },
+      radiationTrigger: '일사 피크 — 소량·빈번 급액(슬랩량 ~3%)',
+      description: '최대 증산·고부하 — 함수율 64~65% 안정 유지, 배액률 20~30%(고EB 시 25~50% 세척). 12% 미만 시 즉시 추가 관수',
+      targets: { drainPct: { min: 20, max: 35 }, ecDrain: { min: 3.0, max: 5.0 }, supply: null, leachMax: 50 },
+      steering: '소량·빈번 급액으로 산소 확보(샷 사이 1.5~2% 함수율 변동)',
       alertRules: [
         { metric: 'drainPct', max: 12, severity: 'danger', msg: '⚠ P4 배액률 위험 — 즉시 추가 관수 필요' },
         { metric: 'ecDrain',  min: 5.0, severity: 'warn',  msg: '배액 EC 높음 — EC 낮추기 고려' }
       ]
     },
     {
-      id: 'P5', label: 'P5', name: '오후~마감',
+      id: 'P5', label: 'P5', name: '오후 dry-down',
       timeRange: '15:00~일몰',
       colorVar: '--p5-color', softVar: '--p5-soft',
       adapterPeriod: 4,
       privaPhase: null,
       icon: '🌇',
-      description: '야간 준비 — EC 상향 조정, 마지막 급액 확정, 배액 완료 확인',
-      targets: { drainPct: { min: 15, max: 25 }, ecDrain: { min: 3.5, max: 5.0 }, supply: null },
+      radiationTrigger: '조기 종료(early stop) — 일몰까지 2~5% dry-back 도달',
+      description: '관수 조기 종료 — 일몰 전 2~5% dry-back으로 생식생장 유도, EC 상향 허용, 마지막 급액 확정',
+      targets: { drainPct: { min: 0, max: 25 }, ecDrain: { min: 3.5, max: 5.5 }, supply: null, drybackPct: { min: 2, max: 5 } },
+      steering: '조기 종료가 이를수록 생식생장(generative)·EC 상승',
       alertRules: [
-        { metric: 'slabWt', min: null, max: null, msg: '마감 슬랩 무게 기록 필요' }
+        { metric: 'slabWt', min: null, max: null, msg: '마감 슬랩 무게·dry-back 목표 확인' }
+      ]
+    },
+    {
+      id: 'P6', label: 'P6', name: '야간 dry-back',
+      timeRange: '일몰~05:00',
+      colorVar: '--p6-color', softVar: '--p6-soft',
+      adapterPeriod: null,       // 야간 — 무관수가 기본 (어댑터 매핑 없음)
+      privaPhase: null,
+      icon: '🌙',
+      radiationTrigger: '무관수 기본 (일사 없음)',
+      description: '야간 건조 — 함수율 10~20% dry-back으로 생식/영양 생장 조절·뿌리 산소화, 배액 0%·EC 상향. 야간 관수는 예외(과도 dry-back·고EC 억제 시에만)',
+      targets: { drainPct: { min: 0, max: 0 }, ecDrain: { min: 3.5, max: 6.0 }, supply: 0, drybackPct: { min: 10, max: 20 } },
+      steering: '큰 dry-back=생식, 작은 dry-back=영양. 3시간당 ~3% 감소가 기준',
+      alertRules: [
+        { metric: 'dryback', min: 25, severity: 'warn',   msg: '야간 dry-back 과다 — 영양작물·경량배지 시 야간 소량 관수 검토' },
+        { metric: 'ecDrain', min: 6.0, severity: 'danger', msg: '야간 EC 과다 상승 — 새벽 관수량 상향 또는 야간 1회 관수' }
       ]
     }
   ];
@@ -121,11 +149,13 @@ const KaasaData = (() => {
     const min = d.getMinutes();
     const hm  = h + min / 60;
 
-    if (hm < 7)  return PERIODS[0]; // P1
+    // 야간(일몰~새벽) → P6 dry-back 구간 (일사 없음)
+    if (hm >= 19 || hm < 5) return PERIODS[5]; // P6
+    if (hm < 7)  return PERIODS[0]; // P1 (05:00~07:00 일출 前)
     if (hm < 10) return PERIODS[1]; // P2
     if (hm < 12) return PERIODS[2]; // P3
     if (hm < 15) return PERIODS[3]; // P4
-    return PERIODS[4];              // P5
+    return PERIODS[4];              // P5 (15:00~19:00 일몰)
   }
 
   // ── 배액률 상태 판별 ────────────────────────────────────────────────────────
