@@ -50,6 +50,11 @@ _CROP_EN_TO_KO: dict[str, str] = {
     "melon":          "참외",
     "paprika":        "파프리카",
     "cucumber":       "오이",
+    # 제주 주력 노지작물
+    "citrus":         "감귤",
+    "winter_radish":  "월동무",
+    "carrot":         "당근",
+    "cabbage":        "양배추",
 }
 
 

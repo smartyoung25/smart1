@@ -188,6 +188,79 @@ CROP_CONFIGS: dict[str, CropConfig] = {
         irrigation_target_mm_day=4.0,
         drain_target_pct=20.0,
     ),
+    # ── 제주 주력 노지작물 (화산회토 노지 재배) ──────────────────────────────
+    "감귤": CropConfig(
+        crop_ko="감귤",
+        crop_en="citrus",
+        t_base=13.0,           # 감귤 생육 기준온도 (아열대성)
+        growth_cols=["수고", "수관폭", "엽수", "착과수", "과경"],
+        opt_temp_range=(15.0, 25.0),
+        opt_humid_range=(60.0, 80.0),
+        opt_co2_range=(380.0, 600.0),   # 노지 — 대기 CO₂ 수준
+        env_to_growth_lag=3,            # 다년생 — 환경→생육 지연 큼
+        harvest_lag=3,
+        area_default_m2=3000.0,
+        season_months=list(range(1, 13)),  # 상록 다년생
+        heating_months=[],                  # 노지 무가온
+        # FAO-56 Citrus Kc [Allen 1998, Table 12 — 70% ground cover, no frost]
+        kc_stages={"initial": 0.65, "dev": 0.70, "mid": 0.70, "late": 0.65},
+        irrigation_target_mm_day=3.0,
+        drain_target_pct=0.0,           # 노지 — 배액 개념 없음
+    ),
+    "월동무": CropConfig(
+        crop_ko="월동무",
+        crop_en="winter_radish",
+        t_base=5.0,
+        growth_cols=["초장", "엽수", "엽장", "근장", "근경"],
+        opt_temp_range=(5.0, 20.0),
+        opt_humid_range=(60.0, 85.0),
+        opt_co2_range=(380.0, 500.0),
+        env_to_growth_lag=1,
+        harvest_lag=1,
+        area_default_m2=5000.0,
+        season_months=[9, 10, 11, 12, 1, 2, 3],   # 제주 월동 작형
+        heating_months=[],
+        # FAO-56 Radish Kc [Allen 1998 — short season root crop]
+        kc_stages={"initial": 0.70, "dev": 0.85, "mid": 0.90, "late": 0.85},
+        irrigation_target_mm_day=3.5,
+        drain_target_pct=0.0,
+    ),
+    "당근": CropConfig(
+        crop_ko="당근",
+        crop_en="carrot",
+        t_base=5.0,
+        growth_cols=["초장", "엽수", "근장", "근경"],
+        opt_temp_range=(8.0, 22.0),
+        opt_humid_range=(60.0, 80.0),
+        opt_co2_range=(380.0, 500.0),
+        env_to_growth_lag=1,
+        harvest_lag=2,
+        area_default_m2=4000.0,
+        season_months=[8, 9, 10, 11, 12, 1, 2, 3],  # 제주 가을·월동 당근
+        heating_months=[],
+        # FAO-56 Carrot Kc [Allen 1998, Table 12]
+        kc_stages={"initial": 0.70, "dev": 0.90, "mid": 1.05, "late": 0.95},
+        irrigation_target_mm_day=3.5,
+        drain_target_pct=0.0,
+    ),
+    "양배추": CropConfig(
+        crop_ko="양배추",
+        crop_en="cabbage",
+        t_base=5.0,
+        growth_cols=["초장", "엽수", "엽장", "엽폭", "결구중"],
+        opt_temp_range=(8.0, 20.0),
+        opt_humid_range=(60.0, 85.0),
+        opt_co2_range=(380.0, 500.0),
+        env_to_growth_lag=1,
+        harvest_lag=2,
+        area_default_m2=4000.0,
+        season_months=[9, 10, 11, 12, 1, 2, 3],     # 제주 월동 양배추
+        heating_months=[],
+        # FAO-56 Cabbage Kc [Allen 1998, Table 12]
+        kc_stages={"initial": 0.70, "dev": 0.95, "mid": 1.05, "late": 0.95},
+        irrigation_target_mm_day=3.5,
+        drain_target_pct=0.0,
+    ),
 }
 
 # 영문 → 한글 역조회

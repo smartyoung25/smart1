@@ -90,6 +90,37 @@ ITEM_CODES: dict[str, dict] = {
         "item_category_code": "200",
         "unit":               "kg",
     },
+    # ── 제주 주력 노지작물 (2026-06 KAMIS 라이브 확인) ──────────────────────
+    "감귤": {
+        "item_code":          "415",
+        "item_name":          "감귤",
+        "item_category_code": "400",   # 과일류
+        "unit":               "kg",
+    },
+    "월동무": {
+        "item_code":          "231",
+        "item_name":          "무",
+        "item_category_code": "200",
+        "unit":               "kg",
+    },
+    "당근": {
+        "item_code":          "232",
+        "item_name":          "당근",
+        "item_category_code": "200",
+        "unit":               "kg",
+    },
+    "양배추": {
+        "item_code":          "212",
+        "item_name":          "양배추",
+        "item_category_code": "200",
+        "unit":               "kg",
+    },
+    "브로콜리": {
+        "item_code":          "280",
+        "item_name":          "브로콜리",
+        "item_category_code": "200",
+        "unit":               "kg",
+    },
 }
 
 # ── Mock 데이터 (API 키 없을 때 fallback) ─────────────────────────────────────
