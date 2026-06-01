@@ -2819,6 +2819,94 @@ def get_activity_summary(farm_id: str):
     }
 
 
+# ───────────────────────────────────────────────────────────────────────────
+# 시설 기자재 인벤토리 + 이기종 통합 매핑 (equipment_schema.json 기반)
+# ───────────────────────────────────────────────────────────────────────────
+def _equipment_path(farm_id: str):
+    from pathlib import Path as _P
+    d = _P(__file__).resolve().parents[1] / "data" / "equipment"
+    d.mkdir(parents=True, exist_ok=True)
+    return d / f"{farm_id}.json"
+
+
+@router.get("/equipment/schema", summary="기자재 분류·통합 입력 스키마 반환")
+def get_equipment_schema(farm_id: str):
+    import json as _json
+    from pathlib import Path as _P
+    _require_farm(farm_id)
+    sp = _P(__file__).resolve().parents[1] / "data" / "equipment_schema.json"
+    try: return _json.loads(sp.read_text(encoding="utf-8"))
+    except Exception: return {"categories": [], "integration_fields": {}, "canonical_names": []}
+
+
+@router.get("/equipment", summary="농가 시설 기자재 인벤토리 조회")
+def get_equipment(farm_id: str):
+    import json as _json
+    _require_farm(farm_id)
+    fp = _equipment_path(farm_id)
+    items = []
+    if fp.exists():
+        try: items = _json.loads(fp.read_text(encoding="utf-8"))
+        except Exception: items = []
+    return {"farm_id": farm_id, "count": len(items), "items": items}
+
+
+class EquipmentItem(BaseModel):
+    """장비 1대 = 이기종 통합 매핑표 1행."""
+    device_id:    str = Field(..., max_length=64)
+    category:     str = Field("", max_length=32)
+    device_type:  str = Field("", max_length=64)
+    location:     str = Field("", max_length=64)
+    maker:        str = Field("", max_length=64)
+    model:        str = Field("", max_length=64)
+    protocol:     str = Field("", max_length=32)
+    host:         str = Field("", max_length=128)
+    port:         Optional[int] = None
+    unit_id:      Optional[int] = None
+    datapoints:   list = Field(default_factory=list)  # [{tag,address,data_type,unit,scale,offset,rw,poll_interval,canonical_name}]
+    install_date: str = Field("", max_length=20)
+
+
+@router.post("/equipment", summary="시설 기자재 등록 (이기종 통합 매핑 포함)")
+def post_equipment(farm_id: str, body: EquipmentItem):
+    import json as _json
+    from datetime import datetime as _dt, timezone as _tz
+    _require_farm(farm_id)
+    fp = _equipment_path(farm_id)
+    items = []
+    if fp.exists():
+        try: items = _json.loads(fp.read_text(encoding="utf-8"))
+        except Exception: items = []
+    rec = body.model_dump()
+    rec["ts"] = _dt.now(_tz.utc).isoformat()
+    # device_id 중복 시 교체(upsert)
+    items = [i for i in items if i.get("device_id") != rec["device_id"]]
+    items.append(rec)
+    try: fp.write_text(_json.dumps(items, ensure_ascii=False, indent=2), encoding="utf-8")
+    except Exception: pass
+    # 매핑된 표준변수 집계
+    mapped = sorted({dp.get("canonical_name") for i in items for dp in (i.get("datapoints") or []) if dp.get("canonical_name")})
+    return {"farm_id": farm_id, "saved": True, "device_id": rec["device_id"],
+            "total_devices": len(items), "mapped_variables": mapped,
+            "note": "표준변수로 매핑된 포인트는 제조사·프로토콜 무관하게 화면·모델이 사용합니다."}
+
+
+@router.delete("/equipment/{device_id}", summary="기자재 삭제")
+def delete_equipment(farm_id: str, device_id: str):
+    import json as _json
+    _require_farm(farm_id)
+    fp = _equipment_path(farm_id)
+    items = []
+    if fp.exists():
+        try: items = _json.loads(fp.read_text(encoding="utf-8"))
+        except Exception: items = []
+    n0 = len(items)
+    items = [i for i in items if i.get("device_id") != device_id]
+    try: fp.write_text(_json.dumps(items, ensure_ascii=False, indent=2), encoding="utf-8")
+    except Exception: pass
+    return {"farm_id": farm_id, "deleted": n0 - len(items), "remaining": len(items)}
+
+
 @router.get("/report/monthly",
             summary="월간 경영성과 리포트 (스마트농업법 제5·6·9조 — 6대영역+성과지표)")
 def get_monthly_report(farm_id: str, month: str = ""):
