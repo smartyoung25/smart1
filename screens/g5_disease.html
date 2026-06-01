@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <title>G5 — 병해·품질 | KAASA SmartOS</title>
+  <link rel="stylesheet" href="../components/base.css"/>
+  <style>
+    /* ── G5 전용 스타일 ── */
+
+    /* 병해 위험도 대형 게이지 */
+    .risk-hero {
+      border-radius: var(--radius); padding: 20px; margin-bottom: 14px;
+      border: 2px solid var(--border); position: relative; overflow: hidden;
+      transition: border-color .3s, background .3s;
+    }
+    .risk-hero.none     { background: var(--green-soft); border-color: var(--green); }
+    .risk-hero.low      { background: #f0fdf4; border-color: #86efac; }
+    .risk-hero.moderate { background: var(--orange-soft); border-color: var(--orange); }
+    .risk-hero.high     { background: var(--red-soft); border-color: var(--red); }
+    .risk-hero.critical { background: #fdf2f8; border-color: #c026d3; }
+
+    .risk-status-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .risk-icon   { font-size: 36px; }
+    .risk-title  { font-size: 18px; font-weight: 900; }
+    .risk-sub    { font-size: 12px; margin-top: 3px; opacity: .75; }
+
+    /* 게이지 바 */
+    .risk-gauge-wrap { height: 10px; background: rgba(0,0,0,.08); border-radius: 6px; overflow: hidden; margin-bottom: 6px; }
+    .risk-gauge-fill { height: 100%; border-radius: 6px; transition: width .8s; }
+    .risk-gauge-ticks { display: flex; justify-content: space-between; font-size: 9px; opacity: .6; }
+
+    /* 이상값 알림 리스트 */
+    .anomaly-item {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 11px 13px; border-radius: var(--radius-sm);
+      margin-bottom: 8px; border: 1px solid var(--border);
+    }
+    .anomaly-item.major { background: var(--orange-soft); border-color: var(--orange); }
+    .anomaly-item.minor { background: var(--blue-soft); border-color: #93c5fd; }
+    .anomaly-icon  { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+    .anomaly-var   { font-size: 13px; font-weight: 800; }
+    .anomaly-val   { font-size: 20px; font-weight: 900; margin: 2px 0; font-variant-numeric: tabular-nums; }
+    .anomaly-msg   { font-size: 11px; opacity: .75; line-height: 1.4; }
+    .anomaly-badge { font-size: 9px; font-weight: 800; padding: 2px 7px; border-radius: 8px;
+                     margin-left: 6px; vertical-align: middle; }
+    .badge-major   { background: var(--orange); color: #fff; }
+    .badge-minor   { background: var(--blue); color: #fff; }
+
+    /* 병해 체크리스트 */
+    .disease-check-item {
+      display: flex; align-items: center; gap: 10px; padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .disease-check-item:last-child { border-bottom: none; }
+    .dc-icon    { font-size: 20px; flex-shrink: 0; }
+    .dc-name    { font-size: 13px; font-weight: 800; flex: 1; }
+    .dc-risk    { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 10px; }
+    .dc-risk.none { background: var(--green-soft); color: var(--green-dark); }
+    .dc-risk.low  { background: var(--orange-soft); color: var(--orange); }
+    .dc-risk.high { background: var(--red-soft); color: var(--red); }
+    .dc-cond    { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+    /* 방제 조언 */
+    .control-item {
+      display: flex; gap: 12px; padding: 11px 13px;
+      background: var(--panel); border-radius: var(--radius-sm);
+      margin-bottom: 8px; box-shadow: var(--shadow);
+      border-left: 4px solid var(--green);
+    }
+    .control-item.warn { border-color: var(--orange); }
+    .ci-icon  { font-size: 20px; flex-shrink: 0; }
+    .ci-title { font-size: 13px; font-weight: 800; }
+    .ci-desc  { font-size: 12px; color: var(--muted); margin-top: 2px; line-height: 1.4; }
+
+    /* WS 점 */
+    .ws-dot { width:8px; height:8px; border-radius:50%; background:var(--muted); display:inline-block; }
+    .ws-dot.connected { background:var(--green); box-shadow:0 0 0 3px rgba(31,122,77,.2); }
+  </style>
+</head>
+<body>
+
+<!-- ══ 헤더 ══ -->
+<header class="sf-header">
+  <div style="display:flex;align-items:center;gap:6px;">
+    <span class="ws-dot" id="wsDot"></span>
+    <span style="font-size:12px;color:rgba(255,255,255,.8)" id="wsLabel">연결 중…</span>
+  </div>
+  <span style="font-size:15px;font-weight:800;color:#fff;letter-spacing:-.3px">G5 병해·품질</span>
+  <select id="farmSel" onchange="onFarmChange(this.value)"
+          style="font-size:12px;background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:8px;padding:4px 8px;cursor:pointer;outline:none;">
+    <option value="farm_001">farm_001</option>
+  </select>
+</header>
+
+<!-- ══ 본문 ══ -->
+<main class="sf-main" style="padding:14px;max-width:480px;margin:0 auto;">
+
+  <!-- 병해 위험도 히어로 -->
+  <div class="section-label">종합 병해 위험도 (M5 모델)</div>
+  <div class="risk-hero none" id="riskHero">
+    <div class="risk-status-row">
+      <span class="risk-icon" id="riskIcon">🌿</span>
+      <div>
+        <div class="risk-title" id="riskTitle">병해 없음 — 양호</div>
+        <div class="risk-sub" id="riskSub">현재 환경에서 주요 병해 위험 낮음</div>
+      </div>
+    </div>
+    <div class="risk-gauge-wrap">
+      <div class="risk-gauge-fill" id="riskGauge" style="width:0%;background:var(--green)"></div>
+    </div>
+    <div class="risk-gauge-ticks">
+      <span>없음</span><span>낮음</span><span>보통</span><span>높음</span><span>심각</span>
+    </div>
+    <div style="margin-top:8px;font-size:11px;" id="riskUpdated">데이터 로드 중…</div>
+  </div>
+
+  <!-- 환경 이상값 알림 -->
+  <div class="section-label">환경 이상값 알림</div>
+  <div id="anomalyList">
+    <div style="text-align:center;padding:14px;color:var(--muted);font-size:12px;"><div class="spinner"></div></div>
+  </div>
+
+  <!-- 주요 병해 위험도 체크리스트 -->
+  <div class="section-label" style="margin-top:16px;">주요 병해 위험도 <span id="cropLabel" style="font-weight:400;color:var(--muted);font-size:11px;"></span></div>
+  <div class="card" style="padding:14px;">
+    <div id="diseaseChecklist">
+      <div style="text-align:center;color:var(--muted);font-size:12px;"><div class="spinner"></div></div>
+    </div>
+  </div>
+
+  <!-- 방제 조언 -->
+  <div class="section-label" style="margin-top:16px;">환경 기반 방제 조언</div>
+  <div id="controlAdvices">
+    <div style="text-align:center;padding:14px;color:var(--muted);font-size:12px;"><div class="spinner"></div></div>
+  </div>
+
+  <!-- 품질 관리 팁 -->
+  <div class="section-label" style="margin-top:16px;">품질 관리 체크포인트</div>
+  <div class="card" style="padding:14px;">
+    <div id="qualityTips"></div>
+  </div>
+
+</main>
+
+<!-- ══ 하단 탭 바 ══ -->
+<nav class="sf-bottom-nav">
+  <button class="bnav-tab" onclick="location.href='c3_home.html'">
+    <span class="bnav-icon">🏠</span>홈
+  </button>
+  <button class="bnav-tab" onclick="location.href='g3_period.html'">
+    <span class="bnav-icon">💧</span>관수
+  </button>
+  <button class="bnav-tab" onclick="location.href='g2_env.html'">
+    <span class="bnav-icon">🌡️</span>환경
+  </button>
+  <button class="bnav-tab" onclick="location.href='g4_growth.html'">
+    <span class="bnav-icon">🌱</span>생육
+  </button>
+  <button class="bnav-tab active">
+    <span class="bnav-icon">🔬</span>병해
+  </button>
+</nav>
+
+<script src="../components/data.js"></script>
+<script>
+'use strict';
+
+// ── 작물별 주요 병해 DB ────────────────────────────────────────────────────
+const DISEASE_DB = {
+  '오이': [
+    { name:'노균병',   icon:'🍂', pathogen:'Pseudoperonospora cubensis',
+      conds:'습도>85% + 저온(15~20°C)',    risk_cond: (e) => e.h>85 && e.t<22 },
+    { name:'흰가루병', icon:'⬜', pathogen:'Sphaerotheca fuliginea',
+      conds:'낮은 습도(60~70%) + 고온',    risk_cond: (e) => e.h<70 && e.t>25 },
+    { name:'잿빛곰팡이', icon:'🔘', pathogen:'Botrytis cinerea',
+      conds:'습도>90% + 저온 + 통풍 불량', risk_cond: (e) => e.h>88 && e.t<20 },
+    { name:'덩굴쪼김병', icon:'🌿', pathogen:'Fusarium oxysporum',
+      conds:'토양수분 과다 + 25°C 이상',   risk_cond: (e) => e.t>25 },
+  ],
+  '딸기': [
+    { name:'잿빛곰팡이', icon:'🔘', pathogen:'Botrytis cinerea',
+      conds:'습도>85% + 10~25°C',         risk_cond: (e) => e.h>82 },
+    { name:'흰가루병',   icon:'⬜', pathogen:'Sphaerotheca aphanis',
+      conds:'습도 50~80% + 고온',          risk_cond: (e) => e.t>22 && e.h<80 },
+    { name:'역병',       icon:'🍄', pathogen:'Phytophthora cactorum',
+      conds:'과습 + 15~25°C',             risk_cond: (e) => e.h>90 },
+    { name:'탄저병',     icon:'🟤', pathogen:'Colletotrichum spp.',
+      conds:'고온다습(25~30°C, >80%)',     risk_cond: (e) => e.t>25 && e.h>80 },
+  ],
+  '완숙토마토': [
+    { name:'잿빛곰팡이', icon:'🔘', pathogen:'Botrytis cinerea',
+      conds:'습도>85%', risk_cond: (e) => e.h>85 },
+    { name:'역병',       icon:'🍄', pathogen:'Phytophthora infestans',
+      conds:'저온다습 + VPD낮음', risk_cond: (e) => e.vpd<0.5 },
+    { name:'배꼽썩음',   icon:'🔴', pathogen:'Ca 결핍 (생리장해)',
+      conds:'급격한 건습 반복', risk_cond: (e) => false },
+    { name:'흰가루병',   icon:'⬜', pathogen:'Oidium spp.',
+      conds:'건조 + 25°C 이상', risk_cond: (e) => e.h<65 && e.t>25 },
+  ],
+  '방울토마토': [
+    { name:'잿빛곰팡이', icon:'🔘', pathogen:'Botrytis cinerea', conds:'습도>85%', risk_cond:(e)=>e.h>85 },
+    { name:'흰가루병',   icon:'⬜', pathogen:'Oidium spp.', conds:'건조+고온', risk_cond:(e)=>e.h<65&&e.t>25 },
+    { name:'토마토황화잎말림', icon:'🍃', pathogen:'TYLCV (바이러스)', conds:'담배가루이 발생', risk_cond:(e)=>false },
+    { name:'칼슘결핍',   icon:'🔴', pathogen:'생리장해', conds:'VPD 과다', risk_cond:(e)=>e.vpd>1.5 },
+  ],
+  '파프리카': [
+    { name:'잿빛곰팡이', icon:'🔘', pathogen:'Botrytis cinerea', conds:'습도>85%', risk_cond:(e)=>e.h>85 },
+    { name:'탄저병',     icon:'🟤', pathogen:'Colletotrichum spp.', conds:'고온다습', risk_cond:(e)=>e.t>25&&e.h>80 },
+    { name:'흰가루병',   icon:'⬜', pathogen:'Leveillula taurica', conds:'건조+고온', risk_cond:(e)=>e.h<60&&e.t>25 },
+    { name:'역병',       icon:'🍄', pathogen:'Phytophthora capsici', conds:'과습', risk_cond:(e)=>e.h>90 },
+  ],
+  '참외': [
+    { name:'노균병',   icon:'🍂', pathogen:'Pseudoperonospora cubensis', conds:'다습+저온', risk_cond:(e)=>e.h>85&&e.t<22 },
+    { name:'흰가루병', icon:'⬜', pathogen:'Sphaerotheca fuliginea', conds:'건조+고온', risk_cond:(e)=>e.h<70&&e.t>25 },
+    { name:'덩굴쪼김병', icon:'🌿', pathogen:'Fusarium oxysporum', conds:'연작+고온', risk_cond:(e)=>e.t>25 },
+    { name:'세균성점무늬', icon:'🟡', pathogen:'Pseudomonas syringae', conds:'결로+상처', risk_cond:(e)=>e.h>90 },
+  ],
+};
+
+// ── 초기화 ──────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  const farmId = new URLSearchParams(location.search).get('farm') ||
+                 sessionStorage.getItem('sf_farm_id') || 'farm_001';
+
+  _ensureToken().then(token => {
+    KaasaData.init({ farmId, token, onStatus: _onWsStatus });
+    _loadAll(token, farmId);
+  });
+});
+
+function onFarmChange(id) { sessionStorage.setItem('sf_farm_id', id); location.reload(); }
+
+async function _ensureToken() {
+  const s = sessionStorage.getItem('sf_token');
+  if (s) return s;
+  try {
+    const api = sessionStorage.getItem('sf_api') || location.origin;
+    const r = await fetch(`${api}/api/v1/auth/token`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({username:'admin',password:'1250'}),
+    });
+    if (r.ok) { const d = await r.json(); sessionStorage.setItem('sf_token', d.access_token); return d.access_token; }
+  } catch {}
+  return '';
+}
+
+function _onWsStatus(s) {
+  const dot=document.getElementById('wsDot'), lbl=document.getElementById('wsLabel');
+  if(dot) dot.className='ws-dot '+s;
+  if(lbl) lbl.textContent=s==='connected'?'실시간 연결 중':s==='reconnecting'?'재연결 중…':'연결 안 됨';
+}
+
+// ── 전체 로드 ───────────────────────────────────────────────────────────────
+async function _loadAll(token, farmId) {
+  const api = KaasaData.getApiBase();
+  const H   = { Authorization: `Bearer ${token}` };
+
+  const [disease, anomalies, env] = await Promise.all([
+    fetch(`${api}/api/farms/${farmId}/disease-risk/augmented`, {headers:H}).then(r=>r.ok?r.json():null).catch(()=>null),
+    fetch(`${api}/api/farms/${farmId}/anomalies/latest`, {headers:H}).then(r=>r.ok?r.json():null).catch(()=>null),
+    fetch(`${api}/api/farms/${farmId}/environment`, {headers:H}).then(r=>r.ok?r.json():null).catch(()=>null),
+  ]);
+
+  const envFlat = {};
+  for (const m of (env?.measurements || [])) envFlat[m.canonical_name] = m.value;
+  const envCtx = {
+    t: envFlat.temp_internal ?? 22,
+    h: envFlat.humidity_int  ?? 70,
+    vpd: _calcVpd(envFlat.temp_internal ?? 22, envFlat.humidity_int ?? 70),
+  };
+
+  const crop = disease?.crop || env?.crop_ko || '오이';
+  const lbl = document.getElementById('cropLabel');
+  if (lbl) lbl.textContent = `(${crop})`;
+
+  _renderRiskHero(disease);
+  _renderAnomalies(anomalies);
+  _renderDiseaseChecklist(crop, envCtx);
+  _renderControlAdvices(envCtx, anomalies);
+  _renderQualityTips(crop, envCtx);
+}
+
+// ── 병해 위험도 히어로 ──────────────────────────────────────────────────────
+const RISK_CONFIG = {
+  none:     { icon:'🌿', title:'병해 없음 — 양호',    sub:'현재 환경에서 주요 병해 위험 낮음', pct:2,  color:'var(--green)' },
+  low:      { icon:'🟡', title:'병해 위험 낮음',      sub:'예방적 관리 유지 권고',            pct:25, color:'#86efac' },
+  moderate: { icon:'⚠️', title:'병해 위험 보통',      sub:'조기 방제 검토 필요',               pct:55, color:'var(--orange)' },
+  high:     { icon:'🚨', title:'병해 위험 높음',       sub:'즉시 방제 조치 필요',               pct:80, color:'var(--red)' },
+  critical: { icon:'🔴', title:'병해 심각 — 즉시 방제', sub:'전문가 상담 및 긴급 방제 실행',   pct:98, color:'#c026d3' },
+};
+
+function _renderRiskHero(d) {
+  const level  = d?.m5_result?.risk_level || d?.risk_level || 'none';
+  const score  = d?.m5_result?.score ?? 0;
+  const cfg    = RISK_CONFIG[level] || RISK_CONFIG.none;
+  const hero   = document.getElementById('riskHero');
+  const gauge  = document.getElementById('riskGauge');
+  const upd    = document.getElementById('riskUpdated');
+
+  if (hero) { hero.className = `risk-hero ${level}`; }
+  const setEl = (id,v)=>{ const el=document.getElementById(id); if(el) el.textContent=v; };
+  setEl('riskIcon',  cfg.icon);
+  setEl('riskTitle', cfg.title);
+  setEl('riskSub',   d?.m5_result?.action_ko || cfg.sub);
+  if (gauge) { gauge.style.width = `${cfg.pct}%`; gauge.style.background = cfg.color; }
+  if (upd && d?.updated_at) {
+    const dt = new Date(d.updated_at);
+    upd.textContent = `M5 모델 갱신: ${dt.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})} · 점수 ${(score*100).toFixed(0)}점`;
+  }
+}
+
+// ── 이상값 알림 ─────────────────────────────────────────────────────────────
+function _renderAnomalies(data) {
+  const container = document.getElementById('anomalyList');
+  if (!container) return;
+  const anomalies = data?.anomalies || [];
+
+  if (!anomalies.length) {
+    container.innerHTML = `<div style="text-align:center;padding:14px;background:var(--green-soft);border-radius:var(--radius-sm);">
+      <span style="font-size:20px;">✅</span>
+      <div style="font-size:13px;font-weight:700;color:var(--green-dark);margin-top:4px;">환경 이상값 없음</div>
+    </div>`;
+    return;
+  }
+
+  const ICON_MAP = { vpd:'💧', temp_internal:'🌡️', humidity_int:'💦', co2_ppm:'🌿', solar_rad:'☀️', ec_dsm:'⚡' };
+  container.innerHTML = anomalies.map(a => {
+    const cls  = a.severity === 'major' ? 'major' : 'minor';
+    const icon = ICON_MAP[a.variable] || '📊';
+    const badgeHtml = `<span class="anomaly-badge badge-${cls}">${a.severity === 'major' ? '주의' : '참고'}</span>`;
+    const valStr = a.value != null ? `${Number(a.value).toFixed(a.unit?.includes('ppm') ? 0 : 2)} ${a.unit || ''}` : '—';
+    const rangeStr = `정상 범위: ${a.normal_min}~${a.normal_max} ${a.unit || ''}`;
+    return `<div class="anomaly-item ${cls}">
+      <span class="anomaly-icon">${icon}</span>
+      <div style="flex:1;">
+        <div class="anomaly-var">${a.variable_ko || a.variable} ${badgeHtml}</div>
+        <div class="anomaly-val">${valStr}</div>
+        <div class="anomaly-msg">${rangeStr}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── 병해 체크리스트 ─────────────────────────────────────────────────────────
+function _renderDiseaseChecklist(crop, envCtx) {
+  const diseases = DISEASE_DB[crop] || DISEASE_DB['오이'];
+  const container = document.getElementById('diseaseChecklist');
+  if (!container) return;
+
+  container.innerHTML = diseases.map(d => {
+    const isRisk = d.risk_cond(envCtx);
+    const riskCls  = isRisk ? 'low' : 'none';
+    const riskText = isRisk ? '⚠ 주의' : '정상';
+    return `<div class="disease-check-item">
+      <span class="dc-icon">${d.icon}</span>
+      <div style="flex:1;">
+        <div class="dc-name">${d.name} <span style="font-size:10px;color:var(--muted);font-weight:400;">${d.pathogen}</span></div>
+        <div class="dc-cond">${d.conds}</div>
+      </div>
+      <span class="dc-risk ${riskCls}">${riskText}</span>
+    </div>`;
+  }).join('');
+}
+
+// ── 방제 조언 ───────────────────────────────────────────────────────────────
+function _renderControlAdvices(env, anomalies) {
+  const container = document.getElementById('controlAdvices');
+  if (!container) return;
+  const advices = [];
+  const majorAnoms = (anomalies?.anomalies||[]).filter(a=>a.severity==='major');
+
+  if (env.h > 85) advices.push({type:'warn',icon:'💨',title:'환기 강화 — 습도 과다',
+    desc:'노균병·잿빛곰팡이 발생 위험. 환기창 개방 확대 + 야간 제습 팬 가동'});
+  if (env.vpd < 0.5) advices.push({type:'warn',icon:'🌬️',title:'VPD 낮음 — 증산 부족',
+    desc:'낮은 VPD는 병원균 포자 발아에 유리. 환기 후 VPD 0.8~1.2 목표 유지'});
+  if (env.t > 28) advices.push({type:'warn',icon:'🔥',title:'고온 — 흰가루병 주의',
+    desc:'28°C 이상에서 흰가루병 발생 증가. 차광막 가동 + 환기 강화'});
+  if (env.h < 55) advices.push({type:'warn',icon:'🏜️',title:'건조 — 응애 발생 주의',
+    desc:'건조한 환경에서 점박이응애 발생 증가. 엽면 관수로 습도 보정'});
+
+  // 예방 기본 조언
+  advices.push({type:'ok',icon:'🔍',title:'주 1회 엽 뒷면 점검',
+    desc:'노균병(황백색 반점)·흰가루병(흰 분말)·응애(점박이)를 조기 발견. 발견 시 즉시 격리'});
+  advices.push({type:'ok',icon:'💧',title:'관수 후 엽면 수분 제거',
+    desc:'관수 후 잎에 남은 물은 병원균 온상. 낮 관수 + 충분한 환기로 빠른 건조 유지'});
+
+  container.innerHTML = advices.slice(0,4).map(a => `
+    <div class="control-item ${a.type==='warn'?'warn':''}">
+      <span class="ci-icon">${a.icon}</span>
+      <div>
+        <div class="ci-title">${a.title}</div>
+        <div class="ci-desc">${a.desc}</div>
+      </div>
+    </div>`).join('');
+}
+
+// ── 품질 관리 팁 ────────────────────────────────────────────────────────────
+function _renderQualityTips(crop, env) {
+  const TIPS = {
+    '오이': [
+      { icon:'📏', label:'과장 기준', value:'18~21cm (가락시장 1등급)' },
+      { icon:'⚖️', label:'과중 기준', value:'100~150g/개' },
+      { icon:'🌿', label:'색택 기준', value:'진녹색 · 흰털 선명' },
+      { icon:'❌', label:'등외 요인', value:'굽음·배꼽·황화·상처' },
+    ],
+    '딸기': [
+      { icon:'📏', label:'과중 기준', value:'15g 이상 (상품), 10g 이상 (보통)' },
+      { icon:'🔴', label:'색택 기준', value:'착색률 90% 이상' },
+      { icon:'📦', label:'출하 온도', value:'수확 후 3°C 예냉 필수' },
+      { icon:'❌', label:'등외 요인', value:'병과·기형·연화·상처' },
+    ],
+    '완숙토마토': [
+      { icon:'⚖️', label:'과중 기준', value:'150~250g (L·M 중심)' },
+      { icon:'🔴', label:'착색 기준', value:'3/4 이상 착색' },
+      { icon:'📦', label:'출하 기준', value:'Brix 4.5° 이상' },
+      { icon:'❌', label:'등외 요인', value:'열과·배꼽썩음·기형' },
+    ],
+  };
+  const tips = TIPS[crop] || TIPS['오이'];
+  const container = document.getElementById('qualityTips');
+  if (!container) return;
+  container.innerHTML = tips.map(t => `
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);">
+      <span style="font-size:18px;">${t.icon}</span>
+      <div style="font-size:12px;color:var(--muted);min-width:70px;">${t.label}</div>
+      <div style="font-size:13px;font-weight:700;flex:1;">${t.value}</div>
+    </div>`).join('');
+}
+
+// ── 유틸 ───────────────────────────────────────────────────────────────────
+function _calcVpd(t, h) {
+  if (t == null || h == null) return null;
+  return Math.max(0, 0.6108 * Math.exp(17.27 * t / (t + 237.3)) * (1 - h / 100));
+}
+</script>
+</body>
+</html>
