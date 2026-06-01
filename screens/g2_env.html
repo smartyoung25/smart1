@@ -240,6 +240,7 @@
   <div id="modeDesc" style="font-size:12px;color:var(--muted);margin-bottom:14px;padding:8px 12px;background:var(--panel);border-radius:var(--radius-sm);">
     AI 추천을 표시하지만 실행은 직접 합니다.
   </div>
+  <button onclick="_openEnvSetpoint()" style="width:100%;margin-bottom:14px;padding:14px;background:var(--green);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:800;cursor:pointer;min-height:48px;">🌡️ 환경 설정값 입력 (난방·환기·CO₂)</button>
 
   <!-- AI 제어 추천 -->
   <div class="section-label">AI 제어 추천</div>
@@ -353,12 +354,30 @@
 <script src="../components/data.js"></script>
 <script src="../components/tier_guard.js"></script>
 <script src="../components/device_alert.js"></script>
+<script src="../components/record_sheet.js"></script>
 <script>
 'use strict';
 
 // ── 상태 ──────────────────────────────────────────────────────────────────────
 let _env = {};
 let _mode = 'suggest';
+let _tokenG = '', _farmG = 'farm_001';
+
+function _openEnvSetpoint(){
+  RecordSheet.open({
+    title:'🌡️ 환경 설정값 입력',
+    submitLabel:'설정값 기록',
+    fields:[
+      {id:'heat', label:'난방 설정온도', type:'number', unit:'℃', placeholder:'예: 18'},
+      {id:'vent', label:'환기창 개도', type:'number', unit:'%', placeholder:'예: 30'},
+      {id:'co2',  label:'CO₂ 목표', type:'number', unit:'ppm', placeholder:'예: 800'},
+      {id:'shade',label:'차광 단계', type:'select', options:['없음','1단','2단','3단']},
+    ],
+    onSubmit: async (v)=> RecordSheet.logActivity(_farmG,_tokenG,{
+      kind:'env_setpoint', item:'환경 설정값',
+      detail:`난방 ${v.heat||'-'}℃ · 환기 ${v.vent||'-'}% · CO₂ ${v.co2||'-'}ppm · 차광 ${v.shade||'-'}` })
+  });
+}
 let _dliStart = null; // 오늘 첫 센서 수신 시간 (DLI 누적 기준)
 let _dliAccum = 0;    // mol/m²/day 누적값
 let _lastSolarTs = null;
@@ -428,7 +447,9 @@ window.addEventListener('DOMContentLoaded', () => {
                  sessionStorage.getItem('sf_farm_id') || 'farm_001';
 
   if (window.DeviceAlert) DeviceAlert.mount('deviceAlert');
+  _farmG = farmId;
   _ensureToken().then(token => {
+    _tokenG = token;
     KaasaData.init({
       farmId, token,
       onSensor: _onSensor,

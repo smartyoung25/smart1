@@ -43,7 +43,10 @@
       <tr><td>예상 순이익</td><td id="pProfit">—</td></tr>
     </table>
   </div>
-  <div style="margin-top:14px;"><button class="pc-btn" style="padding:14px;font-size:15px;" onclick="location.href='c12_joint.html'">공동출하 Pool 신청 →</button></div>
+  <div style="margin-top:14px;display:flex;gap:8px;">
+    <button class="pc-btn" style="padding:14px;font-size:15px;flex:1;background:var(--blue,#2563eb);" onclick="_openHarvestRecord()">🚜 수확 실적 입력</button>
+    <button class="pc-btn" style="padding:14px;font-size:15px;flex:1;" onclick="location.href='c12_joint.html'">공동출하 Pool →</button>
+  </div>
 </main>
 <nav class="sf-bottom-nav">
   <button class="bnav-tab" onclick="location.href='c3_home.html'"><span class="bnav-icon">🏠</span>홈</button>
@@ -53,13 +56,32 @@
   <button class="bnav-tab" onclick="location.href='../index.html'"><span class="bnav-icon">≡</span>메뉴</button>
 </nav>
 <script src="../components/data.js"></script>
+<script src="../components/record_sheet.js"></script>
 <script>
 'use strict';
+let _tokenG='', _farmG='farm_001';
 const PARCELS=[{n:'1번 필지',a:0.5},{n:'2번 필지',a:0.8},{n:'3번 필지',a:0.4},{n:'4번 필지',a:0.6}];
 window.addEventListener('DOMContentLoaded',()=>{
   const farmId=new URLSearchParams(location.search).get('farm')||sessionStorage.getItem('sf_farm_id')||'farm_001';
-  _ensureToken().then(t=>{KaasaData.init({farmId,token:t,onStatus:_ws});_load(t,farmId);});
+  _farmG=farmId;
+  _ensureToken().then(t=>{_tokenG=t;KaasaData.init({farmId,token:t,onStatus:_ws});_load(t,farmId);});
 });
+
+function _openHarvestRecord(){
+  RecordSheet.open({
+    title:'🚜 필지별 수확 실적 입력',
+    submitLabel:'수확 실적 저장',
+    fields:[
+      {id:'parcel', label:'필지', type:'select', options:PARCELS.map(p=>p.n), required:true},
+      {id:'qty',    label:'수확량', type:'number', unit:'kg', placeholder:'예: 320', required:true},
+      {id:'grade',  label:'등급', type:'select', options:['특','상','보통','등외']},
+      {id:'date',   label:'수확일', type:'date'},
+    ],
+    onSubmit: async (v)=> RecordSheet.logActivity(_farmG,_tokenG,{
+      kind:'harvest', item:`${v.parcel} 수확`, value:parseFloat(v.qty)||null,
+      detail:`${v.qty||'-'}kg · 등급 ${v.grade||'-'} · ${v.date||'오늘'}` })
+  });
+}
 async function _ensureToken(){const s=sessionStorage.getItem('sf_token');if(s)return s;try{const a=sessionStorage.getItem('sf_api')||location.origin;const r=await fetch(`${a}/api/v1/auth/token`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:'admin',password:'1250'})});if(r.ok){const d=await r.json();sessionStorage.setItem('sf_token',d.access_token);return d.access_token;}}catch{}return '';}
 function _ws(s){const d=document.getElementById('wsDot'),l=document.getElementById('wsLabel');if(d)d.className='ws-dot '+s;if(l)l.textContent=s==='connected'?'실시간 연결 중':'연결 안 됨';}
 async function _load(token,farmId){

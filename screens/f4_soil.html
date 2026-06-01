@@ -74,6 +74,8 @@
     <div style="font-size:12px;color:var(--muted);line-height:1.5;" id="guideDesc">—</div>
   </div>
 
+  <button onclick="_openIrrigRecord()" style="width:100%;margin-top:14px;padding:15px;background:var(--green);color:#fff;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:800;cursor:pointer;min-height:48px;">💧 관개 실행 기록</button>
+
 </main>
 
 <nav class="sf-bottom-nav">
@@ -85,8 +87,10 @@
 </nav>
 
 <script src="../components/data.js"></script>
+<script src="../components/record_sheet.js"></script>
 <script>
 'use strict';
+let _tokenG='', _farmG='farm_001';
 // 필지 토양수분 — /field/soil 에서 로드 (흙토람 연동 시 실데이터, 미연동 시 Mock)
 let PARCELS=[
   {name:'1번 필지', moisture:62, area:0.5},
@@ -97,9 +101,26 @@ let PARCELS=[
 
 window.addEventListener('DOMContentLoaded', ()=>{
   const farmId=new URLSearchParams(location.search).get('farm')||sessionStorage.getItem('sf_farm_id')||'farm_001';
+  _farmG=farmId;
   _renderMoisture(); _renderPriority();
-  _ensureToken().then(token=>{ KaasaData.init({farmId,token,onStatus:_onWsStatus}); _loadSoil(token,farmId); _loadEtc(token,farmId); });
+  _ensureToken().then(token=>{ _tokenG=token; KaasaData.init({farmId,token,onStatus:_onWsStatus}); _loadSoil(token,farmId); _loadEtc(token,farmId); });
 });
+
+function _openIrrigRecord(){
+  RecordSheet.open({
+    title:'💧 관개 실행 기록',
+    submitLabel:'관개 기록 저장',
+    fields:[
+      {id:'parcel', label:'대상 필지', type:'select', options:PARCELS.map(p=>p.name), required:true},
+      {id:'amount', label:'관개량', type:'number', unit:'mm', placeholder:'예: 8', required:true},
+      {id:'method', label:'관개 방식', type:'select', options:['점적관개','스프링클러','지표관개']},
+      {id:'date',   label:'실행일', type:'date'},
+    ],
+    onSubmit: async (v)=> RecordSheet.logActivity(_farmG,_tokenG,{
+      kind:'irrigation', item:`${v.parcel} 관개`, value:parseFloat(v.amount)||null,
+      detail:`${v.method||'-'} · ${v.amount||'-'}mm · ${v.date||'오늘'}` })
+  });
+}
 
 async function _loadSoil(token, farmId){
   try{
