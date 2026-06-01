@@ -171,7 +171,9 @@
 <!-- ══ 본문 ══ -->
 <main class="sf-main" style="padding:14px;max-width:480px;margin:0 auto;">
 
-  <!-- 경보 배너 -->
+  <!-- 기기/연결 상태 알림 (데이터 알림과 분리) -->
+  <div id="deviceAlert"></div>
+  <!-- 데이터 경보 배너 -->
   <div class="alert-strip" id="alertStrip"></div>
 
   <!-- 실내 환경 KPI -->
@@ -350,6 +352,7 @@
 
 <script src="../components/data.js"></script>
 <script src="../components/tier_guard.js"></script>
+<script src="../components/device_alert.js"></script>
 <script>
 'use strict';
 
@@ -424,6 +427,7 @@ window.addEventListener('DOMContentLoaded', () => {
   const farmId = new URLSearchParams(location.search).get('farm') ||
                  sessionStorage.getItem('sf_farm_id') || 'farm_001';
 
+  if (window.DeviceAlert) DeviceAlert.mount('deviceAlert');
   _ensureToken().then(token => {
     KaasaData.init({
       farmId, token,
@@ -484,6 +488,7 @@ function _onWsStatus(state) {
   const lbl = document.getElementById('wsLabel');
   if (dot) dot.className = 'ws-dot ' + state;
   if (lbl) lbl.textContent = state === 'connected' ? '실시간 연결 중' : state === 'reconnecting' ? '재연결 중…' : '연결 안 됨';
+  if (window.DeviceAlert) DeviceAlert.onStatus(state);
 }
 
 // ── 센서 수신 ───────────────────────────────────────────────────────────────
