@@ -78,11 +78,16 @@
     <div class="opt-grid" id="cropGrid"></div>
   </div>
 
-  <!-- Step 3: 시설 유형 -->
+  <!-- Step 3: 시설 유형(온실) / 노지 재배환경(노지) — 작물 기반 분기 -->
   <div class="wiz-step" data-step="3">
-    <div class="wiz-title">시설 유형</div>
-    <div class="wiz-desc">재배 시설 형태를 선택하세요.</div>
+    <div class="wiz-title" id="step3Title">시설 유형</div>
+    <div class="wiz-desc" id="step3Desc">재배 시설 형태를 선택하세요.</div>
     <div class="opt-grid" id="facilityGrid"></div>
+    <!-- 노지 전용: 관개 방식 -->
+    <div id="irrigBlock" style="display:none;">
+      <label class="wiz-label" style="margin-top:14px;">관개 방식</label>
+      <div class="opt-grid" id="irrigGrid"></div>
+    </div>
   </div>
 
   <!-- Step 4: 재배 면적·방식 -->
@@ -138,11 +143,15 @@ const TOTAL=7;
 let _step=1;
 const STEP_NAMES=['기본 정보','재배 작물','시설 유형','재배 규모','작기','개선 목표','확인'];
 const form={ farm_id:'farm_001', region:'', crop_ko:'', facility_type:'', area_m2:null,
-  cultivation_method:'토경', season_start:'', season_end:'', growing_year:1,
+  cultivation_method:'토경', irrigation_method:'', season_start:'', season_end:'', growing_year:1,
   pain_points:[], kpi_yield_kg:null };
 
 const CROPS=[['딸기','🍓'],['오이','🥒'],['완숙토마토','🍅'],['방울토마토','🍅'],['파프리카','🫑'],['참외','🍈'],['감귤','🍊'],['월동무','🥬'],['당근','🥕'],['양배추','🥬'],['브로콜리','🥦'],['마늘','🧄'],['양파','🧅']];
+const FIELD_CROPS=['감귤','월동무','당근','양배추','브로콜리','마늘','양파'];
 const FACILITIES=[['단동온실','🏠'],['연동온실','🏢'],['유리온실','🪟'],['비닐하우스','⛺']];
+// 노지 전용 재배환경·관개방식
+const FIELD_ENVS=[['노지 노출','🌾'],['멀칭 재배','🟫'],['비가림 재배','🌦️'],['시설 병행','⛺']];
+const IRRIGS=[['점적관개','💧'],['스프링클러','🚿'],['지표관개','🌊'],['무관개(천수답)','🌧️']];
 const METHODS=[['토경','🌱'],['수경','💧'],['배지경','🪴'],['양액','🧪']];
 const PAINS=['수확량 증대','품질 향상','에너지 절감','병해 예방','관수 효율','인건비 절감','출하가 향상'];
 
@@ -161,12 +170,28 @@ async function _ensureToken(){
 
 function _renderOpts(){
   document.getElementById('cropGrid').innerHTML=CROPS.map(([c,i])=>`<div class="opt-card" onclick="_selCrop('${c}',this)"><span class="opt-ico">${i}</span>${c}</div>`).join('');
-  document.getElementById('facilityGrid').innerHTML=FACILITIES.map(([c,i])=>`<div class="opt-card" onclick="_selFacility('${c}',this)"><span class="opt-ico">${i}</span>${c}</div>`).join('');
   document.getElementById('methodGrid').innerHTML=METHODS.map(([c,i])=>`<div class="opt-card" onclick="_selMethod('${c}',this)"><span class="opt-ico">${i}</span>${c}</div>`).join('');
+  document.getElementById('irrigGrid').innerHTML=IRRIGS.map(([c,i])=>`<div class="opt-card" onclick="_selIrrig('${c}',this)"><span class="opt-ico">${i}</span>${c}</div>`).join('');
+  _renderStep3();
   document.getElementById('painChips').innerHTML=PAINS.map(p=>`<div class="chip" onclick="_togglePain('${p}',this)">${p}</div>`).join('');
 }
-function _selCrop(c,el){ form.crop_ko=c; document.querySelectorAll('#cropGrid .opt-card').forEach(x=>x.classList.remove('sel')); el.classList.add('sel'); }
+function _isField(){ return FIELD_CROPS.includes(form.crop_ko); }
+function _selCrop(c,el){ form.crop_ko=c; document.querySelectorAll('#cropGrid .opt-card').forEach(x=>x.classList.remove('sel')); el.classList.add('sel');
+  // 작물 변경 시 시설/노지 분기 초기화
+  form.facility_type=''; form.irrigation_method=''; _renderStep3(); }
 function _selFacility(c,el){ form.facility_type=c; document.querySelectorAll('#facilityGrid .opt-card').forEach(x=>x.classList.remove('sel')); el.classList.add('sel'); }
+function _selIrrig(c,el){ form.irrigation_method=c; document.querySelectorAll('#irrigGrid .opt-card').forEach(x=>x.classList.remove('sel')); el.classList.add('sel'); }
+
+// 작물 유형에 따라 Step3 콘텐츠 전환 (온실 시설 ↔ 노지 재배환경+관개)
+function _renderStep3(){
+  const field=_isField();
+  const opts=field?FIELD_ENVS:FACILITIES;
+  document.getElementById('step3Title').textContent = field?'노지 재배환경':'시설 유형';
+  document.getElementById('step3Desc').textContent  = field?'재배 환경과 관개 방식을 선택하세요.':'재배 시설 형태를 선택하세요.';
+  document.getElementById('facilityGrid').innerHTML = opts.map(([c,i])=>`<div class="opt-card${form.facility_type===c?' sel':''}" onclick="_selFacility('${c}',this)"><span class="opt-ico">${i}</span>${c}</div>`).join('');
+  document.getElementById('irrigBlock').style.display = field?'block':'none';
+  STEP_NAMES[2]= field?'노지 환경':'시설 유형';
+}
 function _selMethod(c,el){ form.cultivation_method=c; document.querySelectorAll('#methodGrid .opt-card').forEach(x=>x.classList.remove('sel')); el.classList.add('sel'); }
 function _togglePain(p,el){ const i=form.pain_points.indexOf(p); if(i>=0){form.pain_points.splice(i,1);el.classList.remove('sel');}else{form.pain_points.push(p);el.classList.add('sel');} }
 
@@ -190,7 +215,8 @@ function _collectStep(){
 
 function _validate(){
   if(_step===2 && !form.crop_ko){ alert('작물을 선택하세요'); return false; }
-  if(_step===3 && !form.facility_type){ alert('시설 유형을 선택하세요'); return false; }
+  if(_step===3 && !form.facility_type){ alert(_isField()?'노지 재배환경을 선택하세요':'시설 유형을 선택하세요'); return false; }
+  if(_step===3 && _isField() && !form.irrigation_method){ alert('관개 방식을 선택하세요'); return false; }
   return true;
 }
 
@@ -205,7 +231,9 @@ function _prev(){ if(_step>1) _showStep(_step-1); }
 function _renderSummary(){
   const rows=[
     ['농장 ID',form.farm_id],['지역',form.region||'—'],['작물',form.crop_ko||'—'],
-    ['시설',form.facility_type||'—'],['면적',form.area_m2?form.area_m2+'m²':'—'],
+    [_isField()?'노지환경':'시설',form.facility_type||'—'],
+    ...(_isField()?[['관개방식',form.irrigation_method||'—']]:[]),
+    ['면적',form.area_m2?form.area_m2+'m²':'—'],
     ['재배방식',form.cultivation_method],['작기',`${form.season_start||'—'} ~ ${form.season_end||'—'}`],
     ['재배연차',form.growing_year+'년차'],['개선목표',form.pain_points.join(', ')||'—'],
     ['목표수확량',form.kpi_yield_kg?form.kpi_yield_kg+'kg':'—'],
@@ -213,12 +241,11 @@ function _renderSummary(){
   document.getElementById('summaryCard').innerHTML=rows.map(([k,v])=>`<div class="summary-row"><span class="k">${k}</span><span class="v">${v}</span></div>`).join('');
 }
 
-// 노지 작물 목록 → 재배유형 자동 판정
-const FIELD_CROPS=['감귤','월동무','당근','양배추','브로콜리','마늘','양파'];
+// 농장 프로필 저장 (FIELD_CROPS는 상단에서 선언) → 재배유형 자동 판정
 function _saveProfile(){
   const farm_type = FIELD_CROPS.includes(form.crop_ko) ? 'field' : 'greenhouse';
   const profile = { crop_ko:form.crop_ko, facility_type:form.facility_type,
-    cultivation_method:form.cultivation_method, farm_type,
+    cultivation_method:form.cultivation_method, irrigation_method:form.irrigation_method, farm_type,
     region:form.region, area_m2:form.area_m2, farm_id:form.farm_id };
   localStorage.setItem('sf_profile', JSON.stringify(profile));
 }
