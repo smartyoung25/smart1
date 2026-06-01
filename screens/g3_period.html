@@ -272,6 +272,7 @@
 
 <script src="../components/data.js"></script>
 <script src="../components/tier_guard.js"></script>
+<script src="../components/band_chart.js"></script>
 <script>
 /* ── 전역 상태 ── */
 let _privaData     = null;
@@ -573,6 +574,8 @@ function renderAnalysis(data) {
 
   card.innerHTML = `
     <div class="card-title">📈 관수 품질 분석 <span class="badge gray" style="margin-left:auto;">최근 7일</span></div>
+    <div style="font-size:12px;font-weight:700;color:var(--muted);margin:4px 0 2px;">배액률 추이 (목표대 20~30%)</div>
+    <div id="drainChart" style="margin-bottom:10px;"></div>
     <div class="table-wrap">
       <table class="table">
         <tr><th>항목</th><th class="num">평균</th><th class="num">최소</th><th class="num">최대</th></tr>
@@ -585,6 +588,19 @@ function renderAnalysis(data) {
     </div>
     ${data.warnings?.length ? `<div class="explain" style="margin-top:8px;"><b>주의:</b> ${esc(data.warnings.join(', '))}</div>` : ''}
   `;
+  // ★ 배액률 시계열 + 목표대 밴드 차트
+  if (window.BandChart) {
+    const recs = data.records || data.days || [];
+    const series = (Array.isArray(recs) ? recs : []).map(r => ({
+      t: (r.date || '').slice(5), v: r.dr_pct_mean ?? r.dr_pct ?? null
+    })).filter(p => p.v != null);
+    // 데이터 1건뿐이면 평균값으로 보조점 추가해 추세 표시
+    if (series.length === 1 && data.dr_pct_mean != null)
+      series.unshift({ t: '평균', v: Number(data.dr_pct_mean) });
+    BandChart.render(document.getElementById('drainChart'), {
+      series, band: { lo: 20, hi: 30, label: '목표 20~30%' }, unit: '%', color: 'var(--blue,#2563eb)'
+    });
+  }
 }
 
 /* ── Period 별 센서값 업데이트 ── */
