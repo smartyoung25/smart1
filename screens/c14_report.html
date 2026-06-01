@@ -157,7 +157,17 @@ async function _load(token,farmId){
   document.getElementById('learnActs').textContent=L.month_activities??0;
   document.getElementById('learnPts').textContent=L.contribution_points??0;
   document.getElementById('learnBar').style.width=`${L.progress_pct??0}%`;
+  if(L.near_retrain){ document.getElementById('learnBar').style.background='var(--orange)'; }
   document.getElementById('learnMsg').textContent=L.message||'';
+  // 재학습 임박 배지
+  const head=document.querySelector('#learnActs').closest('div');
+  let badge=document.getElementById('retrainBadge');
+  if(L.near_retrain){
+    if(!badge){ badge=document.createElement('span'); badge.id='retrainBadge';
+      badge.style.cssText='font-size:10px;font-weight:800;color:#fff;background:var(--orange);padding:2px 8px;border-radius:8px;margin-left:6px;';
+      head.appendChild(badge); }
+    badge.textContent=`⚡ 재학습 임박 (잔여 ${L.remaining_rows}행)`;
+  } else if(badge){ badge.remove(); }
 
   // 이행 활동 상세 (운영 기록 by_kind + 최근)
   _loadActivityDetail(token,farmId);

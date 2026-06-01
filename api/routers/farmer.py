@@ -3002,13 +3002,22 @@ def get_monthly_report(farm_id: str, month: str = ""):
         _pending = _rt.get("new_env_rows", 0) + _rt.get("new_prod_rows", 0)
     except Exception:
         _pending = 0
+    # 농가 본인이 입력한 모델 학습용 실측(생육·수확) 누적
+    _my_model_recs = sum(1 for l in _act_logs if l.get("kind") in ("growth", "harvest"))
+    _remaining = max(0, 500 - _pending)
+    _near = _pending >= 400  # 임계(500) 80% 도달 시 임박
     _learning = {
         "month_activities": len(_month_acts),
-        "contribution_points": sum({"harvest":30,"irrigation":20,"education":25,"disease_check":15,"todo":10}.get(l.get("kind"),5) for l in _month_acts),
+        "contribution_points": sum({"harvest":30,"irrigation":20,"education":25,"disease_check":15,"todo":10,"growth":20}.get(l.get("kind"),5) for l in _month_acts),
         "pending_train_rows": _pending,
         "retrain_threshold": 500,
+        "remaining_rows": _remaining,
+        "my_model_records": _my_model_recs,
+        "near_retrain": _near,
         "progress_pct": min(round(_pending/500*100), 100),
-        "message": f"이행 데이터 {_pending}행 축적 → 임계(500) 도달 시 모델 자동 재학습. 내 입력이 추천 정확도를 높입니다.",
+        "message": (f"재학습 임박! 임계(500)까지 {_remaining}행 남음 — 곧 모델이 자동 재학습됩니다."
+                    if _near else
+                    f"이행 데이터 {_pending}행 축적 (재학습까지 {_remaining}행). 내 생육·수확 입력({_my_model_recs}건)이 추천 정확도를 높입니다."),
     }
 
     return {
