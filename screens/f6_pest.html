@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <title>F6 — 병해충·방제 | KAASA SmartOS</title>
+  <link rel="stylesheet" href="../components/base.css"/>
+  <style>
+    .f6-kpi-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;}
+    .f6-kpi{background:var(--panel);border-radius:var(--radius-sm);padding:14px 8px;box-shadow:var(--shadow);text-align:center;}
+    .f6-kpi-ico{font-size:20px;}.f6-kpi-val{font-size:14px;font-weight:900;margin:3px 0;}.f6-kpi-label{font-size:10px;color:var(--muted);}
+    .spray-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);}
+    .spray-row:last-child{border-bottom:none;}
+    .spray-time{font-size:12px;font-weight:700;min-width:78px;}.spray-bar{flex:1;height:10px;border-radius:5px;}.spray-label{font-size:11px;font-weight:700;min-width:48px;text-align:right;}
+    .pest-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);}
+    .pest-item:last-child{border-bottom:none;}
+    .pest-name{flex:1;font-size:13px;font-weight:700;}.pest-cond{font-size:11px;color:var(--muted);}
+    .pest-badge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:10px;}
+    .pb-ok{background:var(--green-soft);color:var(--green-dark);}.pb-warn{background:var(--orange-soft);color:var(--orange);}
+    .mock-note{font-size:10px;color:var(--muted);background:var(--panel-soft);border-radius:8px;padding:8px 10px;margin-bottom:12px;}
+    .ws-dot{width:8px;height:8px;border-radius:50%;background:var(--muted);display:inline-block;}
+    .ws-dot.connected{background:var(--green);box-shadow:0 0 0 3px rgba(31,122,77,.2);}
+  </style>
+</head>
+<body>
+<header class="sf-header">
+  <div style="display:flex;align-items:center;gap:6px;"><span class="ws-dot" id="wsDot"></span><span style="font-size:12px;color:rgba(255,255,255,.8)" id="wsLabel">연결 중…</span></div>
+  <span style="font-size:15px;font-weight:800;color:#fff;">F6 병해충·방제</span><span style="width:40px;"></span>
+</header>
+<main class="sf-main" style="padding:14px;max-width:480px;margin:0 auto;">
+  <div class="f6-kpi-row">
+    <div class="f6-kpi"><div class="f6-kpi-ico">🍂</div><div class="f6-kpi-val" id="kDisease" style="color:var(--green)">—</div><div class="f6-kpi-label">병해 위험</div></div>
+    <div class="f6-kpi"><div class="f6-kpi-ico">🐛</div><div class="f6-kpi-val" id="kPest" style="color:var(--green)">낮음</div><div class="f6-kpi-label">해충 위험</div></div>
+    <div class="f6-kpi"><div class="f6-kpi-ico">🚿</div><div class="f6-kpi-val" id="kSpray" style="color:var(--green)">가능</div><div class="f6-kpi-label">방제 가능</div></div>
+  </div>
+  <div class="mock-note">병해 위험도는 M5 모델 실연동, 해충·방제 윈도우는 기상 기반 추정입니다.</div>
+  <div class="section-label">오늘의 방제 알림</div>
+  <div class="card" style="padding:14px;border-left:4px solid var(--green);margin-bottom:14px;">
+    <div style="font-size:13px;font-weight:800;" id="alertTitle">분석 중…</div>
+    <div style="font-size:12px;color:var(--muted);margin-top:4px;" id="alertDesc">—</div>
+  </div>
+  <div class="section-label">방제 가능 시간대</div>
+  <div class="card" style="padding:14px;margin-bottom:14px;" id="sprayWindow"></div>
+  <div class="section-label">주요 병해충 위험도</div>
+  <div class="card" style="padding:14px;" id="pestList"></div>
+</main>
+<nav class="sf-bottom-nav">
+  <button class="bnav-tab" onclick="location.href='c3_home.html'"><span class="bnav-icon">🏠</span>홈</button>
+  <button class="bnav-tab" onclick="location.href='g1_home.html'"><span class="bnav-icon">🌱</span>온실</button>
+  <button class="bnav-tab" onclick="location.href='f1_field.html'"><span class="bnav-icon">🌾</span>노지</button>
+  <button class="bnav-tab" onclick="location.href='c12_joint.html'"><span class="bnav-icon">🚚</span>출하</button>
+  <button class="bnav-tab" onclick="location.href='../index.html'"><span class="bnav-icon">≡</span>메뉴</button>
+</nav>
+<script src="../components/data.js"></script>
+<script>
+'use strict';
+window.addEventListener('DOMContentLoaded',()=>{
+  const farmId=new URLSearchParams(location.search).get('farm')||sessionStorage.getItem('sf_farm_id')||'farm_001';
+  _renderSpray(); _renderPests();
+  _ensureToken().then(t=>{KaasaData.init({farmId,token:t,onStatus:_ws});_loadDisease(t,farmId);});
+});
+async function _ensureToken(){const s=sessionStorage.getItem('sf_token');if(s)return s;try{const a=sessionStorage.getItem('sf_api')||location.origin;const r=await fetch(`${a}/api/v1/auth/token`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:'admin',password:'1250'})});if(r.ok){const d=await r.json();sessionStorage.setItem('sf_token',d.access_token);return d.access_token;}}catch{}return '';}
+function _ws(s){const d=document.getElementById('wsDot'),l=document.getElementById('wsLabel');if(d)d.className='ws-dot '+s;if(l)l.textContent=s==='connected'?'실시간 연결 중':'연결 안 됨';}
+async function _loadDisease(token,farmId){
+  const api=KaasaData.getApiBase();
+  const d=await fetch(`${api}/api/farms/${farmId}/disease-risk`,{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.ok?r.json():null).catch(()=>null);
+  const rl=d?.risk_level||'none';
+  const el=document.getElementById('kDisease');
+  el.textContent=rl==='none'?'없음':rl;
+  el.style.color=rl==='none'?'var(--green)':'var(--orange)';
+  const at=document.getElementById('alertTitle'),ad=document.getElementById('alertDesc');
+  if(rl==='none'){ at.textContent='✅ 방제 불필요 — 병해 위험 낮음'; ad.textContent='현재 환경에서 주요 병해 위험이 낮습니다. 예방적 순회 점검을 유지하세요.'; }
+  else { at.textContent=`⚠️ 병해 위험 ${rl} — 방제 검토`; ad.textContent=d?.disease_ko||'병해 발생 위험 상승. 조기 방제를 검토하세요.'; }
+}
+function _renderSpray(){
+  const W=[['05~08시','방제 적합','var(--green)','최적'],['08~11시','방제 적합','var(--green)','가능'],
+    ['11~15시','고온·증발','var(--orange)','주의'],['15~18시','방제 적합','var(--green)','가능'],['18시~','바람·일몰','var(--muted)','종료']];
+  document.getElementById('sprayWindow').innerHTML=W.map(([t,,c,l])=>`<div class="spray-row"><span class="spray-time">${t}</span><div class="spray-bar" style="background:${c};"></div><span class="spray-label" style="color:${c};">${l}</span></div>`).join('');
+}
+function _renderPests(){
+  const P=[['진딧물','고온건조 시 급증','ok'],['응애','건조·고온 환경','ok'],['노린재','개화·결실기 유입','warn'],['담배가루이','시설 인접 시 유입','ok']];
+  document.getElementById('pestList').innerHTML=P.map(([n,c,s])=>`<div class="pest-item"><div style="flex:1;"><div class="pest-name">${n}</div><div class="pest-cond">${c}</div></div><span class="pest-badge ${s==='ok'?'pb-ok':'pb-warn'}">${s==='ok'?'정상':'주의'}</span></div>`).join('');
+}
+</script>
+</body>
+</html>
