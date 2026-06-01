@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <title>C1 — 농장 기본 세팅 | KAASA SmartOS</title>
+  <link rel="stylesheet" href="../components/base.css"/>
+  <style>
+    body { padding-bottom: 84px; }
+    /* 진행바 */
+    .wiz-progress { position:fixed; top:var(--header-h); left:0; right:0; z-index:90; background:var(--panel); padding:10px 16px; border-bottom:1px solid var(--border); }
+    .wiz-bar-wrap { height:6px; background:var(--gray-soft); border-radius:3px; overflow:hidden; }
+    .wiz-bar-fill { height:100%; background:var(--green); border-radius:3px; transition:width .3s; }
+    .wiz-step-label { font-size:11px; color:var(--muted); margin-top:6px; display:flex; justify-content:space-between; }
+
+    .wiz-body { padding:14px; max-width:480px; margin:0 auto; padding-top:64px; }
+    .wiz-step { display:none; }
+    .wiz-step.active { display:block; animation:fade .3s; }
+    @keyframes fade { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
+    .wiz-title { font-size:20px; font-weight:900; margin-bottom:4px; }
+    .wiz-desc { font-size:13px; color:var(--muted); margin-bottom:18px; }
+
+    .wiz-label { font-size:13px; font-weight:700; margin:14px 0 6px; display:block; }
+    .wiz-input { width:100%; min-height:48px; padding:12px 14px; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:15px; outline:none; background:var(--panel); }
+    .wiz-input:focus { border-color:var(--green); }
+
+    /* 선택 카드 */
+    .opt-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .opt-card { padding:16px 12px; border:2px solid var(--border); border-radius:var(--radius-sm); text-align:center; cursor:pointer; font-size:14px; font-weight:700; background:var(--panel); min-height:60px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; }
+    .opt-card.sel { border-color:var(--green); background:var(--green-soft); color:var(--green-dark); }
+    .opt-ico { font-size:22px; }
+
+    /* 멀티 칩 */
+    .chip-wrap { display:flex; flex-wrap:wrap; gap:8px; }
+    .chip { padding:10px 14px; border:1.5px solid var(--border); border-radius:20px; font-size:13px; font-weight:600; cursor:pointer; background:var(--panel); min-height:40px; }
+    .chip.sel { border-color:var(--green); background:var(--green-soft); color:var(--green-dark); }
+
+    /* Sticky footer */
+    .wiz-footer { position:fixed; bottom:0; left:0; right:0; z-index:90; background:var(--panel); border-top:1px solid var(--border); padding:12px 16px; display:flex; gap:10px; max-width:480px; margin:0 auto; }
+    .wiz-btn { flex:1; min-height:48px; border-radius:var(--radius-sm); font-size:15px; font-weight:800; cursor:pointer; border:none; }
+    .wiz-btn.prev { background:var(--panel); color:var(--muted); border:1.5px solid var(--border); }
+    .wiz-btn.next { background:var(--green); color:#fff; }
+    .wiz-btn:disabled { opacity:.4; cursor:not-allowed; }
+
+    .summary-row { display:flex; justify-content:space-between; padding:9px 0; border-bottom:1px solid var(--border); font-size:13px; }
+    .summary-row .k { color:var(--muted); } .summary-row .v { font-weight:700; }
+  </style>
+</head>
+<body>
+
+<header class="sf-header">
+  <span style="font-size:13px;color:rgba(255,255,255,.85)" onclick="location.href='../index.html'" style="cursor:pointer;">‹ 메뉴</span>
+  <span style="font-size:15px;font-weight:800;color:#fff;">C1 농장 세팅</span>
+  <span style="width:40px;"></span>
+</header>
+
+<div class="wiz-progress">
+  <div class="wiz-bar-wrap"><div class="wiz-bar-fill" id="wizBar" style="width:14%"></div></div>
+  <div class="wiz-step-label"><span id="wizStepName">기본 정보</span><span id="wizStepNum">1 / 7</span></div>
+</div>
+
+<main class="wiz-body">
+
+  <!-- Step 1: 기본 정보 -->
+  <div class="wiz-step active" data-step="1">
+    <div class="wiz-title">농장 기본 정보</div>
+    <div class="wiz-desc">농장을 식별할 기본 정보를 입력하세요.</div>
+    <label class="wiz-label">농장 ID</label>
+    <input class="wiz-input" id="fFarmId" value="farm_001" placeholder="farm_001"/>
+    <label class="wiz-label">재배 지역</label>
+    <input class="wiz-input" id="fRegion" placeholder="예: 충남 논산시"/>
+  </div>
+
+  <!-- Step 2: 재배 작물 -->
+  <div class="wiz-step" data-step="2">
+    <div class="wiz-title">재배 작물</div>
+    <div class="wiz-desc">주력 작물을 선택하세요.</div>
+    <div class="opt-grid" id="cropGrid"></div>
+  </div>
+
+  <!-- Step 3: 시설 유형 -->
+  <div class="wiz-step" data-step="3">
+    <div class="wiz-title">시설 유형</div>
+    <div class="wiz-desc">재배 시설 형태를 선택하세요.</div>
+    <div class="opt-grid" id="facilityGrid"></div>
+  </div>
+
+  <!-- Step 4: 재배 면적·방식 -->
+  <div class="wiz-step" data-step="4">
+    <div class="wiz-title">재배 규모</div>
+    <div class="wiz-desc">면적과 재배 방식을 입력하세요.</div>
+    <label class="wiz-label">재배 면적 (m²)</label>
+    <input class="wiz-input" id="fArea" type="number" inputmode="decimal" placeholder="예: 1200"/>
+    <label class="wiz-label">재배 방식</label>
+    <div class="opt-grid" id="methodGrid"></div>
+  </div>
+
+  <!-- Step 5: 작기 -->
+  <div class="wiz-step" data-step="5">
+    <div class="wiz-title">작기 정보</div>
+    <div class="wiz-desc">정식~수확 기간과 재배 연차를 입력하세요.</div>
+    <label class="wiz-label">작기 시작 (정식일)</label>
+    <input class="wiz-input" id="fStart" type="date"/>
+    <label class="wiz-label">작기 종료 (예상 수확)</label>
+    <input class="wiz-input" id="fEnd" type="date"/>
+    <label class="wiz-label">재배 연차</label>
+    <input class="wiz-input" id="fYear" type="number" value="1" min="1"/>
+  </div>
+
+  <!-- Step 6: 목표/페인포인트 -->
+  <div class="wiz-step" data-step="6">
+    <div class="wiz-title">개선 목표</div>
+    <div class="wiz-desc">가장 개선하고 싶은 항목을 선택하세요 (복수 가능).</div>
+    <div class="chip-wrap" id="painChips"></div>
+    <label class="wiz-label">목표 수확량 (kg)</label>
+    <input class="wiz-input" id="fKpiYield" type="number" inputmode="decimal" placeholder="선택 입력"/>
+  </div>
+
+  <!-- Step 7: 확인 -->
+  <div class="wiz-step" data-step="7">
+    <div class="wiz-title">입력 내용 확인</div>
+    <div class="wiz-desc">아래 정보로 농장 프로필을 저장합니다.</div>
+    <div class="card" style="padding:14px;" id="summaryCard"></div>
+    <div id="saveResult" style="margin-top:12px;font-size:13px;text-align:center;"></div>
+  </div>
+
+</main>
+
+<div class="wiz-footer">
+  <button class="wiz-btn prev" id="btnPrev" onclick="_prev()" disabled>이전</button>
+  <button class="wiz-btn next" id="btnNext" onclick="_next()">다음</button>
+</div>
+
+<script src="../components/data.js"></script>
+<script>
+'use strict';
+const TOTAL=7;
+let _step=1;
+const STEP_NAMES=['기본 정보','재배 작물','시설 유형','재배 규모','작기','개선 목표','확인'];
+const form={ farm_id:'farm_001', region:'', crop_ko:'', facility_type:'', area_m2:null,
+  cultivation_method:'토경', season_start:'', season_end:'', growing_year:1,
+  pain_points:[], kpi_yield_kg:null };
+
+const CROPS=[['딸기','🍓'],['오이','🥒'],['완숙토마토','🍅'],['방울토마토','🍅'],['파프리카','🫑'],['참외','🍈']];
+const FACILITIES=[['단동온실','🏠'],['연동온실','🏢'],['유리온실','🪟'],['비닐하우스','⛺']];
+const METHODS=[['토경','🌱'],['수경','💧'],['배지경','🪴'],['양액','🧪']];
+const PAINS=['수확량 증대','품질 향상','에너지 절감','병해 예방','관수 효율','인건비 절감','출하가 향상'];
+
+window.addEventListener('DOMContentLoaded', ()=>{
+  _ensureToken();
+  _renderOpts();
+  _showStep(1);
+});
+
+async function _ensureToken(){
+  const s=sessionStorage.getItem('sf_token'); if(s)return s;
+  try{const api=sessionStorage.getItem('sf_api')||location.origin;
+    const r=await fetch(`${api}/api/v1/auth/token`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:'admin',password:'1250'})});
+    if(r.ok){const d=await r.json();sessionStorage.setItem('sf_token',d.access_token);return d.access_token;}}catch{}return '';
+}
+
+function _renderOpts(){
+  document.getElementById('cropGrid').innerHTML=CROPS.map(([c,i])=>`<div class="opt-card" onclick="_selCrop('${c}',this)"><span class="opt-ico">${i}</span>${c}</div>`).join('');
+  document.getElementById('facilityGrid').innerHTML=FACILITIES.map(([c,i])=>`<div class="opt-card" onclick="_selFacility('${c}',this)"><span class="opt-ico">${i}</span>${c}</div>`).join('');
+  document.getElementById('methodGrid').innerHTML=METHODS.map(([c,i])=>`<div class="opt-card" onclick="_selMethod('${c}',this)"><span class="opt-ico">${i}</span>${c}</div>`).join('');
+  document.getElementById('painChips').innerHTML=PAINS.map(p=>`<div class="chip" onclick="_togglePain('${p}',this)">${p}</div>`).join('');
+}
+function _selCrop(c,el){ form.crop_ko=c; document.querySelectorAll('#cropGrid .opt-card').forEach(x=>x.classList.remove('sel')); el.classList.add('sel'); }
+function _selFacility(c,el){ form.facility_type=c; document.querySelectorAll('#facilityGrid .opt-card').forEach(x=>x.classList.remove('sel')); el.classList.add('sel'); }
+function _selMethod(c,el){ form.cultivation_method=c; document.querySelectorAll('#methodGrid .opt-card').forEach(x=>x.classList.remove('sel')); el.classList.add('sel'); }
+function _togglePain(p,el){ const i=form.pain_points.indexOf(p); if(i>=0){form.pain_points.splice(i,1);el.classList.remove('sel');}else{form.pain_points.push(p);el.classList.add('sel');} }
+
+function _showStep(n){
+  _step=n;
+  document.querySelectorAll('.wiz-step').forEach(s=>s.classList.toggle('active', +s.dataset.step===n));
+  document.getElementById('wizBar').style.width=`${Math.round(n/TOTAL*100)}%`;
+  document.getElementById('wizStepName').textContent=STEP_NAMES[n-1];
+  document.getElementById('wizStepNum').textContent=`${n} / ${TOTAL}`;
+  document.getElementById('btnPrev').disabled = n===1;
+  document.getElementById('btnNext').textContent = n===TOTAL ? '저장' : '다음';
+  if(n===TOTAL) _renderSummary();
+}
+
+function _collectStep(){
+  if(_step===1){ form.farm_id=document.getElementById('fFarmId').value.trim()||'farm_001'; form.region=document.getElementById('fRegion').value.trim(); }
+  if(_step===4){ form.area_m2=parseFloat(document.getElementById('fArea').value)||null; }
+  if(_step===5){ form.season_start=document.getElementById('fStart').value; form.season_end=document.getElementById('fEnd').value; form.growing_year=parseInt(document.getElementById('fYear').value)||1; }
+  if(_step===6){ form.kpi_yield_kg=parseFloat(document.getElementById('fKpiYield').value)||null; }
+}
+
+function _validate(){
+  if(_step===2 && !form.crop_ko){ alert('작물을 선택하세요'); return false; }
+  if(_step===3 && !form.facility_type){ alert('시설 유형을 선택하세요'); return false; }
+  return true;
+}
+
+function _next(){
+  _collectStep();
+  if(!_validate()) return;
+  if(_step<TOTAL){ _showStep(_step+1); }
+  else { _save(); }
+}
+function _prev(){ if(_step>1) _showStep(_step-1); }
+
+function _renderSummary(){
+  const rows=[
+    ['농장 ID',form.farm_id],['지역',form.region||'—'],['작물',form.crop_ko||'—'],
+    ['시설',form.facility_type||'—'],['면적',form.area_m2?form.area_m2+'m²':'—'],
+    ['재배방식',form.cultivation_method],['작기',`${form.season_start||'—'} ~ ${form.season_end||'—'}`],
+    ['재배연차',form.growing_year+'년차'],['개선목표',form.pain_points.join(', ')||'—'],
+    ['목표수확량',form.kpi_yield_kg?form.kpi_yield_kg+'kg':'—'],
+  ];
+  document.getElementById('summaryCard').innerHTML=rows.map(([k,v])=>`<div class="summary-row"><span class="k">${k}</span><span class="v">${v}</span></div>`).join('');
+}
+
+async function _save(){
+  const token=await _ensureToken();
+  const res=document.getElementById('saveResult');
+  res.textContent='저장 중…'; res.style.color='var(--muted)';
+  try{
+    const api=sessionStorage.getItem('sf_api')||location.origin;
+    const r=await fetch(`${api}/api/v1/auth/onboarding`,{
+      method:'POST', headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},
+      body:JSON.stringify(form)
+    });
+    if(r.ok){
+      res.style.color='var(--green)'; res.innerHTML='✓ 농장 프로필 저장 완료! 홈으로 이동합니다…';
+      sessionStorage.setItem('sf_farm_id', form.farm_id);
+      setTimeout(()=>location.href='c3_home.html', 1500);
+    } else {
+      const t=await r.text();
+      res.style.color='var(--orange)'; res.textContent=`저장 응답 ${r.status} — 로컬 저장 후 계속`;
+      localStorage.setItem('sf_onboarding', JSON.stringify(form));
+      setTimeout(()=>location.href='c3_home.html', 1800);
+    }
+  }catch(e){
+    res.style.color='var(--orange)'; res.textContent='네트워크 오류 — 로컬 저장';
+    localStorage.setItem('sf_onboarding', JSON.stringify(form));
+  }
+}
+</script>
+</body>
+</html>

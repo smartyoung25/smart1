@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <title>C11 — 공동출하 가입 | KAASA SmartOS</title>
+  <link rel="stylesheet" href="../components/base.css"/>
+  <style>
+    body { padding-bottom: 84px; }
+    .wiz-progress { position:fixed; top:var(--header-h); left:0; right:0; z-index:90; background:var(--panel); padding:10px 16px; border-bottom:1px solid var(--border); }
+    .wiz-bar-wrap { height:6px; background:var(--gray-soft); border-radius:3px; overflow:hidden; }
+    .wiz-bar-fill { height:100%; background:var(--orange); border-radius:3px; transition:width .3s; }
+    .wiz-step-label { font-size:11px; color:var(--muted); margin-top:6px; display:flex; justify-content:space-between; }
+    .wiz-body { padding:14px; max-width:480px; margin:0 auto; padding-top:64px; }
+    .wiz-step { display:none; } .wiz-step.active { display:block; animation:fade .3s; }
+    @keyframes fade { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
+    .wiz-title { font-size:20px; font-weight:900; margin-bottom:4px; }
+    .wiz-desc { font-size:13px; color:var(--muted); margin-bottom:18px; }
+    .wiz-label { font-size:13px; font-weight:700; margin:14px 0 6px; display:block; }
+    .wiz-input { width:100%; min-height:48px; padding:12px 14px; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:15px; outline:none; background:var(--panel); }
+    .wiz-input:focus { border-color:var(--orange); }
+    .opt-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .opt-card { padding:16px 12px; border:2px solid var(--border); border-radius:var(--radius-sm); text-align:center; cursor:pointer; font-size:14px; font-weight:700; background:var(--panel); min-height:60px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; }
+    .opt-card.sel { border-color:var(--orange); background:var(--orange-soft); color:var(--orange); }
+    .opt-ico { font-size:22px; }
+    /* 동의 체크 */
+    .consent { display:flex; align-items:flex-start; gap:10px; padding:12px; background:var(--panel-soft); border-radius:var(--radius-sm); margin-bottom:10px; cursor:pointer; }
+    .consent-box { width:24px; height:24px; border:2px solid var(--border); border-radius:6px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:14px; }
+    .consent.checked .consent-box { background:var(--green); border-color:var(--green); color:#fff; }
+    .consent-txt { font-size:13px; line-height:1.4; }
+    .wiz-footer { position:fixed; bottom:0; left:0; right:0; z-index:90; background:var(--panel); border-top:1px solid var(--border); padding:12px 16px; display:flex; gap:10px; max-width:480px; margin:0 auto; }
+    .wiz-btn { flex:1; min-height:48px; border-radius:var(--radius-sm); font-size:15px; font-weight:800; cursor:pointer; border:none; }
+    .wiz-btn.prev { background:var(--panel); color:var(--muted); border:1.5px solid var(--border); }
+    .wiz-btn.next { background:var(--orange); color:#fff; }
+    .wiz-btn:disabled { opacity:.4; cursor:not-allowed; }
+    .summary-row { display:flex; justify-content:space-between; padding:9px 0; border-bottom:1px solid var(--border); font-size:13px; }
+    .summary-row .k { color:var(--muted); } .summary-row .v { font-weight:700; }
+  </style>
+</head>
+<body>
+
+<header class="sf-header">
+  <span style="font-size:13px;color:rgba(255,255,255,.85);cursor:pointer;" onclick="location.href='c12_joint.html'">‹ 공동출하</span>
+  <span style="font-size:15px;font-weight:800;color:#fff;">C11 가입</span>
+  <span style="width:40px;"></span>
+</header>
+
+<div class="wiz-progress">
+  <div class="wiz-bar-wrap"><div class="wiz-bar-fill" id="wizBar" style="width:17%"></div></div>
+  <div class="wiz-step-label"><span id="wizStepName">조직 선택</span><span id="wizStepNum">1 / 6</span></div>
+</div>
+
+<main class="wiz-body">
+  <!-- Step 1: 조직 선택 -->
+  <div class="wiz-step active" data-step="1">
+    <div class="wiz-title">공동출하 조직 선택</div>
+    <div class="wiz-desc">참여할 공동출하 조직을 선택하세요.</div>
+    <div class="opt-grid" id="orgGrid"></div>
+  </div>
+  <!-- Step 2: 출하 품목 -->
+  <div class="wiz-step" data-step="2">
+    <div class="wiz-title">출하 품목</div>
+    <div class="wiz-desc">공동출하할 작물을 선택하세요.</div>
+    <div class="opt-grid" id="cropGrid"></div>
+  </div>
+  <!-- Step 3: 예상 물량 -->
+  <div class="wiz-step" data-step="3">
+    <div class="wiz-title">예상 출하 물량</div>
+    <div class="wiz-desc">금번 작기 예상 출하량을 입력하세요.</div>
+    <label class="wiz-label">예상 물량 (kg)</label>
+    <input class="wiz-input" id="fVolume" type="number" inputmode="decimal" placeholder="예: 18000"/>
+    <label class="wiz-label">희망 출하 시작일</label>
+    <input class="wiz-input" id="fShipDate" type="date"/>
+  </div>
+  <!-- Step 4: 품질 등급 -->
+  <div class="wiz-step" data-step="4">
+    <div class="wiz-title">품질 등급 기준</div>
+    <div class="wiz-desc">출하 가능한 최저 등급을 선택하세요.</div>
+    <div class="opt-grid" id="gradeGrid"></div>
+  </div>
+  <!-- Step 5: 약정 동의 -->
+  <div class="wiz-step" data-step="5">
+    <div class="wiz-title">출하 약정 동의</div>
+    <div class="wiz-desc">공동출하 참여 약정에 동의해주세요.</div>
+    <div class="consent" id="c1" onclick="_toggleConsent('c1')"><div class="consent-box"></div><div class="consent-txt">출하 예정 물량·품목·등급·수확일을 조직에 공유합니다.</div></div>
+    <div class="consent" id="c2" onclick="_toggleConsent('c2')"><div class="consent-box"></div><div class="consent-txt">공동물류·선별비(약 5%)와 조직 운영비(약 3%)에 동의합니다.</div></div>
+    <div class="consent" id="c3" onclick="_toggleConsent('c3')"><div class="consent-box"></div><div class="consent-txt">개별 원가·마진 등 민감정보는 공유되지 않음을 확인했습니다.</div></div>
+  </div>
+  <!-- Step 6: 확인 -->
+  <div class="wiz-step" data-step="6">
+    <div class="wiz-title">가입 내용 확인</div>
+    <div class="wiz-desc">아래 내용으로 공동출하 가입을 신청합니다.</div>
+    <div class="card" style="padding:14px;" id="summaryCard"></div>
+    <div id="saveResult" style="margin-top:12px;font-size:13px;text-align:center;"></div>
+  </div>
+</main>
+
+<div class="wiz-footer">
+  <button class="wiz-btn prev" id="btnPrev" onclick="_prev()" disabled>이전</button>
+  <button class="wiz-btn next" id="btnNext" onclick="_next()">다음</button>
+</div>
+
+<script src="../components/data.js"></script>
+<script>
+'use strict';
+const TOTAL=6, _step0=1;
+let _step=1;
+const STEP_NAMES=['조직 선택','출하 품목','예상 물량','품질 등급','약정 동의','확인'];
+const form={ org:'', crop_ko:'', volume_kg:null, ship_date:'', min_grade:'', consents:{c1:false,c2:false,c3:false} };
+const ORGS=[['논산딸기연합','🍓'],['부여토마토조합','🍅'],['청양파프리카','🫑'],['KAASA 통합Pool','🤝']];
+const CROPS=[['딸기','🍓'],['오이','🥒'],['완숙토마토','🍅'],['방울토마토','🍅'],['파프리카','🫑'],['참외','🍈']];
+const GRADES=[['A등급(상품)','🥇'],['B등급(보통)','🥈'],['C등급(등외)','🥉'],['혼합','📦']];
+
+window.addEventListener('DOMContentLoaded', ()=>{
+  _ensureToken();
+  document.getElementById('orgGrid').innerHTML=ORGS.map(([c,i])=>`<div class="opt-card" onclick="_sel('org','${c}',this,'#orgGrid')"><span class="opt-ico">${i}</span>${c}</div>`).join('');
+  document.getElementById('cropGrid').innerHTML=CROPS.map(([c,i])=>`<div class="opt-card" onclick="_sel('crop_ko','${c}',this,'#cropGrid')"><span class="opt-ico">${i}</span>${c}</div>`).join('');
+  document.getElementById('gradeGrid').innerHTML=GRADES.map(([c,i])=>`<div class="opt-card" onclick="_sel('min_grade','${c}',this,'#gradeGrid')"><span class="opt-ico">${i}</span>${c}</div>`).join('');
+  // 기존 farm 작물 자동 선택 시도
+  _showStep(1);
+});
+
+async function _ensureToken(){
+  const s=sessionStorage.getItem('sf_token'); if(s)return s;
+  try{const api=sessionStorage.getItem('sf_api')||location.origin;
+    const r=await fetch(`${api}/api/v1/auth/token`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:'admin',password:'1250'})});
+    if(r.ok){const d=await r.json();sessionStorage.setItem('sf_token',d.access_token);return d.access_token;}}catch{}return '';
+}
+
+function _sel(key,val,el,grid){ form[key]=val; document.querySelectorAll(`${grid} .opt-card`).forEach(x=>x.classList.remove('sel')); el.classList.add('sel'); }
+function _toggleConsent(id){ form.consents[id]=!form.consents[id]; document.getElementById(id).classList.toggle('checked', form.consents[id]); }
+
+function _showStep(n){
+  _step=n;
+  document.querySelectorAll('.wiz-step').forEach(s=>s.classList.toggle('active', +s.dataset.step===n));
+  document.getElementById('wizBar').style.width=`${Math.round(n/TOTAL*100)}%`;
+  document.getElementById('wizStepName').textContent=STEP_NAMES[n-1];
+  document.getElementById('wizStepNum').textContent=`${n} / ${TOTAL}`;
+  document.getElementById('btnPrev').disabled=n===1;
+  document.getElementById('btnNext').textContent=n===TOTAL?'가입 신청':'다음';
+  if(n===TOTAL) _renderSummary();
+}
+function _collect(){
+  if(_step===3){ form.volume_kg=parseFloat(document.getElementById('fVolume').value)||null; form.ship_date=document.getElementById('fShipDate').value; }
+}
+function _validate(){
+  if(_step===1&&!form.org){alert('조직을 선택하세요');return false;}
+  if(_step===2&&!form.crop_ko){alert('품목을 선택하세요');return false;}
+  if(_step===4&&!form.min_grade){alert('등급을 선택하세요');return false;}
+  if(_step===5&&!(form.consents.c1&&form.consents.c2&&form.consents.c3)){alert('모든 약정에 동의해야 합니다');return false;}
+  return true;
+}
+function _next(){ _collect(); if(!_validate())return; if(_step<TOTAL)_showStep(_step+1); else _save(); }
+function _prev(){ if(_step>1)_showStep(_step-1); }
+
+function _renderSummary(){
+  const rows=[['조직',form.org],['품목',form.crop_ko],['예상물량',form.volume_kg?form.volume_kg.toLocaleString()+'kg':'—'],
+    ['출하시작',form.ship_date||'—'],['최저등급',form.min_grade],['약정동의','3/3 완료 ✓']];
+  document.getElementById('summaryCard').innerHTML=rows.map(([k,v])=>`<div class="summary-row"><span class="k">${k}</span><span class="v">${v}</span></div>`).join('');
+}
+function _save(){
+  const res=document.getElementById('saveResult');
+  // 공동출하 가입 전용 API 미구현 → localStorage 저장 (실 연동 시 POST 교체)
+  const rec={...form, ts:Date.now(), date:new Date().toISOString().slice(0,10)};
+  const arr=JSON.parse(localStorage.getItem('sf_pool_join')||'[]'); arr.push(rec); localStorage.setItem('sf_pool_join',JSON.stringify(arr));
+  res.style.color='var(--green)'; res.innerHTML='✓ 공동출하 가입 신청 완료! 승인 대기 중입니다.<br><small style="color:var(--muted)">(가입 API 미구현 — 로컬 저장)</small>';
+  setTimeout(()=>location.href='c12_joint.html', 2000);
+}
+</script>
+</body>
+</html>

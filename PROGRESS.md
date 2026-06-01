@@ -1,5 +1,5 @@
 # KAASA SmartOS — 진행 상태 (PROGRESS.md)
-> 마지막 업데이트: 2026-06-01 · 완료 화면 11개 · 에러 0건 · 하단탭 5축 완결
+> 마지막 업데이트: 2026-06-01 · 완료 화면 13개 · 에러 0건 · 하단탭 5축 + Wizard 패턴
 
 ---
 
@@ -30,6 +30,11 @@
 - ✅ **F1 노지 홈** `f1_field.html`: 필지 지도(Mock) + 기상 ET₀ 11.8mm(실데이터) + 노지 To-do + F2~F7 서브링크
 - ✅ **F4 토양수분·관개** `f4_soil.html`: ETc(실데이터) + 토양수분(Mock) + 관개 우선순위 카드
 - 검수: 11개 화면 전체 OK, 하단탭 5개 정상, 콘솔 에러 0건, /smartos 완료배지 11개
+
+### 배치 3 (2026-06-01 추가) — Wizard Full-screen Step 패턴
+- ✅ **C1 농장 기본세팅** `c1_setup.html`: 7단계 Wizard (기본정보→작물→시설→규모→작기→목표→확인), 진행바+Sticky Footer, `/api/v1/auth/onboarding` 실연동
+- ✅ **C11 공동출하 가입** `c11_pool_join.html`: 6단계 Wizard (조직→품목→물량→등급→약정동의→확인), 약정 체크박스 (가입 API 미구현 → localStorage)
+- 검수: 13개 화면 전체 OK, Step 진행 정상, 콘솔 에러 0건
 
 ---
 
