@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <title>AI 챗봇 | KAASA SmartOS</title>
+  <link rel="stylesheet" href="../components/base.css"/>
+  <style>
+    html,body{height:100%;}
+    body{padding-bottom:0;display:flex;flex-direction:column;}
+    .chat-main{flex:1;overflow-y:auto;padding:14px;padding-bottom:8px;max-width:480px;margin:0 auto;width:100%;}
+    /* 말풍선 */
+    .msg{display:flex;margin-bottom:12px;}
+    .msg.user{justify-content:flex-end;}
+    .bubble{max-width:80%;padding:11px 14px;border-radius:16px;font-size:14px;line-height:1.5;white-space:pre-wrap;word-break:break-word;}
+    .msg.user .bubble{background:var(--green);color:#fff;border-bottom-right-radius:4px;}
+    .msg.ai .bubble{background:var(--panel);color:var(--text);border:1px solid var(--border);border-bottom-left-radius:4px;box-shadow:var(--shadow);}
+    .msg-meta{font-size:10px;color:var(--muted);margin-top:4px;}
+    .ref-badge{display:inline-block;font-size:9px;font-weight:700;background:var(--blue-soft);color:var(--blue);padding:2px 7px;border-radius:8px;margin:2px 3px 0 0;}
+    /* 후속 질문 칩 */
+    .sugg-wrap{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;}
+    .sugg-chip{font-size:12px;padding:7px 12px;border:1.5px solid var(--green);border-radius:16px;color:var(--green-dark);background:var(--green-soft);cursor:pointer;}
+    /* 타이핑 */
+    .typing{display:inline-flex;gap:3px;}
+    .typing span{width:6px;height:6px;border-radius:50%;background:var(--muted);animation:bounce 1.2s infinite;}
+    .typing span:nth-child(2){animation-delay:.2s;}.typing span:nth-child(3){animation-delay:.4s;}
+    @keyframes bounce{0%,60%,100%{opacity:.3;transform:translateY(0)}30%{opacity:1;transform:translateY(-4px)}}
+    /* 입력바 */
+    .chat-input-bar{position:sticky;bottom:0;background:var(--panel);border-top:1px solid var(--border);padding:10px 12px;display:flex;gap:8px;max-width:480px;margin:0 auto;width:100%;}
+    .chat-input{flex:1;min-height:44px;max-height:100px;padding:11px 14px;border:1.5px solid var(--border);border-radius:22px;font-size:15px;outline:none;resize:none;font-family:inherit;}
+    .chat-input:focus{border-color:var(--green);}
+    .chat-send{width:44px;height:44px;border-radius:50%;background:var(--green);color:#fff;border:none;font-size:18px;cursor:pointer;flex-shrink:0;}
+    .chat-send:disabled{opacity:.4;}
+    .ws-dot{width:8px;height:8px;border-radius:50%;background:var(--muted);display:inline-block;}
+    .ws-dot.connected{background:var(--green);box-shadow:0 0 0 3px rgba(31,122,77,.2);}
+  </style>
+</head>
+<body>
+
+<header class="sf-header">
+  <div style="display:flex;align-items:center;gap:6px;"><span class="ws-dot" id="wsDot"></span><span style="font-size:12px;color:rgba(255,255,255,.8)" id="wsLabel">연결 중…</span></div>
+  <span style="font-size:15px;font-weight:800;color:#fff;">🤖 AI 영농 비서</span>
+  <select id="farmSel" onchange="onFarmChange(this.value)"
+          style="font-size:12px;background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:8px;padding:4px 8px;cursor:pointer;outline:none;">
+    <option value="farm_001">farm_001</option>
+  </select>
+</header>
+
+<div class="chat-main" id="chatMain">
+  <!-- 인사 + 후속질문 칩 -->
+  <div class="msg ai"><div class="bubble">안녕하세요 👋 KAASA AI 영농 비서입니다.<br>농장 데이터를 기반으로 환경·관수·생육·수확·수익에 대해 답변해 드립니다. 무엇이 궁금하세요?</div></div>
+  <div class="sugg-wrap" id="initSugg"></div>
+</div>
+
+<div class="chat-input-bar">
+  <textarea class="chat-input" id="chatInput" rows="1" placeholder="질문을 입력하세요…" onkeydown="_onKey(event)" oninput="_autoGrow(this)"></textarea>
+  <button class="chat-send" id="sendBtn" onclick="_send()">↑</button>
+</div>
+
+<script src="../components/data.js"></script>
+<script>
+'use strict';
+let _history=[];
+let _busy=false;
+const INIT_SUGG=['오늘 관수 어떻게 할까요?','병해 위험 있나요?','수확 시기는 언제인가요?','수익성 어떤가요?'];
+
+window.addEventListener('DOMContentLoaded',()=>{
+  const farmId=new URLSearchParams(location.search).get('farm')||sessionStorage.getItem('sf_farm_id')||'farm_001';
+  document.getElementById('farmSel').value=farmId;
+  document.getElementById('initSugg').innerHTML=INIT_SUGG.map(s=>`<span class="sugg-chip" onclick="_quickAsk('${s}')">${s}</span>`).join('');
+  _ensureToken().then(t=>KaasaData.init({farmId,token:t,onStatus:_ws}));
+});
+function onFarmChange(id){sessionStorage.setItem('sf_farm_id',id);location.reload();}
+async function _ensureToken(){const s=sessionStorage.getItem('sf_token');if(s)return s;try{const a=sessionStorage.getItem('sf_api')||location.origin;const r=await fetch(`${a}/api/v1/auth/token`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:'admin',password:'1250'})});if(r.ok){const d=await r.json();sessionStorage.setItem('sf_token',d.access_token);return d.access_token;}}catch{}return '';}
+function _ws(s){const d=document.getElementById('wsDot'),l=document.getElementById('wsLabel');if(d)d.className='ws-dot '+s;if(l)l.textContent=s==='connected'?'실시간 연결 중':'연결 안 됨';}
+
+function _autoGrow(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,100)+'px';}
+function _onKey(e){ if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();_send();} }
+function _quickAsk(t){ document.getElementById('chatInput').value=t; _send(); }
+
+function _addMsg(role, html, meta){
+  const main=document.getElementById('chatMain');
+  const div=document.createElement('div');
+  div.className=`msg ${role}`;
+  div.innerHTML=`<div><div class="bubble">${html}</div>${meta?`<div class="msg-meta">${meta}</div>`:''}</div>`;
+  main.appendChild(div);
+  main.scrollTop=main.scrollHeight;
+  return div;
+}
+
+async function _send(){
+  if(_busy) return;
+  const input=document.getElementById('chatInput');
+  const msg=input.value.trim();
+  if(!msg) return;
+  // 초기 칩 제거
+  const initS=document.getElementById('initSugg'); if(initS) initS.remove();
+  _addMsg('user', _esc(msg));
+  input.value=''; input.style.height='auto';
+  _busy=true; document.getElementById('sendBtn').disabled=true;
+
+  // 타이핑 인디케이터
+  const typing=_addMsg('ai','<span class="typing"><span></span><span></span><span></span></span>');
+
+  try{
+    const token=await _ensureToken();
+    const api=KaasaData.getApiBase();
+    const farmId=KaasaData.getFarmId();
+    const r=await fetch(`${api}/api/farms/${farmId}/chat`,{
+      method:'POST', headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},
+      body:JSON.stringify({message:msg, history:_history.slice(-8)})
+    });
+    typing.remove();
+    if(r.ok){
+      const d=await r.json();
+      const refs=(d.referenced_data||[]).map(x=>`<span class="ref-badge">${x}</span>`).join('');
+      const conf=d.confidence!=null?` · 신뢰도 ${Math.round(d.confidence*100)}%`:'';
+      const meta=`${refs}${refs?'<br>':''}<span style="opacity:.7">모델: ${d.model_used||'?'}${conf}</span>`;
+      _addMsg('ai', _esc(d.reply||'(응답 없음)'), meta);
+      // 후속 질문 칩
+      if(d.suggestions&&d.suggestions.length){
+        const main=document.getElementById('chatMain');
+        const sw=document.createElement('div'); sw.className='sugg-wrap';
+        sw.innerHTML=d.suggestions.slice(0,4).map(s=>`<span class="sugg-chip" onclick="_quickAsk('${_esc(s).replace(/'/g,"")}')">${_esc(s)}</span>`).join('');
+        main.appendChild(sw); main.scrollTop=main.scrollHeight;
+      }
+      _history.push({role:'user',content:msg},{role:'assistant',content:d.reply||''});
+    } else {
+      const t=await r.text();
+      _addMsg('ai', `⚠️ 응답 오류 (${r.status})${r.status===402?' — AI 챗봇은 상위 플랜에서 제공됩니다.':''}`, t.slice(0,80));
+    }
+  }catch(e){
+    typing.remove();
+    _addMsg('ai', '⚠️ 네트워크 오류: '+_esc(e.message));
+  }finally{
+    _busy=false; document.getElementById('sendBtn').disabled=false;
+    document.getElementById('chatInput').focus();
+  }
+}
+function _esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+</script>
+</body>
+</html>
