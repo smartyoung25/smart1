@@ -140,6 +140,13 @@
   <div class="consent-item consent-pub"><span>📍</span><div style="font-size:12px;">집하장 배송 가능 지역</div></div>
   <div style="font-size:11px;font-weight:700;color:var(--muted);margin:10px 0 6px;">🔒 비공개 정보 (보호)</div>
   <div class="consent-item consent-priv"><span>🚫</span><div style="font-size:12px;">개별 원가·마진·농장 운영 데이터는 공유되지 않습니다</div></div>
+  <div style="font-size:11px;font-weight:700;color:var(--green-dark);margin:12px 0 6px;">📦 출하 신청 정보</div>
+  <label style="font-size:12px;font-weight:700;display:block;margin:8px 0 4px;">출하 예정 물량 (kg)</label>
+  <input id="joinQty" type="number" inputmode="decimal" placeholder="예: 500" style="width:100%;min-height:46px;padding:11px 13px;border:1.5px solid var(--border);border-radius:10px;font-size:15px;"/>
+  <label style="font-size:12px;font-weight:700;display:block;margin:10px 0 4px;">등급</label>
+  <select id="joinGrade" style="width:100%;min-height:46px;padding:11px 13px;border:1.5px solid var(--border);border-radius:10px;font-size:15px;background:var(--panel);">
+    <option>특</option><option selected>상</option><option>보통</option><option>등외</option>
+  </select>
   <div style="display:flex;gap:8px;margin-top:16px;">
     <button onclick="_confirmJoin()" style="flex:1;padding:13px;background:var(--green);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:800;cursor:pointer;">동의하고 참여</button>
     <button onclick="_closeSheet()" style="flex:1;padding:13px;background:var(--panel);color:var(--muted);border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-weight:700;cursor:pointer;">취소</button>
@@ -159,11 +166,14 @@
 <script>
 'use strict';
 let _revenue = null;
+let _tokenG='', _farmG='farm_001';
 
 window.addEventListener('DOMContentLoaded', () => {
   const farmId = new URLSearchParams(location.search).get('farm') ||
                  sessionStorage.getItem('sf_farm_id') || 'farm_001';
+  _farmG=farmId;
   _ensureToken().then(token => {
+    _tokenG=token;
     KaasaData.init({ farmId, token, onStatus:_onWsStatus });
     _loadAll(token, farmId);
   });
@@ -256,11 +266,23 @@ function _openSheet(){ document.getElementById('sheetBd').style.display='block';
 function _closeSheet(){ document.getElementById('sheetBd').style.display='none'; document.getElementById('sheet').style.display='none'; }
 function _confirmJoin(){
   const crop=_revenue?.crop_ko||'오이';
-  const rec={crop, date:new Date().toISOString().slice(0,10), ts:Date.now()};
+  const qty=parseFloat(document.getElementById('joinQty')?.value)||null;
+  const grade=document.getElementById('joinGrade')?.value||'상';
+  const r=document.getElementById('joinResult');
+  if(!qty){ r.style.color='var(--red)'; r.textContent='출하 예정 물량을 입력하세요'; return; }
+  r.style.color='var(--muted)'; r.textContent='참여 신청 중…';
+  const rec={crop, qty, grade, date:new Date().toISOString().slice(0,10), ts:Date.now()};
   const key='sf_pool_joined';
   const arr=JSON.parse(localStorage.getItem(key)||'[]'); arr.push(rec); localStorage.setItem(key,JSON.stringify(arr));
-  const r=document.getElementById('joinResult'); r.textContent=`✓ ${crop} Pool 참여 신청 완료`;
-  setTimeout(_closeSheet, 1500);
+  // 서버 적재 (폐루프)
+  (async()=>{ try{ const api=KaasaData.getApiBase?KaasaData.getApiBase():location.origin;
+    await fetch(`${api}/api/farms/${_farmG}/activity`,{method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+_tokenG},
+      body:JSON.stringify({kind:'joint_ship', item:`공동출하 신청: ${crop}`, value:qty,
+        detail:`${qty}kg · 등급 ${grade} · ${rec.date}`})}); }catch(e){}
+    r.style.color='var(--green)'; r.textContent=`✓ ${crop} ${qty}kg(${grade}) Pool 참여 신청 완료`;
+    setTimeout(_closeSheet, 1600);
+  })();
 }
 </script>
 </body>

@@ -102,6 +102,7 @@
     decision_apply:{ ico:'🤖', label:'AI결정' },
     consult:       { ico:'🩺', label:'전문가' },
     joint_ship:    { ico:'🤝', label:'공동출하' },
+    consent:       { ico:'📑', label:'데이터동의' },
   };
   function _ago(ts){
     try{ const d=new Date(ts), now=new Date(), m=Math.floor((now-d)/60000);

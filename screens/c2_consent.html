@@ -72,8 +72,11 @@ const ITEMS=[
   ['revenue','수익 데이터','매출·원가 (익명 집계만)',false],
 ];
 let _mode='learning', _toggles={};
+let _tokenG='', _farmG='farm_001';
 
 window.addEventListener('DOMContentLoaded', ()=>{
+  _farmG=new URLSearchParams(location.search).get('farm')||sessionStorage.getItem('sf_farm_id')||'farm_001';
+  _ensureToken().then(t=>_tokenG=t);
   ITEMS.forEach(([id,,,def])=>_toggles[id]=def);
   document.getElementById('modeList').innerHTML=MODES.map(([id,n,d])=>`
     <div class="mode-card ${id==='learning'?'sel':''}" id="mode-${id}" onclick="_selMode('${id}')">
@@ -96,9 +99,25 @@ function _save(){
   const cfg={mode:_mode,items:_toggles,ts:Date.now()};
   localStorage.setItem('sf_consent',JSON.stringify(cfg));
   const r=document.getElementById('saveResult');
-  r.style.color='var(--green)';
   const onCount=Object.values(_toggles).filter(Boolean).length;
-  r.innerHTML=`✓ 저장 완료 — ${MODES.find(m=>m[0]===_mode)[1]} · 공개 ${onCount}/${ITEMS.length}항목`;
+  const modeName=MODES.find(m=>m[0]===_mode)[1];
+  const onItems=ITEMS.filter(([i])=>_toggles[i]).map(([,n])=>n).join(', ')||'없음';
+  r.style.color='var(--muted)'; r.textContent='저장 중…';
+  // 서버 적재 (동의 이력 — 폐루프·정책 근거)
+  (async()=>{ try{ const api=(window.KaasaData&&KaasaData.getApiBase)?KaasaData.getApiBase():location.origin;
+    await fetch(`${api}/api/farms/${_farmG}/activity`,{method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+_tokenG},
+      body:JSON.stringify({kind:'consent', item:`데이터 활용 동의: ${modeName}`,
+        value:onCount, detail:`공개 ${onCount}/${ITEMS.length} · ${onItems}`})}); }catch(e){}
+    r.style.color='var(--green)';
+    r.innerHTML=`✓ 저장 완료 — ${modeName} · 공개 ${onCount}/${ITEMS.length}항목`;
+  })();
+}
+async function _ensureToken(){
+  const s=sessionStorage.getItem('sf_token'); if(s)return s;
+  try{const a=sessionStorage.getItem('sf_api')||location.origin;
+    const r=await fetch(`${a}/api/v1/auth/token`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:'admin',password:'1250'})});
+    if(r.ok){const d=await r.json();sessionStorage.setItem('sf_token',d.access_token);return d.access_token;}}catch(e){}return '';
 }
 </script>
 </body>

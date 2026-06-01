@@ -107,11 +107,19 @@
 <script>
 'use strict';
 let _expert='';
+let _tokenG='', _farmG='farm_001';
 
 window.addEventListener('DOMContentLoaded', ()=>{
   const farmId=new URLSearchParams(location.search).get('farm')||sessionStorage.getItem('sf_farm_id')||'farm_001';
-  _ensureToken().then(token=>{ KaasaData.init({farmId,token,onStatus:_onWsStatus}); _loadAll(token,farmId); });
+  _farmG=farmId;
+  _ensureToken().then(token=>{ _tokenG=token; KaasaData.init({farmId,token,onStatus:_onWsStatus}); _loadAll(token,farmId); });
 });
+async function _logActivity(rec){
+  try{ const api=KaasaData.getApiBase?KaasaData.getApiBase():location.origin;
+    await fetch(`${api}/api/farms/${_farmG}/activity`,{method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+_tokenG},
+      body:JSON.stringify(rec)}); }catch(e){}
+}
 function onFarmChange(id){sessionStorage.setItem('sf_farm_id',id);location.reload();}
 async function _ensureToken(){
   const s=sessionStorage.getItem('sf_token');if(s)return s;
@@ -187,8 +195,9 @@ function _selExpert(t,el){_expert=t;document.querySelectorAll('.expert-opt').for
 function _confirmExpert(){
   if(!_expert){alert('전문가 유형을 선택하세요');return;}
   const r=document.getElementById('expertResult');
-  r.textContent=`✓ ${_expert} 미팅 예약 신청 완료 (영업일 1일 내 연락)`;
-  setTimeout(_closeSheet,1800);
+  r.textContent='예약 신청 중…';
+  _logActivity({kind:'consult', item:`전문가 예약: ${_expert}`, detail:`${_expert} 미팅 신청 · ${new Date().toISOString().slice(0,10)}`})
+    .then(()=>{ r.textContent=`✓ ${_expert} 미팅 예약 신청 완료 (영업일 1일 내 연락)`; setTimeout(_closeSheet,1800); });
 }
 </script>
 </body>
