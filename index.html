@@ -53,7 +53,13 @@
 
 <div class="nav-header">
   <div class="nav-logo">KAASA SmartOS</div>
-  <div class="nav-sub">온실 스마트팜 통합 관리 시스템</div>
+  <div class="nav-sub" id="navSub">온실·노지 스마트팜 통합 관리</div>
+</div>
+
+<!-- 내 농장 맞춤 메뉴 (프로필 기반 동적) -->
+<div id="myFarmSection" style="display:none;">
+  <div class="section-title" id="myFarmTitle">내 농장 맞춤 메뉴</div>
+  <div class="screen-grid" id="myFarmGrid"></div>
 </div>
 
 <div class="section-title">핵심 화면</div>
@@ -330,5 +336,55 @@
   KAASA SmartOS v0.3 · 온실·노지·공동출하 통합 · 28화면 완성
 </div>
 
+<script>
+'use strict';
+// 농장 프로필 기반 맞춤 메뉴 (C1 세팅 또는 온보딩에서 저장된 sf_profile)
+(function(){
+  let p=null;
+  try{ p=JSON.parse(localStorage.getItem('sf_profile')||'null'); }catch(e){}
+  if(!p){ try{ const o=JSON.parse(localStorage.getItem('sf_onboarding')||'null'); if(o){ p={crop_ko:o.crop_ko,facility_type:o.facility_type,farm_type:(['감귤','월동무','당근','양배추','브로콜리','마늘','양파'].includes(o.crop_ko)?'field':'greenhouse')}; } }catch(e){} }
+  if(!p || !p.crop_ko){ return; }  // 프로필 없으면 기본 전체 메뉴
+
+  const GH=[
+    ['g1_home.html','🌱','온실 홈','오늘 할 일·핵심 KPI'],
+    ['g3_period.html','💧','관수·양액','P1~P5 Period'],
+    ['g2_env.html','🌡️','환경 제어','온도·VPD·CO₂·에너지'],
+    ['g4_growth.html','🌿','생육 모델','수확 예측'],
+    ['g5_disease.html','🔬','병해·품질','M5·결로·IPM'],
+    ['g6_harvest.html','🚚','수확·유통','출하 채널'],
+  ];
+  const FD=[
+    ['f1_field.html','🌾','노지 홈','필지·기상·할 일'],
+    ['f4_soil.html','💧','토양수분·관개','ETc·관개 우선순위'],
+    ['f3_weather.html','🌦️','기상·재해','7일 예보'],
+    ['f2_gis.html','🗺️','필지 GIS','경계·구획'],
+    ['f6_pest.html','🐛','병해충·방제','방제 윈도우'],
+    ['f7_harvest.html','🚚','수확·유통','필지별 수확'],
+  ];
+  const COMMON=[
+    ['c3_home.html','🏠','통합 홈','To-do·KPI'],
+    ['c14_report.html','📋','월간 리포트','성과지표'],
+    ['c5_erp.html','💰','수익성 ERP','원가·마진'],
+    ['c12_joint.html','🤝','공동출하','채널 비교'],
+    ['c4_diagnosis.html','📊','AI 진단','추천·전문가'],
+    ['c13_chat.html','🤖','AI 비서','챗봇'],
+  ];
+  const isField = p.farm_type==='field';
+  const primary = isField ? FD : GH;
+  const cards = primary.concat(COMMON).slice(0,9);
+
+  document.getElementById('myFarmTitle').textContent =
+    `🌟 내 농장 맞춤 메뉴 — ${p.crop_ko} (${isField?'노지':'온실'}${p.facility_type?'·'+p.facility_type:''})`;
+  document.getElementById('navSub').textContent =
+    `${p.crop_ko} ${isField?'노지':'온실'} 농가 · 맞춤 구성`;
+  document.getElementById('myFarmGrid').innerHTML = cards.map(([href,ic,name,desc])=>`
+    <a class="screen-card ready" href="screens/${href}">
+      <div class="screen-icon">${ic}</div>
+      <div class="screen-name">${name}</div>
+      <div class="screen-desc">${desc}</div>
+    </a>`).join('');
+  document.getElementById('myFarmSection').style.display='block';
+})();
+</script>
 </body>
 </html>

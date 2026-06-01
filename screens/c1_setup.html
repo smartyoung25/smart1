@@ -213,8 +213,19 @@ function _renderSummary(){
   document.getElementById('summaryCard').innerHTML=rows.map(([k,v])=>`<div class="summary-row"><span class="k">${k}</span><span class="v">${v}</span></div>`).join('');
 }
 
+// 노지 작물 목록 → 재배유형 자동 판정
+const FIELD_CROPS=['감귤','월동무','당근','양배추','브로콜리','마늘','양파'];
+function _saveProfile(){
+  const farm_type = FIELD_CROPS.includes(form.crop_ko) ? 'field' : 'greenhouse';
+  const profile = { crop_ko:form.crop_ko, facility_type:form.facility_type,
+    cultivation_method:form.cultivation_method, farm_type,
+    region:form.region, area_m2:form.area_m2, farm_id:form.farm_id };
+  localStorage.setItem('sf_profile', JSON.stringify(profile));
+}
+
 async function _save(){
   const token=await _ensureToken();
+  _saveProfile();   // 맞춤 메뉴용 프로필 저장
   const res=document.getElementById('saveResult');
   res.textContent='저장 중…'; res.style.color='var(--muted)';
   try{
