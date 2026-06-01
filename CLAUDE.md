@@ -128,6 +128,22 @@ C:\smart_farm\
 | 2026-05-31 | 단일 HTML → 화면별 분리 | 컨텍스트 효율, 유지보수 | Claude |
 | 2026-05-31 | data.js Mock → Real 전환 방식 | 점진적 연동 가능 | Claude |
 | 2026-05-31 | G3 Period 화면을 최우선 구현 | 핵심 업무 빈도 최고 | 합의 |
+| 2026-06-01 | 등급(티어) 차등 3계층 구현 | basic/smart/pro/enterprise SaaS 모델 | 합의 |
+| 2026-06-01 | 글로벌 의사결정 UI 벤치마킹 → DecisionDeck | Priva·CropX·Source.ag 등 Top12 패턴 | 합의 |
+
+## 등급 차등 & 의사결정 UI (2026-06-01)
+
+### 등급 차등 (tier_features.json 기반)
+- 레벨① index.html 맞춤메뉴+핵심그리드 잠금/배지 + 현재등급 칩
+- 레벨② `components/tier_guard.js` 위젯 오버레이 — g2(VPD)·g3(드레인EC)·g4(수확예측)·g5(병해상세)·c5(이익률)·g6(AI출하)
+- 레벨③ /billing/* + 402 게이팅 (백엔드 기존)
+- 업그레이드 시트 → POST /billing/upgrade(manual) 실연동
+- 검수: basic 잠금↑ / pro 해제, 콘솔 에러 0건
+
+### DecisionDeck (글로벌 벤치마킹 적용)
+- `components/decision_card.{css,js}` — `DecisionDeck.render(el, items, {onApply})`
+- C3 홈 "오늘의 결정": 이상감지(배액률·VPD)+AI추천 통합, 심각도3중코딩+처방+신뢰도+출처+신선도+원탭(→/activity 폐루프)
+- 벤치마킹 정리: `docs/UI_BENCHMARK.md`
 
 ---
 
