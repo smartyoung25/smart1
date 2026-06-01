@@ -2841,12 +2841,58 @@ def get_monthly_report(farm_id: str, month: str = ""):
     avg_ach = round(sum(achs)/len(achs)) if achs else 0
     grade = "우수" if avg_ach >= 95 else "양호" if avg_ach >= 80 else "보통" if avg_ach >= 65 else "개선필요"
 
+    # ── 월 스냅샷 이력 → 전월 대비 변화율 (정책 제11조 성과지표 추세) ─────────
+    import json as _json
+    from pathlib import Path as _Path
+    _snap_dir = _Path(__file__).resolve().parents[1] / "data" / "report_snapshots"
+    _snap_dir.mkdir(parents=True, exist_ok=True)
+    _snap_file = _snap_dir / f"{farm_id}.json"
+    # 핵심 지표 스냅샷
+    _cur = {"income_rate": income_rate, "cost_per_kg": cost_per_kg,
+            "energy_per_kg": energy_per_kg, "yield": round(yield_, 2),
+            "price": round(price), "alerts": len(alerts), "avg_ach": avg_ach}
+    _hist = {}
+    if _snap_file.exists():
+        try: _hist = _json.loads(_snap_file.read_text(encoding="utf-8"))
+        except Exception: _hist = {}
+    # 직전 기록(현재 period 제외 최신)
+    _prev_period = max([p for p in _hist.keys() if p < period], default=None)
+    _prev = _hist.get(_prev_period) if _prev_period else None
+
+    def _chg(key, higher_better=True):
+        if not _prev or _prev.get(key) in (None, 0):
+            return None
+        base = _prev[key]; cur = _cur.get(key)
+        if cur is None: return None
+        pct = round((cur - base) / abs(base) * 100, 1)
+        # 낮을수록 좋은 지표는 부호 반전해 '개선율'로 표기
+        return pct if higher_better else round(-pct, 1)
+
+    changes = {
+        "소득률":       _chg("income_rate", True),
+        "kg당원가절감": _chg("cost_per_kg", False),
+        "에너지비절감": _chg("energy_per_kg", False),
+        "생산량":       _chg("yield", True),
+        "출하단가":     _chg("price", True),
+        "병해발생":     _chg("alerts", False),
+    }
+    # 이번 달 스냅샷 갱신 저장 (최근 24개월 유지)
+    _hist[period] = _cur
+    for _old in sorted(_hist.keys())[:-24]:
+        del _hist[_old]
+    try: _snap_file.write_text(_json.dumps(_hist, ensure_ascii=False, indent=2), encoding="utf-8")
+    except Exception: pass
+
+    _has_prev = _prev is not None
+
     return {
         "farm_id": farm_id, "period": period, "crop": crop, "area_m2": area,
         "generated_at": __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat(),
         "overall_grade": grade, "avg_achievement_pct": avg_ach,
         "areas": areas, "kpis": kpis, "weak_points": weak, "todos": todos,
-        "note": "목표값은 작물 표준·시세 기준 추정. 전월/전작기 실데이터 축적 시 변화율로 전환.",
+        "changes_vs_prev": changes, "prev_period": _prev_period, "has_prev": _has_prev,
+        "note": ("전월(" + _prev_period + ") 대비 변화율 산출됨." if _has_prev
+                 else "목표값은 작물 표준·시세 기준 추정. 첫 리포트라 전월 비교 없음(다음 달부터 변화율 표시)."),
     }
 
 

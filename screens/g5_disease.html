@@ -121,6 +121,33 @@
     <div style="text-align:center;padding:14px;color:var(--muted);font-size:12px;"><div class="spinner"></div></div>
   </div>
 
+  <!-- 결로위험시간 조기경보 -->
+  <div class="section-label" style="margin-top:16px;">결로위험·조기경보 <span class="trust-badge trust-model">🔵 추정</span></div>
+  <div class="card" style="padding:14px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+      <div style="text-align:center;">
+        <div style="font-size:11px;color:var(--muted);">예상 결로시간</div>
+        <div style="font-size:22px;font-weight:900;" id="dewHours">—<span style="font-size:12px;font-weight:400;">h/일</span></div>
+      </div>
+      <div style="text-align:center;">
+        <div style="font-size:11px;color:var(--muted);">고습 지속</div>
+        <div style="font-size:22px;font-weight:900;" id="highHumid">—<span style="font-size:12px;font-weight:400;">h</span></div>
+      </div>
+    </div>
+    <div style="font-size:12px;line-height:1.5;" id="dewAdvice">분석 중…</div>
+  </div>
+
+  <!-- IPM 종합관리 -->
+  <div class="section-label" style="margin-top:16px;">IPM 종합관리 <span class="trust-badge trust-mock">⚪ 기록</span></div>
+  <div class="card" style="padding:14px;">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px;text-align:center;">
+      <div><div style="font-size:18px;">🪰</div><div style="font-size:16px;font-weight:800;" id="ipmTrap">12</div><div style="font-size:10px;color:var(--muted);">트랩포획(주)</div></div>
+      <div><div style="font-size:18px;">🧪</div><div style="font-size:16px;font-weight:800;" id="ipmSpray">2</div><div style="font-size:10px;color:var(--muted);">방제횟수(월)</div></div>
+      <div><div style="font-size:18px;">💰</div><div style="font-size:16px;font-weight:800;" id="ipmCost">8</div><div style="font-size:10px;color:var(--muted);">방제비(만원)</div></div>
+    </div>
+    <div id="ipmChecklist"></div>
+  </div>
+
   <!-- 주요 병해 위험도 체크리스트 -->
   <div class="section-label" style="margin-top:16px;">주요 병해 위험도 <span id="cropLabel" style="font-weight:400;color:var(--muted);font-size:11px;"></span></div>
   <div class="card" style="padding:14px;">
@@ -276,9 +303,76 @@ async function _loadAll(token, farmId) {
 
   _renderRiskHero(disease);
   _renderAnomalies(anomalies);
+  _renderDewIPM(crop, envCtx);
   _renderDiseaseChecklist(crop, envCtx);
   _renderControlAdvices(envCtx, anomalies);
   _renderQualityTips(crop, envCtx);
+}
+
+// ── 결로위험시간·IPM ────────────────────────────────────────────────────────
+function _renderDewIPM(crop, env){
+  // 결로시간 추정: 노점온도 접근 + 고습 기반 (간이 모델)
+  // RH 90%+ 또는 (기온-노점차 < 2°C) 구간을 야간 시간으로 환산
+  const t=env.t, h=env.h;
+  // Magnus 노점
+  const a=17.27,b=237.7;
+  const g=(a*t)/(b+t)+Math.log(Math.max(h,1)/100);
+  const dew=(b*g)/(a-g);
+  const gap=t-dew;            // 기온-노점 차
+  // 결로시간: gap이 작을수록·습도 높을수록 길다 (0~14h 야간 범위)
+  let dewH=0;
+  if(h>=95||gap<1) dewH=10+Math.random()*0; // 결정적: 높음
+  else if(h>=90||gap<2) dewH=7;
+  else if(h>=85||gap<3) dewH=4;
+  else dewH=Math.max(0, Math.round((90-h)<0?2:0));
+  dewH=Math.round(dewH);
+  // 고습 지속(추정): RH≥85% 가정 야간 시간
+  const highH = h>=90?9 : h>=85?6 : h>=80?3 : 1;
+
+  const setEl=(id,v)=>{const e=document.getElementById(id);if(e)e.innerHTML=v;};
+  setEl('dewHours', `${dewH}<span style="font-size:12px;font-weight:400;">h/일</span>`);
+  setEl('highHumid', `${highH}<span style="font-size:12px;font-weight:400;">h</span>`);
+  const adv=document.getElementById('dewAdvice');
+  if(adv){
+    if(dewH>=8){ adv.innerHTML=`🔴 <b>결로 위험 높음</b> (${dewH}h/일). 곰팡이성 병해(잿빛곰팡이·노균병) 포자 발아 조건. <b>야간 난방+제습·환기</b>로 결로 차단 권장.`; adv.style.color='var(--red)'; }
+    else if(dewH>=4){ adv.innerHTML=`🟡 결로 주의 (${dewH}h/일). 일출 직후 환기로 엽면 수분 신속 제거.`; adv.style.color='var(--orange)'; }
+    else { adv.innerHTML=`🟢 결로 위험 낮음 (${dewH}h/일). 현 환경 양호.`; adv.style.color='var(--green)'; }
+  }
+  // IPM 체크리스트 (localStorage 기록)
+  const key=`sf_ipm_${new Date().toDateString()}`;
+  const done=new Set(JSON.parse(localStorage.getItem(key)||'[]'));
+  const IPM=[
+    ['weekly_trap','주간 끈끈이트랩 교체·포획수 기록'],
+    ['leaf_check','엽 뒷면 해충·병반 육안 점검'],
+    ['bio_control','천적·생물적 방제 우선 적용'],
+    ['resist_rotate','약제 계통 교차 살포(저항성 관리)'],
+    ['record_keep','방제 일자·약제·농도 기록'],
+  ];
+  const el=document.getElementById('ipmChecklist');
+  if(el) el.innerHTML=IPM.map(([id,t])=>`
+    <div onclick="_toggleIpm('${id}')" style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer;">
+      <div style="width:20px;height:20px;border-radius:5px;border:2px solid ${done.has(id)?'var(--green)':'var(--border)'};background:${done.has(id)?'var(--green)':'transparent'};color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;">${done.has(id)?'✓':''}</div>
+      <span style="font-size:12px;${done.has(id)?'color:var(--muted);text-decoration:line-through;':''}">${t}</span></div>`).join('');
+}
+function _toggleIpm(id){
+  const key=`sf_ipm_${new Date().toDateString()}`;
+  const arr=JSON.parse(localStorage.getItem(key)||'[]');
+  const i=arr.indexOf(id);
+  if(i>=0) arr.splice(i,1); else arr.push(id);
+  localStorage.setItem(key,JSON.stringify(arr));
+  // 재렌더 (env 재계산 없이 체크만 갱신)
+  const ev=document.querySelectorAll('#ipmChecklist > div');
+  location.hash='ipm'; // noop
+  _reRenderIpm(arr);
+}
+function _reRenderIpm(arr){
+  const done=new Set(arr);
+  const IPM=[['weekly_trap','주간 끈끈이트랩 교체·포획수 기록'],['leaf_check','엽 뒷면 해충·병반 육안 점검'],['bio_control','천적·생물적 방제 우선 적용'],['resist_rotate','약제 계통 교차 살포(저항성 관리)'],['record_keep','방제 일자·약제·농도 기록']];
+  const el=document.getElementById('ipmChecklist');
+  if(el) el.innerHTML=IPM.map(([id,t])=>`
+    <div onclick="_toggleIpm('${id}')" style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer;">
+      <div style="width:20px;height:20px;border-radius:5px;border:2px solid ${done.has(id)?'var(--green)':'var(--border)'};background:${done.has(id)?'var(--green)':'transparent'};color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;">${done.has(id)?'✓':''}</div>
+      <span style="font-size:12px;${done.has(id)?'color:var(--muted);text-decoration:line-through;':''}">${t}</span></div>`).join('');
 }
 
 // ── 병해 위험도 히어로 ──────────────────────────────────────────────────────
