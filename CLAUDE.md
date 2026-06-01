@@ -131,18 +131,19 @@ C:\smart_farm\
 
 ---
 
-## 완료된 화면 (2026-06-01 기준)
+## 완료된 화면 (2026-06-01 — 원본 28개 100% 완성)
 
-| 화면 | 파일 | 주요 기능 |
+| 모듈 | 화면 | 실연동 여부 |
 |------|------|-----------|
-| C3 통합 홈 | screens/c3_home.html | To-do·KPI·AI 72%·가격 스트립 |
-| G3 관수·양액 | screens/g3_period.html | P1~P5·Priva ET₀·DB 실저장 |
-| G2 환경 제어 | screens/g2_env.html | KPI 6종·모드 4단계·규칙 추천 |
-| G4 생육 모델 | screens/g4_growth.html | D-31·생육단계·M1/M2 성능 |
-| G5 병해·품질 | screens/g5_disease.html | M5 위험도·이상값·방제조언 |
-| G6 수확·유통 | screens/g6_harvest.html | 채널 비교·시나리오·수익성 |
-| C5 수익성 ERP | screens/c5_erp.html | 원가·마진율 89%·BEP·절감 |
-| 네비게이터 | index.html → /smartos | 7개 완료 표시 |
+| 공통 C (13) | C0 C1 C2 C3 C4 C5 C6 C7 C8 C9 C10 C11 C12 | C3·C4·C5·C6·C12 실연동, 나머지 auth/Mock |
+| 온실 G (6) | G1 G2 G3 G4 G5 G6 | 전부 실연동 |
+| 노지 F (7) | F1 F2 F3 F4 F5 F6 F7 | F1·F3·F4·F6·F7 실연동, F2·F5 Mock |
+| 개요 (2) | overview.html, flow.html | 정적 |
+| 네비게이터 | index.html → /smartos | 28화면 완료 배지 |
+
+- 전 화면 **표준 하단 5탭**(홈/온실/노지/출하/메뉴) 통일 · 죽은 링크 0건 · 콘솔 에러 0건
+- 표준 템플릿: `_ensureToken()` 자동로그인(admin/1250) + `KaasaData` 레이어 + Playwright 검수
+- Mock 부분은 화면에 라벨 명시 (노지 토양수분·필지 GIS·원격탐사, C6~C10 일부)
 
 ## 백엔드 수정 누적 (2026-06-01)
 
