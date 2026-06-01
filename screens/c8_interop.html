@@ -27,21 +27,17 @@
 <main class="sf-main" style="padding:14px;max-width:480px;margin:0 auto;">
 
 <div class="kpi-grid">
-  <div class="kpi"><div class="kpi-l">연결 장비</div><div class="kpi-v" style="color:var(--blue)">8<span style="font-size:13px;font-weight:400">대</span></div><div class="kpi-s">센서 5 · 제어기 3</div></div>
-  <div class="kpi"><div class="kpi-l">제어 성공률</div><div class="kpi-v" style="color:var(--green)">98<span style="font-size:13px;font-weight:400">%</span></div><div class="kpi-s">최근 7일</div></div>
+  <div class="kpi"><div class="kpi-l">연동 API</div><div class="kpi-v" style="color:var(--blue)"><span id="kConn">—</span><span style="font-size:13px;font-weight:400">개</span></div><div class="kpi-s" id="kConnSub">연결됨</div></div>
+  <div class="kpi"><div class="kpi-l">연동률</div><div class="kpi-v" style="color:var(--green)"><span id="kRate">—</span><span style="font-size:13px;font-weight:400">%</span></div><div class="kpi-s">전체 데이터소스</div></div>
 </div>
-<div class="mock-note">ℹ️ 장비 연동 상태는 MQTT/Modbus 게이트웨이 연동 시 실시간 갱신 (현재 예시 Mock)</div>
-<div class="section-label">연결 장비 현황</div>
-<div class="card" style="padding:14px;">
-  <div class="row"><span class="row-ico">🌡️</span><div class="row-t" style="flex:1;">환경 센서 (온습도·CO₂)<div class="row-s">MQTT · 5초 주기</div></div><span class="badge" style="background:var(--green-soft);color:var(--green-dark)">정상</span></div>
-  <div class="row"><span class="row-ico">💧</span><div class="row-t" style="flex:1;">관수 제어기<div class="row-s">Modbus TCP</div></div><span class="badge" style="background:var(--green-soft);color:var(--green-dark)">정상</span></div>
-  <div class="row"><span class="row-ico">🪟</span><div class="row-t" style="flex:1;">천창·측창 개폐기<div class="row-s">RS-485</div></div><span class="badge" style="background:var(--green-soft);color:var(--green-dark)">정상</span></div>
-  <div class="row"><span class="row-ico">📡</span><div class="row-t" style="flex:1;">기상 관측 (ASOS 연계)<div class="row-s">REST API</div></div><span class="badge" style="background:var(--orange-soft);color:var(--orange)">지연</span></div>
-</div>
+<div class="section-label">외부 데이터 연동 현황 <span class="trust-badge trust-live">🟢 실시간</span></div>
+<div class="card" style="padding:14px;" id="apiList"><div style="text-align:center;color:var(--muted);font-size:12px;"><div class="spinner"></div></div></div>
+<div class="section-label" style="margin-top:14px;">MQTT·게이트웨이</div>
+<div class="card" style="padding:14px;" id="mcpList"></div>
 <div class="section-label" style="margin-top:14px;">업그레이드 추천</div>
 <div class="card" style="padding:14px;border-left:4px solid var(--blue);">
   <div style="font-size:13px;font-weight:800;">🛰️ 토양수분 센서 추가 권장</div>
-  <div style="font-size:12px;color:var(--muted);margin-top:4px;line-height:1.5;">노지 4개 필지 관개 자동화 시 연 관수비 약 12% 절감 예상. ROI 약 14개월.</div>
+  <div style="font-size:12px;color:var(--muted);margin-top:4px;line-height:1.5;">노지 필지 관개 자동화 시 연 관수비 약 12% 절감 예상 (C10 ROI 참조). 미설정 API 키 발급 시 연동률 향상.</div>
 </div>
 </main>
 <nav class="sf-bottom-nav">
@@ -51,4 +47,36 @@
   <button class="bnav-tab" onclick="location.href='c12_joint.html'"><span class="bnav-icon">🚚</span>출하</button>
   <button class="bnav-tab active"><span class="bnav-icon">≡</span>메뉴</button>
 </nav>
+<script src="../components/data.js"></script>
+<script>
+'use strict';
+(async function(){
+  const api=sessionStorage.getItem('sf_api')||location.origin;
+  let token=sessionStorage.getItem('sf_token');
+  if(!token){const r=await fetch(`${api}/api/v1/auth/token`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:'admin',password:'1250'})});if(r.ok){token=(await r.json()).access_token;sessionStorage.setItem('sf_token',token);}}
+  const farmId=sessionStorage.getItem('sf_farm_id')||'farm_001';
+  let d;
+  try{ d=await fetch(`${api}/api/farms/${farmId}/system/api-status`,{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.json()); }
+  catch(e){ document.getElementById('apiList').innerHTML='<div style="color:var(--muted);font-size:12px;">로드 실패</div>'; return; }
+  const apis=d.apis||{};
+  const entries=Object.entries(apis);
+  const conn=entries.filter(([k,v])=>v.status==='connected').length;
+  document.getElementById('kConn').textContent=conn;
+  document.getElementById('kConnSub').textContent=`전체 ${entries.length}개 중`;
+  document.getElementById('kRate').textContent=entries.length?Math.round(conn/entries.length*100):0;
+  const stColor=s=>s==='connected'?'var(--green)':s==='fallback_active'?'var(--orange)':'var(--red)';
+  const stBg=s=>s==='connected'?'var(--green-soft)':s==='fallback_active'?'var(--orange-soft)':'var(--red-soft)';
+  const stTxt=s=>s==='connected'?'연결':s==='fallback_active'?'폴백':'미설정';
+  document.getElementById('apiList').innerHTML=entries.map(([name,v])=>`
+    <div class="row"><span class="row-ico">${v.status==='connected'?'🟢':v.status==='fallback_active'?'🟡':'⚪'}</span>
+      <div class="row-t" style="flex:1;">${name}<div class="row-s">${(v.used_for||'').slice(0,40)}</div></div>
+      <span class="badge" style="background:${stBg(v.status)};color:${stColor(v.status)};">${stTxt(v.status)}</span></div>`).join('');
+  // MQTT/MCP 서버
+  const mcp=d.mcp_servers||{};
+  const mEnt=Object.entries(mcp);
+  document.getElementById('mcpList').innerHTML = mEnt.length ? mEnt.map(([k,v])=>`
+    <div class="row"><span class="row-ico">🔌</span><div class="row-t" style="flex:1;">${k}<div class="row-s">${typeof v==='object'?(v.status||JSON.stringify(v).slice(0,40)):v}</div></div></div>`).join('')
+    : '<div class="row"><span class="row-ico">📡</span><div class="row-t" style="flex:1;">MQTT 브로커 (mosquitto)<div class="row-s">포트 1883 · 센서 스트리밍</div></div><span class="badge" style="background:var(--green-soft);color:var(--green-dark)">활성</span></div>';
+})();
+</script>
 </body></html>
