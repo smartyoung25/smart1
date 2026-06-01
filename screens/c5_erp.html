@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <title>C5 — 수익성 ERP | KAASA SmartOS</title>
+  <link rel="stylesheet" href="../components/base.css"/>
+  <style>
+    /* ── C5 전용 스타일 ── */
+
+    /* 핵심 KPI 배너 */
+    .erp-banner {
+      background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%);
+      border-radius: var(--radius); padding: 18px 20px; margin-bottom: 14px; color: #fff;
+    }
+    .erp-banner-row { display: flex; gap: 0; }
+    .erp-kpi { flex: 1; text-align: center; padding: 0 6px; }
+    .erp-kpi + .erp-kpi { border-left: 1px solid rgba(255,255,255,.2); }
+    .erp-kpi-label { font-size: 10px; opacity: .7; margin-bottom: 4px; font-weight: 600; letter-spacing: .3px; }
+    .erp-kpi-value { font-size: 20px; font-weight: 900; line-height: 1; font-variant-numeric: tabular-nums; }
+    .erp-kpi-unit  { font-size: 11px; font-weight: 400; opacity: .8; }
+    .erp-updated   { font-size: 10px; opacity: .6; margin-top: 12px; text-align: right; }
+
+    /* 비용 항목 도넛 대체 — 수평 바 스택 */
+    .cost-stack-wrap { height: 20px; border-radius: 10px; overflow: hidden; display: flex; margin: 10px 0 6px; }
+    .cost-stack-seg  { height: 100%; transition: width .6s; }
+    .cost-legend     { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 6px; }
+    .cost-legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; }
+    .cost-legend-dot  { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+    /* 비용 항목 테이블 */
+    .cost-item {
+      display: flex; align-items: center; gap: 10px; padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .cost-item:last-child { border-bottom: none; }
+    .cost-dot  { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .cost-label { flex: 1; font-size: 13px; font-weight: 700; }
+    .cost-sub   { font-size: 10px; color: var(--muted); display: block; margin-top: 1px; }
+    .cost-pct   { font-size: 12px; color: var(--muted); min-width: 36px; text-align: right; }
+    .cost-amt   { font-size: 13px; font-weight: 800; min-width: 80px; text-align: right; }
+
+    /* 수익성 지표 카드 */
+    .profit-card {
+      background: var(--panel); border-radius: var(--radius-sm); padding: 14px;
+      box-shadow: var(--shadow); margin-bottom: 10px; border: 1.5px solid var(--border);
+    }
+    .profit-label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
+    .profit-value { font-size: 28px; font-weight: 900; margin: 4px 0 2px; font-variant-numeric: tabular-nums; }
+    .profit-sub   { font-size: 12px; color: var(--muted); }
+    .profit-bar-wrap { height: 6px; background: var(--gray-soft); border-radius: 4px; margin-top: 10px; overflow: hidden; }
+    .profit-bar-fill { height: 100%; border-radius: 4px; background: var(--blue); transition: width .8s; }
+
+    /* 손익분기 카드 */
+    .bep-card {
+      background: var(--orange-soft); border-radius: var(--radius-sm);
+      padding: 14px; border: 1px solid var(--orange); margin-bottom: 10px;
+    }
+    .bep-label { font-size: 11px; font-weight: 700; color: var(--orange); }
+    .bep-value { font-size: 24px; font-weight: 900; color: var(--text); margin: 4px 0; }
+    .bep-bar-wrap { height: 8px; background: rgba(0,0,0,.08); border-radius: 4px; margin-top: 8px; overflow: hidden; position: relative; }
+    .bep-bar-fill { height: 100%; border-radius: 4px; background: var(--green); transition: width .8s; }
+    .bep-bar-line { position: absolute; top:0; bottom:0; width: 2px; background: var(--orange); }
+
+    /* 비용 절감 조언 */
+    .saving-item {
+      display: flex; gap: 12px; padding: 11px 13px;
+      background: var(--panel); border-radius: var(--radius-sm);
+      margin-bottom: 8px; box-shadow: var(--shadow); border-left: 4px solid var(--blue);
+    }
+    .si-icon  { font-size: 20px; flex-shrink: 0; }
+    .si-title { font-size: 13px; font-weight: 800; }
+    .si-desc  { font-size: 12px; color: var(--muted); margin-top: 2px; line-height: 1.4; }
+    .si-save  { font-size: 11px; font-weight: 700; color: var(--blue); margin-top: 4px; }
+
+    /* WS 점 */
+    .ws-dot { width:8px; height:8px; border-radius:50%; background:var(--muted); display:inline-block; }
+    .ws-dot.connected { background:var(--green); box-shadow:0 0 0 3px rgba(31,122,77,.2); }
+  </style>
+</head>
+<body>
+
+<!-- ══ 헤더 ══ -->
+<header class="sf-header">
+  <div style="display:flex;align-items:center;gap:6px;">
+    <span class="ws-dot" id="wsDot"></span>
+    <span style="font-size:12px;color:rgba(255,255,255,.8)" id="wsLabel">연결 중…</span>
+  </div>
+  <span style="font-size:15px;font-weight:800;color:#fff;letter-spacing:-.3px">C5 수익성 ERP</span>
+  <select id="farmSel" onchange="onFarmChange(this.value)"
+          style="font-size:12px;background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:8px;padding:4px 8px;cursor:pointer;outline:none;">
+    <option value="farm_001">farm_001</option>
+  </select>
+</header>
+
+<!-- ══ 본문 ══ -->
+<main class="sf-main" style="padding:14px;max-width:480px;margin:0 auto;">
+
+  <!-- 핵심 KPI 배너 -->
+  <div class="erp-banner">
+    <div class="erp-banner-row">
+      <div class="erp-kpi">
+        <div class="erp-kpi-label">kg당 원가</div>
+        <div class="erp-kpi-value" id="kpiCostKg">—<span class="erp-kpi-unit">원</span></div>
+      </div>
+      <div class="erp-kpi">
+        <div class="erp-kpi-label">kg당 마진</div>
+        <div class="erp-kpi-value" id="kpiMarginKg">—<span class="erp-kpi-unit">원</span></div>
+      </div>
+      <div class="erp-kpi">
+        <div class="erp-kpi-label">소득률</div>
+        <div class="erp-kpi-value" id="kpiIncomeRate">—<span class="erp-kpi-unit">%</span></div>
+      </div>
+    </div>
+    <div class="erp-updated" id="erpUpdated">데이터 로드 중…</div>
+  </div>
+
+  <!-- 비용 구조 -->
+  <div class="section-label">월간 비용 구조 <span id="totalCostLabel" style="font-weight:400;color:var(--muted);font-size:11px;"></span></div>
+  <div class="card" style="padding:14px;">
+    <div class="cost-stack-wrap" id="costStack"></div>
+    <div class="cost-legend" id="costLegend"></div>
+    <div style="margin-top:12px;" id="costItems"></div>
+  </div>
+
+  <!-- 수익성 지표 -->
+  <div class="section-label" style="margin-top:14px;">수익성 지표</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+    <div class="profit-card">
+      <div class="profit-label">예상 매출</div>
+      <div class="profit-value" id="pfRevenue" style="font-size:20px;color:var(--blue);">—</div>
+      <div class="profit-sub" id="pfRevSub">ML 예측 기준</div>
+    </div>
+    <div class="profit-card">
+      <div class="profit-label">예상 순이익</div>
+      <div class="profit-value" id="pfProfit" style="font-size:20px;color:var(--green);">—</div>
+      <div class="profit-sub" id="pfProfSub">매출 - 총원가</div>
+    </div>
+  </div>
+
+  <!-- 마진율 대형 카드 -->
+  <div class="profit-card" style="padding:16px 18px;">
+    <div class="profit-label">마진율 (소득률)</div>
+    <div class="profit-value" id="pfMargin">—</div>
+    <div class="profit-sub" id="pfMarginSub">목표: 70% 이상</div>
+    <div class="profit-bar-wrap">
+      <div class="profit-bar-fill" id="marginBar" style="width:0%"></div>
+    </div>
+  </div>
+
+  <!-- 손익분기점 -->
+  <div class="bep-card">
+    <div class="bep-label">손익분기점 (BEP)</div>
+    <div class="bep-value" id="bepValue">— kg</div>
+    <div style="font-size:12px;color:var(--muted);" id="bepDesc">이 이상 수확해야 흑자 전환</div>
+    <div class="bep-bar-wrap">
+      <div class="bep-bar-fill" id="bepBar" style="width:0%"></div>
+      <div class="bep-bar-line" id="bepLine" style="left:0%"></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:10px;margin-top:4px;color:var(--muted);">
+      <span>0 kg</span>
+      <span id="bepForecast">예상 수확량</span>
+    </div>
+  </div>
+
+  <!-- 비용 절감 조언 -->
+  <div class="section-label">비용 절감 조언</div>
+  <div id="savingAdvices"></div>
+
+</main>
+
+<!-- ══ 하단 탭 바 ══ -->
+<nav class="sf-bottom-nav">
+  <button class="bnav-tab" onclick="location.href='c3_home.html'">
+    <span class="bnav-icon">🏠</span>홈
+  </button>
+  <button class="bnav-tab" onclick="location.href='g3_period.html'">
+    <span class="bnav-icon">💧</span>관수
+  </button>
+  <button class="bnav-tab" onclick="location.href='g4_growth.html'">
+    <span class="bnav-icon">🌱</span>생육
+  </button>
+  <button class="bnav-tab" onclick="location.href='g6_harvest.html'">
+    <span class="bnav-icon">🚛</span>출하
+  </button>
+  <button class="bnav-tab active">
+    <span class="bnav-icon">💰</span>ERP
+  </button>
+</nav>
+
+<script src="../components/data.js"></script>
+<script>
+'use strict';
+
+const COST_COLORS = {
+  electricity: '#3b82f6',
+  water:       '#06b6d4',
+  heating:     '#f97316',
+  labor:       '#8b5cf6',
+  nutrients:   '#22c55e',
+  pesticides:  '#ef4444',
+  other:       '#94a3b8',
+};
+const COST_ICONS = {
+  electricity:'⚡', water:'💧', heating:'🔥', labor:'👷',
+  nutrients:'🌿', pesticides:'🧪', other:'📦',
+};
+
+window.addEventListener('DOMContentLoaded', () => {
+  const farmId = new URLSearchParams(location.search).get('farm') ||
+                 sessionStorage.getItem('sf_farm_id') || 'farm_001';
+  _ensureToken().then(token => {
+    KaasaData.init({ farmId, token, onStatus: _onWsStatus });
+    _loadAll(token, farmId);
+  });
+});
+
+function onFarmChange(id) { sessionStorage.setItem('sf_farm_id', id); location.reload(); }
+
+async function _ensureToken() {
+  const s = sessionStorage.getItem('sf_token');
+  if (s) return s;
+  try {
+    const api = sessionStorage.getItem('sf_api') || location.origin;
+    const r = await fetch(`${api}/api/v1/auth/token`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({username:'admin',password:'1250'}),
+    });
+    if (r.ok) { const d = await r.json(); sessionStorage.setItem('sf_token', d.access_token); return d.access_token; }
+  } catch {}
+  return '';
+}
+
+function _onWsStatus(s) {
+  const dot=document.getElementById('wsDot'), lbl=document.getElementById('wsLabel');
+  if(dot) dot.className='ws-dot '+s;
+  if(lbl) lbl.textContent=s==='connected'?'실시간 연결 중':s==='reconnecting'?'재연결 중…':'연결 안 됨';
+}
+
+async function _loadAll(token, farmId) {
+  const api = KaasaData.getApiBase();
+  const H   = { Authorization: `Bearer ${token}` };
+
+  const [erp, costs, revenue] = await Promise.all([
+    fetch(`${api}/api/farms/${farmId}/erp/realtime`,    {headers:H}).then(r=>r.ok?r.json():null).catch(()=>null),
+    fetch(`${api}/api/farms/${farmId}/costs`,           {headers:H}).then(r=>r.ok?r.json():null).catch(()=>null),
+    fetch(`${api}/api/farms/${farmId}/revenue`,         {headers:H}).then(r=>r.ok?r.json():null).catch(()=>null),
+  ]);
+
+  _renderBanner(erp);
+  _renderCosts(costs);
+  _renderProfitability(revenue, erp, costs);
+  _renderSavings(costs, erp);
+}
+
+// ── 핵심 KPI 배너 ──────────────────────────────────────────────────────────
+function _renderBanner(erp) {
+  if (!erp) return;
+  const fmt  = v => v != null ? Math.round(v).toLocaleString() : '—';
+  const setEl= (id,v) => { const el=document.getElementById(id); if(el) el.innerHTML=v; };
+
+  setEl('kpiCostKg',    `${fmt(erp.cost_per_kg)}<span class="erp-kpi-unit">원</span>`);
+  setEl('kpiMarginKg',  `${fmt(erp.margin_per_kg)}<span class="erp-kpi-unit">원</span>`);
+  setEl('kpiIncomeRate',`${Math.round(erp.income_rate_pct ?? 0)}<span class="erp-kpi-unit">%</span>`);
+
+  const upd = document.getElementById('erpUpdated');
+  if (upd) upd.textContent = `${erp.crop_ko || '오이'} · 재배면적 ${Math.round(erp.area_m2||0).toLocaleString()}m² · 실시간 갱신`;
+}
+
+// ── 비용 구조 ──────────────────────────────────────────────────────────────
+function _renderCosts(costs) {
+  if (!costs) return;
+  const items  = costs.items || [];
+  const total  = costs.total_cost_krw || 0;
+  const fmt    = v => Math.round(v).toLocaleString();
+
+  const lbl = document.getElementById('totalCostLabel');
+  if (lbl) lbl.textContent = `(월 ${Math.round(total/10000).toLocaleString()}만원)`;
+
+  // 스택 바
+  const stack  = document.getElementById('costStack');
+  const legend = document.getElementById('costLegend');
+  const table  = document.getElementById('costItems');
+  if (!stack || !items.length) return;
+
+  stack.innerHTML = items.map(item => {
+    const color = COST_COLORS[item.category] || COST_COLORS.other;
+    const pct   = (item.pct_of_total ?? 0) * 100;
+    return `<div class="cost-stack-seg" style="width:${pct}%;background:${color};" title="${item.label_ko}: ${fmt(item.amount_krw)}원"></div>`;
+  }).join('');
+
+  legend.innerHTML = items.map(item => {
+    const color = COST_COLORS[item.category] || COST_COLORS.other;
+    return `<div class="cost-legend-item">
+      <div class="cost-legend-dot" style="background:${color};"></div>
+      <span>${item.label_ko}</span>
+    </div>`;
+  }).join('');
+
+  table.innerHTML = items.map(item => {
+    const color = COST_COLORS[item.category] || COST_COLORS.other;
+    const icon  = COST_ICONS[item.category] || '📦';
+    const pct   = Math.round((item.pct_of_total ?? 0) * 100);
+    const unit  = item.unit_label || '';
+    return `<div class="cost-item">
+      <div class="cost-dot" style="background:${color};"></div>
+      <div style="flex:1;">
+        <div class="cost-label">${icon} ${item.label_ko}</div>
+        ${unit ? `<span class="cost-sub">${unit.replace(/[^\x00-\x7F]/g, c => c)}</span>` : ''}
+      </div>
+      <div class="cost-pct">${pct}%</div>
+      <div class="cost-amt">${fmt(item.amount_krw)}원</div>
+    </div>`;
+  }).join('');
+}
+
+// ── 수익성 지표 ─────────────────────────────────────────────────────────────
+function _renderProfitability(revenue, erp, costs) {
+  const rev    = revenue?.revenue_krw ?? revenue?.predicted_revenue_krw ?? 0;
+  const profit = revenue?.predicted_profit_krw ?? (rev - (costs?.total_cost_krw ?? 0));
+  const margin = revenue?.profit_margin_pct ?? (rev > 0 ? (profit/rev)*100 : 0);
+  const bep    = erp?.breakeven_kg ?? 0;
+  const yFcast = revenue?.yield_kg_forecast ?? 18000;
+  const fmt    = v => `${Math.round(v/10000).toLocaleString()}만원`;
+
+  const setEl = (id,v) => { const el=document.getElementById(id); if(el) el.innerHTML=v; };
+  setEl('pfRevenue', fmt(rev));
+  setEl('pfProfit',  fmt(profit));
+  setEl('pfRevSub', `${Math.round(rev/10000).toLocaleString()}만원 예상`);
+  setEl('pfProfSub', `${Math.round(margin)}% 마진율`);
+
+  const mEl = document.getElementById('pfMargin');
+  const mBar = document.getElementById('marginBar');
+  const mSub = document.getElementById('pfMarginSub');
+  if (mEl)  mEl.innerHTML = `${Math.round(margin)}<span style="font-size:16px;font-weight:400;">%</span>`;
+  if (mBar) { mBar.style.width = `${Math.min(margin, 100)}%`; mBar.style.background = margin >= 70 ? 'var(--green)' : margin >= 50 ? 'var(--orange)' : 'var(--red)'; }
+  if (mSub) { mSub.textContent = margin >= 70 ? '✅ 목표 달성 (70% 이상)' : margin >= 50 ? '⚠️ 개선 필요 (50~70%)' : '❌ 목표 미달 (50% 미만)'; }
+
+  // BEP
+  const bepEl   = document.getElementById('bepValue');
+  const bepDesc = document.getElementById('bepDesc');
+  const bepBar  = document.getElementById('bepBar');
+  const bepLine = document.getElementById('bepLine');
+  const bepFc   = document.getElementById('bepForecast');
+  if (bepEl)  bepEl.textContent   = `${Math.round(bep).toLocaleString()} kg`;
+  if (bepDesc)bepDesc.textContent = `예상 수확량(${Math.round(yFcast).toLocaleString()}kg)의 ${Math.round(bep/yFcast*100)}% 수준에서 흑자 전환`;
+  const bepPct = Math.min((bep / yFcast) * 100, 100);
+  const yPct   = 100;
+  if (bepBar)  bepBar.style.width    = `${yPct}%`;
+  if (bepLine) bepLine.style.left    = `${bepPct}%`;
+  if (bepFc)   bepFc.textContent    = `예상 ${Math.round(yFcast).toLocaleString()}kg`;
+}
+
+// ── 비용 절감 조언 ──────────────────────────────────────────────────────────
+function _renderSavings(costs, erp) {
+  const items = costs?.items || [];
+  const total = costs?.total_cost_krw || 0;
+  const savings = [];
+
+  const labor = items.find(i => i.category === 'labor');
+  if (labor && (labor.pct_of_total ?? 0) > 0.5) {
+    savings.push({
+      icon:'👷', title:`인건비 ${Math.round(labor.pct_of_total*100)}% — 최대 비용 항목`,
+      desc:'수확·관수 기록 디지털화로 작업 시간 단축. AI 관수 자동화 시 주당 2~3시간 절감 가능',
+      save:`절감 가능: 연 ${Math.round(labor.amount_krw * 12 * 0.10 / 10000)}만원 (10% 절감 시)`,
+    });
+  }
+  const elec = items.find(i => i.category === 'electricity');
+  if (elec) {
+    savings.push({
+      icon:'⚡', title:'전력 요금 최적화',
+      desc:'경부하 시간대(23:00~09:00) 환기·보온 집중 운영. LED 조명 DLI 기반 자동 조절',
+      save:`절감 가능: 월 ${Math.round(elec.amount_krw * 0.12 / 10000)}만원 (피크 회피 시)`,
+    });
+  }
+  const heat = items.find(i => i.category === 'heating');
+  if (heat) {
+    savings.push({
+      icon:'🔥', title:'난방비 절감',
+      desc:'야간 적정 온도 설정(18°C)·보온커튼 이중 활용. G2 환경 제어 연동으로 자동 최적화',
+      save:`절감 가능: 월 ${Math.round(heat.amount_krw * 0.15 / 10000)}만원 (15% 절감 시)`,
+    });
+  }
+  savings.push({
+    icon:'🌿', title:'공동출하 전환으로 수익 향상',
+    desc:'출하 채널 최적화. G6 수확·유통 화면에서 공동출하 Pool 비교 후 결정',
+    save:'G6 화면에서 시뮬레이션 가능',
+  });
+
+  const container = document.getElementById('savingAdvices');
+  if (!container) return;
+  container.innerHTML = savings.map(s => `
+    <div class="saving-item">
+      <span class="si-icon">${s.icon}</span>
+      <div>
+        <div class="si-title">${s.title}</div>
+        <div class="si-desc">${s.desc}</div>
+        <div class="si-save">💡 ${s.save}</div>
+      </div>
+    </div>`).join('');
+}
+</script>
+</body>
+</html>
