@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
   <title>G1 — 온실 홈 | KAASA SmartOS</title>
   <link rel="stylesheet" href="../components/base.css"/>
+  <link rel="stylesheet" href="../components/decision_card.css"/>
   <style>
     /* ── G1 온실 홈 ── */
     .gh-hero {
@@ -101,6 +102,15 @@
     </div>
   </div>
 
+  <!-- ★ 오늘의 결정 (AI 의사결정) -->
+  <div class="section-label" style="display:flex;align-items:center;justify-content:space-between;">
+    <span>오늘의 결정 <span style="font-size:10px;color:var(--muted);font-weight:600;">AI 의사결정</span></span>
+    <span id="ddCount" style="font-size:12px;color:var(--muted)"></span>
+  </div>
+  <div id="decisionDeck">
+    <div style="text-align:center;padding:14px;color:var(--muted);font-size:13px;">의사결정 분석 중…</div>
+  </div>
+
   <!-- 오늘 할 일 -->
   <div class="section-label" style="display:flex;justify-content:space-between;">
     <span>온실 오늘 할 일 <span class="trust-badge trust-live">🟢 실측</span></span>
@@ -172,21 +182,49 @@
 </nav>
 
 <script src="../components/data.js"></script>
+<script src="../components/decision_card.js"></script>
 <script>
 'use strict';
 let _todos = [];
+let _env = {}, _recs = [], _recModelLayer = null, _tokenG = '', _farmG = 'farm_001';
 
 window.addEventListener('DOMContentLoaded', () => {
   const farmId = new URLSearchParams(location.search).get('farm') ||
                  sessionStorage.getItem('sf_farm_id') || 'farm_001';
+  _farmG = farmId;
   _updateHero();
   _buildTodos();
   _ensureToken().then(token => {
-    KaasaData.init({ farmId, token, onSensor:_onSensor, onStatus:_onWsStatus });
+    _tokenG = token;
+    KaasaData.init({ farmId, token, onSensor:_onSensor, onRecommend:_onRecommend, onStatus:_onWsStatus });
     KaasaData.loadEnvironment();
+    KaasaData.loadRecommend && KaasaData.loadRecommend({ crop:'토마토', tier:'semi_auto', areaMeter:1000 });
     _loadSummaries(token, farmId);
   });
 });
+
+function _onRecommend(data){
+  if(!data) return;
+  _recs = data.recommendations || []; _recModelLayer = data._modelLayer || null;
+  _renderDecisions();
+}
+function _renderDecisions(){
+  const el = document.getElementById('decisionDeck');
+  if(!el || !window.DecisionDeck) return;
+  const p = KaasaData.getCurrentPeriod ? KaasaData.getCurrentPeriod() : {label:''};
+  const items = DecisionDeck.buildGreenhouse(_env, _recs, { periodLabel:p.label, modelLayer:_recModelLayer });
+  document.getElementById('ddCount').textContent = items.length ? `${items.length}건` : '';
+  DecisionDeck.render(el, items, { onApply:_applyDecision });
+}
+async function _applyDecision(item){
+  try{
+    const api = KaasaData.getApiBase ? KaasaData.getApiBase() : location.origin;
+    await fetch(`${api}/api/farms/${_farmG}/activity`, { method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${_tokenG}`},
+      body: JSON.stringify({ kind:'decision_apply', item:item.title, value:item.confidence??null,
+        detail:`${item.action||''} · 심각도 ${item.severity} · 출처 ${item.source}` }) });
+  }catch(e){}
+}
 
 function onFarmChange(id){ sessionStorage.setItem('sf_farm_id', id); location.reload(); }
 
@@ -218,6 +256,7 @@ function _updateHero(){
 }
 
 function _onSensor(env){
+  _env = env || {}; _renderDecisions();
   const f1=v=>v!=null?Number(v).toFixed(1):'—';
   const t=env.temp_internal ?? env.temp_internal_mean ?? null;
   const tEl=document.getElementById('kpiTemp');

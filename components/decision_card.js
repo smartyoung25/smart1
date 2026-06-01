@@ -93,5 +93,81 @@
     });
   }
 
-  global.DecisionDeck = { render };
+  // ── 공통 빌더: 환경/추천 데이터 → 결정카드 items ──────────────────────────
+  // 온실용 (배액률·VPD 이상감지 + AI 추천)
+  function buildGreenhouse(env, recs, opts) {
+    env = env || {}; recs = recs || []; opts = opts || {};
+    const items = [];
+    const age = env._ageMin ?? 1;
+    const pl = opts.periodLabel || '';
+    const dr = env.dr_pct ?? env.dr_pct_mean ?? null;
+    if (dr != null && dr < 12) items.push({ severity:'danger', title:`배액률 ${dr.toFixed(1)}% — 근권 건조 위험`,
+      why:`목표 20~30% 대비 크게 미달${pl?` (${pl})`:''}. 즉시 추가 관수가 필요합니다.`,
+      action:'추가 관수 1회 실행 · 급액량 +10%', confidence:88, source:'live', updatedMin:age,
+      evidence:'배액률<12%는 근권 수분 부족 신호로, 농진청 표준상 즉시 보충 관수 대상입니다.',
+      applyLabel:'추가 관수 기록', target:'g3_period.html' });
+    else if (dr != null && dr < 20) items.push({ severity:'warn', title:`배액률 ${dr.toFixed(1)}% — 목표 미달`,
+      why:`목표 20~30%보다 낮습니다${pl?` (${pl})`:''}. 급액량 소폭 상향을 검토하세요.`,
+      action:'급액량 +5% 또는 관수 간격 단축', confidence:74, source:'live', updatedMin:age,
+      evidence:'배액률 12~20%는 경계 구간으로, 일사·VPD 추이를 보며 점진 상향이 권장됩니다.',
+      applyLabel:'조정 기록', target:'g3_period.html' });
+    const vpd = env.vpd ?? null;
+    if (vpd != null && vpd > 1.8) items.push({ severity:'warn', title:`VPD ${vpd.toFixed(1)} kPa — 증산 과다`,
+      why:'공기가 건조해 수분 스트레스 위험이 있습니다. 환기 약화 또는 가습/급액 보완이 필요합니다.',
+      action:'환기 단계 ↓ · 급액 보충', confidence:70, source:'live', updatedMin:age,
+      evidence:'VPD>1.8 kPa는 기공 폐쇄·광합성 저하 구간. 적정대(0.6~1.2) 복귀가 목표.',
+      applyLabel:'환경 조정 기록', target:'g2_env.html' });
+    else if (vpd != null && vpd < 0.6) items.push({ severity:'info', title:`VPD ${vpd.toFixed(1)} kPa — 과습 주의`,
+      why:'습도가 높아 결로·곰팡이병 위험이 올라갑니다. 환기 강화를 검토하세요.',
+      action:'환기 단계 ↑ · 제습', confidence:66, source:'live', updatedMin:age,
+      evidence:'VPD<0.6 kPa 지속은 잿빛곰팡이 등 병해 발생 환경. 환기로 포차를 높이는 것이 효과적.',
+      applyLabel:'환기 조정 기록', target:'g5_disease.html' });
+    if (recs.length) {
+      const r = recs[0]; const conf = Math.round((r.confidence ?? 0) * 100);
+      const isStd = opts.modelLayer === '농진청표준';
+      items.push({ severity:'info', title: r.title_ko || 'AI 관수·양액 추천',
+        why: r.action_ko || (isStd ? '농진청 표준 기준값을 적용 중입니다.' : 'AI 모델 추천입니다.'),
+        action: r.action_ko || r.title_ko, confidence: conf || 60,
+        source: isStd ? 'standard' : 'model', updatedMin: env._ageMin ?? 3,
+        evidence:`추천 근거: ${r.title_ko||'관수 최적화'} · 모델 레이어 ${opts.modelLayer||'KAASA'}`,
+        applyLabel:'추천 적용 기록', target:'g3_period.html' });
+    }
+    return items;
+  }
+
+  // 노지용 (기상 기반: 강풍·강우·고온·관개)
+  function buildField(env, wx, opts) {
+    env = env || {}; wx = wx || {}; opts = opts || {};
+    const items = [];
+    const age = env._ageMin ?? 5;
+    const wind = wx.wind_speed ?? env.wind_speed_ext ?? null;
+    const rain = wx.precip_mm ?? wx.rain_mm ?? null;
+    const tmax = wx.temp_max ?? env.temp_ext ?? null;
+    if (wind != null && wind >= 9) items.push({ severity:'danger', title:`강풍 ${wind.toFixed(0)} m/s 예보 — 시설·작물 피해 위험`,
+      why:'지주·피복 점검과 방풍 조치가 필요합니다. 약제 살포는 연기하세요.',
+      action:'지주 보강 · 살포 연기', confidence:80, source:'model', updatedMin:age,
+      evidence:'순간풍속 9 m/s↑은 비닐·지주 탈락 위험 구간. 기상청 예보 기반.',
+      applyLabel:'대비 조치 기록', target:'f3_weather.html' });
+    if (rain != null && rain >= 20) items.push({ severity:'warn', title:`강우 ${rain.toFixed(0)} mm 예보 — 관개 보류 권장`,
+      why:'예정된 관개를 보류하고 배수로를 점검하세요. 침수 우려 필지를 우선 확인합니다.',
+      action:'관개 보류 · 배수로 점검', confidence:76, source:'model', updatedMin:age,
+      evidence:'일 강우 20 mm↑ 예보 시 관개 중복은 과습·뿌리 장해 유발.',
+      applyLabel:'관개 보류 기록', target:'f4_soil.html' });
+    else if (rain != null && rain < 1 && tmax != null && tmax >= 28) items.push({ severity:'info', title:`고온 건조 — 관개 필요`,
+      why:`최고 ${tmax.toFixed(0)}℃·무강우 예보. 증발산이 커 토양수분 보충이 필요합니다.`,
+      action:'관개 1회 실시 (오전 권장)', confidence:68, source:'model', updatedMin:age,
+      evidence:'고온·무강우 조합은 ETc 상승으로 토양수분 급감. 오전 관개가 증발 손실 최소.',
+      applyLabel:'관개 기록', target:'f4_soil.html' });
+    // ET₀ 증발산 기반 관개 (강우 적고 증발산 높을 때)
+    const et0 = wx.et0 ?? null;
+    if (!items.some(i=>i.target==='f4_soil.html') && et0 != null && et0 >= 6 && (rain == null || rain < 5))
+      items.push({ severity:'info', title:`증발산(ET₀) ${et0.toFixed(1)} mm — 관개 검토`,
+        why:'주간 증발산이 높고 강우가 적습니다. 토양수분 소모가 빨라 관개 계획이 필요합니다.',
+        action:'관개량 산정 · 우선 필지부터 관개', confidence:67, source:'model', updatedMin:age,
+        evidence:`ET₀ ${et0.toFixed(1)} mm·강우 ${(rain??0).toFixed(0)} mm 기준, 작물계수(Kc) 적용한 ETc만큼 보충 권장.`,
+        applyLabel:'관개 계획 기록', target:'f4_soil.html' });
+    return items;
+  }
+
+  global.DecisionDeck = { render, buildGreenhouse, buildField };
 })(window);

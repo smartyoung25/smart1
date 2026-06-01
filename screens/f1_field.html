@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
   <title>F1 — 노지 홈 | KAASA SmartOS</title>
   <link rel="stylesheet" href="../components/base.css"/>
+  <link rel="stylesheet" href="../components/decision_card.css"/>
   <style>
     .fd-hero { background:linear-gradient(135deg,#365314 0%,#65a30d 100%); border-radius:var(--radius); padding:18px 20px; margin-bottom:14px; color:#fff; }
     .fd-hero-label { font-size:12px; opacity:.75; }
@@ -68,6 +69,15 @@
     <div class="fd-kpi"><div class="fd-kpi-ico">⚠️</div><div class="fd-kpi-val" id="kpiRisk" style="color:var(--green)">—</div><div class="fd-kpi-label">재해 위험</div></div>
   </div>
 
+  <!-- ★ 오늘의 결정 (AI 의사결정) -->
+  <div class="section-label" style="display:flex;align-items:center;justify-content:space-between;">
+    <span>오늘의 결정 <span style="font-size:10px;color:var(--muted);font-weight:600;">AI 의사결정</span></span>
+    <span id="ddCount" style="font-size:12px;color:var(--muted)"></span>
+  </div>
+  <div id="decisionDeck">
+    <div style="text-align:center;padding:14px;color:var(--muted);font-size:13px;">의사결정 분석 중…</div>
+  </div>
+
   <!-- 필지 지도 -->
   <div class="section-label">필지 지도 <span class="trust-badge trust-mock">⚪ Mock</span></div>
   <div class="map-box" id="mapBox">
@@ -109,9 +119,11 @@
 </nav>
 
 <script src="../components/data.js"></script>
+<script src="../components/decision_card.js"></script>
 <script>
 'use strict';
 let _todos=[];
+let _tokenG='', _farmG='farm_001';
 // Mock 필지 (실측 센서 연동 시 교체) — 각 필지 토양수분%
 const PARCELS=[
   {name:'1번 필지', x:6, y:12, w:42, h:38, moisture:62, status:'ok'},
@@ -122,9 +134,26 @@ const PARCELS=[
 
 window.addEventListener('DOMContentLoaded', ()=>{
   const farmId=new URLSearchParams(location.search).get('farm')||sessionStorage.getItem('sf_farm_id')||'farm_001';
+  _farmG=farmId;
   _updateHero(); _renderMap(); _buildTodos();
-  _ensureToken().then(token=>{ KaasaData.init({farmId,token,onStatus:_onWsStatus}); _loadWeather(token,farmId); });
+  _ensureToken().then(token=>{ _tokenG=token; KaasaData.init({farmId,token,onStatus:_onWsStatus}); _loadWeather(token,farmId); });
 });
+function _renderDecisions(wx){
+  const el=document.getElementById('decisionDeck');
+  if(!el||!window.DecisionDeck) return;
+  const items=DecisionDeck.buildField({}, wx||{}, {});
+  document.getElementById('ddCount').textContent = items.length ? `${items.length}건` : '';
+  DecisionDeck.render(el, items, { onApply:_applyDecision });
+}
+async function _applyDecision(item){
+  try{
+    const api=KaasaData.getApiBase?KaasaData.getApiBase():location.origin;
+    await fetch(`${api}/api/farms/${_farmG}/activity`,{method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${_tokenG}`},
+      body:JSON.stringify({kind:'decision_apply',item:item.title,value:item.confidence??null,
+        detail:`${item.action||''} · 심각도 ${item.severity} · 출처 ${item.source}`})});
+  }catch(e){}
+}
 function onFarmChange(id){ sessionStorage.setItem('sf_farm_id',id); location.reload(); }
 async function _ensureToken(){
   const s=sessionStorage.getItem('sf_token'); if(s)return s;
@@ -161,6 +190,9 @@ async function _loadWeather(token, farmId){
   }
   // 재해 위험은 풍속/강우 기반 — 데이터 부족 시 정상
   document.getElementById('kpiRisk').textContent='낮음';
+  // ★ 오늘의 결정: 7일 요약(증발산·강우·기온) 기반
+  const s = (wf && wf.summary_7d) || {};
+  _renderDecisions({ et0: s.avg_et0 ?? null, precip_mm: s.total_rain ?? null, temp_max: s.avg_temp ?? null });
 }
 
 function _buildTodos(){
