@@ -159,6 +159,8 @@
     </span>
   </div>
 
+  <!-- 연동 장비 배지 (C16 등록 기자재 기반) -->
+  <div id="eqLink"></div>
   <!-- ══ 경보 존 ══ -->
   <div id="alertZone"></div>
 
@@ -273,6 +275,7 @@
 <script src="../components/data.js"></script>
 <script src="../components/tier_guard.js"></script>
 <script src="../components/band_chart.js"></script>
+<script src="../components/equipment_link.js"></script>
 <script>
 /* ── 전역 상태 ── */
 let _privaData     = null;
@@ -301,6 +304,9 @@ window.addEventListener('DOMContentLoaded', () => {
     buildRecordFields();
     KaasaData.loadEnvironment();
     loadAll();
+    // 연동 장비 배지 (관수 관련 표준변수)
+    if(window.EquipmentLink) EquipmentLink.load(farmId, token).then(inv=>
+      EquipmentLink.renderBadge(document.getElementById('eqLink'), inv, ['ec_dsm','ph','drain_pct','supply_ml','water_content_pct']));
     // 등급 게이팅: 드레인 EC 분석은 pro 등급 전용 (irr_ec_drain)
     KaasaTier.init(farmId, token).then(() => {
       KaasaTier.guard(document.getElementById('kpiEcCard'), 'irr_ec_drain',
