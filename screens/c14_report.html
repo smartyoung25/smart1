@@ -73,6 +73,14 @@
     <div style="font-size:11px;color:var(--muted);margin-top:8px;" id="learnMsg">—</div>
   </div>
 
+  <!-- 이행 활동 상세 (운영 기록 by_kind) -->
+  <div class="section-label" style="margin-top:14px;">이행 활동 상세 <span class="trust-badge trust-live">🟢 운영기록</span></div>
+  <div class="card" style="padding:14px;">
+    <div id="actBreakdown" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+    <div style="font-size:11px;font-weight:700;color:var(--muted);margin:12px 0 4px;">최근 기록</div>
+    <div id="actRecent"></div>
+  </div>
+
   <div class="section-label" style="margin-top:14px;">취약 항목</div>
   <div id="weakList"></div>
 
@@ -91,6 +99,7 @@
   <button class="bnav-tab active"><span class="bnav-icon">≡</span>메뉴</button>
 </nav>
 <script src="../components/data.js"></script>
+<script src="../components/record_sheet.js"></script>
 <script>
 'use strict';
 const AREA_ICON={'경영':'💰','환경':'🌡️','관수':'💧','에너지':'⚡','병해':'🔬','수확':'🚚'};
@@ -150,6 +159,9 @@ async function _load(token,farmId){
   document.getElementById('learnBar').style.width=`${L.progress_pct??0}%`;
   document.getElementById('learnMsg').textContent=L.message||'';
 
+  // 이행 활동 상세 (운영 기록 by_kind + 최근)
+  _loadActivityDetail(token,farmId);
+
   // 취약항목
   document.getElementById('weakList').innerHTML=d.weak_points.map(w=>`
     <div class="weak-item"><span>⚠️</span><div class="wt"><b>${w.area}</b> · ${w.detail}</div></div>`).join('');
@@ -161,6 +173,25 @@ async function _load(token,farmId){
     || '<div style="color:var(--muted);font-size:12px;text-align:center;padding:8px;">실행 항목 없음 — 양호</div>';
 
   document.getElementById('repNote').textContent=d.note||'';
+}
+
+const ACT_KIND={irrigation:['💧','관개'],disease_check:['🐛','방제·점검'],harvest:['🚜','수확'],
+  env_setpoint:['🌡️','환경설정'],growth:['🌿','생육측정'],todo:['📋','작업계획'],
+  education:['🎓','교육'],decision_apply:['🤖','AI결정'],consult:['🩺','전문가'],
+  joint_ship:['🤝','공동출하'],consent:['📑','데이터동의']};
+async function _loadActivityDetail(token,farmId){
+  try{
+    const api=KaasaData.getApiBase();
+    const s=await fetch(`${api}/api/farms/${farmId}/activity/summary`,{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.json());
+    const bk=s.by_kind||{};
+    const chips=Object.entries(bk).sort((a,b)=>b[1]-a[1]).map(([k,n])=>{
+      const m=ACT_KIND[k]||['•',k];
+      return `<span style="font-size:12px;font-weight:700;padding:6px 11px;border-radius:20px;background:var(--green-soft);color:var(--green-dark);">${m[0]} ${m[1]} <b>${n}</b></span>`;
+    }).join('');
+    document.getElementById('actBreakdown').innerHTML = chips ||
+      '<span style="font-size:12px;color:var(--muted);">이번 달 운영 기록이 아직 없습니다.</span>';
+    if(window.RecordSheet) RecordSheet.renderRecent(document.getElementById('actRecent'),farmId,token,{limit:6});
+  }catch(e){ document.getElementById('actBreakdown').innerHTML='<span style="font-size:12px;color:var(--muted);">기록을 불러오지 못했습니다.</span>'; }
 }
 </script>
 </body>
