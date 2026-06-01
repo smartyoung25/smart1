@@ -26,20 +26,13 @@
 </header>
 <main class="sf-main" style="padding:14px;max-width:480px;margin:0 auto;">
 
-<div class="mock-note">ℹ️ 투자 시나리오는 작목·지역별 표준 단가 기반 추정 (현재 예시 Mock)</div>
-<div class="section-label">투자안 비교</div>
-<div class="card" style="padding:14px;margin-bottom:10px;border-left:4px solid var(--green);">
-  <div style="display:flex;justify-content:space-between;"><span style="font-size:14px;font-weight:800;">🌡️ 환경 자동제어</span><span style="font-size:13px;font-weight:800;color:var(--green)">14개월</span></div>
-  <div style="font-size:12px;color:var(--muted);margin-top:4px;">투자비 1,800만원 · 연 효과 1,540만원 (수확↑·에너지↓)</div>
+<div class="mock-note" id="roiNote">ℹ️ 농장 실매출·에너지비 기반 ROI 산출 중…</div>
+<div class="kpi-grid">
+  <div class="kpi"><div class="kpi-l">연 매출(ERP)</div><div class="kpi-v" id="kRev" style="font-size:18px;color:var(--blue)">—</div><div class="kpi-s">실데이터 기준</div></div>
+  <div class="kpi"><div class="kpi-l">연 에너지비</div><div class="kpi-v" id="kEnergy" style="font-size:18px;color:var(--orange)">—</div><div class="kpi-s">절감 대상</div></div>
 </div>
-<div class="card" style="padding:14px;margin-bottom:10px;border-left:4px solid var(--blue);">
-  <div style="display:flex;justify-content:space-between;"><span style="font-size:14px;font-weight:800;">💧 관수 자동화</span><span style="font-size:13px;font-weight:800;color:var(--blue)">20개월</span></div>
-  <div style="font-size:12px;color:var(--muted);margin-top:4px;">투자비 1,200만원 · 연 효과 720만원 (관수비↓·인건비↓)</div>
-</div>
-<div class="card" style="padding:14px;border-left:4px solid var(--orange);">
-  <div style="display:flex;justify-content:space-between;"><span style="font-size:14px;font-weight:800;">🛰️ 노지 원격탐사</span><span style="font-size:13px;font-weight:800;color:var(--orange)">28개월</span></div>
-  <div style="font-size:12px;color:var(--muted);margin-top:4px;">투자비 900만원 · 연 효과 390만원 (병해 조기대응)</div>
-</div>
+<div class="section-label">투자안 비교 (농장 데이터 기반)</div>
+<div id="invList"></div>
 </main>
 <nav class="sf-bottom-nav">
   <button class="bnav-tab" onclick="location.href='c3_home.html'"><span class="bnav-icon">🏠</span>홈</button>
@@ -48,4 +41,43 @@
   <button class="bnav-tab" onclick="location.href='c12_joint.html'"><span class="bnav-icon">🚚</span>출하</button>
   <button class="bnav-tab active"><span class="bnav-icon">≡</span>메뉴</button>
 </nav>
+<script src="../components/data.js"></script>
+<script>
+'use strict';
+(async function(){
+  const api=sessionStorage.getItem('sf_api')||location.origin;
+  let token=sessionStorage.getItem('sf_token');
+  if(!token){const r=await fetch(`${api}/api/v1/auth/token`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:'admin',password:'1250'})});if(r.ok){token=(await r.json()).access_token;sessionStorage.setItem('sf_token',token);}}
+  const farmId=sessionStorage.getItem('sf_farm_id')||'farm_001';
+  const H={Authorization:`Bearer ${token}`};
+  const [rev,costs]=await Promise.all([
+    fetch(`${api}/api/farms/${farmId}/revenue`,{headers:H}).then(r=>r.ok?r.json():null).catch(()=>null),
+    fetch(`${api}/api/farms/${farmId}/costs`,{headers:H}).then(r=>r.ok?r.json():null).catch(()=>null),
+  ]);
+  const fmt=v=>Math.round(v).toLocaleString();
+  const annualRev=(rev?.revenue_krw||0); // 작기 매출 ≈ 연
+  const energyM=(costs?.items||[]).filter(i=>['electricity','heating'].includes(i.category)).reduce((s,i)=>s+i.amount_krw,0);
+  const energyY=energyM*12;
+  document.getElementById('kRev').innerHTML=`${fmt(annualRev/10000)}<span style="font-size:11px;font-weight:400">만원</span>`;
+  document.getElementById('kEnergy').innerHTML=`${fmt(energyY/10000)}<span style="font-size:11px;font-weight:400">만원</span>`;
+  document.getElementById('roiNote').textContent='✅ 농장 ERP 실매출·에너지비 기반 ROI 산출 완료';
+
+  // 투자안: 효과를 농장 실데이터에 비례 산출
+  const INV=[
+    {ic:'🌡️',name:'환경 자동제어',cost:1800, gain: Math.round((annualRev*0.05+energyY*0.15)/10000), c:'var(--green)', desc:'수확 +5%·에너지 -15%'},
+    {ic:'💧',name:'관수 자동화',  cost:1200, gain: Math.round((annualRev*0.03+energyY*0.05)/10000), c:'var(--blue)', desc:'수확 +3%·인건비↓'},
+    {ic:'⚡',name:'에너지 절감설비',cost:1500, gain: Math.round((energyY*0.25)/10000), c:'var(--orange)', desc:'에너지 -25%'},
+  ];
+  document.getElementById('invList').innerHTML=INV.map(v=>{
+    const months = v.gain>0 ? Math.round(v.cost/(v.gain/12)) : 999;
+    const mc = months<=18?'var(--green)':months<=30?'var(--blue)':'var(--orange)';
+    return `<div class="card" style="padding:14px;margin-bottom:10px;border-left:4px solid ${v.c};">
+      <div style="display:flex;justify-content:space-between;"><span style="font-size:14px;font-weight:800;">${v.ic} ${v.name}</span>
+        <span style="font-size:13px;font-weight:800;color:${mc}">${months<999?months+'개월':'—'}</span></div>
+      <div style="font-size:12px;color:var(--muted);margin-top:4px;">투자비 ${v.cost.toLocaleString()}만원 · 연 효과 ${v.gain.toLocaleString()}만원 (${v.desc})</div>
+      <div style="font-size:11px;color:${mc};margin-top:3px;">ROI ${v.gain>0?Math.round(v.gain/v.cost*100):0}%/년 · 회수 ${months<999?months+'개월':'장기'}</div>
+    </div>`;
+  }).join('');
+})();
+</script>
 </body></html>

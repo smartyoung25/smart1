@@ -2890,16 +2890,36 @@ def get_monthly_report(farm_id: str, month: str = ""):
                 "achievement_pct": ach, "status": status}
 
     drain_t = cfg.drain_target_pct if cfg and cfg.drain_target_pct else 25.0
+
+    # ── 이행 활동 로그에서 상품률·To-do 이행률 산출 (폐루프 데이터 활용) ───────
+    import json as _json0
+    from pathlib import Path as _P0
+    _act_fp0 = _P0(__file__).resolve().parents[1] / "data" / "activity_logs" / f"{farm_id}.json"
+    _alogs = []
+    if _act_fp0.exists():
+        try: _alogs = _json0.loads(_act_fp0.read_text(encoding="utf-8"))
+        except Exception: _alogs = []
+    _macts = [l for l in _alogs if l.get("ts","")[:7] == period]
+    # 상품률: 수확 활동의 A등급 비중 (detail에 'A등급' 포함). 데이터 없으면 None
+    _harvest_acts = [l for l in _macts if l.get("kind") == "harvest"]
+    quality_rate = None
+    if _harvest_acts:
+        a_cnt = sum(1 for l in _harvest_acts if "A" in (l.get("detail","")))
+        quality_rate = round(a_cnt / len(_harvest_acts) * 100)
+    # To-do 이행률: 이번 달 todo 활동 건수 / 권장 기준(월 20건 가정)
+    _todo_acts = [l for l in _macts if l.get("kind") == "todo"]
+    todo_rate = min(round(len(_todo_acts) / 20 * 100), 100) if _todo_acts else None
+
     kpis = [
         _kpi("생산량(목표대비)", round(yield_,1), "kg/m²", round(get_yield_kg_m2(crop)*1.1,1)),
-        _kpi("상품률", None, "%", 90),  # 수확 실측 입력 필요
+        _kpi("상품률", quality_rate, "%", 90),
         _kpi("kg당 원가(낮을수록↑)", cost_per_kg, "원/kg", round(price*0.6), higher_better=False),
         _kpi("에너지비/kg(낮을수록↑)", energy_per_kg, "원/kg", round(price*0.12), higher_better=False),
         _kpi("노동시간/kg(낮을수록↑)", round(meta.get("labor_hours_day",5)/max(yield_*area/1000,1),2), "h/ton", 3.0, higher_better=False),
         _kpi("병해 안전도", round(max(0,100-len(alerts)*15)), "점", 90),
         _kpi("출하단가(시세대비)", round(price), "원/kg", round(price)),
         _kpi("소득률", income_rate, "%", 70),
-        _kpi("To-do 이행률", None, "%", 100),  # 클라이언트 localStorage 집계
+        _kpi("To-do 이행률", todo_rate, "%", 100),
     ]
 
     # ── 취약항목 도출 ─────────────────────────────────────────────────────
