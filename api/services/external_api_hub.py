@@ -781,3 +781,80 @@ def get_api_status_report() -> dict:
         "missing_guide": MISSING_API_GUIDE,
         "mcp_guide": MCP_CONNECTION_GUIDE,
     }
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 노지 공공데이터 어댑터 (흙토람 토양 · 팜맵 필지)
+#   - 정확한 엔드포인트/키는 .env 로 주입 (서비스별 IP 등록·키 승인 필요)
+#   - 미설정/실패 시 None 반환 → 호출부에서 Mock 폴백
+#   환경변수:
+#     NAAS_SOIL_API_URL   : 흙토람 토양검정 OpenAPI base URL
+#     FARMMAP_API_URL     : 팜맵 농경지전자지도 OpenAPI base URL
+#     (키는 기존 DATA_GO_KR_SERVICE_KEY_DECODED / RDA_API_KEY 재사용)
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _datago_key() -> str:
+    return (os.environ.get("DATA_GO_KR_SERVICE_KEY_DECODED")
+            or os.environ.get("DATA_GO_KR_SERVICE_KEY", ""))
+
+
+def naas_soil_by_pnu(pnu: str) -> Optional[dict]:
+    """흙토람 토양검정/토양특성 조회 (PNU 지번코드 기준).
+
+    Returns:
+        {"pnu": str, "soil": {...}, "source": "naas_soil"} | None
+    """
+    base = os.environ.get("NAAS_SOIL_API_URL", "").strip()
+    key  = os.environ.get("RDA_API_KEY") or _datago_key()
+    if not base or not key or not pnu:
+        return None
+
+    def _fetch():
+        params = urllib.parse.urlencode({
+            "serviceKey": key, "PNU_Code": pnu, "numOfRows": 1, "type": "json",
+        })
+        ctx = _insecure_ctx()
+        with urllib.request.urlopen(f"{base}?{params}", timeout=8, context=ctx) as r:
+            raw = json.loads(r.read().decode("utf-8", "replace"))
+        return {"pnu": pnu, "soil": raw, "source": "naas_soil"}
+
+    try:
+        return _cached(f"naas_soil_{pnu}", 86400, _fetch)
+    except Exception as e:
+        logger.warning("[naas_soil] 조회 실패 pnu=%s: %s", pnu, e)
+        return None
+
+
+def farmmap_parcels(pnu_prefix: str) -> Optional[dict]:
+    """팜맵 농경지전자지도 필지 조회 (행정구역 PNU 접두 기준).
+
+    Returns:
+        {"parcels": [{"pnu","area_m2","jimok"}...], "source": "farmmap"} | None
+    """
+    base = os.environ.get("FARMMAP_API_URL", "").strip()
+    key  = _datago_key()
+    if not base or not key or not pnu_prefix:
+        return None
+
+    def _fetch():
+        params = urllib.parse.urlencode({
+            "serviceKey": key, "admCode": pnu_prefix, "numOfRows": 50, "type": "json",
+        })
+        ctx = _insecure_ctx()
+        with urllib.request.urlopen(f"{base}?{params}", timeout=8, context=ctx) as r:
+            raw = json.loads(r.read().decode("utf-8", "replace"))
+        return {"adm": pnu_prefix, "raw": raw, "source": "farmmap"}
+
+    try:
+        return _cached(f"farmmap_{pnu_prefix}", 86400, _fetch)
+    except Exception as e:
+        logger.warning("[farmmap] 조회 실패 adm=%s: %s", pnu_prefix, e)
+        return None
+
+
+def _insecure_ctx():
+    import ssl
+    c = ssl.create_default_context()
+    c.check_hostname = False
+    c.verify_mode = ssl.CERT_NONE
+    return c

@@ -2095,6 +2095,65 @@ class IrrigationScheduleResponse(BaseModel):
     note:                   str
 
 
+# ── 노지 공공데이터: 토양·필지 (흙토람/팜맵 → Mock 폴백) ──────────────────────
+
+@router.get("/field/soil", summary="노지 필지별 토양특성 (흙토람 OpenAPI → Mock 폴백)")
+def get_field_soil(farm_id: str):
+    """흙토람 토양검정/토양특성을 PNU 기준 조회. 미연동 시 Mock 토양수분 반환.
+
+    응답 source: 'naas_soil'(실데이터) | 'mock'(미연동)
+    """
+    import os
+    _require_farm(farm_id)
+    meta = _FARM_META.get(farm_id, {})
+    pnu  = meta.get("pnu") or os.environ.get("DEFAULT_FIELD_PNU", "")
+
+    from api.services.external_api_hub import naas_soil_by_pnu
+    live = naas_soil_by_pnu(pnu) if pnu else None
+    if live:
+        return {"farm_id": farm_id, "source": "naas_soil", "pnu": pnu, "data": live.get("soil"),
+                "parcels": [], "note": "흙토람 실데이터"}
+
+    # Mock 폴백 — 필지별 토양수분(센서 미연동)
+    mock_parcels = [
+        {"name": "1번 필지", "moisture": 62, "area_ha": 0.5, "soil_type": "양토", "drainage": "양호"},
+        {"name": "2번 필지", "moisture": 38, "area_ha": 0.8, "soil_type": "사양토", "drainage": "약간불량"},
+        {"name": "3번 필지", "moisture": 71, "area_ha": 0.4, "soil_type": "식양토", "drainage": "양호"},
+        {"name": "4번 필지", "moisture": 45, "area_ha": 0.6, "soil_type": "양토", "drainage": "보통"},
+    ]
+    return {"farm_id": farm_id, "source": "mock", "pnu": pnu or None,
+            "parcels": mock_parcels,
+            "note": "실측 토양수분 센서·흙토람 미연동 (NAAS_SOIL_API_URL 설정 시 자동 전환)"}
+
+
+@router.get("/field/parcels", summary="노지 필지 경계 (팜맵 OpenAPI → Mock 폴백)")
+def get_field_parcels(farm_id: str):
+    """팜맵 농경지전자지도 필지 조회. 미연동 시 Mock 필지 반환.
+
+    응답 source: 'farmmap'(실데이터) | 'mock'(미연동)
+    """
+    import os
+    _require_farm(farm_id)
+    meta = _FARM_META.get(farm_id, {})
+    adm  = meta.get("adm_code") or os.environ.get("DEFAULT_ADM_CODE", "")
+
+    from api.services.external_api_hub import farmmap_parcels
+    live = farmmap_parcels(adm) if adm else None
+    if live:
+        return {"farm_id": farm_id, "source": "farmmap", "adm": adm, "data": live.get("raw"),
+                "note": "팜맵 실데이터"}
+
+    mock = [
+        {"name": "1번 필지", "jimok": "전", "area_ha": 0.5, "crop": "배추"},
+        {"name": "2번 필지", "jimok": "전", "area_ha": 0.8, "crop": "무"},
+        {"name": "3번 필지", "jimok": "답", "area_ha": 0.4, "crop": "대파"},
+        {"name": "4번 필지", "jimok": "전", "area_ha": 0.6, "crop": "양파"},
+    ]
+    return {"farm_id": farm_id, "source": "mock", "adm": adm or None,
+            "parcels": mock,
+            "note": "팜맵 미연동 (FARMMAP_API_URL 설정 시 자동 전환)"}
+
+
 # ── 관수 분석 결과 조회 ────────────────────────────────────────────────────────
 
 @router.get("/irrigation/analysis", summary="관수 품질 분석 (함수율·배액률·EC 등)")
