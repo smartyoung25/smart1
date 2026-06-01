@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <title>C12 — 공동출하 운영 | KAASA SmartOS</title>
+  <link rel="stylesheet" href="../components/base.css"/>
+  <style>
+    /* ── C12 공동출하 ── */
+    .pool-hero {
+      background: linear-gradient(135deg, #7c2d12 0%, #d97706 100%);
+      border-radius: var(--radius); padding:18px 20px; margin-bottom:14px; color:#fff;
+    }
+    .pool-kpi-row { display:flex; }
+    .pool-kpi { flex:1; text-align:center; }
+    .pool-kpi + .pool-kpi { border-left:1px solid rgba(255,255,255,.2); }
+    .pool-kpi-label { font-size:10px; opacity:.75; }
+    .pool-kpi-val { font-size:19px; font-weight:900; margin-top:3px; font-variant-numeric:tabular-nums; }
+
+    /* Pool 스와이프 카드 */
+    .pool-strip { display:flex; gap:10px; overflow-x:auto; padding-bottom:6px; scrollbar-width:none; }
+    .pool-strip::-webkit-scrollbar{ display:none; }
+    .pool-card {
+      flex-shrink:0; width:200px; background:var(--panel); border-radius:var(--radius);
+      padding:14px; box-shadow:var(--shadow); border:1.5px solid var(--border);
+    }
+    .pool-card.open { border-color:var(--green); }
+    .pool-crop  { font-size:15px; font-weight:900; }
+    .pool-badge { font-size:9px; font-weight:800; padding:2px 8px; border-radius:8px; }
+    .badge-open { background:var(--green-soft); color:var(--green-dark); }
+    .badge-soon { background:var(--orange-soft); color:var(--orange); }
+    .badge-closed { background:var(--gray-soft); color:var(--muted); }
+    .pool-row { display:flex; justify-content:space-between; font-size:12px; margin-top:6px; }
+    .pool-row .k { color:var(--muted); }
+    .pool-row .v { font-weight:700; }
+
+    /* 채널 비교 */
+    .ch-compare { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px; }
+    .ch-box { background:var(--panel); border-radius:var(--radius-sm); padding:14px; box-shadow:var(--shadow); border:2px solid var(--border); position:relative; }
+    .ch-box.win { border-color:var(--green); }
+    .ch-box.win::before { content:'유리'; position:absolute; top:-1px; right:10px; background:var(--green); color:#fff; font-size:9px; font-weight:900; padding:2px 8px; border-radius:0 0 6px 6px; }
+    .ch-box-label { font-size:11px; color:var(--muted); font-weight:700; }
+    .ch-box-price { font-size:22px; font-weight:900; color:var(--green); margin:4px 0; }
+    .ch-box-sub { font-size:11px; color:var(--muted); }
+
+    /* 정산 안내 */
+    .settle-row { display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid var(--border); }
+    .settle-row:last-child{ border-bottom:none; }
+    .settle-ico { font-size:18px; }
+    .settle-txt { flex:1; font-size:12px; }
+    .settle-val { font-size:13px; font-weight:800; }
+
+    /* 버튼 */
+    .btn-join { width:100%; padding:14px; background:var(--green); color:#fff; border:none; border-radius:var(--radius-sm); font-size:15px; font-weight:800; cursor:pointer; }
+
+    /* Bottom Sheet */
+    .sheet-bd { display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:300; }
+    .sheet { display:none; position:fixed; bottom:0; left:0; right:0; background:var(--panel); border-radius:var(--radius) var(--radius) 0 0; padding:20px; z-index:400; box-shadow:0 -4px 24px rgba(0,0,0,.15); max-height:85vh; overflow-y:auto; }
+    .sheet-handle { width:36px; height:4px; background:var(--border); border-radius:2px; margin:0 auto 16px; }
+    .consent-item { display:flex; align-items:flex-start; gap:10px; padding:10px; background:var(--panel-soft); border-radius:var(--radius-sm); margin-bottom:8px; }
+    .consent-pub { border-left:3px solid var(--green); }
+    .consent-priv { border-left:3px solid var(--muted); }
+
+    .ws-dot { width:8px; height:8px; border-radius:50%; background:var(--muted); display:inline-block; }
+    .ws-dot.connected { background:var(--green); box-shadow:0 0 0 3px rgba(31,122,77,.2); }
+  </style>
+</head>
+<body>
+
+<header class="sf-header">
+  <div style="display:flex;align-items:center;gap:6px;">
+    <span class="ws-dot" id="wsDot"></span>
+    <span style="font-size:12px;color:rgba(255,255,255,.8)" id="wsLabel">연결 중…</span>
+  </div>
+  <span style="font-size:15px;font-weight:800;color:#fff;letter-spacing:-.3px">C12 공동출하</span>
+  <select id="farmSel" onchange="onFarmChange(this.value)"
+          style="font-size:12px;background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:8px;padding:4px 8px;cursor:pointer;outline:none;">
+    <option value="farm_001">farm_001</option>
+  </select>
+</header>
+
+<main class="sf-main" style="padding:14px;max-width:480px;margin:0 auto;">
+
+  <!-- Pool 운영 KPI -->
+  <div class="pool-hero">
+    <div class="pool-kpi-row">
+      <div class="pool-kpi"><div class="pool-kpi-label">참여 농가</div><div class="pool-kpi-val" id="kpiFarms">—</div></div>
+      <div class="pool-kpi"><div class="pool-kpi-label">예상 물량</div><div class="pool-kpi-val" id="kpiVolume">—</div></div>
+      <div class="pool-kpi"><div class="pool-kpi-label">공동 단가</div><div class="pool-kpi-val" id="kpiPrice">—</div></div>
+    </div>
+    <div style="font-size:10px;opacity:.7;margin-top:12px;text-align:right;" id="poolSrc">데이터 로드 중…</div>
+  </div>
+
+  <!-- 채널 비교 (개별 vs 공동) -->
+  <div class="section-label">개별 vs 공동출하 <span id="cropBadge" style="font-weight:400;color:var(--muted);font-size:11px;"></span></div>
+  <div class="ch-compare">
+    <div class="ch-box" id="boxIndiv">
+      <div class="ch-box-label">🏪 개별 출하</div>
+      <div class="ch-box-price" id="indivPrice">—</div>
+      <div class="ch-box-sub">KAMIS 시세</div>
+    </div>
+    <div class="ch-box" id="boxJoint">
+      <div class="ch-box-label">🤝 공동 출하</div>
+      <div class="ch-box-price" id="jointPrice">—</div>
+      <div class="ch-box-sub">도매시장 평균</div>
+    </div>
+  </div>
+  <div class="card" style="padding:12px 14px;margin-bottom:14px;border-left:4px solid var(--green);">
+    <div style="font-size:12px;color:var(--muted);" id="adviceText">AI 출하 추천 분석 중…</div>
+  </div>
+
+  <!-- 진행 중 Pool -->
+  <div class="section-label">진행 중인 Pool</div>
+  <div class="pool-strip" id="poolStrip"></div>
+
+  <!-- 정산 구조 -->
+  <div class="section-label" style="margin-top:14px;">공동출하 정산 구조</div>
+  <div class="card" style="padding:14px;">
+    <div class="settle-row"><span class="settle-ico">💰</span><span class="settle-txt">예상 총 매출 (내 물량)</span><span class="settle-val" id="setRevenue">—</span></div>
+    <div class="settle-row"><span class="settle-ico">📦</span><span class="settle-txt">공동물류·선별비 (약 5%)</span><span class="settle-val" id="setLogi">—</span></div>
+    <div class="settle-row"><span class="settle-ico">🏢</span><span class="settle-txt">조직 운영비 (약 3%)</span><span class="settle-val" id="setOps">—</span></div>
+    <div class="settle-row"><span class="settle-ico">✅</span><span class="settle-txt" style="font-weight:800;">예상 정산액</span><span class="settle-val" id="setNet" style="color:var(--green);">—</span></div>
+  </div>
+
+  <!-- 참여 버튼 -->
+  <div style="margin-top:16px;">
+    <button class="btn-join" onclick="_openSheet()">이번 Pool 참여 신청</button>
+  </div>
+
+</main>
+
+<!-- Bottom Sheet: 참여 동의 -->
+<div class="sheet-bd" id="sheetBd" onclick="_closeSheet()"></div>
+<div class="sheet" id="sheet">
+  <div class="sheet-handle"></div>
+  <h4 style="font-size:16px;font-weight:800;margin-bottom:6px;">공동출하 참여 동의</h4>
+  <p style="font-size:12px;color:var(--muted);margin-bottom:14px;">참여 시 아래 정보가 공동출하 조직에 공유됩니다.</p>
+  <div style="font-size:11px;font-weight:700;color:var(--green-dark);margin-bottom:6px;">✓ 공개 정보 (조직 공유)</div>
+  <div class="consent-item consent-pub"><span>📦</span><div style="font-size:12px;">출하 예정 물량·품목·등급·수확 예정일</div></div>
+  <div class="consent-item consent-pub"><span>📍</span><div style="font-size:12px;">집하장 배송 가능 지역</div></div>
+  <div style="font-size:11px;font-weight:700;color:var(--muted);margin:10px 0 6px;">🔒 비공개 정보 (보호)</div>
+  <div class="consent-item consent-priv"><span>🚫</span><div style="font-size:12px;">개별 원가·마진·농장 운영 데이터는 공유되지 않습니다</div></div>
+  <div style="display:flex;gap:8px;margin-top:16px;">
+    <button onclick="_confirmJoin()" style="flex:1;padding:13px;background:var(--green);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:800;cursor:pointer;">동의하고 참여</button>
+    <button onclick="_closeSheet()" style="flex:1;padding:13px;background:var(--panel);color:var(--muted);border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-weight:700;cursor:pointer;">취소</button>
+  </div>
+  <div id="joinResult" style="margin-top:10px;font-size:12px;text-align:center;color:var(--green);"></div>
+</div>
+
+<nav class="sf-bottom-nav">
+  <button class="bnav-tab" onclick="location.href='c3_home.html'"><span class="bnav-icon">🏠</span>홈</button>
+  <button class="bnav-tab" onclick="location.href='g1_home.html'"><span class="bnav-icon">🌱</span>온실</button>
+  <button class="bnav-tab" onclick="location.href='f1_field.html'"><span class="bnav-icon">🌾</span>노지</button>
+  <button class="bnav-tab active"><span class="bnav-icon">🚚</span>출하</button>
+  <button class="bnav-tab" onclick="location.href='../index.html'"><span class="bnav-icon">≡</span>메뉴</button>
+</nav>
+
+<script src="../components/data.js"></script>
+<script>
+'use strict';
+let _revenue = null;
+
+window.addEventListener('DOMContentLoaded', () => {
+  const farmId = new URLSearchParams(location.search).get('farm') ||
+                 sessionStorage.getItem('sf_farm_id') || 'farm_001';
+  _ensureToken().then(token => {
+    KaasaData.init({ farmId, token, onStatus:_onWsStatus });
+    _loadAll(token, farmId);
+  });
+});
+
+function onFarmChange(id){ sessionStorage.setItem('sf_farm_id', id); location.reload(); }
+
+async function _ensureToken(){
+  const s=sessionStorage.getItem('sf_token'); if(s) return s;
+  try{
+    const api=sessionStorage.getItem('sf_api')||location.origin;
+    const r=await fetch(`${api}/api/v1/auth/token`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:'admin',password:'1250'})});
+    if(r.ok){const d=await r.json();sessionStorage.setItem('sf_token',d.access_token);return d.access_token;}
+  }catch{} return '';
+}
+
+function _onWsStatus(s){
+  const dot=document.getElementById('wsDot'),lbl=document.getElementById('wsLabel');
+  if(dot)dot.className='ws-dot '+s;
+  if(lbl)lbl.textContent=s==='connected'?'실시간 연결 중':s==='reconnecting'?'재연결 중…':'연결 안 됨';
+}
+
+async function _loadAll(token, farmId){
+  const api=KaasaData.getApiBase(), H={Authorization:`Bearer ${token}`};
+  const [ws, revenue] = await Promise.all([
+    fetch(`${api}/api/farms/${farmId}/market/wholesale`,{headers:H}).then(r=>r.ok?r.json():null).catch(()=>null),
+    fetch(`${api}/api/farms/${farmId}/revenue`,{headers:H}).then(r=>r.ok?r.json():null).catch(()=>null),
+  ]);
+  _revenue = revenue;
+  _render(ws, revenue);
+}
+
+function _render(ws, revenue){
+  const fmt=v=>Math.round(v).toLocaleString();
+  const setEl=(id,v)=>{const el=document.getElementById(id); if(el) el.innerHTML=v;};
+  const crop = revenue?.crop_ko || ws?.crop_ko || '오이';
+  document.getElementById('cropBadge').textContent=`(${crop})`;
+
+  const kamis = revenue?.kamis_price_krw_kg ?? revenue?.price_krw_kg ?? 0;
+  const joint = ws?.price_krw_kg ?? (kamis*1.08);
+  const yieldKg = revenue?.yield_kg_forecast ?? 18000;
+
+  // 채널 비교
+  setEl('indivPrice', `${fmt(kamis)}<span style="font-size:12px;font-weight:400;">원</span>`);
+  setEl('jointPrice', `${fmt(joint)}<span style="font-size:12px;font-weight:400;">원</span>`);
+  document.getElementById('boxJoint').classList.toggle('win', joint>=kamis);
+  document.getElementById('boxIndiv').classList.toggle('win', kamis>joint);
+
+  const diff = joint - kamis;
+  const diffRev = Math.round(diff*yieldKg/10000);
+  setEl('adviceText', joint>=kamis
+    ? `🤝 공동출하 시 <b>+${fmt(diff)}원/kg</b> → 내 물량 기준 총 <b>${diffRev.toLocaleString()}만원</b> 추가 수익 예상`
+    : `현재 개별 출하가 유리. 공동출하 Pool 조건 확인 후 결정 권장`);
+
+  // Pool KPI (참여농가/물량은 조직 단위 — Mock, 단가는 실데이터)
+  setEl('kpiFarms', `<span style="font-size:14px;">24<span style="font-size:10px;font-weight:400;">농가</span></span> <span style="font-size:9px;opacity:.6;">(Mock)</span>`);
+  setEl('kpiVolume', `${Math.round(yieldKg*24/1000)}<span style="font-size:10px;font-weight:400;">t</span>`);
+  setEl('kpiPrice', `${fmt(joint)}<span style="font-size:10px;font-weight:400;">원</span>`);
+  document.getElementById('poolSrc').textContent =
+    `단가: ${ws?.price_source||'KAMIS'} 실시세 · 참여농가·물량은 조직 집계(Mock)`;
+
+  // Pool 카드 (현재 작물 실데이터 + 타작물 Mock)
+  const pools = [
+    { crop, status:'open',   vol:Math.round(yieldKg/1000*10)/10, price:joint, ship:'D-7' },
+    { crop:'완숙토마토', status:'soon', vol:12.5, price:2150, ship:'D-14', mock:true },
+    { crop:'파프리카', status:'closed', vol:8.0, price:5800, ship:'마감', mock:true },
+  ];
+  document.getElementById('poolStrip').innerHTML = pools.map(p=>`
+    <div class="pool-card ${p.status==='open'?'open':''}">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span class="pool-crop">${p.crop}</span>
+        <span class="pool-badge ${p.status==='open'?'badge-open':p.status==='soon'?'badge-soon':'badge-closed'}">${p.status==='open'?'모집중':p.status==='soon'?'예정':'마감'}</span>
+      </div>
+      <div class="pool-row"><span class="k">예상물량</span><span class="v">${p.vol}t</span></div>
+      <div class="pool-row"><span class="k">공동단가</span><span class="v">${fmt(p.price)}원/kg</span></div>
+      <div class="pool-row"><span class="k">출하예정</span><span class="v">${p.ship}</span></div>
+      ${p.mock?'<div style="font-size:9px;color:var(--muted);margin-top:4px;">(예시 Mock)</div>':''}
+    </div>`).join('');
+
+  // 정산 구조 (실데이터 기반 계산)
+  const rev = revenue?.revenue_krw ?? (yieldKg*joint);
+  const logi = rev*0.05, ops = rev*0.03, net = rev - logi - ops;
+  setEl('setRevenue', `${fmt(rev/10000)}만원`);
+  setEl('setLogi', `-${fmt(logi/10000)}만원`);
+  setEl('setOps', `-${fmt(ops/10000)}만원`);
+  setEl('setNet', `${fmt(net/10000)}만원`);
+}
+
+function _openSheet(){ document.getElementById('sheetBd').style.display='block'; document.getElementById('sheet').style.display='block'; document.getElementById('joinResult').textContent=''; }
+function _closeSheet(){ document.getElementById('sheetBd').style.display='none'; document.getElementById('sheet').style.display='none'; }
+function _confirmJoin(){
+  const crop=_revenue?.crop_ko||'오이';
+  const rec={crop, date:new Date().toISOString().slice(0,10), ts:Date.now()};
+  const key='sf_pool_joined';
+  const arr=JSON.parse(localStorage.getItem(key)||'[]'); arr.push(rec); localStorage.setItem(key,JSON.stringify(arr));
+  const r=document.getElementById('joinResult'); r.textContent=`✓ ${crop} Pool 참여 신청 완료`;
+  setTimeout(_closeSheet, 1500);
+}
+</script>
+</body>
+</html>

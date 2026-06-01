@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <title>G1 — 온실 홈 | KAASA SmartOS</title>
+  <link rel="stylesheet" href="../components/base.css"/>
+  <style>
+    /* ── G1 온실 홈 ── */
+    .gh-hero {
+      background: linear-gradient(135deg, #0f5132 0%, #1f7a4d 100%);
+      border-radius: var(--radius); padding: 18px 20px; margin-bottom: 14px; color:#fff;
+    }
+    .gh-hero-label { font-size:12px; opacity:.75; }
+    .gh-hero-title { font-size:20px; font-weight:900; margin-top:2px; }
+    .gh-hero-sub   { font-size:13px; opacity:.85; margin-top:6px; }
+
+    /* 온실 핵심 KPI 3종 */
+    .gh-kpi-row { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:14px; }
+    .gh-kpi {
+      background:var(--panel); border-radius:var(--radius-sm); padding:12px 10px;
+      box-shadow:var(--shadow); text-align:center;
+    }
+    .gh-kpi-ico   { font-size:18px; }
+    .gh-kpi-val   { font-size:19px; font-weight:900; margin:3px 0 1px; font-variant-numeric:tabular-nums; }
+    .gh-kpi-label { font-size:10px; color:var(--muted); }
+
+    /* To-do */
+    .todo-list { display:flex; flex-direction:column; gap:8px; }
+    .todo-item {
+      display:flex; align-items:flex-start; gap:12px;
+      background:var(--panel); border-radius:var(--radius-sm); padding:12px 14px;
+      box-shadow:var(--shadow); cursor:pointer; border:1.5px solid transparent;
+    }
+    .todo-item.done { opacity:.55; }
+    .todo-item.done .todo-title { text-decoration:line-through; }
+    .todo-item.urgent { border-color:var(--red); }
+    .todo-check { width:22px; height:22px; border-radius:50%; border:2px solid var(--border);
+      flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:12px; margin-top:1px; }
+    .todo-item.done .todo-check { background:var(--green); border-color:var(--green); color:#fff; }
+    .todo-title { font-size:14px; font-weight:700; }
+    .todo-desc  { font-size:12px; color:var(--muted); margin-top:2px; }
+
+    /* 서브 화면 링크 그리드 */
+    .sub-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .sub-card {
+      background:var(--panel); border-radius:var(--radius-sm); padding:14px;
+      box-shadow:var(--shadow); text-decoration:none; color:var(--text);
+      border:1.5px solid var(--border); display:block;
+    }
+    .sub-card:active { transform:scale(.97); }
+    .sub-ico   { font-size:24px; }
+    .sub-name  { font-size:13px; font-weight:800; margin-top:6px; }
+    .sub-desc  { font-size:11px; color:var(--muted); margin-top:2px; }
+    .sub-val   { font-size:14px; font-weight:800; color:var(--green); margin-top:4px; }
+
+    .ws-dot { width:8px; height:8px; border-radius:50%; background:var(--muted); display:inline-block; }
+    .ws-dot.connected { background:var(--green); box-shadow:0 0 0 3px rgba(31,122,77,.2); }
+    .ws-dot.reconnecting { background:var(--orange); animation:blink 1s infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+  </style>
+</head>
+<body>
+
+<header class="sf-header">
+  <div style="display:flex;align-items:center;gap:6px;">
+    <span class="ws-dot" id="wsDot"></span>
+    <span style="font-size:12px;color:rgba(255,255,255,.8)" id="wsLabel">연결 중…</span>
+  </div>
+  <span style="font-size:15px;font-weight:800;color:#fff;letter-spacing:-.3px">G1 온실 홈</span>
+  <select id="farmSel" onchange="onFarmChange(this.value)"
+          style="font-size:12px;background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:8px;padding:4px 8px;cursor:pointer;outline:none;">
+    <option value="farm_001">farm_001</option>
+  </select>
+</header>
+
+<main class="sf-main" style="padding:14px;max-width:480px;margin:0 auto;">
+
+  <div class="gh-hero">
+    <div class="gh-hero-label" id="ghDate">—</div>
+    <div class="gh-hero-title" id="ghTitle">온실 현황</div>
+    <div class="gh-hero-sub" id="ghSub">실시간 환경·관수·생육을 한눈에</div>
+  </div>
+
+  <!-- 온실 핵심 KPI -->
+  <div class="gh-kpi-row">
+    <div class="gh-kpi">
+      <div class="gh-kpi-ico">🌡️</div>
+      <div class="gh-kpi-val" id="kpiTemp" style="color:var(--muted)">—</div>
+      <div class="gh-kpi-label">내부온도</div>
+    </div>
+    <div class="gh-kpi">
+      <div class="gh-kpi-ico">💧</div>
+      <div class="gh-kpi-val" id="kpiDrain" style="color:var(--muted)">—</div>
+      <div class="gh-kpi-label">배액률</div>
+    </div>
+    <div class="gh-kpi">
+      <div class="gh-kpi-ico">📅</div>
+      <div class="gh-kpi-val" id="kpiHarvest" style="color:var(--muted)">—</div>
+      <div class="gh-kpi-label">수확 D-day</div>
+    </div>
+  </div>
+
+  <!-- 오늘 할 일 -->
+  <div class="section-label" style="display:flex;justify-content:space-between;">
+    <span>온실 오늘 할 일</span>
+    <span id="todoProg" style="font-size:12px;color:var(--muted)">0/0</span>
+  </div>
+  <div class="todo-list" id="todoList">
+    <div style="text-align:center;padding:14px;color:var(--muted);font-size:13px;">로드 중…</div>
+  </div>
+
+  <!-- 온실 세부 화면 -->
+  <div class="section-label" style="margin-top:16px;">온실 관리 화면</div>
+  <div class="sub-grid">
+    <a class="sub-card" href="g2_env.html">
+      <div class="sub-ico">🌡️</div>
+      <div class="sub-name">환경·기후·에너지</div>
+      <div class="sub-desc">온도·VPD·CO₂·제어모드</div>
+      <div class="sub-val" id="subEnv">—</div>
+    </a>
+    <a class="sub-card" href="g3_period.html">
+      <div class="sub-ico">💧</div>
+      <div class="sub-name">관수·양액 Period</div>
+      <div class="sub-desc">P1~P5·Priva ET₀</div>
+      <div class="sub-val" id="subIrr">—</div>
+    </a>
+    <a class="sub-card" href="g4_growth.html">
+      <div class="sub-ico">🌱</div>
+      <div class="sub-name">생육 모델</div>
+      <div class="sub-desc">수확 예측·생육단계</div>
+      <div class="sub-val" id="subGrowth">—</div>
+    </a>
+    <a class="sub-card" href="g5_disease.html">
+      <div class="sub-ico">🔬</div>
+      <div class="sub-name">병해·품질</div>
+      <div class="sub-desc">M5 위험도·방제</div>
+      <div class="sub-val" id="subDisease">—</div>
+    </a>
+    <a class="sub-card" href="g6_harvest.html">
+      <div class="sub-ico">🚚</div>
+      <div class="sub-name">수확·유통</div>
+      <div class="sub-desc">출하채널·시나리오</div>
+      <div class="sub-val" id="subHarvest">—</div>
+    </a>
+    <a class="sub-card" href="c5_erp.html">
+      <div class="sub-ico">💰</div>
+      <div class="sub-name">수익성 ERP</div>
+      <div class="sub-desc">원가·마진·BEP</div>
+      <div class="sub-val" id="subErp">—</div>
+    </a>
+  </div>
+
+</main>
+
+<nav class="sf-bottom-nav">
+  <button class="bnav-tab" onclick="location.href='c3_home.html'">
+    <span class="bnav-icon">🏠</span>홈
+  </button>
+  <button class="bnav-tab active">
+    <span class="bnav-icon">🌱</span>온실
+  </button>
+  <button class="bnav-tab" onclick="location.href='f1_field.html'">
+    <span class="bnav-icon">🌾</span>노지
+  </button>
+  <button class="bnav-tab" onclick="location.href='c12_joint.html'">
+    <span class="bnav-icon">🚚</span>출하
+  </button>
+  <button class="bnav-tab" onclick="location.href='../index.html'">
+    <span class="bnav-icon">≡</span>메뉴
+  </button>
+</nav>
+
+<script src="../components/data.js"></script>
+<script>
+'use strict';
+let _todos = [];
+
+window.addEventListener('DOMContentLoaded', () => {
+  const farmId = new URLSearchParams(location.search).get('farm') ||
+                 sessionStorage.getItem('sf_farm_id') || 'farm_001';
+  _updateHero();
+  _buildTodos();
+  _ensureToken().then(token => {
+    KaasaData.init({ farmId, token, onSensor:_onSensor, onStatus:_onWsStatus });
+    KaasaData.loadEnvironment();
+    _loadSummaries(token, farmId);
+  });
+});
+
+function onFarmChange(id){ sessionStorage.setItem('sf_farm_id', id); location.reload(); }
+
+async function _ensureToken() {
+  const s = sessionStorage.getItem('sf_token');
+  if (s) return s;
+  try {
+    const api = sessionStorage.getItem('sf_api') || location.origin;
+    const r = await fetch(`${api}/api/v1/auth/token`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({username:'admin',password:'1250'}) });
+    if (r.ok){ const d=await r.json(); sessionStorage.setItem('sf_token',d.access_token); return d.access_token; }
+  } catch {}
+  return '';
+}
+
+function _onWsStatus(s){
+  const dot=document.getElementById('wsDot'), lbl=document.getElementById('wsLabel');
+  if(dot) dot.className='ws-dot '+s;
+  if(lbl) lbl.textContent = s==='connected'?'실시간 연결 중':s==='reconnecting'?'재연결 중…':'연결 안 됨';
+}
+
+function _updateHero(){
+  const now=new Date(), days=['일','월','화','수','목','금','토'];
+  document.getElementById('ghDate').textContent =
+    `${now.getFullYear()}년 ${now.getMonth()+1}월 ${now.getDate()}일 (${days[now.getDay()]})`;
+  const p = KaasaData.getCurrentPeriod();
+  document.getElementById('ghSub').textContent = `현재 ${p.icon} ${p.label} ${p.name} — ${p.timeRange}`;
+}
+
+function _onSensor(env){
+  const f1=v=>v!=null?Number(v).toFixed(1):'—';
+  const t=env.temp_internal ?? env.temp_internal_mean ?? null;
+  const tEl=document.getElementById('kpiTemp');
+  if(tEl && t!=null){ tEl.textContent=`${f1(t)}°C`; tEl.style.color = (t<16||t>30)?'var(--red)':(t<18||t>27)?'var(--orange)':'var(--green)'; }
+  const subEnv=document.getElementById('subEnv');
+  if(subEnv && t!=null){
+    const vpd=env.vpd; subEnv.textContent = `${f1(t)}°C${vpd!=null?' · VPD '+f1(vpd):''}`;
+  }
+}
+
+async function _loadSummaries(token, farmId){
+  const api=KaasaData.getApiBase(), H={Authorization:`Bearer ${token}`};
+  const [irr, harvest, disease, revenue] = await Promise.all([
+    fetch(`${api}/api/farms/${farmId}/irrigation/analysis?days=7`,{headers:H}).then(r=>r.ok?r.json():null).catch(()=>null),
+    fetch(`${api}/api/farms/${farmId}/harvest`,{headers:H}).then(r=>r.ok?r.json():null).catch(()=>null),
+    fetch(`${api}/api/farms/${farmId}/disease-risk`,{headers:H}).then(r=>r.ok?r.json():null).catch(()=>null),
+    fetch(`${api}/api/farms/${farmId}/revenue`,{headers:H}).then(r=>r.ok?r.json():null).catch(()=>null),
+  ]);
+
+  // 배액률 KPI + 관수 서브
+  const dr = irr?.summary?.dr_pct_mean?.latest;
+  const drEl=document.getElementById('kpiDrain');
+  if(drEl && dr!=null){ drEl.textContent=`${dr.toFixed(0)}%`; drEl.style.color = dr<15?'var(--red)':(dr<20||dr>35)?'var(--orange)':'var(--green)'; }
+  const subIrr=document.getElementById('subIrr');
+  if(subIrr) subIrr.textContent = dr!=null?`배액률 ${dr.toFixed(0)}%`:'데이터 입력 필요';
+
+  // 수확 D-day KPI + 생육 서브
+  if(harvest?.predicted_date){
+    const dday=Math.round((new Date(harvest.predicted_date)-new Date())/86400000);
+    const hEl=document.getElementById('kpiHarvest');
+    if(hEl){ hEl.textContent=`D-${dday}`; hEl.style.color='var(--green)'; }
+    const subG=document.getElementById('subGrowth');
+    if(subG) subG.textContent = `수확 D-${dday}`;
+  }
+
+  // 병해 서브
+  const subD=document.getElementById('subDisease');
+  if(subD && disease){ const rl=disease.risk_level||'none';
+    subD.textContent = rl==='none'?'위험 없음':`위험 ${rl}`;
+    subD.style.color = rl==='none'?'var(--green)':'var(--orange)'; }
+
+  // 수확/ERP 서브
+  if(revenue){
+    const subH=document.getElementById('subHarvest');
+    if(subH) subH.textContent = `매출 ${Math.round((revenue.revenue_krw||0)/10000).toLocaleString()}만원`;
+    const subErp=document.getElementById('subErp');
+    if(subErp) subErp.textContent = `마진 ${Math.round(revenue.profit_margin_pct||0)}%`;
+  }
+}
+
+// ── To-do (Period 기반) ──
+function _buildTodos(){
+  const p=KaasaData.getCurrentPeriod();
+  const BASE=[
+    {id:'g1','title':'환경 점검','desc':`현재 ${p.label} — 온도·VPD·CO₂ 적정 범위 확인`,urgent:false},
+    {id:'g2','title':'관수 배액률 확인','desc':'목표 20~30% 달성 여부 점검',urgent:p.id==='P4'},
+    {id:'g3','title':'병해 엽 뒷면 점검','desc':'노균병·흰가루병 조기 발견',urgent:false},
+    {id:'g4','title':'생육 측정값 입력','desc':'초장·엽수 기록 → 모델 정확도 향상',urgent:false},
+    {id:'g5','title':'수확 기록 입력','desc':'금일 수확량·등급 → 출하 계획 반영',urgent:new Date().getHours()>=16},
+  ];
+  const key=`sf_g1todo_${new Date().toDateString()}`;
+  const done=new Set(JSON.parse(localStorage.getItem(key)||'[]'));
+  _todos=BASE.map(t=>({...t,done:done.has(t.id)}));
+  _renderTodos();
+}
+function _renderTodos(){
+  const dc=_todos.filter(t=>t.done).length;
+  document.getElementById('todoProg').textContent=`${dc}/${_todos.length}`;
+  document.getElementById('todoList').innerHTML=_todos.map(t=>`
+    <div class="todo-item ${t.done?'done':''} ${t.urgent&&!t.done?'urgent':''}" onclick="_toggle('${t.id}')">
+      <div class="todo-check">${t.done?'✓':''}</div>
+      <div><div class="todo-title">${t.title}</div><div class="todo-desc">${t.desc}</div></div>
+    </div>`).join('');
+}
+function _toggle(id){
+  const t=_todos.find(x=>x.id===id); if(!t)return; t.done=!t.done;
+  const key=`sf_g1todo_${new Date().toDateString()}`;
+  localStorage.setItem(key, JSON.stringify(_todos.filter(x=>x.done).map(x=>x.id)));
+  _renderTodos();
+}
+</script>
+</body>
+</html>

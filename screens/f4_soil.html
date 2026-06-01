@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <title>F4 — 토양수분·관개 | KAASA SmartOS</title>
+  <link rel="stylesheet" href="../components/base.css"/>
+  <style>
+    .f4-kpi-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;}
+    .f4-kpi{background:var(--panel);border-radius:var(--radius-sm);padding:14px 10px;box-shadow:var(--shadow);text-align:center;}
+    .f4-kpi-ico{font-size:18px;} .f4-kpi-val{font-size:20px;font-weight:900;margin:3px 0 1px;} .f4-kpi-label{font-size:10px;color:var(--muted);}
+
+    /* 관개 우선순위 카드 */
+    .irr-card{display:flex;align-items:center;gap:12px;background:var(--panel);border-radius:var(--radius-sm);padding:13px 14px;box-shadow:var(--shadow);margin-bottom:8px;border-left:4px solid var(--border);}
+    .irr-card.p1{border-color:var(--red);} .irr-card.p2{border-color:var(--orange);} .irr-card.p3{border-color:var(--green);}
+    .irr-rank{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;color:#fff;flex-shrink:0;}
+    .irr-rank.p1{background:var(--red);} .irr-rank.p2{background:var(--orange);} .irr-rank.p3{background:var(--green);}
+    .irr-name{font-size:14px;font-weight:800;} .irr-detail{font-size:11px;color:var(--muted);margin-top:2px;}
+    .irr-amount{text-align:right;} .irr-amt-val{font-size:15px;font-weight:900;color:var(--blue);} .irr-amt-time{font-size:10px;color:var(--muted);}
+
+    /* 토양수분 게이지 바 */
+    .moist-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);}
+    .moist-row:last-child{border-bottom:none;}
+    .moist-name{font-size:12px;font-weight:700;min-width:64px;}
+    .moist-bar-wrap{flex:1;height:14px;background:var(--gray-soft);border-radius:7px;overflow:hidden;position:relative;}
+    .moist-bar-fill{height:100%;border-radius:7px;transition:width .6s;}
+    .moist-val{font-size:12px;font-weight:800;min-width:38px;text-align:right;}
+
+    .mock-note{font-size:10px;color:var(--muted);background:var(--panel-soft);border-radius:8px;padding:8px 10px;margin-bottom:12px;}
+
+    .ws-dot{width:8px;height:8px;border-radius:50%;background:var(--muted);display:inline-block;}
+    .ws-dot.connected{background:var(--green);box-shadow:0 0 0 3px rgba(31,122,77,.2);}
+  </style>
+</head>
+<body>
+
+<header class="sf-header">
+  <div style="display:flex;align-items:center;gap:6px;">
+    <span class="ws-dot" id="wsDot"></span>
+    <span style="font-size:12px;color:rgba(255,255,255,.8)" id="wsLabel">연결 중…</span>
+  </div>
+  <span style="font-size:15px;font-weight:800;color:#fff;letter-spacing:-.3px">F4 토양수분·관개</span>
+  <select id="farmSel" onchange="onFarmChange(this.value)"
+          style="font-size:12px;background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:8px;padding:4px 8px;cursor:pointer;outline:none;">
+    <option value="farm_001">farm_001</option>
+  </select>
+</header>
+
+<main class="sf-main" style="padding:14px;max-width:480px;margin:0 auto;">
+
+  <div class="f4-kpi-row">
+    <div class="f4-kpi"><div class="f4-kpi-ico">💧</div><div class="f4-kpi-val" id="kpiMoist" style="color:var(--blue)">—</div><div class="f4-kpi-label">평균 토양수분</div></div>
+    <div class="f4-kpi"><div class="f4-kpi-ico">🌡️</div><div class="f4-kpi-val" id="kpiEtc" style="color:var(--orange)">—</div><div class="f4-kpi-label">ETc 증발산</div></div>
+    <div class="f4-kpi"><div class="f4-kpi-ico">🚿</div><div class="f4-kpi-val" id="kpiNeed" style="color:var(--green)">—</div><div class="f4-kpi-label">관개 필요량</div></div>
+  </div>
+
+  <div class="mock-note">ℹ️ 토양수분·필지 데이터는 실측 센서 미연동 상태로 <b>예시(Mock)</b>입니다. ETc는 KMA 기상 기반 <b>실데이터</b>입니다.</div>
+
+  <!-- 관개 우선순위 -->
+  <div class="section-label">관개 우선순위</div>
+  <div id="irrPriority"></div>
+
+  <!-- 필지별 토양수분 -->
+  <div class="section-label" style="margin-top:14px;">필지별 토양수분</div>
+  <div class="card" style="padding:14px;">
+    <div id="moistList"></div>
+    <div style="font-size:10px;color:var(--muted);margin-top:8px;">적정 범위 50~70% · 40% 미만 관개 권장</div>
+  </div>
+
+  <!-- 관개 권장 안내 -->
+  <div class="section-label" style="margin-top:14px;">오늘의 관개 지침</div>
+  <div class="card" style="padding:14px;border-left:4px solid var(--blue);">
+    <div style="font-size:13px;font-weight:800;margin-bottom:4px;">🚿 <span id="guideTitle">분석 중…</span></div>
+    <div style="font-size:12px;color:var(--muted);line-height:1.5;" id="guideDesc">—</div>
+  </div>
+
+</main>
+
+<nav class="sf-bottom-nav">
+  <button class="bnav-tab" onclick="location.href='c3_home.html'"><span class="bnav-icon">🏠</span>홈</button>
+  <button class="bnav-tab" onclick="location.href='g1_home.html'"><span class="bnav-icon">🌱</span>온실</button>
+  <button class="bnav-tab active"><span class="bnav-icon">🌾</span>노지</button>
+  <button class="bnav-tab" onclick="location.href='c12_joint.html'"><span class="bnav-icon">🚚</span>출하</button>
+  <button class="bnav-tab" onclick="location.href='../index.html'"><span class="bnav-icon">≡</span>메뉴</button>
+</nav>
+
+<script src="../components/data.js"></script>
+<script>
+'use strict';
+// Mock 필지 토양수분 (실측 센서 연동 시 교체)
+const PARCELS=[
+  {name:'1번 필지', moisture:62, area:0.5},
+  {name:'2번 필지', moisture:38, area:0.8},
+  {name:'3번 필지', moisture:71, area:0.4},
+  {name:'4번 필지', moisture:45, area:0.6},
+];
+
+window.addEventListener('DOMContentLoaded', ()=>{
+  const farmId=new URLSearchParams(location.search).get('farm')||sessionStorage.getItem('sf_farm_id')||'farm_001';
+  _renderMoisture(); _renderPriority();
+  _ensureToken().then(token=>{ KaasaData.init({farmId,token,onStatus:_onWsStatus}); _loadEtc(token,farmId); });
+});
+function onFarmChange(id){sessionStorage.setItem('sf_farm_id',id);location.reload();}
+async function _ensureToken(){
+  const s=sessionStorage.getItem('sf_token');if(s)return s;
+  try{const api=sessionStorage.getItem('sf_api')||location.origin;
+    const r=await fetch(`${api}/api/v1/auth/token`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:'admin',password:'1250'})});
+    if(r.ok){const d=await r.json();sessionStorage.setItem('sf_token',d.access_token);return d.access_token;}}catch{}return '';
+}
+function _onWsStatus(s){const dot=document.getElementById('wsDot'),lbl=document.getElementById('wsLabel');if(dot)dot.className='ws-dot '+s;if(lbl)lbl.textContent=s==='connected'?'실시간 연결 중':s==='reconnecting'?'재연결 중…':'연결 안 됨';}
+
+function _moistColor(m){ return m<40?'var(--red)':m<50?'var(--orange)':m>75?'var(--blue)':'var(--green)'; }
+
+function _renderMoisture(){
+  const avg=Math.round(PARCELS.reduce((s,p)=>s+p.moisture,0)/PARCELS.length);
+  document.getElementById('kpiMoist').textContent=`${avg}%`;
+  document.getElementById('moistList').innerHTML=PARCELS.map(p=>`
+    <div class="moist-row">
+      <span class="moist-name">${p.name}</span>
+      <div class="moist-bar-wrap"><div class="moist-bar-fill" style="width:${p.moisture}%;background:${_moistColor(p.moisture)};"></div></div>
+      <span class="moist-val" style="color:${_moistColor(p.moisture)};">${p.moisture}%</span>
+    </div>`).join('');
+}
+
+function _renderPriority(){
+  // 토양수분 낮은 순 = 관개 우선
+  const sorted=[...PARCELS].filter(p=>p.moisture<50).sort((a,b)=>a.moisture-b.moisture);
+  const total=PARCELS.filter(p=>p.moisture<40).length;
+  document.getElementById('kpiNeed').textContent=`${total}필지`;
+  const el=document.getElementById('irrPriority');
+  if(!sorted.length){ el.innerHTML='<div class="card" style="padding:16px;text-align:center;color:var(--green);">✅ 모든 필지 토양수분 충분 — 관개 불필요</div>'; return; }
+  el.innerHTML=sorted.map((p,i)=>{
+    const cls=i===0?'p1':i===1?'p2':'p3';
+    // 관개 필요량 ≈ (목표60% - 현재) × 면적 환산 (간이)
+    const needMm=Math.round((60-p.moisture)*0.8);
+    const liters=Math.round(needMm*p.area*1000);
+    return `<div class="irr-card ${cls}">
+      <div class="irr-rank ${cls}">${i+1}</div>
+      <div style="flex:1;"><div class="irr-name">${p.name}</div>
+        <div class="irr-detail">토양수분 ${p.moisture}% · 면적 ${p.area}ha</div></div>
+      <div class="irr-amount"><div class="irr-amt-val">${needMm}mm</div><div class="irr-amt-time">약 ${liters.toLocaleString()}L · 오전 권장</div></div>
+    </div>`;
+  }).join('');
+}
+
+async function _loadEtc(token, farmId){
+  const api=KaasaData.getApiBase(), H={Authorization:`Bearer ${token}`};
+  const sch=await fetch(`${api}/api/farms/${farmId}/irrigation/schedule/priva`,{headers:H}).then(r=>r.ok?r.json():null).catch(()=>null);
+  const etc = sch?.etc_mm ?? sch?.et0_mm;
+  if(etc!=null){
+    document.getElementById('kpiEtc').textContent=`${Number(etc).toFixed(1)}mm`;
+  }
+  // 관개 지침
+  const low=PARCELS.filter(p=>p.moisture<40);
+  const gt=document.getElementById('guideTitle'), gd=document.getElementById('guideDesc');
+  if(low.length){
+    gt.textContent=`${low.length}개 필지 관개 필요`;
+    gd.innerHTML=`ETc ${etc!=null?Number(etc).toFixed(1)+'mm':'—'} 증발산 기준, <b>${low.map(p=>p.name).join(', ')}</b>에 오전(05~09시) 관개 권장. 증발 손실 최소화를 위해 일출 직후 실시.`;
+  } else {
+    gt.textContent='관개 불필요';
+    gd.innerHTML=`모든 필지 토양수분 40% 이상. ETc ${etc!=null?Number(etc).toFixed(1)+'mm':'—'} 수준으로 다음 점검 시까지 유지.`;
+  }
+}
+</script>
+</body>
+</html>
