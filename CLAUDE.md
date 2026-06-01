@@ -152,6 +152,22 @@ C:\smart_farm\
 - F2 GIS: peelable 레이어 토글(필지경계/토양수분/NDVI) + 값 히트맵 (패턴7·8)
 - 전 화면(10) 콘솔 에러 0건 회귀검수 통과
 
+## 운영 기록 입력 + 기자재 통합 (2026-06-02)
+
+### 운영 기록 폐루프 (RecordSheet)
+- `components/record_sheet.js`: RecordSheet.open/logActivity/renderRecent
+- 입력 화면: F4(관개)·F6(방제)·F7(필지수확)·G2(환경설정)·G3(관수)·G4(생육측정)·F3(작업계획) → POST /activity
+- 각 화면 '최근 기록' 타임라인 (GET /activity/summary recent[])
+- C4(전문가 consult)·C12(공동출하 joint_ship+물량/등급)·C2(consent) 실제 서버 적재
+- C14 월간리포트: 이행 활동 상세(by_kind 칩)+최근기록 + 학습기여 재학습 트리거 연동(remaining_rows·near_retrain 배지)
+
+### 시설 기자재 + 이기종 통합 (C16 신규)
+- `docs/EQUIPMENT_INTEGRATION.md` + `api/data/equipment_schema.json`(8군·프로토콜·표준변수22)
+- `screens/c16_equipment.html`: 장비 등록 + 데이터포인트→canonical_name 매핑
+- 백엔드: GET /equipment/schema·GET/POST/DELETE /equipment (data/equipment/{farm}.json)
+- C1 저장 후 CTA로 C16 연결 / `equipment_link.js`로 G2·G3에 '연동 장비' 배지 + device_alert 연계
+- 전 32화면 콘솔 에러 0건 회귀검수 통과
+
 ---
 
 ## 완료된 화면 (2026-06-01 — 원본 28개 100% 완성)
