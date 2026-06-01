@@ -1,0 +1,82 @@
+{
+  "_comment": "농가 시설 기자재 구축 내역 + 이기종 통합 입력 스펙 (KAASA SmartOS). variable_registry canonical_name과 매핑.",
+  "version": "1.0",
+
+  "categories": [
+    { "key": "env_actuator", "name_ko": "환경제어 액추에이터", "scope": "greenhouse",
+      "devices": ["난방기(온풍·온수·지열)", "천창 개폐", "측창 개폐", "순환팬", "유동팬", "차광 스크린", "보온 스크린", "CO2 발생기", "포그·미스트", "환기팬"] },
+    { "key": "irrigation", "name_ko": "관수·양액", "scope": "both",
+      "devices": ["양액기(믹서)", "도징펌프(A/B/산)", "관수 주펌프", "구역 전자밸브", "드리퍼·베드", "유량계", "역세 필터"] },
+    { "key": "sensor", "name_ko": "환경·근권 센서", "scope": "both",
+      "devices": ["온습도 센서", "일사·PAR 센서", "지온 센서", "CO2 센서", "EC 센서", "pH 센서", "배지 함수율 센서", "수분장력계", "토양수분 프로브(노지)", "강우 감지"] },
+    { "key": "weather", "name_ko": "기상 관측", "scope": "field",
+      "devices": ["AWS 기상관측기", "풍향·풍속계", "우량계", "외부 온습도", "동상해 감지"] },
+    { "key": "energy", "name_ko": "에너지·전력", "scope": "both",
+      "devices": ["전력량계", "인버터", "보일러", "히트펌프", "축열조", "태양광 발전", "수전 설비"] },
+    { "key": "field_irrig", "name_ko": "노지 관개 설비", "scope": "field",
+      "devices": ["관정·양수펌프", "스프링클러", "점적관수", "관수 컨트롤러", "여과기", "비료 주입기(벤츄리)"] },
+    { "key": "vision", "name_ko": "영상·보안", "scope": "both",
+      "devices": ["생육 카메라", "CCTV", "출입 통제", "병해 영상진단 카메라"] },
+    { "key": "control_comm", "name_ko": "제어·통신", "scope": "both",
+      "devices": ["복합환경제어기", "PLC·제어반", "게이트웨이", "엣지 컨트롤러", "네트워크(유선·LTE·LoRa)"] }
+  ],
+
+  "integration_fields": {
+    "_note": "장비 1대당 입력 항목 — 이기종 통합 매핑표의 행 단위",
+    "identity": [
+      { "id": "device_id",   "label_ko": "장비 ID",   "type": "text",   "required": true },
+      { "id": "category",    "label_ko": "분류",      "type": "select", "ref": "categories", "required": true },
+      { "id": "device_type", "label_ko": "장비 종류",  "type": "select", "ref": "category.devices", "required": true },
+      { "id": "location",    "label_ko": "설치 위치",  "type": "text",   "placeholder": "예: 1동 2구역 / 3번 필지" },
+      { "id": "install_date","label_ko": "설치일",     "type": "date" }
+    ],
+    "vendor": [
+      { "id": "maker",    "label_ko": "제조사",   "type": "text",  "required": true, "examples": ["프리바(Priva)", "호겐도른", "그린씨에스", "우성하이텍", "신한에이텍", "씨드로닉스", "기타"] },
+      { "id": "model",    "label_ko": "모델명",   "type": "text" },
+      { "id": "firmware", "label_ko": "펌웨어 버전", "type": "text" }
+    ],
+    "comm": [
+      { "id": "protocol", "label_ko": "통신 프로토콜", "type": "select", "required": true,
+        "options": ["MQTT", "Modbus-RTU(RS485)", "Modbus-TCP", "BACnet", "OPC-UA", "LoRaWAN", "HTTP/REST", "RS232", "디지털접점(DI/DO)"] },
+      { "id": "host",      "label_ko": "주소(IP/호스트)", "type": "text",   "placeholder": "192.168.0.x 또는 토픽 prefix" },
+      { "id": "port",      "label_ko": "포트",         "type": "number", "placeholder": "502 / 1883 등" },
+      { "id": "unit_id",   "label_ko": "슬레이브/유닛 ID", "type": "number", "hint": "Modbus slave_id, LoRa devEUI 등" },
+      { "id": "auth",      "label_ko": "인증(계정/키)",  "type": "text",   "sensitive": true }
+    ],
+    "datapoints": {
+      "_note": "장비별 데이터 포인트(태그) 리스트 — 각 포인트가 표준 변수로 매핑됨",
+      "fields": [
+        { "id": "tag",          "label_ko": "포인트명/태그", "type": "text",   "required": true, "placeholder": "예: AI001, holding_reg_40001, sensors/temp" },
+        { "id": "address",      "label_ko": "주소(레지스터/토픽)", "type": "text" },
+        { "id": "data_type",    "label_ko": "데이터형", "type": "select", "options": ["float", "int16", "uint16", "int32", "bool", "string"] },
+        { "id": "unit",         "label_ko": "단위",     "type": "text",   "placeholder": "°C, %, ppm, dS/m, ml, W" },
+        { "id": "scale",        "label_ko": "배율(scale)", "type": "number", "default": 1 },
+        { "id": "offset",       "label_ko": "오프셋(offset)", "type": "number", "default": 0 },
+        { "id": "rw",           "label_ko": "읽기/쓰기", "type": "select", "options": ["read", "write", "read/write"] },
+        { "id": "poll_interval","label_ko": "수집 주기(초)", "type": "number", "default": 60 },
+        { "id": "canonical_name","label_ko": "표준 변수 매핑", "type": "select", "ref": "canonical_names",
+          "hint": "variable_registry 표준명으로 매핑 → 화면·모델이 제조사 무관하게 사용" }
+      ]
+    }
+  },
+
+  "canonical_names": [
+    "temp_internal", "temp_external", "humidity_int", "co2_ppm", "solar_rad", "solar_rad_cumulative",
+    "soil_temp", "wind_speed_ext", "ec_dsm", "ph", "rainfall_detect",
+    "drain_pct", "supply_ml", "water_content_pct",
+    "plant_height_cm", "leaf_count", "fruit_set_count", "stem_diameter_mm",
+    "power_kwh", "heating_temp_set", "vent_open_pct", "co2_target_ppm"
+  ],
+
+  "actuator_commands": {
+    "_note": "쓰기(write) 가능 포인트의 표준 명령 — 이기종 제어기에 동일 명령 전달",
+    "list": [
+      { "cmd": "heating_temp_set", "label_ko": "난방 설정온도", "unit": "°C" },
+      { "cmd": "vent_open_pct",    "label_ko": "환기창 개도",   "unit": "%" },
+      { "cmd": "screen_pct",       "label_ko": "스크린 전개",   "unit": "%" },
+      { "cmd": "co2_target_ppm",   "label_ko": "CO2 목표",      "unit": "ppm" },
+      { "cmd": "irrigation_run",   "label_ko": "관수 실행",     "unit": "ml/회" },
+      { "cmd": "valve_zone",       "label_ko": "구역 밸브",     "unit": "on/off" }
+    ]
+  }
+}
