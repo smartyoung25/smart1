@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <title>G6 — 수확·유통 | KAASA SmartOS</title>
+  <link rel="stylesheet" href="../components/base.css"/>
+  <style>
+    /* ── G6 전용 스타일 ── */
+
+    /* 출하 비교 카드 */
+    .channel-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px;
+    }
+    .channel-card {
+      background: var(--panel); border-radius: var(--radius);
+      padding: 16px 14px; border: 2px solid var(--border);
+      box-shadow: var(--shadow); position: relative;
+      transition: border-color .2s;
+    }
+    .channel-card.recommended { border-color: var(--green); }
+    .channel-card.recommended::before {
+      content: '추천';
+      position: absolute; top: -1px; right: 12px;
+      background: var(--green); color: #fff;
+      font-size: 9px; font-weight: 900; padding: 2px 8px;
+      border-radius: 0 0 6px 6px;
+    }
+    .ch-icon  { font-size: 28px; margin-bottom: 8px; display: block; }
+    .ch-label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+    .ch-title { font-size: 14px; font-weight: 900; margin: 3px 0; }
+    .ch-price { font-size: 22px; font-weight: 900; color: var(--green); margin: 6px 0 2px; font-variant-numeric: tabular-nums; }
+    .ch-sub   { font-size: 11px; color: var(--muted); }
+    .ch-pros  { margin-top: 10px; }
+    .ch-pro   { font-size: 11px; color: var(--text); padding: 2px 0; }
+
+    /* 수확 시나리오 카드 */
+    .scenario-row {
+      display: flex; align-items: center; gap: 12px; padding: 11px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .scenario-row:last-child { border-bottom: none; }
+    .sc-date  { font-size: 13px; font-weight: 800; min-width: 90px; }
+    .sc-yield { font-size: 13px; color: var(--muted); flex: 1; }
+    .sc-rev   { font-size: 13px; font-weight: 800; color: var(--green); text-align: right; }
+
+    /* 가격 이력 바 차트 */
+    .price-bar-chart { display: flex; align-items: flex-end; gap: 3px; height: 60px; margin: 10px 0; }
+    .price-bar {
+      flex: 1; background: var(--green-soft); border-radius: 3px 3px 0 0;
+      transition: height .5s; position: relative; min-height: 4px;
+    }
+    .price-bar:hover { background: var(--green); }
+    .price-bar-labels { display: flex; justify-content: space-between; font-size: 9px; color: var(--muted); }
+
+    /* 수익성 요약 테이블 */
+    .profit-table { width: 100%; border-collapse: collapse; }
+    .profit-table td { padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+    .profit-table td:last-child { text-align: right; font-weight: 800; }
+    .profit-table tr:last-child td { border-bottom: none; font-size: 14px; color: var(--green); }
+
+    /* 출하 실행 버튼 */
+    .action-chip {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--green); color: #fff; border: none;
+      border-radius: 20px; padding: 9px 18px; font-size: 13px; font-weight: 800;
+      cursor: pointer; margin-right: 8px; margin-top: 8px;
+    }
+    .action-chip.secondary {
+      background: var(--panel); color: var(--text); border: 1.5px solid var(--border);
+    }
+
+    /* WS 점 */
+    .ws-dot { width:8px; height:8px; border-radius:50%; background:var(--muted); display:inline-block; }
+    .ws-dot.connected { background:var(--green); box-shadow:0 0 0 3px rgba(31,122,77,.2); }
+  </style>
+</head>
+<body>
+
+<!-- ══ 헤더 ══ -->
+<header class="sf-header">
+  <div style="display:flex;align-items:center;gap:6px;">
+    <span class="ws-dot" id="wsDot"></span>
+    <span style="font-size:12px;color:rgba(255,255,255,.8)" id="wsLabel">연결 중…</span>
+  </div>
+  <span style="font-size:15px;font-weight:800;color:#fff;letter-spacing:-.3px">G6 수확·유통</span>
+  <select id="farmSel" onchange="onFarmChange(this.value)"
+          style="font-size:12px;background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:8px;padding:4px 8px;cursor:pointer;outline:none;">
+    <option value="farm_001">farm_001</option>
+  </select>
+</header>
+
+<!-- ══ 본문 ══ -->
+<main class="sf-main" style="padding:14px;max-width:480px;margin:0 auto;">
+
+  <!-- 출하 채널 비교 -->
+  <div class="section-label">출하 채널 비교 <span id="cropBadge" style="font-size:11px;color:var(--muted);font-weight:400;"></span></div>
+  <div class="channel-grid">
+
+    <div class="channel-card" id="cardIndiv">
+      <span class="ch-icon">🏪</span>
+      <div class="ch-label">개별 출하</div>
+      <div class="ch-title">농협 · 시장 직거래</div>
+      <div class="ch-price" id="indivPrice">—<span style="font-size:14px;font-weight:400;">원/kg</span></div>
+      <div class="ch-sub" id="indivSub">KAMIS 가락시장 기준</div>
+      <div class="ch-pros">
+        <div class="ch-pro">✓ 즉시 출하 가능</div>
+        <div class="ch-pro">✓ 가격 협상 여지</div>
+        <div class="ch-pro" style="color:var(--muted);">✗ 물량 불안정</div>
+      </div>
+    </div>
+
+    <div class="channel-card" id="cardJoint">
+      <span class="ch-icon">🤝</span>
+      <div class="ch-label">공동 출하</div>
+      <div class="ch-title">KAASA Pool 참여</div>
+      <div class="ch-price" id="jointPrice">—<span style="font-size:14px;font-weight:400;">원/kg</span></div>
+      <div class="ch-sub" id="jointSub">도매시장 평균가 기준</div>
+      <div class="ch-pros">
+        <div class="ch-pro">✓ 안정적 물량 소화</div>
+        <div class="ch-pro">✓ 배송·정산 일원화</div>
+        <div class="ch-pro" id="jointCon">— Pool 신청 필요</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- AI 출하 추천 -->
+  <div class="card" id="channelAdvice" style="padding:14px;margin-bottom:14px;border-left:4px solid var(--green);">
+    <div style="font-size:13px;font-weight:800;margin-bottom:6px;">🤖 AI 출하 추천</div>
+    <div id="channelAdviceText" style="font-size:13px;color:var(--muted);">분석 중…</div>
+    <div style="margin-top:10px;">
+      <button class="action-chip" onclick="location.href='c12_joint.html'">Pool 신청하기</button>
+      <button class="action-chip secondary" onclick="_confirmHarvest()">수확 기록 입력</button>
+    </div>
+  </div>
+
+  <!-- 수확 예측 시나리오 -->
+  <div class="section-label">수확 시나리오</div>
+  <div class="card" style="padding:14px;">
+    <div id="scenarios">
+      <div style="text-align:center;color:var(--muted);font-size:12px;"><div class="spinner"></div></div>
+    </div>
+  </div>
+
+  <!-- 수익성 요약 -->
+  <div class="section-label" style="margin-top:14px;">수익성 요약 (ML 예측)</div>
+  <div class="card" style="padding:14px;">
+    <table class="profit-table">
+      <tr><td>예상 수확량</td><td id="profYield">—</td></tr>
+      <tr><td>KAMIS 시세</td><td id="profPrice">—</td></tr>
+      <tr><td>예상 매출</td><td id="profRevenue">—</td></tr>
+      <tr><td>예상 원가</td><td id="profCost">—</td></tr>
+      <tr><td style="font-weight:800;">예상 순이익</td><td id="profProfit">—</td></tr>
+    </table>
+    <div style="margin-top:10px;background:var(--green-soft);border-radius:var(--radius-sm);padding:10px;display:flex;justify-content:space-between;align-items:center;">
+      <span style="font-size:12px;font-weight:700;color:var(--green-dark);">마진율</span>
+      <span style="font-size:22px;font-weight:900;color:var(--green);" id="profMargin">—%</span>
+    </div>
+  </div>
+
+  <!-- 30일 시세 트렌드 -->
+  <div class="section-label" style="margin-top:14px;">30일 시세 트렌드</div>
+  <div class="card" style="padding:14px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <span style="font-size:13px;font-weight:800;" id="trendCrop">—</span>
+      <span style="font-size:12px;color:var(--muted);" id="trendSrc">—</span>
+    </div>
+    <div class="price-bar-chart" id="priceChart"></div>
+    <div class="price-bar-labels" id="priceLabels"></div>
+    <div style="display:flex;gap:16px;margin-top:10px;font-size:12px;">
+      <span>최고 <b id="statMax">—</b>원</span>
+      <span>평균 <b id="statAvg">—</b>원</span>
+      <span>최저 <b id="statMin">—</b>원</span>
+      <span>최신 <b id="statLatest">—</b>원</span>
+    </div>
+  </div>
+
+  <!-- 수확 기록 입력 Bottom Sheet 트리거 -->
+  <div style="margin-top:14px;padding:14px;background:var(--panel-soft);border-radius:var(--radius-sm);border:1px dashed var(--border);text-align:center;">
+    <div style="font-size:13px;font-weight:700;margin-bottom:6px;">📦 오늘 수확 기록</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">실제 수확량을 입력하면 AI 모델 정확도가 향상됩니다</div>
+    <button class="action-chip" onclick="_openHarvestForm()">수확량 입력</button>
+  </div>
+
+</main>
+
+<!-- ══ 수확 기록 Bottom Sheet ══ -->
+<div class="sheet-backdrop" id="sheetBackdrop" onclick="_closeSheet()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:300;"></div>
+<div id="harvestSheet" style="display:none;position:fixed;bottom:0;left:0;right:0;background:var(--panel);border-radius:var(--radius) var(--radius) 0 0;padding:20px;z-index:400;box-shadow:0 -4px 24px rgba(0,0,0,.15);">
+  <div style="width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px;"></div>
+  <h4 style="font-size:16px;font-weight:800;margin-bottom:14px;">📦 수확 기록 입력</h4>
+  <div style="display:flex;flex-direction:column;gap:10px;">
+    <div>
+      <label style="font-size:12px;font-weight:700;color:var(--muted);">수확량 (kg)</label>
+      <input id="harvestQty" type="number" inputmode="decimal" placeholder="예: 150.5"
+             style="width:100%;padding:10px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:15px;margin-top:4px;outline:none;"/>
+    </div>
+    <div>
+      <label style="font-size:12px;font-weight:700;color:var(--muted);">등급</label>
+      <select id="harvestGrade" style="width:100%;padding:10px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:14px;margin-top:4px;outline:none;background:var(--panel);">
+        <option value="A">A등급 (상품)</option>
+        <option value="B">B등급 (보통)</option>
+        <option value="C">C등급 (등외)</option>
+      </select>
+    </div>
+    <div>
+      <label style="font-size:12px;font-weight:700;color:var(--muted);">출하 채널</label>
+      <select id="harvestChannel" style="width:100%;padding:10px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:14px;margin-top:4px;outline:none;background:var(--panel);">
+        <option value="individual">개별 출하</option>
+        <option value="joint">공동출하 Pool</option>
+        <option value="direct">직거래</option>
+      </select>
+    </div>
+  </div>
+  <div style="display:flex;gap:8px;margin-top:16px;">
+    <button onclick="_submitHarvest()" style="flex:1;padding:13px;background:var(--green);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:800;cursor:pointer;">저장</button>
+    <button onclick="_closeSheet()" style="flex:1;padding:13px;background:var(--panel);color:var(--muted);border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-weight:700;cursor:pointer;">취소</button>
+  </div>
+  <div id="harvestResult" style="margin-top:10px;font-size:12px;text-align:center;color:var(--green);"></div>
+</div>
+
+<!-- ══ 하단 탭 바 ══ -->
+<nav class="sf-bottom-nav">
+  <button class="bnav-tab" onclick="location.href='c3_home.html'">
+    <span class="bnav-icon">🏠</span>홈
+  </button>
+  <button class="bnav-tab" onclick="location.href='g3_period.html'">
+    <span class="bnav-icon">💧</span>관수
+  </button>
+  <button class="bnav-tab" onclick="location.href='g4_growth.html'">
+    <span class="bnav-icon">🌱</span>생육
+  </button>
+  <button class="bnav-tab" onclick="location.href='g5_disease.html'">
+    <span class="bnav-icon">🔬</span>병해
+  </button>
+  <button class="bnav-tab active">
+    <span class="bnav-icon">🚛</span>출하
+  </button>
+</nav>
+
+<script src="../components/data.js"></script>
+<script>
+'use strict';
+
+window.addEventListener('DOMContentLoaded', () => {
+  const farmId = new URLSearchParams(location.search).get('farm') ||
+                 sessionStorage.getItem('sf_farm_id') || 'farm_001';
+  _ensureToken().then(token => {
+    KaasaData.init({ farmId, token, onStatus: _onWsStatus });
+    _loadAll(token, farmId);
+  });
+});
+
+function onFarmChange(id) { sessionStorage.setItem('sf_farm_id', id); location.reload(); }
+
+async function _ensureToken() {
+  const s = sessionStorage.getItem('sf_token');
+  if (s) return s;
+  try {
+    const api = sessionStorage.getItem('sf_api') || location.origin;
+    const r = await fetch(`${api}/api/v1/auth/token`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({username:'admin',password:'1250'}),
+    });
+    if (r.ok) { const d = await r.json(); sessionStorage.setItem('sf_token', d.access_token); return d.access_token; }
+  } catch {}
+  return '';
+}
+
+function _onWsStatus(s) {
+  const dot=document.getElementById('wsDot'), lbl=document.getElementById('wsLabel');
+  if(dot) dot.className='ws-dot '+s;
+  if(lbl) lbl.textContent=s==='connected'?'실시간 연결 중':s==='reconnecting'?'재연결 중…':'연결 안 됨';
+}
+
+// ── 전체 로드 ───────────────────────────────────────────────────────────────
+async function _loadAll(token, farmId) {
+  const api = KaasaData.getApiBase();
+  const H   = { Authorization: `Bearer ${token}` };
+
+  const [harvest, revenue, wholesale, history] = await Promise.all([
+    fetch(`${api}/api/farms/${farmId}/harvest`,               {headers:H}).then(r=>r.ok?r.json():null).catch(()=>null),
+    fetch(`${api}/api/farms/${farmId}/revenue`,               {headers:H}).then(r=>r.ok?r.json():null).catch(()=>null),
+    fetch(`${api}/api/farms/${farmId}/market/wholesale`,      {headers:H}).then(r=>r.ok?r.json():null).catch(()=>null),
+    fetch(`${api}/api/farms/${farmId}/market/price-history`,  {headers:H}).then(r=>r.ok?r.json():null).catch(()=>null),
+  ]);
+
+  const crop = revenue?.crop_ko || wholesale?.crop_ko || '오이';
+  const lbl = document.getElementById('cropBadge');
+  if (lbl) lbl.textContent = `(${crop})`;
+
+  _renderChannels(revenue, wholesale, crop);
+  _renderScenarios(harvest, revenue);
+  _renderProfit(revenue);
+  _renderPriceChart(history);
+}
+
+// ── 출하 채널 비교 ──────────────────────────────────────────────────────────
+function _renderChannels(revenue, wholesale, crop) {
+  const kamis   = revenue?.kamis_price_krw_kg  ?? revenue?.price_krw_kg ?? 0;
+  const wsPrice = wholesale?.price_krw_kg ?? 0;
+  const indiv   = kamis;
+  const joint   = wsPrice > 0 ? wsPrice : kamis * 1.08;  // 공동출하는 일반적으로 도매가 기준
+
+  const fmt = v => Math.round(v).toLocaleString();
+  const setEl = (id, v) => { const el=document.getElementById(id); if(el) el.innerHTML=v; };
+
+  setEl('indivPrice', `${fmt(indiv)}<span style="font-size:14px;font-weight:400;">원/kg</span>`);
+  setEl('jointPrice', `${fmt(joint)}<span style="font-size:14px;font-weight:400;">원/kg</span>`);
+  setEl('indivSub', `KAMIS ${new Date().toLocaleDateString('ko-KR',{month:'short',day:'numeric'})} 기준`);
+  setEl('jointSub', wholesale?.price_source ? `출처: ${wholesale.price_source}` : '도매시장 평균');
+
+  // 추천 채널
+  const recommended = joint >= indiv ? 'joint' : 'indiv';
+  const diff = Math.abs(joint - indiv);
+  document.getElementById('cardIndiv')?.classList.toggle('recommended', recommended === 'indiv');
+  document.getElementById('cardJoint')?.classList.toggle('recommended', recommended === 'joint');
+
+  // AI 조언
+  const yieldKg = revenue?.yield_kg_forecast ?? 0;
+  const diffRevenue = Math.round(diff * yieldKg / 10000);
+  const adviceText = recommended === 'joint'
+    ? `공동출하 시 개별 대비 <b>${Math.round(diff).toLocaleString()}원/kg</b> 높은 시세 → 총 <b>${diffRevenue.toLocaleString()}만원</b> 추가 수익 예상. Pool 신청 마감일 확인 권장`
+    : `현재 시장가격 기준 개별 출하가 유리. 공동출하 Pool 조건과 비교 후 결정`;
+  const advEl = document.getElementById('channelAdviceText');
+  if (advEl) advEl.innerHTML = adviceText;
+
+  const conEl = document.getElementById('jointCon');
+  if (conEl) conEl.textContent = `${joint >= indiv ? '✓' : '✗'} 개별 대비 ${joint >= indiv ? '+' : ''}${Math.round(joint - indiv).toLocaleString()}원/kg`;
+  if (conEl) conEl.style.color = joint >= indiv ? 'var(--green)' : 'var(--muted)';
+}
+
+// ── 수확 시나리오 ───────────────────────────────────────────────────────────
+function _renderScenarios(harvest, revenue) {
+  const predDate = harvest?.predicted_date ? new Date(harvest.predicted_date) : null;
+  const yieldKg  = revenue?.yield_kg_forecast ?? 18000;
+  const priceKg  = revenue?.kamis_price_krw_kg ?? revenue?.price_krw_kg ?? 1800;
+  const container = document.getElementById('scenarios');
+  if (!container) return;
+
+  if (!predDate) { container.innerHTML = '<div style="color:var(--muted);font-size:12px;">예측 데이터 없음</div>'; return; }
+
+  // 3가지 시나리오: 조기(D-7), 예정(D-0), 지연(D+7)
+  const scenarios = [
+    { label:'조기 수확', date: new Date(predDate.getTime()-7*86400000), yield: yieldKg*0.90, price: priceKg*1.05, note:'85~90% 착색 · 출하가 약간 상승' },
+    { label:'예정 수확', date: predDate,                                yield: yieldKg,      price: priceKg,     note:`AI 예측 기준 (${Math.round(harvest?.confidence*100||60)}% 신뢰)` },
+    { label:'지연 수확', date: new Date(predDate.getTime()+7*86400000), yield: yieldKg*1.05, price: priceKg*0.97, note:'완숙 수확 · 물량 집중 시기' },
+  ];
+
+  container.innerHTML = scenarios.map((s, i) => {
+    const dday = Math.round((s.date - new Date()) / 86400000);
+    const rev  = Math.round(s.yield * s.price / 10000);
+    const isBest = i === 1;
+    return `<div class="scenario-row">
+      <div>
+        <div class="sc-date">${s.label} <span style="font-size:10px;color:${dday>0?'var(--orange)':'var(--green)'};">${dday>0?`D-${dday}`:'오늘'}</span></div>
+        <div style="font-size:10px;color:var(--muted);">${s.date.toLocaleDateString('ko-KR',{month:'short',day:'numeric'})} · ${s.note}</div>
+      </div>
+      <div class="sc-yield">${Math.round(s.yield).toLocaleString()} kg @ ${Math.round(s.price).toLocaleString()}원</div>
+      <div class="sc-rev" style="${isBest?'color:var(--green);':''}">${rev.toLocaleString()}만원${isBest?' ★':''}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── 수익성 요약 ─────────────────────────────────────────────────────────────
+function _renderProfit(revenue) {
+  if (!revenue) return;
+  const fmt = v => v != null ? `${Math.round(v/10000).toLocaleString()}만원` : '—';
+  const fmtKg = v => v != null ? `${Math.round(v).toLocaleString()} kg` : '—';
+  const fmtPrice = v => v != null ? `${Math.round(v).toLocaleString()}원/kg` : '—';
+  const setEl = (id, v) => { const el=document.getElementById(id); if(el) el.textContent=v; };
+
+  setEl('profYield',   fmtKg(revenue.yield_kg_forecast ?? revenue.yield_kg_m2 * 1200));
+  setEl('profPrice',   fmtPrice(revenue.kamis_price_krw_kg || revenue.price_krw_kg));
+  setEl('profRevenue', fmt(revenue.revenue_krw || revenue.predicted_revenue_krw));
+  setEl('profCost',    fmt(revenue.cost_krw    || revenue.predicted_cost_krw));
+  setEl('profProfit',  fmt(revenue.predicted_profit_krw));
+  setEl('profMargin',  `${Math.round(revenue.profit_margin_pct ?? 0)}%`);
+}
+
+// ── 가격 이력 바 차트 ───────────────────────────────────────────────────────
+function _renderPriceChart(history) {
+  if (!history) return;
+  const items = history.history || [];
+  const stats = history.stats || {};
+  const crop  = history.crop || history.crop_ko || '오이';
+
+  const setEl = (id, v) => { const el=document.getElementById(id); if(el) el.textContent=v; };
+  setEl('trendCrop', crop);
+  setEl('trendSrc',  history.source || '');
+  setEl('statMax',    Math.round(stats.max||0).toLocaleString());
+  setEl('statAvg',    Math.round(stats.avg||0).toLocaleString());
+  setEl('statMin',    Math.round(stats.min||0).toLocaleString());
+  setEl('statLatest', Math.round(stats.latest||0).toLocaleString());
+
+  const chart  = document.getElementById('priceChart');
+  const labels = document.getElementById('priceLabels');
+  if (!chart || !items.length) {
+    if (chart) chart.innerHTML = '<div style="color:var(--muted);font-size:12px;width:100%;text-align:center;">이력 데이터 없음</div>';
+    return;
+  }
+
+  const prices = items.map(i => i.price_krw_kg || 0);
+  const maxP   = Math.max(...prices, 1);
+  const step   = Math.max(1, Math.floor(items.length / 7));
+  const shown  = items.filter((_, i) => i % step === 0).slice(0, 7);
+
+  chart.innerHTML = prices.map((p, i) => {
+    const h = Math.max(4, Math.round((p / maxP) * 58));
+    const isLatest = i === prices.length - 1;
+    return `<div class="price-bar" style="height:${h}px;${isLatest?'background:var(--green);':''}"></div>`;
+  }).join('');
+
+  labels.innerHTML = `
+    <span>${items[0]?.date?.slice(5)}</span>
+    <span>${items[Math.floor(items.length/2)]?.date?.slice(5)||''}</span>
+    <span>${items[items.length-1]?.date?.slice(5)||'최신'}</span>
+  `;
+}
+
+// ── 수확 기록 Bottom Sheet ──────────────────────────────────────────────────
+function _openHarvestForm() {
+  document.getElementById('sheetBackdrop').style.display = 'block';
+  document.getElementById('harvestSheet').style.display  = 'block';
+  document.getElementById('harvestResult').textContent   = '';
+}
+
+function _closeSheet() {
+  document.getElementById('sheetBackdrop').style.display = 'none';
+  document.getElementById('harvestSheet').style.display  = 'none';
+}
+
+function _confirmHarvest() { _openHarvestForm(); }
+
+async function _submitHarvest() {
+  const qty     = parseFloat(document.getElementById('harvestQty').value);
+  const grade   = document.getElementById('harvestGrade').value;
+  const channel = document.getElementById('harvestChannel').value;
+  const result  = document.getElementById('harvestResult');
+
+  if (!qty || qty <= 0) { result.textContent = '수확량을 입력해주세요'; result.style.color='var(--red)'; return; }
+
+  // 실제 저장 API (farm/harvest POST 없으면 localStorage 임시 저장)
+  const record = { date: new Date().toISOString().slice(0,10), qty_kg: qty, grade, channel, ts: Date.now() };
+  const key = `sf_harvest_${new Date().toDateString()}`;
+  const existing = JSON.parse(localStorage.getItem(key) || '[]');
+  existing.push(record);
+  localStorage.setItem(key, JSON.stringify(existing));
+
+  result.style.color = 'var(--green)';
+  result.textContent = `✓ ${qty}kg (${grade}등급) 기록 저장 완료`;
+  setTimeout(_closeSheet, 1500);
+}
+</script>
+</body>
+</html>
