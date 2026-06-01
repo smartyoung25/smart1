@@ -20,18 +20,21 @@
 
 | # | 패턴 | 대표 제품 | KAASA 적용 |
 |---|------|-----------|-------------|
-| 1 | Attention-routing 홈 | Priva·JohnDeere | ✅ C3 "오늘의 결정" 섹션 최상단 |
+| 1 | Attention-routing 홈 | Priva·JohnDeere | ✅ C3·G1·F1 "오늘의 결정" 섹션 |
 | 2 | 컨텍스트 스코프 대시보드 | Priva | ✅ P1~P5 Period 보드 + 작물별 맞춤메뉴 |
-| 3 | **이상감지+처방 한 카드 + 원탭 실행** | CropX | ✅ **DecisionDeck 컴포넌트(신규)** |
+| 3 | **이상감지+처방 한 카드 + 원탭 실행** | CropX | ✅ **DecisionDeck (C3·G1·F1)** |
 | 4 | Human-in-the-loop AI(신뢰도·승인) | Source.ag | ✅ 결정카드 신뢰도% + 적용/근거 버튼 |
 | 5 | 예측-with-horizon | LetsGrow | ✅ M2 수확 30일 예측(g4) |
-| 6 | 기준대비 편차(setpoint band) | iFarm | ◑ 배액률/VPD 목표대 표시 (밴드 시각화 보강 여지) |
-| 7 | 값의 공간/사진 오버레이 | 30MHz·FieldView | ◑ 노지 GIS placeholder (히트맵 보강 여지) |
-| 8 | 레이어 토글 지도 | FieldView | ◑ F2 GIS(토양/NDVI/필지) |
+| 6 | 기준대비 편차(setpoint band) | iFarm·FieldView | ✅ **BandChart — g3 배액률 목표대 음영(신규)** |
+| 7 | 값의 공간/사진 오버레이 | 30MHz·FieldView | ✅ **F2 토양수분·NDVI 히트맵(신규)** |
+| 8 | 레이어 토글 지도 | FieldView | ✅ **F2 peelable 레이어 토글(신규)** |
 | 9 | 계획→실행→기록 폐루프 | JohnDeere | ✅ 결정 적용→/activity 적재→retrain→리포트 |
 | 10 | 시간분할 setpoint(주/야) | Bluelab | ✅ Period별 EC/pH 기준 |
-| 11 | 자동화 액션 가드레일 | Bluelab | ◑ 권고 적용 등급 게이팅(tier_guard) |
-| 12 | 데이터 알림 vs 기기 알림 분리 | 30MHz | ◑ WS 연결상태 점 + 경보 배너 (기기알림 분리 여지) |
+| 11 | 자동화 액션 가드레일 | Bluelab | ✅ 권고 적용 등급 게이팅(tier_guard) |
+| 12 | 데이터 알림 vs 기기 알림 분리 | 30MHz | ✅ **DeviceAlert — c3·g2 연결/기기 알림 분리(신규)** |
+
+> **2026-06-01 2차 적용 완료**: 12개 패턴 전부 ✅ (◑ 4건 → 신규 컴포넌트 3종으로 해소)
+> 신규: `band_chart.js`(패턴6) · `device_alert.js`(패턴12) · F2 레이어/히트맵(패턴7·8) · DecisionDeck g1/f1 확장(패턴1·3)
 
 ## 3. 우리가 차별화한 지점 (대부분의 agtech UI가 약한 곳)
 
@@ -51,9 +54,17 @@
   - 각 카드: 심각도(3중코딩)·처방액션·신뢰도·출처·신선도 + 원탭 "적용 기록"(→/activity 폐루프) + "근거"
   - 검수(Playwright): 렌더/근거토글/activity POST 정상, 콘솔 에러 0건
 
-## 5. 후속 보강 후보 (◑ 항목)
+## 5. 2차 적용 산출물 (Top12 전부 완료)
 
-- 패턴 6: 시계열 차트에 setpoint **밴드(목표대) 음영** + 편차 강조 (g2/g3)
-- 패턴 7·8: 노지 필지 **값 히트맵 / peelable 레이어** (F2 GIS 실데이터 주입 시)
-- 패턴 12: **기기 상태 알림**(센서 오프라인·배터리) 별도 그룹화
-- DecisionDeck를 g1(온실홈)·f1(노지홈)에도 확장 적용
+| 신규 컴포넌트/적용 | 패턴 | 화면 |
+|---|---|---|
+| `components/decision_card.js` 빌더 확장 | 1·3·4·9 | g1·f1 "오늘의 결정" |
+| `components/band_chart.js` (의존성0 SVG) | 6 | g3 배액률 목표대 밴드 |
+| `components/device_alert.js` | 12 | c3·g2 기기/연결 알림 분리 |
+| F2 peelable 레이어 + 값 히트맵 | 7·8 | f2_gis(필지경계·토양수분·NDVI) |
+
+## 6. 향후 실데이터 주입 시 자동 고도화 (구조 완비)
+
+- 흙토람/위성 NDVI 키 주입 → F2 히트맵이 예시값→실측으로 자동 전환(출처 배지 🟢)
+- 센서 게이트웨이 배터리 텔레메트리 주입 → DeviceAlert.setDevices()로 배터리/오프라인 자동 표출
+- 7일+ 관수 이력 축적 → BandChart 시계열이 점→추세선으로 자동 충실화

@@ -145,6 +145,13 @@ C:\smart_farm\
 - C3 홈 "오늘의 결정": 이상감지(배액률·VPD)+AI추천 통합, 심각도3중코딩+처방+신뢰도+출처+신선도+원탭(→/activity 폐루프)
 - 벤치마킹 정리: `docs/UI_BENCHMARK.md`
 
+### 벤치마크 Top12 전부 적용 (2026-06-01 2차)
+- DecisionDeck → g1·f1 확장 (빌더 buildGreenhouse/buildField)
+- `band_chart.js`(의존성0 SVG): g3 배액률 목표대 밴드 음영 (패턴6)
+- `device_alert.js`: c3·g2 기기/연결 알림을 데이터 알림과 분리 (패턴12)
+- F2 GIS: peelable 레이어 토글(필지경계/토양수분/NDVI) + 값 히트맵 (패턴7·8)
+- 전 화면(10) 콘솔 에러 0건 회귀검수 통과
+
 ---
 
 ## 완료된 화면 (2026-06-01 — 원본 28개 100% 완성)
