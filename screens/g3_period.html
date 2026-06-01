@@ -169,7 +169,7 @@
       <span class="kpi-value" id="kpiDrain">—<span class="kpi-unit">%</span></span>
       <span class="kpi-hint" id="kpiDrainHint">목표 20~30%</span>
     </div>
-    <div class="kpi">
+    <div class="kpi" id="kpiEcCard">
       <span class="kpi-label">배액 EC</span>
       <span class="kpi-value" id="kpiEcDrain">—<span class="kpi-unit"> dS/m</span></span>
       <span class="kpi-hint" id="kpiEcHint">정상 3.0~4.5</span>
@@ -271,6 +271,7 @@
 </div>
 
 <script src="../components/data.js"></script>
+<script src="../components/tier_guard.js"></script>
 <script>
 /* ── 전역 상태 ── */
 let _privaData     = null;
@@ -299,6 +300,11 @@ window.addEventListener('DOMContentLoaded', () => {
     buildRecordFields();
     KaasaData.loadEnvironment();
     loadAll();
+    // 등급 게이팅: 드레인 EC 분석은 pro 등급 전용 (irr_ec_drain)
+    KaasaTier.init(farmId, token).then(() => {
+      KaasaTier.guard(document.getElementById('kpiEcCard'), 'irr_ec_drain',
+        { onUpgrade: () => { location.href = '/smartos'; } });
+    });
   });
 });
 

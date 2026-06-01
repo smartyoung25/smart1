@@ -117,8 +117,10 @@
 
   <!-- 환경 이상값 알림 -->
   <div class="section-label">환경 이상값 알림 <span class="trust-badge trust-live">🟢 실측</span></div>
-  <div id="anomalyList">
-    <div style="text-align:center;padding:14px;color:var(--muted);font-size:12px;"><div class="spinner"></div></div>
+  <div id="anomalyGuard">
+    <div id="anomalyList">
+      <div style="text-align:center;padding:14px;color:var(--muted);font-size:12px;"><div class="spinner"></div></div>
+    </div>
   </div>
 
   <!-- 결로위험시간 조기경보 -->
@@ -190,6 +192,7 @@
 </nav>
 
 <script src="../components/data.js"></script>
+<script src="../components/tier_guard.js"></script>
 <script>
 'use strict';
 
@@ -253,6 +256,11 @@ window.addEventListener('DOMContentLoaded', () => {
   _ensureToken().then(token => {
     KaasaData.init({ farmId, token, onStatus: _onWsStatus });
     _loadAll(token, farmId);
+    // 등급 게이팅: 병해 판단근거·env_snapshot 상세는 pro 등급 전용 (growth_disease_detail)
+    KaasaTier.init(farmId, token).then(() => {
+      KaasaTier.guard(document.getElementById('anomalyGuard'), 'growth_disease_detail',
+        { onUpgrade: () => { location.href = '/smartos'; } });
+    });
   });
 });
 

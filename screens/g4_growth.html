@@ -158,7 +158,7 @@
 
   <!-- 예측 KPI -->
   <div class="section-label" style="margin-top:14px;">수확량 예측 (M2 모델) <span class="trust-badge trust-model">🔵 모델</span></div>
-  <div class="pred-grid">
+  <div class="pred-grid" id="predGrid">
     <div class="pred-card">
       <span class="pred-icon">⚖️</span>
       <div class="pred-label">예상 수확량</div>
@@ -229,6 +229,7 @@
 </nav>
 
 <script src="../components/data.js"></script>
+<script src="../components/tier_guard.js"></script>
 <script>
 'use strict';
 
@@ -242,6 +243,11 @@ window.addEventListener('DOMContentLoaded', () => {
   _ensureToken().then(token => {
     KaasaData.init({ farmId, token, onStatus: _onWsStatus });
     _loadAll(token, farmId);
+    // 등급 게이팅: 수확량 예측(M2)은 smart 등급 전용 (growth_yield_forecast)
+    KaasaTier.init(farmId, token).then(() => {
+      KaasaTier.guard(document.getElementById('predGrid'), 'growth_yield_forecast',
+        { onUpgrade: () => { location.href = '/smartos'; } });
+    });
   });
 });
 
