@@ -140,6 +140,17 @@
     }
     .alert-item.danger { background: var(--red-soft); color: var(--red); }
     .alert-item.warn   { background: var(--orange-soft); color: var(--orange); }
+
+    /* 에너지 절감 조언 카드 */
+    .control-item {
+      display: flex; gap: 12px; padding: 11px 13px;
+      background: var(--panel); border-radius: var(--radius-sm);
+      margin-bottom: 8px; box-shadow: var(--shadow);
+      border-left: 4px solid var(--orange);
+    }
+    .ci-icon  { flex-shrink: 0; }
+    .ci-title { font-size: 13px; font-weight: 800; }
+    .ci-desc  { font-size: 12px; color: var(--muted); margin-top: 2px; line-height: 1.4; }
   </style>
 </head>
 <body>
@@ -277,6 +288,45 @@
     </div>
   </div>
 
+  <!-- ══ 에너지 ══ -->
+  <div class="section-label" style="margin-top:16px;">에너지 사용·요금 <span id="energySrc" style="font-weight:400;color:var(--muted);font-size:11px;"></span></div>
+
+  <!-- 한전 피크 시간대 경보 -->
+  <div id="peakBanner" style="display:none;"></div>
+
+  <div class="env-kpi-grid">
+    <div class="env-kpi-card" id="cardPower">
+      <span class="env-icon">⚡</span>
+      <div class="env-label">월 전력 사용량</div>
+      <div class="env-value" id="enPower" style="font-size:22px;">—<span class="env-unit"> kWh</span></div>
+      <div class="env-status" id="enPowerSt">로드 중…</div>
+      <div class="env-range" id="enPowerRange">전기요금 —</div>
+    </div>
+    <div class="env-kpi-card" id="cardHeat">
+      <span class="env-icon">🔥</span>
+      <div class="env-label">월 난방 에너지</div>
+      <div class="env-value" id="enHeat" style="font-size:22px;">—<span class="env-unit"> kWh</span></div>
+      <div class="env-status" id="enHeatSt">로드 중…</div>
+      <div class="env-range" id="enHeatRange">난방비 —</div>
+    </div>
+  </div>
+
+  <!-- 한전 시간대별 요금 안내 + 현재 시간대 -->
+  <div class="card" style="padding:14px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+      <span style="font-size:13px;font-weight:800;">⏱️ 현재 전력 시간대</span>
+      <span id="tariffNow" style="font-size:13px;font-weight:800;">—</span>
+    </div>
+    <div style="display:flex;gap:4px;height:28px;border-radius:6px;overflow:hidden;margin-bottom:6px;" id="tariffBar"></div>
+    <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--muted);">
+      <span>0시</span><span>6시</span><span>9시</span><span>12시</span><span>17시</span><span>23시</span>
+    </div>
+    <div style="margin-top:8px;font-size:11px;color:var(--muted);" id="tariffTip">시설원예 농사용(을) 계절·시간대별 요금</div>
+  </div>
+
+  <!-- 에너지 절감 조언 -->
+  <div id="energyAdvice" style="margin-top:10px;"></div>
+
 </main>
 
 <!-- ══ 하단 탭 바 ══ -->
@@ -381,6 +431,7 @@ window.addEventListener('DOMContentLoaded', () => {
     });
     KaasaData.loadEnvironment();
     _loadEnvFull(token, farmId);
+    _loadEnergy(token, farmId);
   });
 });
 
@@ -594,6 +645,113 @@ function _holdControl(id) {
   if (card) {
     card.querySelector('.action-row').innerHTML =
       `<div style="font-size:12px;color:var(--muted);padding:8px 0;">⏸ 보류됨 — 나중에 확인하세요</div>`;
+  }
+}
+
+// ── 에너지 사용·요금 (costs API 연동) ────────────────────────────────────────
+// 한전 시설원예 농사용(을) 고압A 선택II — 여름철 시간대 구분 (요약)
+//   경부하 23~09시 / 중간 09~10,12~13,17~23시 / 최대 10~12,13~17시
+function _tariffPeriod(hour) {
+  if (hour >= 23 || hour < 9) return { key:'off',  label:'경부하', color:'var(--green)',  rate:'저렴' };
+  if ((hour >= 10 && hour < 12) || (hour >= 13 && hour < 17)) return { key:'peak', label:'최대부하', color:'var(--red)', rate:'비쌈' };
+  return { key:'mid', label:'중간부하', color:'var(--orange)', rate:'보통' };
+}
+
+async function _loadEnergy(token, farmId) {
+  try {
+    const api = KaasaData.getApiBase();
+    const res = await fetch(`${api}/api/farms/${farmId}/costs`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!res.ok) { console.warn('[G2] costs 로드 실패:', res.status); return; }
+    const d = await res.json();
+    _renderEnergy(d);
+  } catch (e) { console.warn('[G2] 에너지 로드 실패:', e.message); }
+}
+
+function _renderEnergy(costs) {
+  const items = costs.items || [];
+  const elec  = items.find(i => i.category === 'electricity');
+  const heat  = items.find(i => i.category === 'heating');
+  const elecKwh = costs.electricity_kwh_month;
+  const setEl = (id, v) => { const el = document.getElementById(id); if (el) el.innerHTML = v; };
+  const fmt = v => v != null ? Math.round(v).toLocaleString() : '—';
+
+  // 출처 라벨 (실측 입력 여부)
+  const srcEl = document.getElementById('energySrc');
+  if (srcEl) srcEl.textContent = costs.has_manual_input ? '(실측 입력값)' : '(KEPCO 표준 추정)';
+
+  // 전력
+  setEl('enPower', `${fmt(elecKwh)}<span class="env-unit"> kWh</span>`);
+  const enPowerSt = document.getElementById('enPowerSt');
+  if (enPowerSt) {
+    enPowerSt.textContent = elec ? `전체 비용의 ${Math.round((elec.pct_of_total||0)*100)}%` : '';
+    enPowerSt.className = 'env-status';
+  }
+  setEl('enPowerRange', elec ? `전기요금 ${fmt(elec.amount_krw)}원/월` : '전기요금 —');
+
+  // 난방 (kWh 추출: unit_label "72.0kWh/일 × 30일 ...")
+  let heatKwh = null;
+  if (heat && heat.unit_label) {
+    const m = heat.unit_label.match(/([\d.]+)\s*kWh\/일/);
+    if (m) heatKwh = parseFloat(m[1]) * 30;
+  }
+  setEl('enHeat', `${fmt(heatKwh)}<span class="env-unit"> kWh</span>`);
+  const enHeatSt = document.getElementById('enHeatSt');
+  if (enHeatSt) {
+    enHeatSt.textContent = heat ? `전체 비용의 ${Math.round((heat.pct_of_total||0)*100)}%` : '난방 없음';
+  }
+  setEl('enHeatRange', heat ? `난방비 ${fmt(heat.amount_krw)}원/월` : '난방비 —');
+
+  // 현재 시간대 요금
+  const hour   = new Date().getHours();
+  const tariff = _tariffPeriod(hour);
+  const tariffNow = document.getElementById('tariffNow');
+  if (tariffNow) {
+    tariffNow.textContent = `${tariff.label} (${tariff.rate})`;
+    tariffNow.style.color = tariff.color;
+  }
+
+  // 24시간 요금 바
+  const barEl = document.getElementById('tariffBar');
+  if (barEl) {
+    barEl.innerHTML = Array.from({length:24}, (_, hr) => {
+      const t = _tariffPeriod(hr);
+      const isNow = hr === hour;
+      return `<div style="flex:1;background:${t.color};opacity:${isNow?1:0.45};position:relative;"
+                   title="${hr}시 ${t.label}">${isNow?'<div style=\"position:absolute;top:-2px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-top:5px solid var(--text);\"></div>':''}</div>`;
+    }).join('');
+  }
+
+  // 한전 피크 경보
+  const peakBanner = document.getElementById('peakBanner');
+  if (peakBanner) {
+    if (tariff.key === 'peak') {
+      peakBanner.style.display = 'block';
+      peakBanner.innerHTML = `<div class="alert-item danger" style="margin-bottom:10px;">
+        🚨 현재 <b>최대부하 시간대</b> (${hour}시) — 난방·환기·조명 등 고전력 작업 지연 권장. 경부하(23~09시)로 이전 시 요금 절감</div>`;
+    } else {
+      peakBanner.style.display = 'none';
+    }
+  }
+
+  // 에너지 절감 조언
+  const advEl = document.getElementById('energyAdvice');
+  if (advEl) {
+    const elecPct = elec ? Math.round((elec.pct_of_total||0)*100) : 0;
+    const advices = [];
+    if (tariff.key === 'peak')
+      advices.push({icon:'⏱️', t:'피크 회피', d:`최대부하 시간대(10~12,13~17시) 고전력 작업을 경부하로 이전 시 월 ${fmt((elec?.amount_krw||0)*0.12)}원 절감 가능`});
+    advices.push({icon:'💡', t:'LED 조명 DLI 연동', d:'일사 충분 시 보광 자동 차단 — DLI 목표 달성 후 LED off로 전력 절감'});
+    if (heatKwh)
+      advices.push({icon:'🔥', t:'야간 보온 최적화', d:`보온커튼 이중 + 야간 목표온도 18°C 설정 시 난방비 ${fmt((heat?.amount_krw||0)*0.15)}원/월 절감`});
+
+    advEl.innerHTML = advices.map(a => `
+      <div class="control-item" style="border-left-color:var(--orange);">
+        <span class="ci-icon" style="font-size:18px;">${a.icon}</span>
+        <div><div class="ci-title" style="font-size:13px;font-weight:800;">${a.t}</div>
+        <div class="ci-desc" style="font-size:12px;color:var(--muted);margin-top:2px;">${a.d}</div></div>
+      </div>`).join('');
   }
 }
 
