@@ -261,6 +261,42 @@ CROP_CONFIGS: dict[str, CropConfig] = {
         irrigation_target_mm_day=3.5,
         drain_target_pct=0.0,
     ),
+    "마늘": CropConfig(
+        crop_ko="마늘",
+        crop_en="garlic",
+        t_base=4.0,
+        growth_cols=["초장", "엽수", "엽초경", "구중", "구경"],
+        opt_temp_range=(5.0, 20.0),
+        opt_humid_range=(60.0, 80.0),
+        opt_co2_range=(380.0, 500.0),
+        env_to_growth_lag=2,
+        harvest_lag=3,
+        area_default_m2=3300.0,
+        season_months=[9, 10, 11, 12, 1, 2, 3, 4, 5, 6],  # 제주 난지형 마늘 가을파종~초여름수확
+        heating_months=[],
+        # FAO-56 Garlic Kc [Allen 1998, Table 12]
+        kc_stages={"initial": 0.70, "dev": 0.90, "mid": 1.00, "late": 0.70},
+        irrigation_target_mm_day=3.0,
+        drain_target_pct=0.0,
+    ),
+    "양파": CropConfig(
+        crop_ko="양파",
+        crop_en="onion",
+        t_base=4.5,
+        growth_cols=["초장", "엽수", "엽초경", "구중", "구경"],
+        opt_temp_range=(5.0, 22.0),
+        opt_humid_range=(60.0, 80.0),
+        opt_co2_range=(380.0, 500.0),
+        env_to_growth_lag=2,
+        harvest_lag=3,
+        area_default_m2=3300.0,
+        season_months=[9, 10, 11, 12, 1, 2, 3, 4, 5, 6],  # 가을정식~초여름수확
+        heating_months=[],
+        # FAO-56 Onion(dry) Kc [Allen 1998, Table 12]
+        kc_stages={"initial": 0.70, "dev": 0.95, "mid": 1.05, "late": 0.75},
+        irrigation_target_mm_day=3.0,
+        drain_target_pct=0.0,
+    ),
 }
 
 # 영문 → 한글 역조회

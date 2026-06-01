@@ -121,6 +121,18 @@ ITEM_CODES: dict[str, dict] = {
         "item_category_code": "200",
         "unit":               "kg",
     },
+    "마늘": {
+        "item_code":          "258",   # 깐마늘(국산) — 거래 활발
+        "item_name":          "깐마늘",
+        "item_category_code": "200",
+        "unit":               "kg",
+    },
+    "양파": {
+        "item_code":          "245",
+        "item_name":          "양파",
+        "item_category_code": "200",
+        "unit":               "kg",
+    },
 }
 
 # ── Mock 데이터 (API 키 없을 때 fallback) ─────────────────────────────────────

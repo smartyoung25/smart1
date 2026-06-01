@@ -55,6 +55,8 @@ _CROP_EN_TO_KO: dict[str, str] = {
     "winter_radish":  "월동무",
     "carrot":         "당근",
     "cabbage":        "양배추",
+    "garlic":         "마늘",
+    "onion":          "양파",
 }
 
 
