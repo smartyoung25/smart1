@@ -23,7 +23,7 @@
   <span style="font-size:15px;font-weight:800;color:#fff;">F2 필지 GIS</span><span style="width:40px;"></span>
 </header>
 <main class="sf-main" style="padding:14px;max-width:480px;margin:0 auto;">
-  <div class="section-label">필지 지도</div>
+  <div class="section-label">필지 지도 <span class="trust-badge trust-mock">⚪ Mock</span></div>
   <div class="map-box" id="mapBox"><span class="map-mock-tag">GIS Mock</span></div>
   <div class="mock-note">ℹ️ 필지 경계·구획 데이터는 실측 GIS 미연동 상태로 예시(Mock)입니다. 농지 좌표 연동 시 네이버/카카오 지도로 교체됩니다.</div>
   <div class="section-label">필지 목록</div>
@@ -38,21 +38,62 @@
 </nav>
 <script>
 'use strict';
-const PARCELS=[
+// 기본 Mock 좌표 (팜맵 미연동 시) — 그리드 배치
+let PARCELS=[
   {n:'1번 필지',x:6,y:10,w:42,h:40,crop:'배추',area:0.5,status:'정상',c:'var(--green)'},
   {n:'2번 필지',x:52,y:10,w:42,h:40,crop:'무',area:0.8,status:'관개필요',c:'var(--orange)'},
   {n:'3번 필지',x:6,y:54,w:42,h:38,crop:'대파',area:0.4,status:'정상',c:'var(--green)'},
   {n:'4번 필지',x:52,y:54,w:42,h:38,crop:'양파',area:0.6,status:'병해주의',c:'var(--red)'},
 ];
 window.addEventListener('DOMContentLoaded',()=>{
+  _render();
+  const farmId=new URLSearchParams(location.search).get('farm')||sessionStorage.getItem('sf_farm_id')||'farm_001';
+  _loadParcels(farmId);
+});
+
+async function _ensureToken(){
+  const s=sessionStorage.getItem('sf_token');if(s)return s;
+  try{const a=sessionStorage.getItem('sf_api')||location.origin;
+    const r=await fetch(`${a}/api/v1/auth/token`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:'admin',password:'1250'})});
+    if(r.ok){const d=await r.json();sessionStorage.setItem('sf_token',d.access_token);return d.access_token;}}catch{}return '';
+}
+
+async function _loadParcels(farmId){
+  try{
+    const token=await _ensureToken();
+    const api=sessionStorage.getItem('sf_api')||location.origin;
+    const r=await fetch(`${api}/api/farms/${farmId}/field/parcels`,{headers:{Authorization:`Bearer ${token}`}});
+    if(!r.ok) return;
+    const d=await r.json();
+    const isLive = d.source==='farmmap';
+    // 신뢰도 뱃지 동적 갱신
+    document.querySelectorAll('.trust-badge.trust-mock').forEach(b=>{
+      if(isLive){ b.className='trust-badge trust-live'; b.textContent='🟢 팜맵'; }
+    });
+    const list = d.parcels || [];
+    if(list.length){
+      // 그리드 좌표 자동 배치 (2열)
+      PARCELS = list.map((p,i)=>({
+        n:p.name||`${i+1}번 필지`, crop:p.crop||p.jimok||'-', area:p.area_ha??0.5,
+        status:'정상', c:'var(--green)',
+        x: i%2===0?6:52, y: 10+Math.floor(i/2)*44, w:42, h:40,
+      }));
+      _render(isLive);
+    }
+  }catch(e){ /* Mock 유지 */ }
+}
+
+function _render(isLive){
+  const tag = isLive?'팜맵':'Mock';
+  document.getElementById('mapBox').querySelectorAll('.map-parcel').forEach(e=>e.remove());
   document.getElementById('mapBox').insertAdjacentHTML('beforeend',PARCELS.map(p=>`
     <div class="map-parcel" style="left:${p.x}%;top:${p.y}%;width:${p.w}%;height:${p.h}%;background:rgba(34,197,94,.4);"
-      onclick="alert('${p.n}: ${p.crop} ${p.area}ha (${p.status}) — Mock')">${p.n}<br>${p.crop}</div>`).join(''));
+      onclick="alert('${p.n}: ${p.crop} ${p.area}ha — ${tag}')">${p.n}<br>${p.crop}</div>`).join(''));
   document.getElementById('parcelList').innerHTML=PARCELS.map(p=>`
     <div class="parcel-row"><span class="pr-ico">🌾</span>
       <div class="pr-name"><div class="pr-title">${p.n} · ${p.crop}</div><div class="pr-sub">면적 ${p.area}ha</div></div>
       <span class="pr-badge" style="background:${p.c}22;color:${p.c};">${p.status}</span></div>`).join('');
-});
+}
 </script>
 </body>
 </html>
