@@ -2735,6 +2735,121 @@ def _cfg_check(env_var: str) -> bool:
     return bool(v) and v not in ("none", "None", "", "your_key_here")
 
 
+@router.get("/report/monthly",
+            summary="월간 경영성과 리포트 (스마트농업법 제5·6·9조 — 6대영역+성과지표)")
+def get_monthly_report(farm_id: str, month: str = ""):
+    """농가별 월간 경영성과 종합 리포트.
+
+    6대 모니터링 영역 요약 + 9대 성과지표(목표/기준 대비 변화율)
+    + 취약항목 도출 + 실행 To-do 이행률. 정책 사후관리·컨설팅 근거 자료.
+    """
+    import os
+    from datetime import date as _date
+    _require_farm(farm_id)
+    meta  = _FARM_META.get(farm_id, {})
+    crop  = meta.get("crop", "딸기")
+    area  = float(meta.get("area_m2") or 1000.0)
+    period = month or _date.today().strftime("%Y-%m")
+
+    # ── 데이터 수집 (기존 헬퍼 재사용) ────────────────────────────────────
+    env    = _get_env(farm_id) or {}
+    alerts = _detect_alerts(farm_id, env, crop_ko=crop) if env else []
+    costs  = _compute_costs(farm_id)
+    price  = get_price_krw_kg(crop)
+    yield_ = get_yield_kg_m2(crop)
+    try:
+        from api.services.irrigation_store import get_irrigation_analysis as _gia
+        irr = _gia(farm_id, days=30)
+    except Exception:
+        irr = {"summary": {}}
+    try:
+        hv = get_harvest(farm_id)
+        hv_date = hv.predicted_date; hv_yield = hv.predicted_yield_kg_m2; hv_conf = hv.confidence
+    except Exception:
+        hv_date = None; hv_yield = yield_; hv_conf = 0.6
+
+    cfg = get_config(crop) if "get_config" in globals() else None
+
+    # ── 6대 영역 요약 ─────────────────────────────────────────────────────
+    cost_per_kg   = round(costs.cost_per_m2 / max(yield_, 0.1), 0)
+    revenue_total = round(yield_ * price * area / 10000)            # 만원
+    cost_total    = round(costs.cost_per_m2 * area / 10000)         # 만원
+    profit_total  = revenue_total - cost_total
+    income_rate   = round(profit_total / revenue_total * 100, 1) if revenue_total else 0.0
+    margin_per_kg = round(price - cost_per_kg, 0)
+    energy_per_m2 = next((i.amount_krw for i in costs.items if i.category in ("electricity","heating")), 0)
+    # 에너지비/kg
+    energy_total_m2 = sum(i.amount_krw for i in costs.items if i.category in ("electricity","heating","water"))
+    energy_per_kg = round(energy_total_m2 / max(yield_*area, 1), 1) if yield_ else 0
+
+    vpd = env.get("vpd")
+    dr  = (irr.get("summary", {}).get("dr_pct_mean", {}) or {}).get("latest")
+
+    areas = {
+        "경영": {"소득률": f"{income_rate}%", "kg당원가": f"{cost_per_kg:,.0f}원",
+                "kg당마진": f"{margin_per_kg:,.0f}원", "예상매출": f"{revenue_total:,}만원"},
+        "환경": {"온도": f"{env.get('temp_internal','—')}°C", "습도": f"{env.get('humidity_int','—')}%",
+                "CO2": f"{env.get('co2_ppm','—')}ppm", "VPD": f"{vpd:.2f}kPa" if vpd else "—"},
+        "관수": {"배액률": f"{dr:.0f}%" if dr is not None else "—",
+                "배액EC": f"{(irr.get('summary',{}).get('ec_drain',{}) or {}).get('latest','—')}"},
+        "에너지": {"에너지비/kg": f"{energy_per_kg:,.0f}원", "월에너지비": f"{round(energy_total_m2/10000):,}만원"},
+        "병해": {"활성알림": f"{len(alerts)}건", "위험": "낮음" if not alerts else "주의"},
+        "수확": {"예상수확일": hv_date or "—", "수확량": f"{hv_yield:.1f}kg/m²", "신뢰도": f"{int(hv_conf*100)}%"},
+    }
+
+    # ── 9대 성과지표 (목표/기준 대비 — 변화율 또는 달성률) ─────────────────
+    def _kpi(name, value, unit, target, higher_better=True):
+        if target and value is not None:
+            raw = (value/target)*100 if higher_better else (target/max(value,0.1))*100
+            ach = round(min(raw, 150))           # 0~150% cap (초과달성 왜곡 방지)
+            status = "good" if ach >= 95 else "warn" if ach >= 80 else "low"
+        else:
+            ach, status = None, "na"
+        return {"name": name, "value": value, "unit": unit, "target": target,
+                "achievement_pct": ach, "status": status}
+
+    drain_t = cfg.drain_target_pct if cfg and cfg.drain_target_pct else 25.0
+    kpis = [
+        _kpi("생산량(목표대비)", round(yield_,1), "kg/m²", round(get_yield_kg_m2(crop)*1.1,1)),
+        _kpi("상품률", None, "%", 90),  # 수확 실측 입력 필요
+        _kpi("kg당 원가(낮을수록↑)", cost_per_kg, "원/kg", round(price*0.6), higher_better=False),
+        _kpi("에너지비/kg(낮을수록↑)", energy_per_kg, "원/kg", round(price*0.12), higher_better=False),
+        _kpi("노동시간/kg(낮을수록↑)", round(meta.get("labor_hours_day",5)/max(yield_*area/1000,1),2), "h/ton", 3.0, higher_better=False),
+        _kpi("병해 안전도", round(max(0,100-len(alerts)*15)), "점", 90),
+        _kpi("출하단가(시세대비)", round(price), "원/kg", round(price)),
+        _kpi("소득률", income_rate, "%", 70),
+        _kpi("To-do 이행률", None, "%", 100),  # 클라이언트 localStorage 집계
+    ]
+
+    # ── 취약항목 도출 ─────────────────────────────────────────────────────
+    weak = []
+    for k in kpis:
+        if k["status"] == "low":
+            weak.append({"area": k["name"], "detail": f"{k['name']} 목표 대비 {k['achievement_pct']}% — 개선 필요"})
+    if vpd is not None and (vpd < 0.6 or vpd > 1.8):
+        weak.append({"area": "환경", "detail": f"VPD {vpd:.2f}kPa 부적정 — 환기·관수 조정"})
+    if dr is not None and dr < 20:
+        weak.append({"area": "관수", "detail": f"배액률 {dr:.0f}% 부족 — 급액량 증가"})
+    if not weak:
+        weak.append({"area": "종합", "detail": "주요 지표 양호 — 현 수준 유지 권장"})
+
+    # ── 실행 To-do (취약항목 기반) ────────────────────────────────────────
+    todos = [{"title": w["detail"], "area": w["area"], "done": False} for w in weak[:5]]
+
+    # 종합 등급
+    achs = [k["achievement_pct"] for k in kpis if k["achievement_pct"] is not None]
+    avg_ach = round(sum(achs)/len(achs)) if achs else 0
+    grade = "우수" if avg_ach >= 95 else "양호" if avg_ach >= 80 else "보통" if avg_ach >= 65 else "개선필요"
+
+    return {
+        "farm_id": farm_id, "period": period, "crop": crop, "area_m2": area,
+        "generated_at": __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat(),
+        "overall_grade": grade, "avg_achievement_pct": avg_ach,
+        "areas": areas, "kpis": kpis, "weak_points": weak, "todos": todos,
+        "note": "목표값은 작물 표준·시세 기준 추정. 전월/전작기 실데이터 축적 시 변화율로 전환.",
+    }
+
+
 @router.get("/erp/realtime",
             summary="ERP 실시간 원가·마진·소득률 (SFROP v2.0 혁신4)")
 def get_erp_realtime(
