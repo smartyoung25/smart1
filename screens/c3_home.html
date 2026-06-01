@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
   <title>홈 — KAASA SmartOS</title>
   <link rel="stylesheet" href="../components/base.css"/>
+  <link rel="stylesheet" href="../components/decision_card.css"/>
   <style>
     /* ── C3 홈 전용 스타일 ── */
 
@@ -167,6 +168,15 @@
   <!-- 경보 배너 -->
   <div id="alertBanners"></div>
 
+  <!-- ★ 오늘의 결정 (글로벌 의사결정 UI 벤치마킹: 이상감지+처방+신뢰도+출처+원탭) -->
+  <div class="section-label" style="display:flex;align-items:center;justify-content:space-between;">
+    <span>오늘의 결정 <span style="font-size:10px;color:var(--muted);font-weight:600;">AI 의사결정</span></span>
+    <span id="ddCount" style="font-size:12px;color:var(--muted)"></span>
+  </div>
+  <div id="decisionDeck">
+    <div style="text-align:center;padding:16px;color:var(--muted);font-size:13px;">의사결정 분석 중…</div>
+  </div>
+
   <!-- KPI 2×2 -->
   <div class="section-label">오늘 경영 현황 <span class="trust-badge trust-model">🔵 예측</span></div>
   <div class="kpi-grid" style="margin-bottom:16px;">
@@ -288,6 +298,7 @@
 </nav>
 
 <script src="../components/data.js"></script>
+<script src="../components/decision_card.js"></script>
 <script>
 'use strict';
 
@@ -295,6 +306,10 @@
 let _env   = {};
 let _todos = [];   // { id, title, desc, period, done, urgent }
 let _prices = [];
+let _recs  = [];   // 최근 AI 추천
+let _recModelLayer = null;
+let _tokenG = '';  // 결정 적용(/activity)용 토큰
+let _farmG  = 'farm_001';
 
 // ── 초기화 ──────────────────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
@@ -305,7 +320,9 @@ window.addEventListener('DOMContentLoaded', () => {
   _updateHero();
   _buildTodos();
 
+  _farmG = farmId;
   _ensureToken().then(token => {
+    _tokenG = token;
     KaasaData.init({
       farmId, token,
       onSensor:    _onSensor,
@@ -519,12 +536,85 @@ function _checkAlerts(env) {
        <span>${a.msg}</span>
      </div>`
   ).join('');
+  _renderDecisions();
+}
+
+// ── ★ 오늘의 결정 (벤치마킹: 이상감지+처방+신뢰도+출처+신선도+원탭 실행) ──
+function _renderDecisions() {
+  const el = document.getElementById('decisionDeck');
+  if (!el || !window.DecisionDeck) return;
+  const env = _env || {};
+  const p = KaasaData.getCurrentPeriod ? KaasaData.getCurrentPeriod() : { label: '' };
+  const items = [];
+
+  // 1) 배액률 이상 → 관수 처방
+  const dr = env.dr_pct ?? env.dr_pct_mean ?? null;
+  if (dr != null && dr < 12) {
+    items.push({ severity:'danger', title:`배액률 ${dr.toFixed(1)}% — 근권 건조 위험`,
+      why:`목표 20~30% 대비 크게 미달 (${p.label}). 즉시 추가 관수가 필요합니다.`,
+      action:'추가 관수 1회 실행 · 급액량 +10%', confidence:88, source:'live', updatedMin:env._ageMin ?? 1,
+      evidence:'배액률<12%는 근권 수분 부족 신호로, 농진청 표준 관수기준상 즉시 보충 관수 대상입니다.',
+      applyLabel:'추가 관수 기록', target:'g3_period.html' });
+  } else if (dr != null && dr < 20) {
+    items.push({ severity:'warn', title:`배액률 ${dr.toFixed(1)}% — 목표 미달`,
+      why:`목표 20~30%보다 낮습니다 (${p.label}). 급액량 소폭 상향을 검토하세요.`,
+      action:'급액량 +5% 또는 관수 간격 단축', confidence:74, source:'live', updatedMin:env._ageMin ?? 1,
+      evidence:'배액률 12~20%는 경계 구간으로, 일사·VPD 추이를 보며 점진 상향이 권장됩니다.',
+      applyLabel:'조정 기록', target:'g3_period.html' });
+  }
+
+  // 2) VPD 이상 → 환경 처방
+  const vpd = env.vpd ?? null;
+  if (vpd != null && vpd > 1.8) {
+    items.push({ severity:'warn', title:`VPD ${vpd.toFixed(1)} kPa — 증산 과다`,
+      why:'공기가 건조해 수분 스트레스 위험이 있습니다. 환기 약화 또는 가습/급액 보완이 필요합니다.',
+      action:'환기 단계 ↓ · 급액 보충', confidence:70, source:'live', updatedMin:env._ageMin ?? 1,
+      evidence:'VPD>1.8 kPa는 기공 폐쇄·광합성 저하 구간. 적정대(0.6~1.2)로 복귀시키는 것이 목표.',
+      applyLabel:'환경 조정 기록', target:'g2_env.html' });
+  } else if (vpd != null && vpd < 0.6) {
+    items.push({ severity:'info', title:`VPD ${vpd.toFixed(1)} kPa — 과습 주의`,
+      why:'습도가 높아 결로·곰팡이병 위험이 올라갑니다. 환기 강화를 검토하세요.',
+      action:'환기 단계 ↑ · 제습', confidence:66, source:'live', updatedMin:env._ageMin ?? 1,
+      evidence:'VPD<0.6 kPa 지속은 잿빛곰팡이 등 병해 발생 환경. 환기로 포차를 높이는 것이 효과적.',
+      applyLabel:'환기 조정 기록', target:'g5_disease.html' });
+  }
+
+  // 3) AI 모델 추천 (최상위 1건)
+  if (_recs && _recs.length) {
+    const r = _recs[0];
+    const conf = Math.round((r.confidence ?? 0) * 100);
+    const isStd = _recModelLayer === '농진청표준';
+    items.push({ severity:'info', title: r.title_ko || 'AI 관수·양액 추천',
+      why: r.action_ko || (isStd ? '농진청 표준 기준값을 적용 중입니다.' : 'AI 모델 추천입니다.'),
+      action: r.action_ko || r.title_ko, confidence: conf || 60,
+      source: isStd ? 'standard' : 'model', updatedMin: env._ageMin ?? 3,
+      evidence: `추천 근거: ${r.title_ko||'관수 최적화'} · 예상 마진 변화 ${r.profit_delta!=null?('+'+(r.profit_delta/10000).toFixed(0)+'만원'):'—'} · 모델 레이어 ${_recModelLayer||'KAASA'}`,
+      applyLabel:'추천 적용 기록', target:'g3_period.html' });
+  }
+
+  document.getElementById('ddCount').textContent = items.length ? `${items.length}건` : '';
+  DecisionDeck.render(el, items, { onApply: _applyDecision });
+}
+
+async function _applyDecision(item) {
+  // 폐루프: 결정 수용을 /activity 로 적재 (이행→학습)
+  try {
+    const apiBase = KaasaData.getApiBase ? KaasaData.getApiBase() : location.origin;
+    await fetch(`${apiBase}/api/farms/${_farmG}/activity`, {
+      method:'POST', headers:{ 'Content-Type':'application/json', 'Authorization':`Bearer ${_tokenG}` },
+      body: JSON.stringify({ kind:'decision_apply', item: item.title,
+        value: item.confidence ?? null,
+        detail: `${item.action||''} · 심각도 ${item.severity} · 출처 ${item.source}` })
+    });
+  } catch (e) { /* 오프라인이어도 UI는 진행 */ }
 }
 
 // ── AI 추천 ─────────────────────────────────────────────────────────────────
 function _onRecommend(data) {
   if (!data) return;
   const recs = data.recommendations || [];
+  _recs = recs; _recModelLayer = data._modelLayer || null;
+  _renderDecisions();
   const conf = recs.length ? Math.round((recs[0].confidence ?? 0) * 100) : 0;
 
   const badge = document.getElementById('aiConfBadge');

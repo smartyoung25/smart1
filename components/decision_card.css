@@ -1,0 +1,66 @@
+/* ─────────────────────────────────────────────────────────────
+ * Decision Deck — 글로벌 스마트팜 의사결정 UI 벤치마킹 적용
+ *  · 이상감지 + 처방을 한 카드에 (CropX)
+ *  · 신뢰도 + 데이터 출처 + 신선도 표시 (차별화 갭)
+ *  · 색상 + 아이콘 + 텍스트 3중 심각도 코딩 (색맹/직사광 대응)
+ *  · 원탭 실행 + 근거 보기 (Source.ag human-in-the-loop)
+ * ───────────────────────────────────────────────────────────── */
+.dd-deck { display: flex; flex-direction: column; gap: 10px; }
+
+.dd-card {
+  border-radius: 14px; border: 1.5px solid var(--border);
+  background: var(--panel); overflow: hidden;
+  box-shadow: var(--shadow);
+  border-left-width: 5px;
+}
+.dd-card.sev-danger { border-left-color: var(--red); }
+.dd-card.sev-warn   { border-left-color: var(--orange); }
+.dd-card.sev-info   { border-left-color: var(--blue, #2563eb); }
+.dd-card.sev-ok     { border-left-color: var(--green); }
+
+.dd-head { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px 8px; }
+.dd-ico { font-size: 22px; line-height: 1; flex: 0 0 auto; }
+.dd-hbody { flex: 1; min-width: 0; }
+.dd-sev {
+  display: inline-block; font-size: 10px; font-weight: 800; letter-spacing: .3px;
+  padding: 2px 7px; border-radius: 7px; margin-bottom: 3px;
+}
+.dd-card.sev-danger .dd-sev { background: var(--red-soft, #fde8e8); color: var(--red); }
+.dd-card.sev-warn   .dd-sev { background: var(--orange-soft); color: var(--orange); }
+.dd-card.sev-info   .dd-sev { background: var(--blue-soft, #e0ecff); color: #1e40af; }
+.dd-card.sev-ok     .dd-sev { background: var(--green-soft); color: var(--green-dark); }
+.dd-title { font-size: 14px; font-weight: 800; line-height: 1.35; }
+.dd-why  { font-size: 12px; color: var(--muted); margin-top: 3px; line-height: 1.45; }
+
+/* 처방 액션 라인 */
+.dd-action {
+  display: flex; align-items: center; gap: 7px;
+  margin: 6px 14px 0; padding: 8px 10px; border-radius: 10px;
+  background: var(--gray-soft); font-size: 13px; font-weight: 700;
+}
+.dd-action .dd-arrow { color: var(--green); font-weight: 900; }
+
+/* 메타: 신뢰도 + 출처 + 신선도 */
+.dd-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 8px 14px 0; }
+.dd-conf { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: var(--muted); }
+.dd-conf-bar { width: 56px; height: 6px; border-radius: 3px; background: var(--gray-soft); overflow: hidden; }
+.dd-conf-fill { height: 100%; background: var(--green); border-radius: 3px; }
+.dd-conf-fill.mid { background: var(--orange); }
+.dd-conf-fill.low { background: var(--red); }
+.dd-src { font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 7px; }
+.dd-fresh { font-size: 10px; color: var(--muted); margin-left: auto; }
+
+/* 액션 버튼 (원탭 실행 + 근거) */
+.dd-btns { display: flex; gap: 8px; padding: 10px 14px 12px; }
+.dd-btn {
+  flex: 1; padding: 11px; border-radius: 10px; border: none;
+  font-size: 13px; font-weight: 800; cursor: pointer; min-height: 44px;
+}
+.dd-btn-apply { background: var(--green); color: #fff; }
+.dd-btn-apply:disabled { background: var(--green-soft); color: var(--green-dark); }
+.dd-btn-why  { flex: 0 0 auto; background: var(--gray-soft); color: var(--muted); padding: 11px 14px; }
+.dd-evidence {
+  display: none; font-size: 12px; color: var(--muted); line-height: 1.5;
+  padding: 0 14px 12px; border-top: 1px dashed var(--border); margin-top: 2px;
+}
+.dd-evidence.open { display: block; padding-top: 10px; }
