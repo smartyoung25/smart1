@@ -61,6 +61,18 @@
   <div class="section-label" style="margin-top:14px;">9대 성과지표 (목표 대비) <span class="trust-badge trust-model">🔵 목표대비</span></div>
   <div class="card" style="padding:14px;" id="kpiList"></div>
 
+  <!-- 폐루프: 학습 기여 피드백 -->
+  <div class="section-label" style="margin-top:14px;">데이터 학습 기여 <span class="trust-badge trust-live">🟢 폐루프</span></div>
+  <div class="card" style="padding:14px;border-left:4px solid var(--purple);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <span style="font-size:13px;font-weight:800;">이번 달 이행 활동</span>
+      <span style="font-size:13px;font-weight:800;color:var(--purple);"><span id="learnActs">0</span>건 · <span id="learnPts">0</span>P</span>
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">모델 재학습 진척 (이행 데이터 축적)</div>
+    <div style="height:8px;background:var(--gray-soft);border-radius:4px;overflow:hidden;"><div id="learnBar" style="height:100%;background:var(--purple);width:0%"></div></div>
+    <div style="font-size:11px;color:var(--muted);margin-top:8px;" id="learnMsg">—</div>
+  </div>
+
   <div class="section-label" style="margin-top:14px;">취약 항목</div>
   <div id="weakList"></div>
 
@@ -130,6 +142,13 @@ async function _load(token,farmId){
       <div class="kpi-bar-wrap"><div class="kpi-bar-f kf-${st}" style="width:${w}%"></div></div>
       <span class="kpi-ach" style="color:${st==='good'?'var(--green)':st==='warn'?'var(--orange)':st==='low'?'var(--red)':'var(--muted)'}">${ach!=null?ach+'%':'—'}</span></div>`;
   }).join('');
+
+  // 학습 기여 (폐루프)
+  const L=d.learning||{};
+  document.getElementById('learnActs').textContent=L.month_activities??0;
+  document.getElementById('learnPts').textContent=L.contribution_points??0;
+  document.getElementById('learnBar').style.width=`${L.progress_pct??0}%`;
+  document.getElementById('learnMsg').textContent=L.message||'';
 
   // 취약항목
   document.getElementById('weakList').innerHTML=d.weak_points.map(w=>`

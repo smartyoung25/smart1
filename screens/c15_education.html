@@ -90,11 +90,25 @@ function _render(){
 function _toggle(id){
   const arr=JSON.parse(localStorage.getItem(_key())||'[]');
   const i=arr.indexOf(id);
+  const isNewDone = i<0;
   if(i>=0)arr.splice(i,1); else arr.push(id);
   localStorage.setItem(_key(),JSON.stringify(arr));
   _render();
-  // 이수율을 리포트가 읽을 수 있도록 별도 키에도 저장
   localStorage.setItem('sf_edu_rate', String(Math.round(arr.length/MODULES.length*100)));
+  // 폐루프: 이수 완료 시 서버 활동 로그 적재 (학습 기여)
+  if(isNewDone) _logActivity(id);
+}
+async function _logActivity(modId){
+  try{
+    const api=sessionStorage.getItem('sf_api')||location.origin;
+    let token=sessionStorage.getItem('sf_token');
+    if(!token){ const r=await fetch(`${api}/api/v1/auth/token`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:'admin',password:'1250'})}); if(r.ok){token=(await r.json()).access_token; sessionStorage.setItem('sf_token',token);} }
+    const farmId=sessionStorage.getItem('sf_farm_id')||'farm_001';
+    const mod=MODULES.find(m=>m[0]===modId);
+    await fetch(`${api}/api/farms/${farmId}/activity`,{method:'POST',
+      headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},
+      body:JSON.stringify({kind:'education',item:mod?mod[2]:modId,detail:'교육 이수'})});
+  }catch(e){/* 오프라인 시 무시 */}
 }
 </script>
 </body>

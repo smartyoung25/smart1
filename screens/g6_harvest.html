@@ -287,6 +287,7 @@ async function _loadAll(token, farmId) {
   ]);
 
   const crop = revenue?.crop_ko || wholesale?.crop_ko || '오이';
+  window._revenue = revenue;   // 수확기록 전송 시 작물·면적 참조
   const lbl = document.getElementById('cropBadge');
   if (lbl) lbl.textContent = `(${crop})`;
 
@@ -440,17 +441,47 @@ async function _submitHarvest() {
   const result  = document.getElementById('harvestResult');
 
   if (!qty || qty <= 0) { result.textContent = '수확량을 입력해주세요'; result.style.color='var(--red)'; return; }
+  result.style.color='var(--muted)'; result.textContent='서버 전송 중…';
 
-  // 실제 저장 API (farm/harvest POST 없으면 localStorage 임시 저장)
-  const record = { date: new Date().toISOString().slice(0,10), qty_kg: qty, grade, channel, ts: Date.now() };
-  const key = `sf_harvest_${new Date().toDateString()}`;
-  const existing = JSON.parse(localStorage.getItem(key) || '[]');
-  existing.push(record);
-  localStorage.setItem(key, JSON.stringify(existing));
+  const api = KaasaData.getApiBase();
+  const token = sessionStorage.getItem('sf_token') || '';
+  const farmId = KaasaData.getFarmId();
+  const crop = (window._revenue && window._revenue.crop_ko) || '오이';
+  const area = (window._revenue && window._revenue.area_m2) || 1200;
+  const today = new Date().toISOString().slice(0,10);
+  // qty(입력) → kg/m² 환산 (총 수확량으로 입력했다고 가정)
+  const yield_kg_m2 = +(qty / area).toFixed(3);
 
-  result.style.color = 'var(--green)';
-  result.textContent = `✓ ${qty}kg (${grade}등급) 기록 저장 완료`;
-  setTimeout(_closeSheet, 1500);
+  try {
+    // ① 수확 실측 → 학습 데이터 (POST /api/data/harvest, 10건 누적 시 M2 재학습)
+    const hr = await fetch(`${api}/api/data/harvest`, {
+      method:'POST', headers:{'Content-Type':'application/json', Authorization:`Bearer ${token}`},
+      body: JSON.stringify({ farm_id:farmId, crop_ko:crop, harvest_date:today,
+        yield_kg_m2: yield_kg_m2>0?yield_kg_m2:0.01, area_m2:area,
+        total_yield_kg: qty, source:'mobile_app', notes:`등급 ${grade}, 채널 ${channel}` })
+    });
+    // ② 이행 활동 로그 (폐루프 기여)
+    await fetch(`${api}/api/farms/${farmId}/activity`, {
+      method:'POST', headers:{'Content-Type':'application/json', Authorization:`Bearer ${token}`},
+      body: JSON.stringify({ kind:'harvest', item:`수확 ${qty}kg`, value:qty, detail:`${grade}등급·${channel}` })
+    }).catch(()=>{});
+
+    if (hr.ok) {
+      const d = await hr.json();
+      result.style.color='var(--green)';
+      result.innerHTML = `✓ ${qty}kg(${grade}) 서버 저장 완료${d.retrain_triggered?'<br>🔄 모델 재학습 예약됨!':` · 누적 ${d.total_count||''}건`}`;
+    } else {
+      // 서버 실패 시 localStorage 폴백
+      const key=`sf_harvest_${new Date().toDateString()}`;
+      const ex=JSON.parse(localStorage.getItem(key)||'[]'); ex.push({date:today,qty_kg:qty,grade,channel}); localStorage.setItem(key,JSON.stringify(ex));
+      result.style.color='var(--orange)'; result.textContent=`서버 응답 ${hr.status} — 로컬 저장됨`;
+    }
+  } catch(e) {
+    const key=`sf_harvest_${new Date().toDateString()}`;
+    const ex=JSON.parse(localStorage.getItem(key)||'[]'); ex.push({date:today,qty_kg:qty,grade,channel}); localStorage.setItem(key,JSON.stringify(ex));
+    result.style.color='var(--orange)'; result.textContent='네트워크 오류 — 로컬 저장됨';
+  }
+  setTimeout(_closeSheet, 1800);
 }
 </script>
 </body>

@@ -27,7 +27,7 @@
 <main class="sf-main" style="padding:14px;max-width:480px;margin:0 auto;">
 
 <div class="kpi-grid">
-  <div class="kpi"><div class="kpi-l">기여 점수</div><div class="kpi-v" style="color:var(--purple)">820<span style="font-size:13px;font-weight:400">점</span></div><div class="kpi-s">상위 18%</div></div>
+  <div class="kpi"><div class="kpi-l">기여 점수(이달)</div><div class="kpi-v" style="color:var(--purple)"><span id="contribPts">—</span><span style="font-size:13px;font-weight:400">점</span></div><div class="kpi-s" id="contribSub">이행 활동 기반</div></div>
   <div class="kpi"><div class="kpi-l">적립 포인트</div><div class="kpi-v" style="color:var(--green)">41,000<span style="font-size:13px;font-weight:400">P</span></div><div class="kpi-s">사용가능</div></div>
 </div>
 <div class="mock-note">ℹ️ 학습 기여 보상은 운영 정책 확정 후 실연동 예정 (현재 예시 Mock)</div>
@@ -51,4 +51,22 @@
   <button class="bnav-tab" onclick="location.href='c12_joint.html'"><span class="bnav-icon">🚚</span>출하</button>
   <button class="bnav-tab active"><span class="bnav-icon">≡</span>메뉴</button>
 </nav>
+<script src="../components/data.js"></script>
+<script>
+'use strict';
+// 폐루프: activity/summary 실데이터 → 기여점수 동적 갱신
+(async function(){
+  try{
+    const api=sessionStorage.getItem('sf_api')||location.origin;
+    let token=sessionStorage.getItem('sf_token');
+    if(!token){const r=await fetch(`${api}/api/v1/auth/token`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:'admin',password:'1250'})});if(r.ok){token=(await r.json()).access_token;sessionStorage.setItem('sf_token',token);}}
+    const farmId=sessionStorage.getItem('sf_farm_id')||'farm_001';
+    const s=await fetch(`${api}/api/farms/${farmId}/activity/summary`,{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.ok?r.json():null);
+    if(s){
+      document.getElementById('contribPts').textContent=s.contribution_points||0;
+      document.getElementById('contribSub').textContent=`이달 활동 ${s.total_activities}건 · 누적 ${s.total_lifetime}건`;
+    }
+  }catch(e){ document.getElementById('contribPts').textContent='0'; }
+})();
+</script>
 </body></html>

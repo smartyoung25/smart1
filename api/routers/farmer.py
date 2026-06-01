@@ -2735,6 +2735,87 @@ def _cfg_check(env_var: str) -> bool:
     return bool(v) and v not in ("none", "None", "", "your_key_here")
 
 
+class ActivityLog(BaseModel):
+    """농가 이행 활동 로그 (To-do 완료·교육 이수·수확 입력 등)."""
+    kind:   str = Field(..., description="todo|education|harvest|irrigation|disease_check")
+    item:   str = Field("", max_length=200, description="활동 항목명")
+    value:  Optional[float] = Field(None, description="수치값(선택)")
+    detail: str = Field("", max_length=500)
+
+
+def _activity_path(farm_id: str):
+    from pathlib import Path as _P
+    d = _P(__file__).resolve().parents[1] / "data" / "activity_logs"
+    d.mkdir(parents=True, exist_ok=True)
+    return d / f"{farm_id}.json"
+
+
+@router.post("/activity", summary="이행 활동 로그 적재 (폐루프 학습 — 정책 컨설팅 사이클)")
+def post_activity(farm_id: str, body: ActivityLog):
+    """농가 이행 활동(To-do·교육·점검)을 서버에 적재.
+
+    localStorage에 갇힌 이행 데이터를 서버로 끌어올려 학습 기여·이행률 집계의
+    근거 자료로 축적한다. 수확/생육 실측은 /api/data/harvest·/growth 사용.
+    """
+    import json as _json
+    from datetime import datetime as _dt, timezone as _tz
+    _require_farm(farm_id)
+    fp = _activity_path(farm_id)
+    logs = []
+    if fp.exists():
+        try: logs = _json.loads(fp.read_text(encoding="utf-8"))
+        except Exception: logs = []
+    rec = {"ts": _dt.now(_tz.utc).isoformat(), "kind": body.kind,
+           "item": body.item, "value": body.value, "detail": body.detail}
+    logs.append(rec)
+    # 최근 1000건 유지
+    logs = logs[-1000:]
+    try: fp.write_text(_json.dumps(logs, ensure_ascii=False, indent=2), encoding="utf-8")
+    except Exception: pass
+
+    # 기여 점수 (kind별 가중)
+    _pts = {"harvest": 30, "irrigation": 20, "education": 25,
+            "disease_check": 15, "todo": 10}.get(body.kind, 5)
+    # 이번 달 활동 집계
+    _ym = rec["ts"][:7]
+    month_logs = [l for l in logs if l["ts"][:7] == _ym]
+    by_kind = {}
+    for l in month_logs:
+        by_kind[l["kind"]] = by_kind.get(l["kind"], 0) + 1
+
+    return {
+        "farm_id": farm_id, "saved": True, "kind": body.kind,
+        "contribution_points": _pts,
+        "month": _ym, "month_total": len(month_logs), "by_kind": by_kind,
+        "note": "이행 활동이 학습 기여·이행률 집계에 반영됩니다.",
+    }
+
+
+@router.get("/activity/summary", summary="이행 활동 요약 (학습 기여·이행률)")
+def get_activity_summary(farm_id: str):
+    import json as _json
+    from datetime import datetime as _dt, timezone as _tz
+    _require_farm(farm_id)
+    fp = _activity_path(farm_id)
+    logs = []
+    if fp.exists():
+        try: logs = _json.loads(fp.read_text(encoding="utf-8"))
+        except Exception: logs = []
+    _ym = _dt.now(_tz.utc).isoformat()[:7]
+    month_logs = [l for l in logs if l["ts"][:7] == _ym]
+    by_kind = {}
+    pts = 0
+    _w = {"harvest": 30, "irrigation": 20, "education": 25, "disease_check": 15, "todo": 10}
+    for l in month_logs:
+        by_kind[l["kind"]] = by_kind.get(l["kind"], 0) + 1
+        pts += _w.get(l["kind"], 5)
+    return {
+        "farm_id": farm_id, "month": _ym,
+        "total_activities": len(month_logs), "by_kind": by_kind,
+        "contribution_points": pts, "total_lifetime": len(logs),
+    }
+
+
 @router.get("/report/monthly",
             summary="월간 경영성과 리포트 (스마트농업법 제5·6·9조 — 6대영역+성과지표)")
 def get_monthly_report(farm_id: str, month: str = ""):
@@ -2885,12 +2966,35 @@ def get_monthly_report(farm_id: str, month: str = ""):
 
     _has_prev = _prev is not None
 
+    # ── 학습 기여 피드백 (폐루프: 이행→학습→환원) ────────────────────────
+    _act_logs = []
+    _act_fp = _activity_path(farm_id)
+    if _act_fp.exists():
+        try: _act_logs = _json.loads(_act_fp.read_text(encoding="utf-8"))
+        except Exception: _act_logs = []
+    _month_acts = [l for l in _act_logs if l.get("ts","")[:7] == period]
+    # 재학습 누적 카운트 (관수·수확 실측이 학습 데이터화된 양)
+    try:
+        _rt = _json.loads((_Path(__file__).resolve().parents[2] / "pipeline" / "state" / "new_rows_since_retrain.json").read_text(encoding="utf-8"))
+        _pending = _rt.get("new_env_rows", 0) + _rt.get("new_prod_rows", 0)
+    except Exception:
+        _pending = 0
+    _learning = {
+        "month_activities": len(_month_acts),
+        "contribution_points": sum({"harvest":30,"irrigation":20,"education":25,"disease_check":15,"todo":10}.get(l.get("kind"),5) for l in _month_acts),
+        "pending_train_rows": _pending,
+        "retrain_threshold": 500,
+        "progress_pct": min(round(_pending/500*100), 100),
+        "message": f"이행 데이터 {_pending}행 축적 → 임계(500) 도달 시 모델 자동 재학습. 내 입력이 추천 정확도를 높입니다.",
+    }
+
     return {
         "farm_id": farm_id, "period": period, "crop": crop, "area_m2": area,
         "generated_at": __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat(),
         "overall_grade": grade, "avg_achievement_pct": avg_ach,
         "areas": areas, "kpis": kpis, "weak_points": weak, "todos": todos,
         "changes_vs_prev": changes, "prev_period": _prev_period, "has_prev": _has_prev,
+        "learning": _learning,
         "note": ("전월(" + _prev_period + ") 대비 변화율 산출됨." if _has_prev
                  else "목표값은 작물 표준·시세 기준 추정. 첫 리포트라 전월 비교 없음(다음 달부터 변화율 표시)."),
     }
