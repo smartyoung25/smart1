@@ -131,36 +131,43 @@ C:\smart_farm\
 
 ---
 
-## 관수통합관리시스템 연동 현황 (2026-05-31 추가)
+## 완료된 화면 (2026-06-01 기준)
 
-### 완료 (2026-06-01 세션까지 누적)
-- [x] `adapters/irrigation_adapter.py` — P4 관수 데이터 변환기 (신규)
-- [x] `adapters/base_adapter.py` — wc_mean, dr_pct_mean 등 8개 canonical 변수 추가
-- [x] `api/routers/farmer.py` — POST /api/farms/{id}/irrigation 엔드포인트
-- [x] `pipeline/incremental_etl.py` — IRR_COLS 컬럼 매핑 추가
-- [x] `pipeline/train/prep_m1.py` — IRR_BASE 피처 lag/rolling 포함
-- [x] `api/services/irrigation_store.py` — DB 컬럼명 수정, PostgreSQL 실저장
-- [x] `api/routers/farmer.py` — Priva ET0 500 버그 수정 (list.get() 방어)
-- [x] `screens/g3_period.html` — 토큰 자동 주입, 브라우저 검수 완료
-- [x] `api/main.py` — /screens /components 정적 마운트, KAMIS 일일 스케줄러
-- [x] `pipeline/nightly_db_etl.py` — IRR canonical_name 수정 + --since 옵션
-- [x] `scripts/tune_stage1_strawberry.py` — Optuna 튜닝 (R² 0.244→0.284)
-- [x] `pipeline/kamis_fetcher.py` — ITEM_CODES 전면 수정 + 평일 자동 소급
+| 화면 | 파일 | 주요 기능 |
+|------|------|-----------|
+| C3 통합 홈 | screens/c3_home.html | To-do·KPI·AI 72%·가격 스트립 |
+| G3 관수·양액 | screens/g3_period.html | P1~P5·Priva ET₀·DB 실저장 |
+| G2 환경 제어 | screens/g2_env.html | KPI 6종·모드 4단계·규칙 추천 |
+| G4 생육 모델 | screens/g4_growth.html | D-31·생육단계·M1/M2 성능 |
+| G5 병해·품질 | screens/g5_disease.html | M5 위험도·이상값·방제조언 |
+| G6 수확·유통 | screens/g6_harvest.html | 채널 비교·시나리오·수익성 |
+| C5 수익성 ERP | screens/c5_erp.html | 원가·마진율 89%·BEP·절감 |
+| 네비게이터 | index.html → /smartos | 7개 완료 표시 |
 
-### 다음 작업 (다음 세션에서 진행)
-- [ ] 오이 단가 이상값 확인 (23,525원/kg — 단위 혼재 의심)
-- [ ] ERA5 실측 CSV 확보 후 딸기 Stage1 재학습 (목표 R² > 0.45)
-- [ ] C3 통합 홈 화면 구현
-- [ ] index.html 전체 화면 네비게이터 구현
+## 백엔드 수정 누적 (2026-06-01)
 
-> 상세 내용: `IRRIGATION_INTEGRATION.md` 참조
+- `api/services/irrigation_store.py` — DB 컬럼명 수정, PostgreSQL 실저장
+- `api/routers/farmer.py` — Priva ET0 500 버그 수정
+- `api/main.py` — /screens /components 마운트, KAMIS 일일 스케줄러
+- `api/middleware/auth.py` — /screens /components /smartos 공개
+- `pipeline/nightly_db_etl.py` — IRR canonical_name + --since 옵션
+- `pipeline/kamis_fetcher.py` — ITEM_CODE 전면 수정 + 단위 환산 + 평일 소급
+- `components/data.js` — horizon_days 30, 빈 recs 폴백, 농진청표준 강화
+- `scripts/tune_stage1_strawberry.py` — Optuna (R² 0.244→0.284)
 
-## 미해결 항목 (Backlog)
+## 다음 세션 작업 (우선순위)
 
-- [ ] KAASA 실제 API 엔드포인트 확인 필요
-- [ ] 농진청 표준모델 JSON 데이터 수신 방법 확인
-- [ ] 개발팀 기술스택 (Web/Native) 확인 필요
+- [ ] C12 공동출하 화면 구현
+- [ ] Lighthouse LCP < 3.0s 검수
 - [ ] 실기기 QR 테스트 환경 구성
+- [ ] ERA5 실측 CSV 확보 → 딸기 Stage1 재학습 (R² > 0.45)
+- [ ] KAMIS 딸기 비수기 → 성수기 전환 시 단가 자동 반영 확인
+
+## 미해결 Backlog
+
+- [ ] KAASA 실제 API 엔드포인트 확인
+- [ ] 농진청 표준모델 JSON 수신 방법
+- [ ] 실기기 MQTT 연결 테스트
 - [ ] kaasa_smartos_mobile.html (90KB 단일 파일) → 분리 작업 계획
 
 ---
