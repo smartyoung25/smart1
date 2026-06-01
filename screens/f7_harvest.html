@@ -47,6 +47,8 @@
     <button class="pc-btn" style="padding:14px;font-size:15px;flex:1;background:var(--blue,#2563eb);" onclick="_openHarvestRecord()">🚜 수확 실적 입력</button>
     <button class="pc-btn" style="padding:14px;font-size:15px;flex:1;" onclick="location.href='c12_joint.html'">공동출하 Pool →</button>
   </div>
+  <div class="section-label" style="margin-top:16px;">최근 수확 기록</div>
+  <div class="card" style="padding:12px 14px;" id="recentRec"></div>
 </main>
 <nav class="sf-bottom-nav">
   <button class="bnav-tab" onclick="location.href='c3_home.html'"><span class="bnav-icon">🏠</span>홈</button>
@@ -64,8 +66,9 @@ const PARCELS=[{n:'1번 필지',a:0.5},{n:'2번 필지',a:0.8},{n:'3번 필지',
 window.addEventListener('DOMContentLoaded',()=>{
   const farmId=new URLSearchParams(location.search).get('farm')||sessionStorage.getItem('sf_farm_id')||'farm_001';
   _farmG=farmId;
-  _ensureToken().then(t=>{_tokenG=t;KaasaData.init({farmId,token:t,onStatus:_ws});_load(t,farmId);});
+  _ensureToken().then(t=>{_tokenG=t;KaasaData.init({farmId,token:t,onStatus:_ws});_load(t,farmId);_refreshRecent();});
 });
+function _refreshRecent(){ if(window.RecordSheet) RecordSheet.renderRecent(document.getElementById('recentRec'),_farmG,_tokenG,{kinds:['harvest'],limit:5}); }
 
 function _openHarvestRecord(){
   RecordSheet.open({
@@ -77,9 +80,9 @@ function _openHarvestRecord(){
       {id:'grade',  label:'등급', type:'select', options:['특','상','보통','등외']},
       {id:'date',   label:'수확일', type:'date'},
     ],
-    onSubmit: async (v)=> RecordSheet.logActivity(_farmG,_tokenG,{
+    onSubmit: async (v)=>{ await RecordSheet.logActivity(_farmG,_tokenG,{
       kind:'harvest', item:`${v.parcel} 수확`, value:parseFloat(v.qty)||null,
-      detail:`${v.qty||'-'}kg · 등급 ${v.grade||'-'} · ${v.date||'오늘'}` })
+      detail:`${v.qty||'-'}kg · 등급 ${v.grade||'-'} · ${v.date||'오늘'}` }); _refreshRecent(); }
   });
 }
 async function _ensureToken(){const s=sessionStorage.getItem('sf_token');if(s)return s;try{const a=sessionStorage.getItem('sf_api')||location.origin;const r=await fetch(`${a}/api/v1/auth/token`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:'admin',password:'1250'})});if(r.ok){const d=await r.json();sessionStorage.setItem('sf_token',d.access_token);return d.access_token;}}catch{}return '';}

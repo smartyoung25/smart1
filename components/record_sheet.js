@@ -91,5 +91,59 @@
     return r.json();
   }
 
-  global.RecordSheet = { open, logActivity };
+  // 최근 기록 타임라인 렌더 (입력→축적 가시화)
+  const KIND_META = {
+    irrigation:    { ico:'💧', label:'관개' },
+    disease_check: { ico:'🐛', label:'방제·점검' },
+    harvest:       { ico:'🚜', label:'수확' },
+    env_setpoint:  { ico:'🌡️', label:'환경설정' },
+    education:     { ico:'🎓', label:'교육' },
+    todo:          { ico:'✅', label:'할일' },
+    decision_apply:{ ico:'🤖', label:'AI결정' },
+    consult:       { ico:'🩺', label:'전문가' },
+    joint_ship:    { ico:'🤝', label:'공동출하' },
+  };
+  function _ago(ts){
+    try{ const d=new Date(ts), now=new Date(), m=Math.floor((now-d)/60000);
+      if(m<1) return '방금'; if(m<60) return m+'분 전'; const h=Math.floor(m/60);
+      if(h<24) return h+'시간 전'; return Math.floor(h/24)+'일 전';
+    }catch(e){ return ''; }
+  }
+  function _injectRecentCss(){
+    if(document.getElementById('rec-list-css')) return;
+    const s=document.createElement('style'); s.id='rec-list-css';
+    s.textContent=`
+      .rl-item{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:1px solid var(--border);}
+      .rl-item:last-child{border-bottom:none;}
+      .rl-ico{font-size:17px;flex:0 0 auto;}
+      .rl-body{flex:1;min-width:0;}
+      .rl-title{font-size:13px;font-weight:700;}
+      .rl-detail{font-size:11px;color:var(--muted);margin-top:1px;line-height:1.4;}
+      .rl-time{font-size:10px;color:var(--muted);flex:0 0 auto;white-space:nowrap;}
+      .rl-empty{text-align:center;padding:14px;color:var(--muted);font-size:12px;}`;
+    document.head.appendChild(s);
+  }
+  async function renderRecent(el, farmId, token, opts){
+    if(!el) return; opts=opts||{}; _injectRecentCss();
+    const kinds = opts.kinds ? new Set(opts.kinds) : null;
+    const limit = opts.limit || 5;
+    try{
+      const api=(global.KaasaData&&KaasaData.getApiBase)?KaasaData.getApiBase():location.origin;
+      const r=await fetch(`${api}/api/farms/${farmId}/activity/summary`,{headers:{'Authorization':'Bearer '+(token||'')}});
+      const d=await r.json();
+      let items=(d.recent||[]);
+      if(kinds) items=items.filter(i=>kinds.has(i.kind));
+      items=items.slice(0,limit);
+      if(!items.length){ el.innerHTML=`<div class="rl-empty">아직 기록이 없습니다. 위 버튼으로 첫 기록을 남겨보세요.</div>`; return; }
+      el.innerHTML=items.map(i=>{
+        const m=KIND_META[i.kind]||{ico:'•',label:i.kind};
+        return `<div class="rl-item"><span class="rl-ico">${m.ico}</span>
+          <div class="rl-body"><div class="rl-title">${i.item||m.label}</div>
+            ${i.detail?`<div class="rl-detail">${i.detail}</div>`:''}</div>
+          <span class="rl-time">${_ago(i.ts)}</span></div>`;
+      }).join('');
+    }catch(e){ el.innerHTML=`<div class="rl-empty">기록을 불러오지 못했습니다.</div>`; }
+  }
+
+  global.RecordSheet = { open, logActivity, renderRecent };
 })(window);

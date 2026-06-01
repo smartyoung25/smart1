@@ -44,6 +44,8 @@
   <div class="section-label">주요 병해충 위험도</div>
   <div class="card" style="padding:14px;" id="pestList"></div>
   <button onclick="_openSprayRecord()" style="width:100%;margin-top:14px;padding:15px;background:var(--green);color:#fff;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:800;cursor:pointer;min-height:48px;">🐛 방제 시행 기록</button>
+  <div class="section-label" style="margin-top:16px;">최근 방제 기록</div>
+  <div class="card" style="padding:12px 14px;" id="recentRec"></div>
 </main>
 <nav class="sf-bottom-nav">
   <button class="bnav-tab" onclick="location.href='c3_home.html'"><span class="bnav-icon">🏠</span>홈</button>
@@ -61,8 +63,9 @@ window.addEventListener('DOMContentLoaded',()=>{
   const farmId=new URLSearchParams(location.search).get('farm')||sessionStorage.getItem('sf_farm_id')||'farm_001';
   _farmG=farmId;
   _renderSpray(); _renderPests();
-  _ensureToken().then(t=>{_tokenG=t;KaasaData.init({farmId,token:t,onStatus:_ws});_loadDisease(t,farmId);});
+  _ensureToken().then(t=>{_tokenG=t;KaasaData.init({farmId,token:t,onStatus:_ws});_loadDisease(t,farmId);_refreshRecent();});
 });
+function _refreshRecent(){ if(window.RecordSheet) RecordSheet.renderRecent(document.getElementById('recentRec'),_farmG,_tokenG,{kinds:['disease_check'],limit:5}); }
 
 function _openSprayRecord(){
   RecordSheet.open({
@@ -74,9 +77,9 @@ function _openSprayRecord(){
       {id:'conc',   label:'희석배수/농도', type:'text', placeholder:'예: 1000배'},
       {id:'date',   label:'살포일', type:'date'},
     ],
-    onSubmit: async (v)=> RecordSheet.logActivity(_farmG,_tokenG,{
+    onSubmit: async (v)=>{ await RecordSheet.logActivity(_farmG,_tokenG,{
       kind:'disease_check', item:`방제: ${v.target}`,
-      detail:`약제 ${v.agent||'-'} · 농도 ${v.conc||'-'} · ${v.date||'오늘'}` })
+      detail:`약제 ${v.agent||'-'} · 농도 ${v.conc||'-'} · ${v.date||'오늘'}` }); _refreshRecent(); }
   });
 }
 async function _ensureToken(){const s=sessionStorage.getItem('sf_token');if(s)return s;try{const a=sessionStorage.getItem('sf_api')||location.origin;const r=await fetch(`${a}/api/v1/auth/token`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:'admin',password:'1250'})});if(r.ok){const d=await r.json();sessionStorage.setItem('sf_token',d.access_token);return d.access_token;}}catch{}return '';}

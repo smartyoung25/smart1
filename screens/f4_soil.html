@@ -76,6 +76,9 @@
 
   <button onclick="_openIrrigRecord()" style="width:100%;margin-top:14px;padding:15px;background:var(--green);color:#fff;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:800;cursor:pointer;min-height:48px;">💧 관개 실행 기록</button>
 
+  <div class="section-label" style="margin-top:16px;">최근 관개 기록</div>
+  <div class="card" style="padding:12px 14px;" id="recentRec"></div>
+
 </main>
 
 <nav class="sf-bottom-nav">
@@ -103,8 +106,9 @@ window.addEventListener('DOMContentLoaded', ()=>{
   const farmId=new URLSearchParams(location.search).get('farm')||sessionStorage.getItem('sf_farm_id')||'farm_001';
   _farmG=farmId;
   _renderMoisture(); _renderPriority();
-  _ensureToken().then(token=>{ _tokenG=token; KaasaData.init({farmId,token,onStatus:_onWsStatus}); _loadSoil(token,farmId); _loadEtc(token,farmId); });
+  _ensureToken().then(token=>{ _tokenG=token; KaasaData.init({farmId,token,onStatus:_onWsStatus}); _loadSoil(token,farmId); _loadEtc(token,farmId); _refreshRecent(); });
 });
+function _refreshRecent(){ if(window.RecordSheet) RecordSheet.renderRecent(document.getElementById('recentRec'),_farmG,_tokenG,{kinds:['irrigation'],limit:5}); }
 
 function _openIrrigRecord(){
   RecordSheet.open({
@@ -116,9 +120,9 @@ function _openIrrigRecord(){
       {id:'method', label:'관개 방식', type:'select', options:['점적관개','스프링클러','지표관개']},
       {id:'date',   label:'실행일', type:'date'},
     ],
-    onSubmit: async (v)=> RecordSheet.logActivity(_farmG,_tokenG,{
+    onSubmit: async (v)=>{ await RecordSheet.logActivity(_farmG,_tokenG,{
       kind:'irrigation', item:`${v.parcel} 관개`, value:parseFloat(v.amount)||null,
-      detail:`${v.method||'-'} · ${v.amount||'-'}mm · ${v.date||'오늘'}` })
+      detail:`${v.method||'-'} · ${v.amount||'-'}mm · ${v.date||'오늘'}` }); _refreshRecent(); }
   });
 }
 

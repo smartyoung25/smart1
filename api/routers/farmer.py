@@ -2809,10 +2809,13 @@ def get_activity_summary(farm_id: str):
     for l in month_logs:
         by_kind[l["kind"]] = by_kind.get(l["kind"], 0) + 1
         pts += _w.get(l["kind"], 5)
+    # 최근 활동 목록 (kind 필터 지원, 최신순)
+    recent = sorted(logs, key=lambda l: l.get("ts", ""), reverse=True)[:30]
     return {
         "farm_id": farm_id, "month": _ym,
         "total_activities": len(month_logs), "by_kind": by_kind,
         "contribution_points": pts, "total_lifetime": len(logs),
+        "recent": recent,
     }
 
 

@@ -240,7 +240,8 @@
   <div id="modeDesc" style="font-size:12px;color:var(--muted);margin-bottom:14px;padding:8px 12px;background:var(--panel);border-radius:var(--radius-sm);">
     AI 추천을 표시하지만 실행은 직접 합니다.
   </div>
-  <button onclick="_openEnvSetpoint()" style="width:100%;margin-bottom:14px;padding:14px;background:var(--green);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:800;cursor:pointer;min-height:48px;">🌡️ 환경 설정값 입력 (난방·환기·CO₂)</button>
+  <button onclick="_openEnvSetpoint()" style="width:100%;margin-bottom:10px;padding:14px;background:var(--green);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:800;cursor:pointer;min-height:48px;">🌡️ 환경 설정값 입력 (난방·환기·CO₂)</button>
+  <div class="card" style="padding:12px 14px;margin-bottom:14px;" id="recentRec"></div>
 
   <!-- AI 제어 추천 -->
   <div class="section-label">AI 제어 추천</div>
@@ -373,11 +374,12 @@ function _openEnvSetpoint(){
       {id:'co2',  label:'CO₂ 목표', type:'number', unit:'ppm', placeholder:'예: 800'},
       {id:'shade',label:'차광 단계', type:'select', options:['없음','1단','2단','3단']},
     ],
-    onSubmit: async (v)=> RecordSheet.logActivity(_farmG,_tokenG,{
+    onSubmit: async (v)=>{ await RecordSheet.logActivity(_farmG,_tokenG,{
       kind:'env_setpoint', item:'환경 설정값',
-      detail:`난방 ${v.heat||'-'}℃ · 환기 ${v.vent||'-'}% · CO₂ ${v.co2||'-'}ppm · 차광 ${v.shade||'-'}` })
+      detail:`난방 ${v.heat||'-'}℃ · 환기 ${v.vent||'-'}% · CO₂ ${v.co2||'-'}ppm · 차광 ${v.shade||'-'}` }); _refreshRecent(); }
   });
 }
+function _refreshRecent(){ if(window.RecordSheet&&_tokenG) RecordSheet.renderRecent(document.getElementById('recentRec'),_farmG,_tokenG,{kinds:['env_setpoint'],limit:4}); }
 let _dliStart = null; // 오늘 첫 센서 수신 시간 (DLI 누적 기준)
 let _dliAccum = 0;    // mol/m²/day 누적값
 let _lastSolarTs = null;
@@ -458,6 +460,7 @@ window.addEventListener('DOMContentLoaded', () => {
     KaasaData.loadEnvironment();
     _loadEnvFull(token, farmId);
     _loadEnergy(token, farmId);
+    _refreshRecent();
     // 등급 게이팅: VPD+작기단계 분석은 pro 등급 전용 (env_vpd_stage)
     KaasaTier.init(farmId, token).then(() => {
       KaasaTier.guard(document.getElementById('cardVpd'), 'env_vpd_stage',
