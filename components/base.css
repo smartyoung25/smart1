@@ -27,7 +27,7 @@
   --panel-soft:   #f8fbf8;
   --border:       #dce6dc;
   --text:         #1f2a24;
-  --muted:        #607066;
+  --muted:        #4d5a52;  /* WCAG AA 대비 충족 (구 #607066 → 어둡게) */
 
   /* 그림자·반경 */
   --shadow:       0 4px 16px rgba(31,42,36,.10);
@@ -322,3 +322,9 @@ section { margin-bottom: 24px; }
 .trust-model{ background: var(--blue-soft);  color: var(--blue); }          /* ML 모델 예측 */
 .trust-est  { background: var(--orange-soft);color: var(--orange); }        /* 추정/표준값 */
 .trust-mock { background: var(--gray-soft);  color: var(--muted); }         /* Mock(미연동) */
+
+/* ── CLS 방지: KPI 카드 최소 높이 (데이터 로드 전후 레이아웃 고정) ── */
+.kpi-card, .gh-kpi, .env-kpi-card, .fd-kpi, .f4-kpi, .pred-card, .c6-kpi, .f3-kpi, .f6-kpi, .f7-kpi {
+  min-height: 84px;
+}
+.kpi-value, .gh-kpi-val, .env-value, .pred-value { min-height: 24px; }

@@ -48,7 +48,7 @@
     .kpi-delta.down { color: var(--red); }
 
     /* To-do 리스트 */
-    .todo-list { display: flex; flex-direction: column; gap: 8px; }
+    .todo-list { display: flex; flex-direction: column; gap: 8px; min-height: 360px; }
     .todo-item {
       display: flex; align-items: flex-start; gap: 12px;
       background: var(--panel); border-radius: var(--radius-sm);
@@ -75,12 +75,13 @@
       font-size: 10px; font-weight: 700; padding: 2px 8px;
       border-radius: 10px; background: var(--gray-soft); color: var(--muted);
     }
-    .todo-badge.p1 { background: var(--p1-soft); color: var(--p1-color); }
-    .todo-badge.p2 { background: var(--p2-soft); color: var(--p2-color); }
-    .todo-badge.p3 { background: var(--p3-soft); color: var(--p3-color); }
-    .todo-badge.p4 { background: var(--p4-soft); color: var(--p4-color); }
-    .todo-badge.p5 { background: var(--p5-soft); color: var(--p5-color); }
-    .todo-badge.ai { background: var(--blue-soft); color: var(--blue); }
+    /* 대비 강화: 연한 배경 + 진한 글자(WCAG AA) */
+    .todo-badge.p1 { background: var(--p1-soft); color: #3730a3; }
+    .todo-badge.p2 { background: var(--p2-soft); color: #065f46; }
+    .todo-badge.p3 { background: var(--p3-soft); color: #075985; }
+    .todo-badge.p4 { background: var(--p4-soft); color: #92400e; }
+    .todo-badge.p5 { background: var(--p5-soft); color: #5b21b6; }
+    .todo-badge.ai { background: var(--blue-soft); color: #1e40af; }
 
     /* AI 추천 신뢰도 바 */
     .confidence-bar-wrap { background: var(--gray-soft); border-radius: 6px; height: 8px; overflow: hidden; }
@@ -145,7 +146,7 @@
             style="font-size:16px;background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:8px;padding:4px 8px;cursor:pointer;">📋</button>
     <button onclick="location.href='c13_chat.html'" title="AI 영농 비서"
             style="font-size:16px;background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:8px;padding:4px 8px;cursor:pointer;">🤖</button>
-    <select id="farmSel" onchange="onFarmChange(this.value)"
+    <select id="farmSel" aria-label="농장 선택" onchange="onFarmChange(this.value)"
             style="font-size:12px;background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:8px;padding:4px 8px;cursor:pointer;outline:none;">
       <option value="farm_001">🌿 farm_001</option>
     </select>
@@ -415,7 +416,7 @@ function _renderTodos() {
             : t.period === 'AI'
             ? `<span class="todo-badge ai">AI</span>`
             : ''}
-          ${t.urgent && !t.done ? '<span class="todo-badge" style="background:var(--red-soft);color:var(--red);">긴급</span>' : ''}
+          ${t.urgent && !t.done ? '<span class="todo-badge" style="background:var(--red-soft);color:#b91c1c;">긴급</span>' : ''}
         </div>
       </div>
     </div>
