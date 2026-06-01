@@ -47,6 +47,38 @@
       text-transform: uppercase; letter-spacing: 1px;
       padding: 8px 16px 4px; margin-top: 4px;
     }
+
+    /* ── 등급(티어) 차등 ── */
+    .screen-card { position: relative; }
+    .screen-card.locked { opacity: .55; filter: grayscale(.55); border-color: var(--border); }
+    .screen-card.locked:active { transform: none; }
+    .tier-badge {
+      position: absolute; top: 8px; right: 8px;
+      font-size: 9px; font-weight: 800; letter-spacing: .3px;
+      padding: 2px 7px; border-radius: 8px; color: #fff;
+    }
+    .tier-lock { font-size: 22px; position: absolute; top: 14px; right: 12px; }
+    /* 업그레이드 Bottom Sheet */
+    .sf-sheet-mask {
+      position: fixed; inset: 0; background: rgba(0,0,0,.5);
+      display: none; align-items: flex-end; z-index: 100;
+    }
+    .sf-sheet-mask.open { display: flex; }
+    .sf-sheet {
+      background: var(--panel); width: 100%; border-radius: 18px 18px 0 0;
+      padding: 20px 18px calc(20px + env(safe-area-inset-bottom));
+      box-shadow: 0 -8px 24px rgba(0,0,0,.25);
+    }
+    .sf-sheet h3 { margin: 0 0 4px; font-size: 17px; font-weight: 800; }
+    .sf-sheet p  { margin: 0 0 14px; font-size: 13px; color: var(--muted); line-height: 1.5; }
+    .sf-sheet .feat-li { font-size: 13px; padding: 6px 0; border-top: 1px solid var(--border); }
+    .sf-sheet-btns { display: flex; gap: 10px; margin-top: 16px; }
+    .sf-btn {
+      flex: 1; padding: 14px; border-radius: 12px; font-size: 14px; font-weight: 800;
+      border: none; cursor: pointer; text-align: center;
+    }
+    .sf-btn-primary { background: var(--green); color: #fff; }
+    .sf-btn-ghost   { background: var(--gray-soft); color: var(--muted); }
   </style>
 </head>
 <body style="padding-top:0;padding-bottom:0;">
@@ -60,6 +92,19 @@
 <div id="myFarmSection" style="display:none;">
   <div class="section-title" id="myFarmTitle">내 농장 맞춤 메뉴</div>
   <div class="screen-grid" id="myFarmGrid"></div>
+</div>
+
+<!-- 업그레이드 Bottom Sheet -->
+<div class="sf-sheet-mask" id="upgMask" onclick="if(event.target===this)closeUpg()">
+  <div class="sf-sheet">
+    <h3 id="upgTitle">🔒 상위 등급 기능</h3>
+    <p id="upgDesc"></p>
+    <div id="upgFeats"></div>
+    <div class="sf-sheet-btns">
+      <button class="sf-btn sf-btn-ghost" onclick="closeUpg()">나중에</button>
+      <a class="sf-btn sf-btn-primary" id="upgGo" href="screens/c10_roi.html">업그레이드 보기</a>
+    </div>
+  </div>
 </div>
 
 <div class="section-title">핵심 화면</div>
@@ -339,35 +384,38 @@
 <script>
 'use strict';
 // 농장 프로필 기반 맞춤 메뉴 (C1 세팅 또는 온보딩에서 저장된 sf_profile)
-(function(){
+(async function(){
   let p=null;
   try{ p=JSON.parse(localStorage.getItem('sf_profile')||'null'); }catch(e){}
   if(!p){ try{ const o=JSON.parse(localStorage.getItem('sf_onboarding')||'null'); if(o){ p={crop_ko:o.crop_ko,facility_type:o.facility_type,farm_type:(['감귤','월동무','당근','양배추','브로콜리','마늘','양파'].includes(o.crop_ko)?'field':'greenhouse')}; } }catch(e){} }
   if(!p || !p.crop_ko){ return; }  // 프로필 없으면 기본 전체 메뉴
 
+  // [href, 아이콘, 이름, 설명, min_tier]
+  // min_tier는 tier_features.json의 대표 기능 기준 (관수=irr_schedule:smart, 생육=growth_yield_forecast:smart,
+  //  병해=growth_disease_basic:smart, 기상예보=env_weather_forecast:smart, AI비서=ai_chat_basic:smart)
   const GH=[
-    ['g1_home.html','🌱','온실 홈','오늘 할 일·핵심 KPI'],
-    ['g3_period.html','💧','관수·양액','P1~P5 Period'],
-    ['g2_env.html','🌡️','환경 제어','온도·VPD·CO₂·에너지'],
-    ['g4_growth.html','🌿','생육 모델','수확 예측'],
-    ['g5_disease.html','🔬','병해·품질','M5·결로·IPM'],
-    ['g6_harvest.html','🚚','수확·유통','출하 채널'],
+    ['g1_home.html','🌱','온실 홈','오늘 할 일·핵심 KPI','basic'],
+    ['g3_period.html','💧','관수·양액','P1~P5 Period','smart'],
+    ['g2_env.html','🌡️','환경 제어','온도·VPD·CO₂·에너지','basic'],
+    ['g4_growth.html','🌿','생육 모델','수확 예측','smart'],
+    ['g5_disease.html','🔬','병해·품질','M5·결로·IPM','smart'],
+    ['g6_harvest.html','🚚','수확·유통','출하 채널','basic'],
   ];
   const FD=[
-    ['f1_field.html','🌾','노지 홈','필지·기상·할 일'],
-    ['f4_soil.html','💧','토양수분·관개','ETc·관개 우선순위'],
-    ['f3_weather.html','🌦️','기상·재해','7일 예보'],
-    ['f2_gis.html','🗺️','필지 GIS','경계·구획'],
-    ['f6_pest.html','🐛','병해충·방제','방제 윈도우'],
-    ['f7_harvest.html','🚚','수확·유통','필지별 수확'],
+    ['f1_field.html','🌾','노지 홈','필지·기상·할 일','basic'],
+    ['f4_soil.html','💧','토양수분·관개','ETc·관개 우선순위','smart'],
+    ['f3_weather.html','🌦️','기상·재해','7일 예보','smart'],
+    ['f2_gis.html','🗺️','필지 GIS','경계·구획','basic'],
+    ['f6_pest.html','🐛','병해충·방제','방제 윈도우','smart'],
+    ['f7_harvest.html','🚚','수확·유통','필지별 수확','basic'],
   ];
   const COMMON=[
-    ['c3_home.html','🏠','통합 홈','To-do·KPI'],
-    ['c14_report.html','📋','월간 리포트','성과지표'],
-    ['c5_erp.html','💰','수익성 ERP','원가·마진'],
-    ['c12_joint.html','🤝','공동출하','채널 비교'],
-    ['c4_diagnosis.html','📊','AI 진단','추천·전문가'],
-    ['c13_chat.html','🤖','AI 비서','챗봇'],
+    ['c3_home.html','🏠','통합 홈','To-do·KPI','basic'],
+    ['c14_report.html','📋','월간 리포트','성과지표','basic'],
+    ['c5_erp.html','💰','수익성 ERP','원가·마진','basic'],
+    ['c12_joint.html','🤝','공동출하','채널 비교','basic'],
+    ['c4_diagnosis.html','📊','AI 진단','추천·전문가','pro'],
+    ['c13_chat.html','🤖','AI 비서','챗봇','smart'],
   ];
   const isField = p.farm_type==='field';
   const primary = isField ? FD : GH;
@@ -377,14 +425,72 @@
     `🌟 내 농장 맞춤 메뉴 — ${p.crop_ko} (${isField?'노지':'온실'}${p.facility_type?'·'+p.facility_type:''})`;
   document.getElementById('navSub').textContent =
     `${p.crop_ko} ${isField?'노지':'온실'} 농가 · 맞춤 구성`;
-  document.getElementById('myFarmGrid').innerHTML = cards.map(([href,ic,name,desc])=>`
-    <a class="screen-card ready" href="screens/${href}">
+  document.getElementById('myFarmSection').style.display='block';
+
+  // ── 등급(티어) 조회 후 카드 차등 렌더 ──
+  const TIER = { basic:{r:1,n:'기본',c:'#8892a4'}, smart:{r:2,n:'스마트',c:'#4f8ef7'},
+                 pro:{r:3,n:'프로',c:'#a78bfa'}, enterprise:{r:4,n:'엔터프라이즈',c:'#f9a825'} };
+  const RANK = t => (TIER[t]||TIER.basic).r;
+
+  async function _token(){
+    let s=sessionStorage.getItem('sf_token'); if(s) return s;
+    try{ const r=await fetch(`${location.origin}/api/v1/auth/token`,{method:'POST',
+      headers:{'Content-Type':'application/json'},body:JSON.stringify({username:'admin',password:'1250'})});
+      if(r.ok){ const d=await r.json(); sessionStorage.setItem('sf_token',d.access_token); return d.access_token; } }catch(e){}
+    return '';
+  }
+  async function _plan(){
+    const fid = sessionStorage.getItem('sf_farm_id') || p.farm_id || 'farm_001';
+    try{ const tk=await _token();
+      const r=await fetch(`${location.origin}/api/farms/${fid}/billing/plan`,{headers:{'Authorization':'Bearer '+tk}});
+      if(r.ok) return await r.json();
+    }catch(e){}
+    return { tier:'basic', tier_name_ko:'기본', locked:[] };
+  }
+
+  const plan = await _plan();
+  const myTier = plan.tier || 'basic';
+  const myRank = RANK(myTier);
+  window.__lockedFeats = plan.locked || [];
+
+  // 헤더에 현재 등급 칩 추가
+  const tm = TIER[myTier] || TIER.basic;
+  document.getElementById('myFarmTitle').insertAdjacentHTML('beforeend',
+    ` <span style="font-size:11px;font-weight:800;color:#fff;background:${tm.c};padding:2px 8px;border-radius:8px;vertical-align:middle;">${tm.n} 등급</span>`);
+
+  document.getElementById('myFarmGrid').innerHTML = cards.map(([href,ic,name,desc,mt])=>{
+    const locked = RANK(mt) > myRank;
+    const tb = TIER[mt]||TIER.basic;
+    if(locked){
+      return `<a class="screen-card locked" href="javascript:void(0)" onclick="openUpg('${name}','${mt}')">
+        <span class="tier-lock">🔒</span>
+        <span class="tier-badge" style="background:${tb.c}">${tb.n}</span>
+        <div class="screen-icon">${ic}</div>
+        <div class="screen-name">${name}</div>
+        <div class="screen-desc">${tb.n} 등급부터 이용</div>
+      </a>`;
+    }
+    return `<a class="screen-card ready" href="screens/${href}">
       <div class="screen-icon">${ic}</div>
       <div class="screen-name">${name}</div>
       <div class="screen-desc">${desc}</div>
-    </a>`).join('');
-  document.getElementById('myFarmSection').style.display='block';
+    </a>`;
+  }).join('');
 })();
+
+// 업그레이드 Bottom Sheet
+function openUpg(name, minTier){
+  const TIER={basic:'기본',smart:'스마트',pro:'프로',enterprise:'엔터프라이즈'};
+  document.getElementById('upgTitle').textContent = `🔒 ${name}`;
+  document.getElementById('upgDesc').textContent =
+    `이 기능은 ‘${TIER[minTier]||minTier}’ 등급부터 이용할 수 있습니다. 업그레이드 시 아래 기능이 함께 열립니다.`;
+  const feats = (window.__lockedFeats||[]).filter(f=>f.min_tier===minTier).slice(0,6);
+  document.getElementById('upgFeats').innerHTML = feats.length
+    ? feats.map(f=>`<div class="feat-li">✓ ${f.label_ko}</div>`).join('')
+    : `<div class="feat-li">✓ ${TIER[minTier]||minTier} 등급 전용 기능</div>`;
+  document.getElementById('upgMask').classList.add('open');
+}
+function closeUpg(){ document.getElementById('upgMask').classList.remove('open'); }
 </script>
 </body>
 </html>
