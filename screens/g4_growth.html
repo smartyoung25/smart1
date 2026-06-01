@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <title>G4 — 생육 모델 | KAASA SmartOS</title>
+  <link rel="stylesheet" href="../components/base.css"/>
+  <style>
+    /* ── G4 전용 스타일 ── */
+
+    /* 수확 D-day 히어로 */
+    .harvest-hero {
+      background: linear-gradient(135deg, #0f5132 0%, #1f7a4d 60%, #2f9a62 100%);
+      border-radius: var(--radius); padding: 20px; margin-bottom: 14px;
+      color: #fff; position: relative; overflow: hidden;
+    }
+    .harvest-hero::after {
+      content: '🌿';
+      position: absolute; right: 16px; bottom: 10px; font-size: 60px; opacity: .15;
+    }
+    .harvest-label { font-size: 12px; opacity: .75; margin-bottom: 4px; }
+    .harvest-date  { font-size: 28px; font-weight: 900; letter-spacing: -.5px; }
+    .harvest-dday  { font-size: 15px; opacity: .85; margin-top: 4px; }
+    .harvest-conf  {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: rgba(255,255,255,.18); border-radius: 16px;
+      padding: 4px 12px; font-size: 12px; font-weight: 700; margin-top: 10px;
+    }
+
+    /* 생육 단계 타임라인 */
+    .stage-bar-wrap {
+      background: var(--gray-soft); border-radius: 8px; height: 20px;
+      position: relative; overflow: hidden; margin: 10px 0 4px;
+    }
+    .stage-bar-fill {
+      height: 100%; border-radius: 8px;
+      background: linear-gradient(90deg, var(--green-soft), var(--green));
+      transition: width .8s;
+    }
+    .stage-bar-today {
+      position: absolute; top: 0; bottom: 0; width: 3px;
+      background: var(--orange); box-shadow: 0 0 4px rgba(217,119,6,.5);
+    }
+    .stage-bar-label {
+      position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+      font-size: 10px; font-weight: 800; color: var(--text); white-space: nowrap;
+    }
+    .stage-ticks {
+      display: flex; justify-content: space-between;
+      font-size: 10px; color: var(--muted); margin-bottom: 12px;
+    }
+
+    /* 예측 KPI 그리드 */
+    .pred-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px;
+    }
+    .pred-card {
+      background: var(--panel); border-radius: var(--radius-sm);
+      padding: 14px 14px 12px; box-shadow: var(--shadow);
+      border: 1.5px solid var(--border);
+    }
+    .pred-icon   { font-size: 18px; margin-bottom: 6px; display: block; }
+    .pred-label  { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
+    .pred-value  { font-size: 22px; font-weight: 900; margin: 4px 0 2px; font-variant-numeric: tabular-nums; line-height: 1; }
+    .pred-unit   { font-size: 11px; font-weight: 400; }
+    .pred-sub    { font-size: 11px; color: var(--muted); }
+
+    /* 모델 성능 지표 */
+    .model-row {
+      display: flex; align-items: center; gap: 10px; padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .model-row:last-child { border-bottom: none; }
+    .model-crop { font-size: 13px; font-weight: 700; flex: 1; }
+    .model-r2   { font-size: 13px; font-weight: 800; min-width: 50px; text-align: right; }
+    .model-badge {
+      font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 8px;
+    }
+    .badge-good { background: var(--green-soft); color: var(--green-dark); }
+    .badge-ok   { background: var(--orange-soft); color: var(--orange); }
+    .badge-low  { background: var(--red-soft); color: var(--red); }
+
+    /* 생육 조언 카드 */
+    .advice-card {
+      display: flex; gap: 12px; padding: 12px 14px;
+      background: var(--panel); border-radius: var(--radius-sm);
+      box-shadow: var(--shadow); margin-bottom: 8px;
+      border-left: 4px solid var(--green);
+    }
+    .advice-card.warn { border-color: var(--orange); }
+    .advice-card.info { border-color: var(--blue); }
+    .advice-icon  { font-size: 20px; flex-shrink: 0; }
+    .advice-title { font-size: 13px; font-weight: 800; }
+    .advice-desc  { font-size: 12px; color: var(--muted); margin-top: 2px; line-height: 1.4; }
+
+    /* 신뢰도 바 */
+    .conf-bar-wrap { height: 6px; background: var(--gray-soft); border-radius: 4px; margin-top: 6px; overflow: hidden; }
+    .conf-bar-fill { height: 100%; border-radius: 4px; transition: width .6s; }
+    .conf-bar-fill.high { background: var(--green); }
+    .conf-bar-fill.mid  { background: var(--orange); }
+    .conf-bar-fill.low  { background: var(--red); }
+
+    /* WS 점 */
+    .ws-dot { width:8px; height:8px; border-radius:50%; background:var(--muted); display:inline-block; }
+    .ws-dot.connected { background:var(--green); box-shadow:0 0 0 3px rgba(31,122,77,.2); }
+  </style>
+</head>
+<body>
+
+<!-- ══ 헤더 ══ -->
+<header class="sf-header">
+  <div style="display:flex;align-items:center;gap:6px;">
+    <span class="ws-dot" id="wsDot"></span>
+    <span style="font-size:12px;color:rgba(255,255,255,.8)" id="wsLabel">연결 중…</span>
+  </div>
+  <span style="font-size:15px;font-weight:800;color:#fff;letter-spacing:-.3px">G4 생육 모델</span>
+  <select id="farmSel" onchange="onFarmChange(this.value)"
+          style="font-size:12px;background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:8px;padding:4px 8px;cursor:pointer;outline:none;">
+    <option value="farm_001">farm_001</option>
+  </select>
+</header>
+
+<!-- ══ 본문 ══ -->
+<main class="sf-main" style="padding:14px;max-width:480px;margin:0 auto;">
+
+  <!-- 수확 예정일 히어로 -->
+  <div class="harvest-hero" id="harvestHero">
+    <div class="harvest-label">예상 수확일</div>
+    <div class="harvest-date" id="harvestDate">—</div>
+    <div class="harvest-dday" id="harvestDday">계산 중…</div>
+    <div>
+      <span class="harvest-conf">
+        <span id="harvestConf">—</span>% 신뢰도
+      </span>
+    </div>
+  </div>
+
+  <!-- 생육 단계 타임라인 -->
+  <div class="section-label">생육 단계</div>
+  <div class="card" style="padding:14px 16px 12px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <span style="font-size:13px;font-weight:800;" id="stageLabel">—</span>
+      <span style="font-size:12px;color:var(--muted);" id="stagePct">—%</span>
+    </div>
+    <div class="stage-bar-wrap">
+      <div class="stage-bar-fill" id="stageBar" style="width:0%"></div>
+      <div class="stage-bar-today" id="stageToday" style="left:0%"></div>
+      <div class="stage-bar-label" id="stageBarLabel"></div>
+    </div>
+    <div class="stage-ticks">
+      <span>정식</span>
+      <span>착과</span>
+      <span>비대</span>
+      <span>수확</span>
+    </div>
+    <div style="font-size:12px;color:var(--muted);" id="stageDesc">—</div>
+  </div>
+
+  <!-- 예측 KPI -->
+  <div class="section-label" style="margin-top:14px;">수확량 예측 (M2 모델)</div>
+  <div class="pred-grid">
+    <div class="pred-card">
+      <span class="pred-icon">⚖️</span>
+      <div class="pred-label">예상 수확량</div>
+      <div class="pred-value" id="predYieldTotal">—<span class="pred-unit"> kg</span></div>
+      <div class="pred-sub" id="predYieldM2">—kg/m²</div>
+    </div>
+    <div class="pred-card">
+      <span class="pred-icon">💰</span>
+      <div class="pred-label">예상 매출</div>
+      <div class="pred-value" id="predRevenue" style="font-size:18px;">—<span class="pred-unit"> 만원</span></div>
+      <div class="pred-sub" id="predPrice">시세 —원/kg</div>
+    </div>
+    <div class="pred-card">
+      <span class="pred-icon">📊</span>
+      <div class="pred-label">마진율</div>
+      <div class="pred-value" id="predMargin">—<span class="pred-unit">%</span></div>
+      <div class="pred-sub" id="predCostPer">원가 —원/kg</div>
+    </div>
+    <div class="pred-card">
+      <span class="pred-icon">📅</span>
+      <div class="pred-label">수확까지</div>
+      <div class="pred-value" id="predDdays">—<span class="pred-unit"> 일</span></div>
+      <div class="pred-sub" id="predArea">재배면적 —m²</div>
+    </div>
+  </div>
+
+  <!-- 생육 조언 -->
+  <div class="section-label">생육 관리 조언</div>
+  <div id="growthAdvices">
+    <div style="text-align:center;padding:16px;color:var(--muted);"><div class="spinner"></div></div>
+  </div>
+
+  <!-- M1·M2 모델 성능 -->
+  <div class="section-label" style="margin-top:16px;">모델 성능 현황</div>
+  <div class="card" style="padding:14px;">
+    <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:10px;">M1 생육 예측 (CV R²)</div>
+    <div id="m1Models">
+      <div style="text-align:center;color:var(--muted);font-size:12px;">로드 중…</div>
+    </div>
+    <div style="font-size:12px;font-weight:700;color:var(--muted);margin-top:14px;margin-bottom:10px;">M2 수확량 예측 (MAPE %)</div>
+    <div id="m2Models">
+      <div style="text-align:center;color:var(--muted);font-size:12px;">로드 중…</div>
+    </div>
+    <div style="font-size:10px;color:var(--muted);margin-top:10px;">
+      마지막 학습: <span id="modelUpdatedAt">—</span>
+    </div>
+  </div>
+
+</main>
+
+<!-- ══ 하단 탭 바 ══ -->
+<nav class="sf-bottom-nav">
+  <button class="bnav-tab" onclick="location.href='c3_home.html'">
+    <span class="bnav-icon">🏠</span>홈
+  </button>
+  <button class="bnav-tab" onclick="location.href='g3_period.html'">
+    <span class="bnav-icon">💧</span>관수
+  </button>
+  <button class="bnav-tab" onclick="location.href='g2_env.html'">
+    <span class="bnav-icon">🌡️</span>환경
+  </button>
+  <button class="bnav-tab active">
+    <span class="bnav-icon">🌱</span>생육
+  </button>
+  <button class="bnav-tab" onclick="location.href='c3_home.html'">
+    <span class="bnav-icon">🚛</span>출하
+  </button>
+</nav>
+
+<script src="../components/data.js"></script>
+<script>
+'use strict';
+
+const CROP_SEASON_DAYS = { '딸기':120, '오이':90, '완숙토마토':120, '방울토마토':120, '파프리카':180, '참외':100 };
+const CROP_DLI_TARGET  = { '딸기':10, '오이':20, '완숙토마토':25, '방울토마토':22, '파프리카':18, '참외':18 };
+
+window.addEventListener('DOMContentLoaded', () => {
+  const farmId = new URLSearchParams(location.search).get('farm') ||
+                 sessionStorage.getItem('sf_farm_id') || 'farm_001';
+
+  _ensureToken().then(token => {
+    KaasaData.init({ farmId, token, onStatus: _onWsStatus });
+    _loadAll(token, farmId);
+  });
+});
+
+function onFarmChange(id) { sessionStorage.setItem('sf_farm_id', id); location.reload(); }
+
+async function _ensureToken() {
+  const s = sessionStorage.getItem('sf_token');
+  if (s) return s;
+  try {
+    const api = sessionStorage.getItem('sf_api') || location.origin;
+    const r = await fetch(`${api}/api/v1/auth/token`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({username:'admin',password:'1250'}),
+    });
+    if (r.ok) { const d = await r.json(); sessionStorage.setItem('sf_token', d.access_token); return d.access_token; }
+  } catch {}
+  return '';
+}
+
+function _onWsStatus(s) {
+  const dot=document.getElementById('wsDot'), lbl=document.getElementById('wsLabel');
+  if(dot) dot.className='ws-dot '+s;
+  if(lbl) lbl.textContent = s==='connected'?'실시간 연결 중':s==='reconnecting'?'재연결 중…':'연결 안 됨';
+}
+
+// ── 전체 데이터 로드 ────────────────────────────────────────────────────────
+async function _loadAll(token, farmId) {
+  const api = KaasaData.getApiBase();
+  const H = { Authorization: `Bearer ${token}` };
+
+  const [harvest, erp, perf] = await Promise.all([
+    fetch(`${api}/api/farms/${farmId}/harvest`, { headers: H }).then(r => r.ok ? r.json() : null).catch(() => null),
+    fetch(`${api}/api/farms/${farmId}/erp/realtime`, { headers: H }).then(r => r.ok ? r.json() : null).catch(() => null),
+    fetch(`${api}/api/farms/${farmId}/system/model-performance`, { headers: H }).then(r => r.ok ? r.json() : null).catch(() => null),
+  ]);
+
+  if (harvest) _renderHarvest(harvest);
+  if (erp)     _renderErp(erp, harvest);
+  if (perf)    _renderModelPerf(perf);
+  _renderGrowthAdvices(harvest, erp);
+}
+
+// ── 수확 예측 히어로 + 타임라인 ─────────────────────────────────────────────
+function _renderHarvest(d) {
+  const predDate = d.predicted_date ? new Date(d.predicted_date) : null;
+  const today    = new Date();
+  const ddays    = predDate ? Math.round((predDate - today) / 86400000) : null;
+  const conf     = d.confidence ? Math.round(d.confidence * 100) : 0;
+  const crop     = d.crop_ko || '오이';
+
+  // 히어로
+  const setEl = (id, v) => { const el = document.getElementById(id); if(el) el.textContent = v; };
+  if (predDate) {
+    setEl('harvestDate', `${predDate.getFullYear()}년 ${predDate.getMonth()+1}월 ${predDate.getDate()}일`);
+    setEl('harvestDday', ddays > 0 ? `D-${ddays} — ${crop} 수확 예정` : ddays === 0 ? '오늘 수확!' : `${-ddays}일 지남`);
+  }
+  setEl('harvestConf', conf);
+
+  // 타임라인 — 정식~수확 전체 기간에서 현재 위치
+  const totalDays = CROP_SEASON_DAYS[crop] || 90;
+  const elapsed   = Math.max(0, totalDays - (ddays ?? 0));
+  const pct       = Math.min(Math.round((elapsed / totalDays) * 100), 100);
+  const stagePct  = document.getElementById('stagePct');
+  const stageBar  = document.getElementById('stageBar');
+  const stageToday= document.getElementById('stageToday');
+  const stageBarLbl= document.getElementById('stageBarLabel');
+
+  if (stagePct)  stagePct.textContent  = `${pct}%`;
+  if (stageBar)  stageBar.style.width  = `${pct}%`;
+  if (stageToday)stageToday.style.left = `${pct}%`;
+  if (stageBarLbl) stageBarLbl.textContent = `D-${ddays ?? '?'}`;
+
+  // 생육 단계 판정
+  let stageName, stageDesc;
+  if (pct < 25)      { stageName='정식·활착기'; stageDesc='뿌리 활착 집중 — 급액량 낮게 유지, 과습 주의'; }
+  else if (pct < 50) { stageName='생장기';      stageDesc='영양생장 활발 — EC 2.5~3.0, VPD 0.8~1.2 관리'; }
+  else if (pct < 75) { stageName='착과·비대기'; stageDesc='착과 최대화 — 광합성 효율↑, 급액량 증가'; }
+  else               { stageName='수확 준비기'; stageDesc='EC 상향(3.5~4.0), 마지막 관수 EC 강화'; }
+
+  const lbl=document.getElementById('stageLabel'), desc=document.getElementById('stageDesc');
+  if(lbl) lbl.textContent = stageName;
+  if(desc) desc.textContent = stageDesc;
+
+  // KPI
+  const yTotal = d.yield_kg_forecast;
+  const yM2    = d.predicted_yield_kg_m2;
+  const setHtml = (id, v) => { const el = document.getElementById(id); if(el) el.innerHTML = v; };
+  if (yTotal != null) setHtml('predYieldTotal', `${Math.round(yTotal).toLocaleString()}<span class="pred-unit"> kg</span>`);
+  if (yM2    != null) setHtml('predYieldM2', `${yM2.toFixed(1)} kg/m²`);
+  if (ddays  != null) setHtml('predDdays', `${ddays}<span class="pred-unit"> 일</span>`);
+}
+
+// ── ERP 데이터 ──────────────────────────────────────────────────────────────
+function _renderErp(erp, harvest) {
+  const setHtml = (id, v) => { const el = document.getElementById(id); if(el) el.innerHTML = v; };
+  const rev = harvest?.yield_kg_forecast && erp.market_price_per_kg
+    ? Math.round(harvest.yield_kg_forecast * erp.market_price_per_kg / 10000) : null;
+
+  if (rev != null) setHtml('predRevenue', `${rev.toLocaleString()}<span class="pred-unit"> 만원</span>`);
+  setHtml('predPrice', `시세 ${Math.round(erp.market_price_per_kg || 0).toLocaleString()}원/kg`);
+  setHtml('predMargin', `${Math.round(erp.income_rate_pct || 0)}<span class="pred-unit">%</span>`);
+  setHtml('predCostPer', `원가 ${Math.round(erp.cost_per_kg || 0).toLocaleString()}원/kg`);
+  setHtml('predArea', `재배면적 ${Math.round(erp.area_m2 || 0).toLocaleString()}m²`);
+}
+
+// ── 생육 조언 ───────────────────────────────────────────────────────────────
+function _renderGrowthAdvices(harvest, erp) {
+  const ddays = harvest ? Math.round((new Date(harvest.predicted_date) - new Date()) / 86400000) : null;
+  const margin = erp?.income_rate_pct;
+  const conf   = harvest ? Math.round(harvest.confidence * 100) : 0;
+
+  const advices = [];
+
+  if (ddays != null && ddays <= 14 && ddays > 0) {
+    advices.push({type:'warn', icon:'📦', title:'수확 D-14 — 출하 준비',
+      desc:'공동출하 Pool 신청 마감 확인 · 수확 컨테이너·저온 차량 예약 · 품위 등급 기준 확인'});
+  }
+  if (ddays != null && ddays > 14 && ddays <= 30) {
+    advices.push({type:'ok', icon:'🌱', title:'수확 1개월 전 — 관리 집중',
+      desc:'EC 3.5~4.0 상향 조정 · 야간 온도 1~2°C 낮춰 착색 촉진 · 착과 수 확인 및 적과'});
+  }
+  if (margin != null && margin > 70) {
+    advices.push({type:'ok', icon:'💰', title:`마진율 ${Math.round(margin)}% — 우수`,
+      desc:'현재 수익성 목표 달성 중. 에너지 비용 절감으로 추가 개선 가능'});
+  } else if (margin != null && margin < 50) {
+    advices.push({type:'warn', icon:'⚠️', title:`마진율 ${Math.round(margin)}% — 개선 필요`,
+      desc:'원가 절감 방안 검토 · 공동출하로 수취가 향상 가능 · AI 추천 확인'});
+  }
+  if (conf < 60) {
+    advices.push({type:'info', icon:'🔬', title:'예측 신뢰도 낮음 — 데이터 보강 필요',
+      desc:'관수 기록 입력 증가 시 모델 정확도 향상. 생육 측정값을 주기적으로 입력하세요'});
+  }
+
+  // 기본 조언 (항상 표시)
+  advices.push({type:'info', icon:'📋', title:'주간 생육 점검 체크리스트',
+    desc:'잎 수·줄기 굵기 측정 → G3 관수 기록 입력 → AI 추천 검토 → 다음 주 수확량 갱신'});
+
+  const container = document.getElementById('growthAdvices');
+  if (container) container.innerHTML = advices.map(a => `
+    <div class="advice-card ${a.type}">
+      <span class="advice-icon">${a.icon}</span>
+      <div>
+        <div class="advice-title">${a.title}</div>
+        <div class="advice-desc">${a.desc}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ── 모델 성능 ───────────────────────────────────────────────────────────────
+function _renderModelPerf(perf) {
+  const m1 = perf?.m1_growth || [];
+  const m2 = perf?.m2_yield  || [];
+
+  const m1El = document.getElementById('m1Models');
+  const m2El = document.getElementById('m2Models');
+
+  if (m1El && m1.length) {
+    m1El.innerHTML = m1.slice(0,6).map(m => {
+      const r2  = m.r2 != null ? m.r2.toFixed(3) : '—';
+      const cls = m.r2 > 0.6 ? 'good' : m.r2 > 0.3 ? 'ok' : 'low';
+      return `<div class="model-row">
+        <div class="model-crop">${m.crop || '?'} · ${m.target || '?'}</div>
+        <div class="model-r2" style="color:${m.r2>0.6?'var(--green)':m.r2>0.3?'var(--orange)':'var(--red)'}">R²=${r2}</div>
+        <span class="model-badge badge-${cls}">${m.r2>0.6?'우수':m.r2>0.3?'보통':'개선필요'}</span>
+      </div>`;
+    }).join('');
+  } else if (m1El) { m1El.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:8px 0;">데이터 없음</div>'; }
+
+  if (m2El && m2.length) {
+    m2El.innerHTML = m2.slice(0,6).map(m => {
+      const mape = m.mape_pct != null ? m.mape_pct.toFixed(1) : '—';
+      const cls  = m.mape_pct < 20 ? 'good' : m.mape_pct < 40 ? 'ok' : 'low';
+      return `<div class="model-row">
+        <div class="model-crop">${m.crop || '?'}</div>
+        <div class="model-r2" style="color:${m.mape_pct<20?'var(--green)':m.mape_pct<40?'var(--orange)':'var(--red)'}">MAPE=${mape}%</div>
+        <span class="model-badge badge-${cls}">${m.mape_pct<20?'우수':m.mape_pct<40?'보통':'개선필요'}</span>
+      </div>`;
+    }).join('');
+  } else if (m2El) { m2El.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:8px 0;">데이터 없음</div>'; }
+
+  const updEl = document.getElementById('modelUpdatedAt');
+  if (updEl && perf?.generated_at) {
+    const dt = new Date(perf.generated_at);
+    updEl.textContent = dt.toLocaleDateString('ko-KR') + ' ' + dt.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
+  }
+}
+</script>
+</body>
+</html>
