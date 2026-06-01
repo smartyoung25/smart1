@@ -181,3 +181,29 @@ CLAUDE.md를 읽고 시작합니다.
 현재 상태: PROGRESS.md [해당 항목] 참조
 주의사항: [특이사항]
 ```
+
+
+## 최종 구현 현황 (2026-06-01)
+
+### 화면 33개 (원본 28 + AI챗봇·월간리포트·교육·기타)
+- 공통 C: C0~C12 + c13(AI챗봇) + c14(월간리포트) + c15(교육)
+- 온실 G: G1~G6 / 노지 F: F1~F7 / 개요: overview·flow
+
+### 작물 12종
+딸기·방울토마토·완숙토마토·참외·파프리카·오이 + 제주7종(감귤·월동무·당근·양배추·브로콜리·마늘·양파)
+
+### 정책(스마트농업법) 대응 — 기능 이행 완료
+- 6대 영역 통합 모니터링 / 9대 성과지표(목표대비+전월대비 변화율)
+- 월간 경영성과 리포트(제5·6·9조) / 교육과정·이수율(제8조)
+- 결로·IPM 조기경보 / AI진단·전문가 컨설팅(C4)
+- **이행→축적→학습→환원 폐루프**: activity 적재→retrain_trigger→report 학습블록→C7 보상
+
+### 외부 의존 잔여 (코드 구조 완비, 키/데이터만 주입하면 자동 전환)
+- 노지 토양·필지·NDVI 실데이터(흙토람·팜맵 키+IP) / LLM 챗봇 실응답(.env 키)
+- 제주작물 M2 수확모델(생산 실측) / 전월 변화율 실수치(월 누적)
+
+### 신규 백엔드 (이번 세션)
+- GET /report/monthly, POST /activity, GET /activity/summary
+- GET /field/soil, /field/parcels (흙토람·팜맵 어댑터+Mock폴백)
+- external_api_hub: naas_soil_by_pnu, farmmap_parcels
+- crop_config 제주7종, kamis_fetcher ITEM_CODES 제주7종
