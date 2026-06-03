@@ -164,6 +164,21 @@ const KaasaData = (() => {
   };
   function getStartConditions(periodId) { return IRRIGATION_START.byPeriod[periodId] || []; }
 
+  // ── 프리바 관수 구조·처방 (운용매뉴얼 3.17.5~3.17.7) ──────────────────────────
+  // 계층: 시작 프로그램 → 밸브 그룹 → 밸브. 각 처방(Recipe)에 목표 EC/pH 지정.
+  const IRRIGATION_STRUCTURE = {
+    hierarchy: ['시작 프로그램(Start program)', '밸브 그룹(Valve group)', '밸브(Valve)'],
+    recipe: {
+      name_ko: '처방(Recipe)',
+      desc: '공급용수+비료의 목표값 — 급액 EC·pH를 처방별로 지정',
+      targets: { ec_supply: { min: 2.5, max: 3.5, unit: 'dS/m' }, ph_supply: { min: 5.5, max: 6.5 } }
+    },
+    flowPreControl: {
+      name_ko: '유량 사전제어(Flow pre-control)',
+      desc: '여러 공급용수를 유량 비율(%)로 사전 혼합 — 처방별 공급용수 %를 설정'
+    }
+  };
+
   // ── 현재 Period 판별 ────────────────────────────────────────────────────────
   function getCurrentPeriod(now) {
     const d   = now || new Date();
@@ -444,8 +459,8 @@ const KaasaData = (() => {
     on, off,
     // Period
     PERIODS, getCurrentPeriod, getDrainStatus,
-    // 프리바 관수 시작 조건
-    IRRIGATION_START, getStartConditions,
+    // 프리바 관수 시작 조건·구조
+    IRRIGATION_START, getStartConditions, IRRIGATION_STRUCTURE,
     // 데이터 로드
     loadPrivaSchedule, loadRecommend, loadEnvironment,
     submitIrrigation, loadIrrigationAnalysis,

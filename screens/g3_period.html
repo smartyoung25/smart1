@@ -534,7 +534,16 @@ function renderStartConditions() {
     <div style="font-size:10.5px;color:var(--muted);line-height:1.5;">
       <b>트리거 우선순위:</b> ${prio.map((x,i)=>`${i+1}. ${x.name_ko}`).join(' › ')}
       <br>※ 적산일사량은 첫 관수 분배 시 0으로 리셋, 배액률로 한계 자동 보정
-    </div>`;
+    </div>
+    ${_structureHtml()}`;
+}
+function _structureHtml(){
+  const S = KaasaData.IRRIGATION_STRUCTURE; if(!S) return '';
+  const r = S.recipe.targets;
+  return `<div style="margin-top:9px;padding-top:9px;border-top:1px dashed var(--border);font-size:10.5px;color:var(--muted);line-height:1.6;">
+    <b>관수 구조:</b> ${S.hierarchy.join(' → ')}
+    <br><b>처방(Recipe):</b> 급액 EC ${r.ec_supply.min}~${r.ec_supply.max} ${r.ec_supply.unit} · pH ${r.ph_supply.min}~${r.ph_supply.max}
+    <br><b>${S.flowPreControl.name_ko}:</b> ${S.flowPreControl.desc}</div>`;
 }
 
 /* ── Priva 요약 렌더 ── */
