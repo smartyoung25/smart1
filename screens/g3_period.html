@@ -128,6 +128,9 @@
 
     /* WS 상태 */
     .ws-bar { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+    /* 다층 시간창 토글 */
+    .hz-btn { font-size: 11px; font-weight: 700; padding: 4px 9px; border-radius: 8px; border: 1.5px solid var(--border); background: var(--panel); color: var(--muted); cursor: pointer; min-height: 30px; }
+    .hz-btn.active { border-color: var(--blue,#2563eb); background: var(--blue-soft,#e0ecff); color: #1e40af; }
   </style>
 </head>
 <body>
@@ -218,9 +221,16 @@
     </div>
   </section>
 
-  <!-- ══ 관수 분석 7일 ══ -->
+  <!-- ══ 관수 분석 (다층 시간창) ══ -->
   <section>
-    <div class="section-label">관수 품질 분석 (7일)</div>
+    <div class="section-label" style="display:flex;align-items:center;justify-content:space-between;">
+      <span>관수 품질 분석</span>
+      <span id="horizonSel" style="display:flex;gap:5px;">
+        <button class="hz-btn active" data-d="7"  onclick="setHorizon(7)">7일</button>
+        <button class="hz-btn" data-d="14" onclick="setHorizon(14)">14일</button>
+        <button class="hz-btn" data-d="30" onclick="setHorizon(30)">작기누적</button>
+      </span>
+    </div>
     <div class="card" id="analysisCard">
       <div class="spinner"></div>
     </div>
@@ -341,10 +351,16 @@ async function _ensureToken() {
   return '';
 }
 
+let _horizon = 7;
+function setHorizon(d){
+  _horizon = d;
+  document.querySelectorAll('.hz-btn').forEach(b=>b.classList.toggle('active', +b.dataset.d===d));
+  KaasaData.loadIrrigationAnalysis(d).then(renderAnalysis);
+}
 function loadAll() {
   KaasaData.loadPrivaSchedule({ growthStage: 'mid', plantSizePct: 100 });
   KaasaData.loadRecommend({ crop: '토마토', tier: 'semi_auto', areaMeter: 1000 });
-  KaasaData.loadIrrigationAnalysis(7).then(renderAnalysis);
+  KaasaData.loadIrrigationAnalysis(_horizon).then(renderAnalysis);
 }
 
 function onFarmChange(farmId) {
@@ -613,7 +629,7 @@ function renderAnalysis(data) {
   const days = data.days || data;
 
   card.innerHTML = `
-    <div class="card-title">📈 관수 품질 분석 <span class="badge gray" style="margin-left:auto;">최근 7일</span></div>
+    <div class="card-title">📈 관수 품질 분석 <span class="badge gray" style="margin-left:auto;">${_horizon>=30?'작기누적':'최근 '+_horizon+'일'}</span></div>
     <div style="font-size:12px;font-weight:700;color:var(--muted);margin:4px 0 2px;">배액률 추이 (목표대 20~30%)</div>
     <div id="drainChart" style="margin-bottom:10px;"></div>
     <div class="table-wrap">

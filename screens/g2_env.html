@@ -245,6 +245,10 @@
   <button onclick="_openEnvSetpoint()" style="width:100%;margin-bottom:10px;padding:14px;background:var(--green);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:800;cursor:pointer;min-height:48px;">🌡️ 환경 설정값 입력 (난방·환기·CO₂)</button>
   <div class="card" style="padding:12px 14px;margin-bottom:14px;" id="recentRec"></div>
 
+  <!-- AI 에이전트 빠른 루프 (사업계획서 L4) -->
+  <div class="section-label">AI 에이전트 (빠른 루프) <span class="trust-badge trust-model">🔵 30초 루프</span></div>
+  <div class="card" id="agentCard" style="padding:13px 14px;margin-bottom:14px;border-left:4px solid var(--blue,#2563eb);"></div>
+
   <!-- AI 제어 추천 -->
   <div class="section-label">AI 제어 추천</div>
   <div id="aiControls">
@@ -367,6 +371,34 @@ let _env = {};
 let _mode = 'suggest';
 let _tokenG = '', _farmG = 'farm_001';
 
+// AI 에이전트 빠른 루프 카드 (에너지 시간대 자동절감 + LED 스펙트럼 단계자동)
+const _LED_STAGE = [
+  { k:'발아·육묘', r:'적색 60 · 청색 35 · UV 5', tip:'청색 비중↑ 도장 억제' },
+  { k:'영양생장', r:'적색 65 · 청색 30 · UV 5', tip:'균형 스펙트럼' },
+  { k:'착과·비대', r:'적색 70 · 청색 25 · UV 5', tip:'적색↑ 광합성 촉진' },
+  { k:'성숙·수확', r:'적색 68 · 청색 22 · UV 10', tip:'UV +30% 당도·착색↑' },
+];
+function _renderAgentCard(){
+  const el=document.getElementById('agentCard'); if(!el) return;
+  const h=new Date().getHours();
+  const peak = h>=10 && h<17;                 // 한전 피크 시간대
+  const led = _LED_STAGE[Math.min(3, Math.floor(((window._growthIdx??1))))] || _LED_STAGE[1];
+  el.innerHTML = `
+    <div style="font-size:13px;font-weight:800;margin-bottom:8px;">⚙️ 자동 조치 (룰엔진 + ML)</div>
+    <div style="display:flex;align-items:flex-start;gap:8px;padding:7px 0;border-bottom:1px dashed var(--border);">
+      <span style="font-size:17px;">⚡</span>
+      <div style="flex:1;font-size:12.5px;"><b>에너지 자동 절감</b>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px;">
+          ${peak ? `현재 피크시간(10~17시) — 난방·LED 20~50% 자동 감축 권고` : `비피크 시간 — 정상 운전, 축열 활용 권장`}</div></div>
+      <span style="font-size:10px;font-weight:800;padding:2px 8px;border-radius:7px;background:${peak?'var(--orange-soft)':'var(--green-soft)'};color:${peak?'var(--orange)':'var(--green-dark)'};">${peak?'절감 ON':'정상'}</span>
+    </div>
+    <div style="display:flex;align-items:flex-start;gap:8px;padding:7px 0;">
+      <span style="font-size:17px;">💡</span>
+      <div style="flex:1;font-size:12.5px;"><b>LED 스펙트럼 자동</b> <span style="color:var(--muted);">· ${led.k}</span>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px;">${led.r} <span style="color:var(--green-dark);">(${led.tip})</span></div></div>
+    </div>
+    <div style="font-size:10px;color:var(--muted);margin-top:8px;">※ 30초 주기 센서 감시 → 룰엔진 즉시 조치 + ML 72h 병해 예측. 자동 모드에서 활성화.</div>`;
+}
 function _openEnvSetpoint(){
   RecordSheet.open({
     title:'🌡️ 환경 설정값 입력',
@@ -464,6 +496,7 @@ window.addEventListener('DOMContentLoaded', () => {
     _loadEnvFull(token, farmId);
     _loadEnergy(token, farmId);
     _refreshRecent();
+    _renderAgentCard();
     // 연동 장비 배지 + device_alert 연계
     if(window.EquipmentLink) EquipmentLink.load(farmId, token).then(inv=>{
       EquipmentLink.renderBadge(document.getElementById('eqLink'), inv, ['temp_internal','humidity_int','co2_ppm','solar_rad']);
