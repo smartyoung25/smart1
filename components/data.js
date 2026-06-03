@@ -142,6 +142,28 @@ const KaasaData = (() => {
     }
   ];
 
+  // ── 프리바 관수 시작 조건 모델 (한국네타핌 Priva 운용매뉴얼 3.17.1 기반) ──────
+  // 시작 트리거 우선순위: ① 적산일사량(J/cm²)+배액 보정 → ② 증산물량 → ③ 휴지시간/수분/장력 폴백
+  // 첫 관수가 분배되면 적산일사량은 0으로 리셋.
+  const IRRIGATION_START = {
+    priority: [
+      { key: 'rad_sum',  name_ko: '적산일사량 + 배액 보정', desc: '측정 적산일사(J/cm²)가 한계 초과 시 시작. 배액률로 한계 보정, 첫 관수 후 0 리셋' },
+      { key: 'transp',   name_ko: '증산물량(Transpiration sum)', desc: 'VPD·일사·환기 기반 증산 적산이 한계 초과 시 시작' },
+      { key: 'interval', name_ko: '최대 휴지시간(Interval)', desc: '마지막 관수 후 경과시간 초과 시 폴백 시작' },
+      { key: 'moisture', name_ko: '수분/장력(Moisture·Tensio)', desc: '함수율 하한 또는 수분장력 초과 시 시작' },
+    ],
+    // Period별 활성 시작 조건 (프리바 시작원인 표 대응)
+    byPeriod: {
+      P1: ['무관수 — 야간 dry-back 결과 확인', '첫 관수량 산정'],
+      P2: ['적산일사 ~100 J/cm² 또는 수분 하한', '큰 급액으로 EC 세척(첫 배액 前)'],
+      P3: ['적산일사 ≈400 J/cm² → 첫 배액 개시', '배액률 피드백 보정'],
+      P4: ['최대 휴지시간', '증산물량(VPD·일사)', '함수율 하한'],
+      P5: ['조기 종료(early stop) — 적산일사 감소', 'dry-back 2~5% 목표'],
+      P6: ['무관수(야간 dry-back)', '예외: 과도 dry-back·고EC 시 1회'],
+    }
+  };
+  function getStartConditions(periodId) { return IRRIGATION_START.byPeriod[periodId] || []; }
+
   // ── 현재 Period 판별 ────────────────────────────────────────────────────────
   function getCurrentPeriod(now) {
     const d   = now || new Date();
@@ -422,6 +444,8 @@ const KaasaData = (() => {
     on, off,
     // Period
     PERIODS, getCurrentPeriod, getDrainStatus,
+    // 프리바 관수 시작 조건
+    IRRIGATION_START, getStartConditions,
     // 데이터 로드
     loadPrivaSchedule, loadRecommend, loadEnvironment,
     submitIrrigation, loadIrrigationAnalysis,

@@ -193,8 +193,11 @@
   <!-- ══ Period 점프 바 ══ -->
   <div class="jump-bar" id="jumpBar"></div>
 
-  <!-- ══ P1~P5 Period 타임라인 ══ -->
-  <div class="section-label">오늘의 관수 Period (P1~P5)</div>
+  <!-- ══ 관수 시작 조건 (프리바 방식) ══ -->
+  <div class="card" id="startCondCard" style="padding:13px 14px;margin-bottom:14px;border-left:4px solid var(--p3-color);"></div>
+
+  <!-- ══ P1~P6 Period 타임라인 ══ -->
+  <div class="section-label">오늘의 관수 Period (P1~P6)</div>
   <div class="period-timeline" id="periodTimeline">
     <div style="text-align:center;padding:20px;"><div class="spinner"></div></div>
   </div>
@@ -512,6 +515,26 @@ function renderJumpBar() {
             onclick="jumpToPeriod('${p.id}')">
       ${p.icon} ${p.label} ${p.name}
     </button>`).join('');
+  renderStartConditions();
+}
+
+// 관수 시작 조건 (프리바 운용매뉴얼 3.17.1 기반)
+function renderStartConditions() {
+  const el = document.getElementById('startCondCard');
+  if (!el || !KaasaData.getStartConditions) return;
+  const p = _currentPeriod || KaasaData.getCurrentPeriod();
+  const conds = KaasaData.getStartConditions(p.id);
+  const prio = (KaasaData.IRRIGATION_START && KaasaData.IRRIGATION_START.priority) || [];
+  el.innerHTML = `
+    <div style="font-size:13px;font-weight:800;margin-bottom:6px;">💧 관수 시작 조건 — ${p.label} ${p.name}
+      <span class="trust-badge trust-model" style="margin-left:4px;">🔵 프리바 방식</span></div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
+      ${conds.map(c=>`<span style="font-size:11px;font-weight:700;background:var(--p3-soft);color:#075985;padding:3px 9px;border-radius:8px;">${c}</span>`).join('')}
+    </div>
+    <div style="font-size:10.5px;color:var(--muted);line-height:1.5;">
+      <b>트리거 우선순위:</b> ${prio.map((x,i)=>`${i+1}. ${x.name_ko}`).join(' › ')}
+      <br>※ 적산일사량은 첫 관수 분배 시 0으로 리셋, 배액률로 한계 자동 보정
+    </div>`;
 }
 
 /* ── Priva 요약 렌더 ── */
