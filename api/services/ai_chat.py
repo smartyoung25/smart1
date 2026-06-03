@@ -384,25 +384,101 @@ def _call_ollama(
 
 
 def _rule_based_reply(message: str, context: dict) -> dict:
-    """키 없을 때 최소한의 규칙 기반 답변."""
+    """LLM 키 없을 때 — 실데이터 기반 규칙형 응답기(의도 인식)."""
     crop = context.get("crop", "작물")
-    env  = context.get("env", {})
-    temp = env.get("temp_internal", "?")
-    hum  = env.get("humidity_int", "?")
+    area = context.get("area_m2", 0) or 0
+    env  = context.get("env", {}) or {}
+    alerts = context.get("alerts", []) or []
+    price  = context.get("price_krw_kg", 0) or 0
+    yld    = context.get("yield_kg_m2", 0) or 0
+    cost   = context.get("cost_per_m2", 0) or 0
 
-    msg_lower = message.lower()
-    if any(k in msg_lower for k in ["온도", "습도", "환경"]):
-        reply = f"현재 {crop} 재배 온도는 {temp}°C, 습도는 {hum}%입니다. AI API 키를 설정하면 더 정밀한 분석을 제공합니다."
-    elif any(k in msg_lower for k in ["수확", "예측"]):
-        reply = f"{crop} 수확 예측 기능은 AI 모델로 계산됩니다. 현재 상태에서는 통계 기반 참고값을 확인해 주세요."
-    elif any(k in msg_lower for k in ["병해", "질병"]):
-        reply = f"{crop}의 환경 조건 기반 병해 위험도 평가를 실행합니다. /disease-risk 엔드포인트를 확인하세요."
+    def _g(k):
+        v = env.get(k)
+        return v if isinstance(v, (int, float)) else None
+    temp, hum, co2 = _g("temp_internal"), _g("humidity_int"), _g("co2_ppm")
+    vpd, ec, drain = _g("vpd"), _g("ec_dsm"), _g("dr_pct") or _g("dr_pct_mean")
+    m = message.lower()
+    sugg = ["현재 알림 확인", "오늘 환경 어때?", "수확일 언제야?", "수익 높이는 방법은?"]
+
+    def _fmt(v, u="", d=1):
+        return (f"{v:.{d}f}{u}" if isinstance(v, (int, float)) else "—")
+
+    # 1) 관수·양액
+    if any(k in m for k in ["관수", "급액", "배액", "함수율", "ec", "양액", "물"]):
+        parts = []
+        if drain is not None:
+            st = "정상(20~30%)" if 20 <= drain <= 30 else ("부족 — 급액량↑" if drain < 20 else "과잉 — 급액량↓")
+            parts.append(f"배액률 {_fmt(drain,'%')} → {st}")
+        if ec is not None:
+            parts.append(f"배액 EC {_fmt(ec,' dS/m')} (정상 3.0~4.5)")
+        body = " · ".join(parts) if parts else "현재 관수 센서값이 들어오면 자동 진단합니다."
+        reply = (f"💧 {crop} 관수 진단\n{body}\n\n오늘은 일사 적산(J/cm²) 기반으로 P1~P6 단계 관수가 진행됩니다. "
+                 f"배액률 12% 미만이면 즉시 추가 관수하세요. 야간(P6)은 dry-back 10~20%가 목표입니다.")
+        sugg = ["배액률 정상 범위는?", "야간 dry-back이 뭐야?", "EC 높을 때 조치는?"]
+
+    # 2) 환경·온습도·VPD
+    elif any(k in m for k in ["온도", "습도", "환경", "vpd", "co2", "이산화"]):
+        reply = (f"🌡️ {crop} 실내 환경\n온도 {_fmt(temp,'°C')} · 습도 {_fmt(hum,'%')} · "
+                 f"CO₂ {_fmt(co2,'ppm',0)} · VPD {_fmt(vpd,' kPa',2)}\n\n"
+                 f"VPD 적정대는 0.6~1.2 kPa입니다. 1.8↑이면 증산 과다(급액 보완), 0.6↓이면 과습(환기 강화)으로 대응하세요.")
+        sugg = ["VPD가 높으면?", "결로 위험 있어?", "환기 언제 해야 해?"]
+
+    # 3) 수확·출하
+    elif any(k in m for k in ["수확", "출하", "예측", "언제"]):
+        total = round(yld * area) if (yld and area) else None
+        reply = (f"🚚 {crop} 수확·출하\n예상 단위수확량 {_fmt(yld,' kg/m²',2)}"
+                 + (f" · 전체 약 {total:,}kg" if total else "")
+                 + f"\n\n수확 예측은 M2 모델 기반이며, 생육 측정값(초장·엽수)을 입력할수록 정확해집니다. "
+                   f"출하는 공동출하(Pool) 단가와 개별 출하를 비교해 결정하세요.")
+        sugg = ["공동출하가 유리해?", "생육 측정값 입력하기", "이번 주 시세는?"]
+
+    # 4) 수익·단가·이익
+    elif any(k in m for k in ["수익", "매출", "단가", "가격", "이익", "소득", "시세"]):
+        rev = round(price * yld * area) if (price and yld and area) else None
+        margin = None
+        if price and yld and area and cost:
+            revv = price * yld * area; costv = cost * area
+            margin = round((revv - costv) / revv * 100) if revv else None
+        reply = (f"💰 {crop} 수익 현황\n단가 {price:,.0f}원/kg · 예상 매출 "
+                 + (f"{rev:,}원" if rev else "—")
+                 + (f" · 마진율 약 {margin}%" if margin is not None else "")
+                 + "\n\n원가는 C5 수익성 ERP에서 실시간 소득률로 확인할 수 있습니다. "
+                   "에너지 피크시간(10~17시) 절감으로 마진을 높일 수 있습니다.")
+        sugg = ["원가 절감 방법은?", "에너지비 줄이려면?", "공동출하 단가 비교"]
+
+    # 5) 병해·생리장애
+    elif any(k in m for k in ["병해", "질병", "곰팡이", "역병", "벌레", "방제", "노균"]):
+        risk = "높음" if (hum and hum >= 85) else ("주의" if (hum and hum >= 75) else "낮음")
+        reply = (f"🔬 {crop} 병해 위험\n현재 습도 {_fmt(hum,'%')} 기준 위험도 **{risk}**.\n\n"
+                 f"습도 85%↑·결로 지속 시 잿빛곰팡이·노균병 위험이 큽니다. "
+                 f"환기로 포차를 높이고, 방제 시행은 F6/G5 화면에서 약제·농도와 함께 기록하세요. 병해는 발생 72시간 전 조기경고를 제공합니다.")
+        sugg = ["결로 위험 시간은?", "방제 기록하기", "IPM 체크리스트"]
+
+    # 6) 알림·이상·현황
+    elif any(k in m for k in ["알림", "이상", "경보", "현황", "상태", "오늘"]):
+        if alerts:
+            lines = "\n".join(f"• [{a.get('severity','')}] {a.get('message_ko','')}" for a in alerts[:5])
+            reply = f"🔔 현재 활성 알림 {len(alerts)}건\n{lines}\n\n자세한 처방은 홈의 '오늘의 결정' 카드에서 원탭으로 실행할 수 있습니다."
+        else:
+            reply = (f"✅ 현재 {crop} 농장에 활성 경보가 없습니다.\n온도 {_fmt(temp,'°C')} · 습도 {_fmt(hum,'%')} · VPD {_fmt(vpd,' kPa',2)} 모두 모니터링 중입니다.")
+        sugg = ["오늘의 결정 보기", "관수 상태는?", "수확 예측 보기"]
+
+    # 7) 에너지
+    elif any(k in m for k in ["에너지", "전기", "전력", "난방", "요금"]):
+        reply = ("⚡ 에너지 절감\n한전 시간대별 요금 기준, 피크시간(10~17시)에 난방·LED를 20~50% 자동 감축하면 "
+                 "연 350~400만원 절감이 가능합니다. G2 환경화면의 'AI 에이전트(빠른 루프)' 카드에서 현재 절감 상태를 확인하세요.")
+        sugg = ["지금 피크시간이야?", "LED 스펙트럼 자동?", "이번 달 전기요금 분석"]
+
+    # 8) 기본 안내
     else:
-        reply = f"안녕하세요! {crop} 농장 AI 어시스턴트입니다. AI API 키(ANTHROPIC_API_KEY)를 설정하면 농장 맞춤 분석을 받으실 수 있습니다."
+        reply = (f"안녕하세요! {crop} 농장 AI 상담사입니다. 🌱 (면적 {area:.0f}m²)\n"
+                 "관수·환경·수확·수익·병해·알림·에너지에 대해 물어보세요. 농장 실데이터로 답변합니다.\n"
+                 "※ 더 정밀한 대화형 분석은 LLM 연동(ANTHROPIC_API_KEY) 시 제공됩니다.")
 
     return {
         "reply": reply,
-        "suggestions": ["현재 환경 확인", "병해 위험도 평가", "수확량 예측"],
+        "suggestions": sugg,
         "model_used": "rule_based",
         "tokens_used": 0,
         "referenced_data": _infer_referenced(message),

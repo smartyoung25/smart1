@@ -1793,16 +1793,21 @@ def _stub_reply(farm_id: str, message: str) -> ChatResponse:
             referenced_data=["revenue"],
         )
 
-    # ── 온도 관련 ─────────────────────────────────────────────────────────────
-    if any(kw in msg_lower for kw in ["온도", "기온", "더워", "추워", "냉방", "난방"]):
+    # ── 온도·환경 종합 ────────────────────────────────────────────────────────
+    if any(kw in msg_lower for kw in ["온도", "기온", "더워", "추워", "냉방", "난방", "환경", "어때", "현황"]):
         referenced.append("environment")
-        temp_val = env.get("temp_internal")
-        val_str  = f"{temp_val}°C" if temp_val is not None else "?"
+        def _ev(k):
+            v = env.get(k)
+            v = v.get("value", v) if isinstance(v, dict) else v
+            return v if isinstance(v, (int, float)) else None
+        _t, _h, _c, _v = _ev("temp_internal"), _ev("humidity_int"), _ev("co2_ppm"), _ev("vpd")
+        _f = lambda v, u="", d=1: (f"{v:.{d}f}{u}" if isinstance(v, (int, float)) else "—")
         return ChatResponse(
-            reply=f"현재 내부 온도는 {val_str} 입니다.\n\n"
-                  f"{crop} 의 최적 온도 범위는 낮 18~22°C, 밤 12~15°C 입니다. "
-                  f"착과기에는 온도 편차를 5°C 이내로 유지하는 것이 중요합니다.",
-            suggestions=["온도 높이면 수익 얼마나 늘어?", "야간 온도 설정 방법", "온도 알림 기준 바꾸기"],
+            reply=f"🌡️ {crop} 실내 환경 현황\n"
+                  f"온도 {_f(_t,'°C')} · 습도 {_f(_h,'%',0)} · CO₂ {_f(_c,'ppm',0)} · VPD {_f(_v,' kPa',2)}\n\n"
+                  f"최적: 낮 18~22°C·밤 12~15°C, VPD 0.6~1.2 kPa, CO₂ 800~1,200ppm. "
+                  f"VPD 1.8↑이면 증산 과다(급액 보완), 0.6↓이면 과습(환기 강화)으로 대응하세요.",
+            suggestions=["VPD가 높으면?", "결로 위험 있어?", "온도 높이면 수익 얼마나 늘어?"],
             referenced_data=["environment"],
         )
 
@@ -1885,6 +1890,45 @@ def _stub_reply(farm_id: str, message: str) -> ChatResponse:
             reply=reply_rec,
             suggestions=["1번 추천 바로 적용", "추천 근거 더 자세히", "비용 부담 없는 조치만 보여줘"],
             referenced_data=["recommendations", "environment", "revenue"],
+        )
+
+    # ── 관수·양액 ─────────────────────────────────────────────────────────────
+    if any(kw in msg_lower for kw in ["관수", "급액", "배액", "함수율", "양액", "물 주", "물주", "ec", "ph"]):
+        referenced.append("irrigation")
+        _drain = _ec = None
+        try:
+            from api.services.irrigation_store import get_irrigation_analysis as _gia
+            _summ = (_gia(farm_id, days=7) or {}).get("summary", {})
+            _drain = (_summ.get("dr_pct_mean") or {}).get("latest")
+            _ec    = (_summ.get("ec_drain") or {}).get("latest")
+        except Exception:
+            pass
+        _parts = []
+        if _drain is not None:
+            _st = "정상(20~30%)" if 20 <= _drain <= 30 else ("부족 — 급액량↑" if _drain < 20 else "과잉 — 급액량↓")
+            _parts.append(f"최근 배액률 {_drain:.1f}% → {_st}")
+        if _ec is not None:
+            _parts.append(f"배액 EC {_ec:.1f} dS/m (정상 3.0~4.5)")
+        _body = " · ".join(_parts) if _parts else "관수 센서값이 축적되면 자동 진단합니다."
+        return ChatResponse(
+            reply=f"💧 {crop} 관수 진단\n{_body}\n\n"
+                  f"오늘은 일사 적산(J/cm²) 기반 P1~P6 단계로 관수가 진행됩니다. "
+                  f"배액률 12% 미만이면 즉시 추가 관수하고, 야간(P6)은 dry-back 10~20%가 목표입니다. "
+                  f"급액 EC는 처방(Recipe) 2.5~3.5 dS/m·pH 5.5~6.5 기준입니다.",
+            suggestions=["배액률 정상 범위는?", "야간 dry-back이 뭐야?", "EC 높을 때 조치는?"],
+            referenced_data=["irrigation"],
+        )
+
+    # ── 에너지·전력 ───────────────────────────────────────────────────────────
+    if any(kw in msg_lower for kw in ["에너지", "전기", "전력", "요금", "난방비", "냉방비"]):
+        referenced.append("energy")
+        return ChatResponse(
+            reply="⚡ 에너지 절감 전략\n한전 시간대별 요금 기준, 피크시간(10~17시)에 난방·LED를 20~50% 자동 감축하면 "
+                  "연 350~400만원 절감이 가능합니다.\n\n"
+                  "G2 환경화면의 'AI 에이전트(빠른 루프)' 카드에서 현재 피크 여부와 절감 상태를 확인하고, "
+                  "축열조 활용·LED 스펙트럼 단계제어로 추가 절감하세요.",
+            suggestions=["지금 피크시간이야?", "LED 스펙트럼 자동 제어란?", "이번 달 전기요금 분석"],
+            referenced_data=["energy"],
         )
 
     # ── 작물 재배 일반 ────────────────────────────────────────────────────────
