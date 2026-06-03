@@ -47,6 +47,7 @@ _PUBLIC_PATHS: set[str] = {
     "/screens",     # SmartOS 모바일 화면 (정적 HTML)
     "/components",  # SmartOS CSS/JS 컴포넌트 (정적)
     "/smartos",     # SmartOS 네비게이터
+    "/intro",       # 시스템 소개 인트로(랜딩)
     "/favicon.ico",
     "/api/data",    # IoT 기기 데이터 수집 (JWT 불필요 — 센서/자동화 시스템 호출)
 }

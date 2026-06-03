@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <title>KAASA SmartOS — AI 스마트농업 운영 OS</title>
+  <link rel="stylesheet" href="../components/base.css"/>
+  <style>
+    body{background:var(--bg);}
+    .hero{background:linear-gradient(150deg,#0f2e1f 0%,#16a34a 60%,#2563eb 130%);color:#fff;
+      padding:46px 22px 34px;text-align:center;border-radius:0 0 26px 26px;}
+    .hero .logo{font-size:13px;font-weight:800;letter-spacing:2px;opacity:.85;}
+    .hero h1{font-size:27px;font-weight:900;line-height:1.3;margin:10px 0 8px;}
+    .hero .tag{font-size:14px;opacity:.92;line-height:1.55;}
+    .hero .pills{display:flex;justify-content:center;gap:6px;flex-wrap:wrap;margin-top:16px;}
+    .pill{font-size:11px;font-weight:700;background:rgba(255,255,255,.16);padding:5px 11px;border-radius:14px;}
+    .wrap{max-width:480px;margin:0 auto;padding:18px 16px 40px;}
+    .sec-t{font-size:13px;font-weight:800;color:var(--text);margin:22px 4px 10px;}
+    .card{background:var(--panel);border:1.5px solid var(--border);border-radius:16px;box-shadow:var(--shadow);}
+    .prob{display:flex;align-items:center;gap:11px;padding:12px 14px;border-bottom:1px solid var(--border);}
+    .prob:last-child{border-bottom:none;}
+    .prob .ic{font-size:21px;}.prob .t{flex:1;font-size:13px;font-weight:700;}.prob .s{font-size:11px;color:var(--muted);margin-top:1px;}
+    .prob .b{font-size:10px;font-weight:800;padding:3px 8px;border-radius:8px;background:var(--green-soft);color:var(--green-dark);white-space:nowrap;}
+    .feat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+    .feat{background:var(--panel);border:1.5px solid var(--border);border-radius:14px;padding:14px;box-shadow:var(--shadow);}
+    .feat .ic{font-size:24px;}.feat .ft{font-size:14px;font-weight:800;margin-top:6px;}.feat .fs{font-size:11px;color:var(--muted);margin-top:3px;line-height:1.45;}
+    .arch{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px dashed var(--border);}
+    .arch:last-child{border-bottom:none;}
+    .arch .lv{font-size:10px;font-weight:900;color:#fff;background:var(--green);border-radius:7px;padding:3px 7px;flex:0 0 auto;}
+    .arch .at{font-size:12.5px;font-weight:700;flex:1;}.arch .as{font-size:11px;color:var(--muted);}
+    .cta{position:sticky;bottom:0;background:linear-gradient(0deg,var(--bg) 70%,transparent);padding:14px 16px calc(16px + env(safe-area-inset-bottom));max-width:480px;margin:0 auto;display:flex;gap:10px;}
+    .btn-cta{flex:1;min-height:52px;border:none;border-radius:14px;font-size:15px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;text-decoration:none;}
+    .btn-primary{background:var(--green);color:#fff;}
+    .btn-ghost{background:var(--panel);color:var(--green-dark);border:1.5px solid var(--green);flex:0 0 38%;}
+    .stat-row{display:flex;gap:8px;margin-top:14px;}
+    .stat{flex:1;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:11px;text-align:center;}
+    .stat .v{font-size:18px;font-weight:900;color:var(--green-dark);}.stat .l{font-size:10px;color:var(--muted);margin-top:2px;}
+  </style>
+</head>
+<body>
+  <div class="hero">
+    <div class="logo">KAASA SmartOS · SFROP v2.0</div>
+    <h1>데이터를 넘어<br>의사결정하는 농장</h1>
+    <div class="tag">환경·관수·생육·병해·수익을 하나로 잇는<br><b>AI 스마트농업 통합 운영 OS</b></div>
+    <div class="pills">
+      <span class="pill">🌱 온실</span><span class="pill">🌾 노지</span>
+      <span class="pill">🤖 AI 의사결정</span><span class="pill">🔌 이기종 통합</span>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="stat-row">
+      <div class="stat"><div class="v">−350~400만</div><div class="l">연 에너지비 절감</div></div>
+      <div class="stat"><div class="v">+25~30%</div><div class="l">수율 향상</div></div>
+      <div class="stat"><div class="v">72h</div><div class="l">병해 사전경고</div></div>
+    </div>
+
+    <div class="sec-t">이런 고민, 해결합니다</div>
+    <div class="card">
+      <div class="prob"><span class="ic">⚡</span><div class="t">에너지 비용 과다<div class="s">시간대별 요금 자동 절감(10~17시)</div></div><span class="b">−350~400만/년</span></div>
+      <div class="prob"><span class="ic">📊</span><div class="t">수확량·품질 편차<div class="s">LED 파장 자동·병해 72h 전 경고</div></div><span class="b">수율+25~30%</span></div>
+      <div class="prob"><span class="ic">💰</span><div class="t">수익을 월말에야 앎<div class="s">파종~수확 비용 실시간 소득률</div></div><span class="b">즉시 판단</span></div>
+      <div class="prob"><span class="ic">🤖</span><div class="t">데이터→의사결정 단절<div class="s">판단·실행·검증 통합 운영 OS</div></div><span class="b">오늘의 결정</span></div>
+      <div class="prob"><span class="ic">🔌</span><div class="t">이기종 설비 편차<div class="s">표준화 + 물리 성능 캘리브레이션</div></div><span class="b">기종 무관</span></div>
+    </div>
+
+    <div class="sec-t">핵심 기능</div>
+    <div class="feat-grid">
+      <div class="feat"><div class="ic">💧</div><div class="ft">관수 P1~P6</div><div class="fs">일사적산·dry-back 기반 일일 6단계 양액관수(프리바 방식)</div></div>
+      <div class="feat"><div class="ic">🤖</div><div class="ft">오늘의 결정</div><div class="fs">이상감지+처방+신뢰도를 한 카드에·원탭 실행</div></div>
+      <div class="feat"><div class="ic">🩺</div><div class="ft">시스템 종합진단</div><div class="fs">성숙도 점수+ROI 개선 우선순위</div></div>
+      <div class="feat"><div class="ic">🔌</div><div class="ft">이기종 통합</div><div class="fs">제조사·프로토콜 무관 표준변수 매핑</div></div>
+      <div class="feat"><div class="ic">💬</div><div class="ft">AI 비서(RAG)</div><div class="fs">농진청·병해DB 검색 기반 맞춤 조언</div></div>
+      <div class="feat"><div class="ic">📋</div><div class="ft">경영성과 리포트</div><div class="fs">6대영역·9대지표·이행 폐루프 학습</div></div>
+    </div>
+
+    <div class="sec-t">6층 통합 아키텍처</div>
+    <div class="card" style="padding:4px 0;">
+      <div class="arch"><span class="lv">L1</span><span class="at">현장 수집</span><span class="as">센서 1분 주기</span></div>
+      <div class="arch"><span class="lv">L2</span><span class="at">Edge 이기종 통합</span><span class="as">표준 스키마 정규화</span></div>
+      <div class="arch"><span class="lv">L3</span><span class="at">플랫폼 분석</span><span class="as">기상·시세·요금 결합</span></div>
+      <div class="arch"><span class="lv">L4</span><span class="at">AI 에이전트</span><span class="as">30초 빠른 자동제어</span></div>
+      <div class="arch"><span class="lv">L5</span><span class="at">LLM/RAG 조언</span><span class="as">대화형 전문가 AI</span></div>
+      <div class="arch"><span class="lv">L6</span><span class="at">제어·알림</span><span class="as">복합제어기·스마트폰</span></div>
+    </div>
+
+    <div class="sec-t">3계층 AI 모델</div>
+    <div class="card" style="padding:10px 14px;">
+      <div style="font-size:12.5px;line-height:1.7;">
+        <b>0.</b> 농진청 표준모델(폴백) → <b>1.</b> KAASA 현장학습모델(M1·M2·M5) → <b>2.</b> 내 농장 맞춤모델<br>
+        <span style="color:var(--muted);font-size:11px;">실데이터가 쌓일수록 내 농장에 맞게 정확도가 자동 향상됩니다.</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="cta">
+    <a class="btn-cta btn-ghost" href="c3_home.html">둘러보기</a>
+    <a class="btn-cta btn-primary" href="c0_signup.html">시작하기 →</a>
+  </div>
+</body>
+</html>

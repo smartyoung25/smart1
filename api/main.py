@@ -132,3 +132,11 @@ if _SMARTOS_INDEX.exists():
     @app.get("/smartos/", include_in_schema=False)
     def serve_smartos_index():
         return FileResponse(str(_SMARTOS_INDEX))
+
+# 시스템 소개 인트로(랜딩) 페이지
+_INTRO = _SMARTOS_ROOT / "screens" / "intro.html"
+if _INTRO.exists():
+    @app.get("/intro", include_in_schema=False)
+    @app.get("/intro/", include_in_schema=False)
+    def serve_intro():
+        return FileResponse(str(_INTRO))
