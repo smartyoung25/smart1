@@ -2907,6 +2907,84 @@ def delete_equipment(farm_id: str, device_id: str):
     return {"farm_id": farm_id, "deleted": n0 - len(items), "remaining": len(items)}
 
 
+@router.get("/diagnosis", summary="시스템 종합진단·업그레이드 추천 (장비·데이터·운영·연동 성숙도 + ROI 우선순위)")
+def get_system_diagnosis(farm_id: str):
+    """장비 상태·데이터 품질·운영 성숙도·연동 수준을 점수화하고
+    개선 우선순위(ROI 추정)를 제시하는 종합진단. (사업계획서 종합진단·업그레이드 추천 AI)"""
+    import json as _json
+    from datetime import datetime as _dt, timezone as _tz
+    _require_farm(farm_id)
+
+    # ── 데이터 수집 ──────────────────────────────────────────────
+    eq = []
+    ep = _equipment_path(farm_id)
+    if ep.exists():
+        try: eq = _json.loads(ep.read_text(encoding="utf-8"))
+        except Exception: eq = []
+    acts = []
+    ap = _activity_path(farm_id)
+    if ap.exists():
+        try: acts = _json.loads(ap.read_text(encoding="utf-8"))
+        except Exception: acts = []
+    _ym = _dt.now(_tz.utc).isoformat()[:7]
+    month_acts = [a for a in acts if a.get("ts", "")[:7] == _ym]
+    try:
+        from api.services.billing import get_farm_tier, tier_rank
+        tier = get_farm_tier(farm_id); trank = tier_rank(tier)
+    except Exception:
+        tier = "basic"; trank = 1
+
+    # 매핑된 표준변수
+    mapped = {dp.get("canonical_name") for i in eq for dp in (i.get("datapoints") or []) if dp.get("canonical_name")}
+    CORE_VARS = {"temp_internal", "humidity_int", "co2_ppm", "ec_dsm", "ph", "drain_pct"}
+    cal_pts = sum(1 for i in eq for dp in (i.get("datapoints") or [])
+                  if dp.get("actuator_response_s") or dp.get("cmd_feedback_offset"))
+
+    # ── 점수화 (0~100) ──────────────────────────────────────────
+    s_equip = min(100, len(eq) * 25)                                  # 장비 등록
+    s_link  = round(len(mapped & CORE_VARS) / len(CORE_VARS) * 100)   # 핵심변수 연동
+    s_data  = min(100, len(month_acts) * 12)                          # 데이터 축적(이행)
+    s_oper  = min(100, trank * 25 + (20 if len(month_acts) >= 5 else 0))  # 운영 성숙도(등급+이행)
+    s_calib = min(100, cal_pts * 34)                                  # 물리 캘리브레이션
+    overall = round((s_equip + s_link + s_data + s_oper + s_calib) / 5)
+    grade = "우수" if overall >= 75 else "보통" if overall >= 45 else "개선필요"
+
+    # ── 병목·개선 추천 (우선순위·ROI 추정) ───────────────────────
+    recs = []
+    if s_link < 100:
+        miss = sorted(CORE_VARS - mapped)
+        recs.append({"title": "핵심 센서 표준변수 매핑 보강", "priority": "높음",
+                     "detail": f"미연동 변수: {', '.join(miss) or '없음'}", "roi": "AI 추천 정확도↑ · 즉시",
+                     "effort": "낮음", "target": "c16_equipment.html"})
+    if s_calib < 50:
+        recs.append({"title": "액추에이터 물리 캘리브레이션", "priority": "중간",
+                     "detail": "제어명령-실반응 편차·응답시간 보정 입력", "roi": "제어 정밀도↑ · 과/부족급액 손실 절감",
+                     "effort": "중간", "target": "c16_equipment.html"})
+    if s_data < 60:
+        recs.append({"title": "운영 기록 누적(관수·생육·환경)", "priority": "높음",
+                     "detail": f"이번 달 {len(month_acts)}건 — 재학습 임계까지 축적 필요", "roi": "모델 재학습→예측 정확도↑",
+                     "effort": "낮음", "target": "g3_period.html"})
+    if trank < 3:
+        recs.append({"title": "상위 등급(pro) 전환 검토", "priority": "중간",
+                     "detail": "수확량 신뢰구간·드레인 EC·이익률 분석 잠금 해제", "roi": "고급 의사결정 기능 확보",
+                     "effort": "낮음", "target": "/smartos"})
+    if not eq:
+        recs.insert(0, {"title": "시설 기자재 등록(이기종 통합)", "priority": "높음",
+                        "detail": "장비 0대 — 표준변수 연동 시작 필요", "roi": "실데이터 기반 운영 전환",
+                        "effort": "낮음", "target": "c16_equipment.html"})
+
+    return {
+        "farm_id": farm_id, "tier": tier, "overall_score": overall, "grade": grade,
+        "scores": {
+            "장비 등록": s_equip, "핵심변수 연동": s_link, "데이터 축적": s_data,
+            "운영 성숙도": s_oper, "물리 캘리브레이션": s_calib,
+        },
+        "stats": {"devices": len(eq), "mapped_vars": len(mapped), "month_activities": len(month_acts), "calib_points": cal_pts},
+        "recommendations": recs,
+        "note": "장비·데이터·운영·연동 성숙도 기반 자동 진단. 우선순위 높은 항목부터 개선 시 ROI가 큽니다.",
+    }
+
+
 @router.get("/report/monthly",
             summary="월간 경영성과 리포트 (스마트농업법 제5·6·9조 — 6대영역+성과지표)")
 def get_monthly_report(farm_id: str, month: str = ""):
