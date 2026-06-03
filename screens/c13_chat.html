@@ -48,8 +48,11 @@
 
 <div class="chat-main" id="chatMain">
   <!-- 인사 + 후속질문 칩 -->
-  <div class="msg ai"><div class="bubble">안녕하세요 👋 KAASA AI 영농 비서입니다.<br>농장 데이터를 기반으로 환경·관수·생육·수확·수익에 대해 답변해 드립니다. 무엇이 궁금하세요?</div></div>
-  <div class="sugg-wrap" id="initSugg"></div>
+  <div class="msg ai"><div class="bubble">안녕하세요 👋 KAASA AI 영농 비서입니다.<br>농장 데이터 + <b>농진청 자료·병해충 DB</b>(RAG 검색)를 결합해 답변합니다. 무엇이 궁금하세요?
+    <div style="margin-top:6px;font-size:10.5px;color:var(--muted);">🔎 출처: 센서 실측 · 농진청 표준 · 병해충 DB · 과거 작기기록</div></div></div>
+  <div style="font-size:11px;font-weight:700;color:var(--muted);margin:4px 0 6px;">💡 이런 걸 물어보세요 (활용 사례)</div>
+  <div class="sugg-wrap" id="ucSugg" style="max-height:none;"></div>
+  <div class="sugg-wrap" id="initSugg" style="margin-top:6px;"></div>
 </div>
 
 <div class="chat-input-bar">
@@ -63,10 +66,25 @@
 let _history=[];
 let _busy=false;
 const INIT_SUGG=['오늘 관수 어떻게 할까요?','병해 위험 있나요?','수확 시기는 언제인가요?','수익성 어떤가요?'];
+// 사업계획서 LLM/RAG 활용사례 UC1~UC10
+const UC_CASES=[
+  ['UC1','이상 원인','어젯밤 2시에 왜 난방이 켜졌나요?'],
+  ['UC2','병해 진단','잎에 반점이 생겼어요 — 무슨 병인가요?'],
+  ['UC3','작기 보고서','이번 달 운영 보고서를 만들어 주세요'],
+  ['UC4','신품종 도입','설향 대신 킹스베리로 바꾸면 어때요?'],
+  ['UC5','결정 설명','AI가 왜 그 관수 결정을 했는지 설명해 주세요'],
+  ['UC6','출하 전략','오늘 팔까요, 내일 팔까요?'],
+  ['UC7','ROI 시뮬','방울토마토로 바꾸면 연 소득이 얼마나 달라지나요?'],
+  ['UC8','에너지 분석','이번 달 전기요금이 왜 많이 나왔나요?'],
+  ['UC9','수자원 효율','물을 더 절약할 방법은?'],
+  ['UC10','작물 포트폴리오','딸기+방울토마토 혼합 재배가 유리한가요?'],
+];
 
 window.addEventListener('DOMContentLoaded',()=>{
   const farmId=new URLSearchParams(location.search).get('farm')||sessionStorage.getItem('sf_farm_id')||'farm_001';
   document.getElementById('farmSel').value=farmId;
+  document.getElementById('ucSugg').innerHTML=UC_CASES.map(([id,label,q])=>
+    `<span class="sugg-chip" title="${q.replace(/"/g,'')}" onclick="_quickAsk('${q.replace(/'/g,'')}')">${label}</span>`).join('');
   document.getElementById('initSugg').innerHTML=INIT_SUGG.map(s=>`<span class="sugg-chip" onclick="_quickAsk('${s}')">${s}</span>`).join('');
   _ensureToken().then(t=>KaasaData.init({farmId,token:t,onStatus:_ws}));
 });

@@ -131,6 +131,10 @@ function _addDp(){
     <div class="row2" style="margin-top:6px;">
       <select class="sel" data-f="rw">${rws.map(r=>`<option>${r}</option>`).join('')}</select>
       <select class="sel" data-f="canonical_name"><option value="">표준변수 매핑…</option>${cn.map(v=>`<option>${v}</option>`).join('')}</select></div>
+    <div style="font-size:10px;color:var(--muted);margin-top:6px;">물리 성능 캘리브레이션 (제어/액추에이터 포인트)</div>
+    <div class="row2" style="margin-top:4px;">
+      <input class="inp" data-f="actuator_response_s" type="number" placeholder="액추에이터 응답(초)"/>
+      <input class="inp" data-f="cmd_feedback_offset" type="number" placeholder="명령-실반응 편차"/></div>
     <button class="eq-del" style="margin-top:6px;" onclick="this.parentNode.remove()">− 이 포인트 삭제</button>
   </div>`;
   document.getElementById('dpList').insertAdjacentHTML('beforeend',html);
