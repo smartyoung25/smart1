@@ -263,18 +263,20 @@ def predict_yield(
     yield_total, mape_cv, source = _predict_format_c(pkg, season_env, area_m2, farm_id)
 
     # ── 게이트 미통과 시 통계 기반 블렌딩 ─────────────────────────────────────
-    # gate_pass=False이고 MAPE > 35%이면 ML 예측과 통계 기준값을 신뢰도 비중으로 혼합.
-    # 신뢰도 공식: confidence = max(0, 1.0 - (MAPE - 35) / 100)
-    #   MAPE=35% → 0.65   MAPE=70% → 0.30   MAPE=100% → 0.00
+    # MAPE > 35%이면 ML 예측과 RDA 통계 기준값을 신뢰도 비중으로 혼합.
+    # 고MAPE일수록 신뢰도 높은 RDA 통계 기준값에 더 기울도록 분모 25로 강화(2026-06 개선):
+    #   confidence = clamp(0.10, 0.65, 1.0 - (MAPE-35)/25)
+    #   MAPE=35%→0.65 · 48.6%(방울)→0.46 · 55%→0.20 · ≥60%(참외)→0.10(하한)
+    # (이전 /100 캡0.65는 MAPE 64%에도 ML 0.65 유지 → 통계 거의 미반영 버그)
     if mape_cv > 35.0:
         try:
             from api.data.stats_loader import get_yield_kg_m2
             stat_key         = CROP_MAP.get(crop_ko, crop_ko)
             stat_yield_m2    = get_yield_kg_m2(stat_key)
             stat_yield_total = stat_yield_m2 * max(area_m2, 1.0)
-            confidence       = max(0.0, min(0.65, 1.0 - (mape_cv - 35.0) / 100.0))
+            confidence       = max(0.10, min(0.65, 1.0 - (mape_cv - 35.0) / 25.0))
             yield_total      = confidence * yield_total + (1.0 - confidence) * stat_yield_total
-            source           = source + "_blended"
+            source           = source + f"_blended(ml={confidence:.2f})"
         except Exception:
             pass
 
