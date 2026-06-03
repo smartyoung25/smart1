@@ -762,6 +762,24 @@ function buildRecordFields() {
       <label class="field-label">작목</label>
       <input type="text" class="input-field" id="recCrop" value="토마토"/>
     </div>
+    <div style="margin-bottom:10px;padding:12px;background:var(--panel-soft);border-radius:12px;border:1px solid var(--border);">
+      <div style="font-size:13px;font-weight:800;margin-bottom:8px;">⚖️ 슬랩 무게 (dry-back 산출)</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+        <div class="field-group" style="margin-bottom:0;">
+          <label class="field-label">당일 최대(kg)</label>
+          <input type="number" class="input-field" id="rec_maxwt" placeholder="14.8" step="0.1" inputmode="decimal"/>
+        </div>
+        <div class="field-group" style="margin-bottom:0;">
+          <label class="field-label">일몰 직후(kg)</label>
+          <input type="number" class="input-field" id="rec_sunsetwt" placeholder="13.5" step="0.1" inputmode="decimal"/>
+        </div>
+        <div class="field-group" style="margin-bottom:0;">
+          <label class="field-label">일출 前 최소(kg)</label>
+          <input type="number" class="input-field" id="rec_minwt" placeholder="12.0" step="0.1" inputmode="decimal"/>
+        </div>
+      </div>
+      <div style="font-size:10.5px;color:var(--muted);margin-top:6px;">오후 dry-down=(최대−일몰)/최대 · 야간 dry-back=(일몰−일출전)/일몰 (목표 10~20%)</div>
+    </div>
     ${KaasaData.PERIODS.filter(p => p.adapterPeriod).map(p => `
       <div style="margin-bottom:10px;padding:12px;background:var(--panel-soft);border-radius:12px;border:1px solid var(--border);">
         <div style="font-size:13px;font-weight:800;color:var(${p.colorVar});margin-bottom:8px;">${p.icon} ${p.label} ${p.name}</div>
@@ -804,7 +822,9 @@ async function submitRecord() {
   const resultEl = document.getElementById('recordResult');
   resultEl.textContent = '저장 중…';
   try {
-    await KaasaData.submitIrrigation({ date, crop, periods, slabVolL: 15, maxWtKg: null, minWtKg: null, sunsetWtKg: null });
+    const _wt = id => parseFloat(document.getElementById(id)?.value) || null;
+    await KaasaData.submitIrrigation({ date, crop, periods, slabVolL: 15,
+      maxWtKg: _wt('rec_maxwt'), minWtKg: _wt('rec_minwt'), sunsetWtKg: _wt('rec_sunsetwt') });
     resultEl.style.color = 'var(--green)';
     resultEl.textContent = '✅ 저장 완료 — 분석을 갱신합니다.';
     setTimeout(() => {

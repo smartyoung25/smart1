@@ -125,12 +125,17 @@ def adapt_irrigation(payload: dict[str, Any]) -> AdapterResult:
     _push("supply_total",   supply_sum if supply_sum > 0 else None)
     _push("irr_count",      float(irr_count) if irr_count > 0 else None)
 
-    # 야간소실률
+    # 야간소실률(P5 일몰前 dry-down) + 야간 dry-back(P6 일몰→일출前)
     max_wt    = safe_float(payload.get("max_wt_kg"))
     sunset_wt = safe_float(payload.get("sunset_wt_kg"))
+    min_wt    = safe_float(payload.get("min_wt_kg"))
     if max_wt and sunset_wt and max_wt > 0:
-        nl = (max_wt - sunset_wt) / max_wt * 100
+        nl = (max_wt - sunset_wt) / max_wt * 100   # 오후 dry-down (목표 2~5%)
         _push("nl_pct", nl)
+    if sunset_wt and min_wt and sunset_wt > 0:
+        # 야간 dry-back: 일몰 직후 → 일출 전 최소 무게 (P6, 목표 10~20%)
+        db = (sunset_wt - min_wt) / sunset_wt * 100
+        _push("dryback_night_pct", db)
 
     logger.info(
         "[irrigation_adapter] farm=%s date=%s | supply=%.0f ml | irr=%d회 | "

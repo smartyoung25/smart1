@@ -1997,7 +1997,7 @@ def post_chat(farm_id: str, body: ChatRequest):
 # ── P4 관수 데이터 수신 (관수통합관리시스템 연동) ─────────────────────────────
 
 class IrrigationPeriod(BaseModel):
-    period:     int   = Field(..., ge=1, le=4, description="구간 번호 (1=일출, 2=오전, 3=오후, 4=일몰)")
+    period:     int   = Field(..., ge=1, le=6, description="구간 번호 (1=일출/첫관수, 2=오전, 3=오후, 4=일몰, 6=야간 — P5·P6 확장)")
     supply_ml:  float = Field(0.0, ge=0, description="공급량 (ml)")
     drain_ml:   float = Field(0.0, ge=0, description="배액량 (ml)")
     ec:         Optional[float] = Field(None, description="배액 EC (dS/m)")

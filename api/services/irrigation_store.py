@@ -40,7 +40,7 @@ _lock      = Lock()
 
 # 관수 canonical 변수 목록 (irrigation_adapter.py 산출값)
 _IRR_VARS = ["wc_mean", "wc_max", "wc_min", "dr_pct_mean",
-             "ec_drain", "supply_total", "irr_count", "nl_pct"]
+             "ec_drain", "supply_total", "irr_count", "nl_pct", "dryback_night_pct"]
 
 # 각 변수의 정상 범위 (판정용)
 _NORMAL_RANGES = {
@@ -48,6 +48,7 @@ _NORMAL_RANGES = {
     "dr_pct_mean": (20.0, 40.0),   # 배액률 20–40%
     "ec_drain":    (2.0,  4.5),    # 배액 EC 2.0–4.5 dS/m
     "nl_pct":      (0.0,  15.0),   # 야간소실률 0–15%
+    "dryback_night_pct": (10.0, 20.0),  # 야간 dry-back 10–20% (Grodan 생식/영양 조절)
 }
 
 # ── JSON 파일 핸들러 ──────────────────────────────────────────────────────────
@@ -303,6 +304,7 @@ def _var_unit(var: str) -> str:
         "supply_total":"ml",
         "irr_count":   "회",
         "nl_pct":      "%",
+        "dryback_night_pct": "%",
     }.get(var, "")
 
 
@@ -316,4 +318,5 @@ def _var_label(var: str) -> str:
         "supply_total":"총 공급량",
         "irr_count":   "관수 횟수",
         "nl_pct":      "야간소실률",
+        "dryback_night_pct": "야간 dry-back",
     }.get(var, var)
