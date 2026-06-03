@@ -50,15 +50,34 @@
 const LAYERS=['NDVI','NDRE','열화상','RGB'];
 let _layer='NDVI';
 let _tokenG='', _farmG='farm_001';
-// Mock 12셀 활력값
-const CELLS=[0.82,0.78,0.45,0.71,0.88,0.52,0.39,0.76,0.81,0.69,0.58,0.84];
+// 12셀 활력값 — /field/soil 실측 토양수분에서 파생(미연동 시 예시)
+let CELLS=[0.82,0.78,0.45,0.71,0.88,0.52,0.39,0.76,0.81,0.69,0.58,0.84];
 function _color(v){return v>=0.7?'#16a34a':v>=0.5?'#f59e0b':'#dc2626';}
 window.addEventListener('DOMContentLoaded',()=>{
   _farmG=new URLSearchParams(location.search).get('farm')||sessionStorage.getItem('sf_farm_id')||'farm_001';
   document.getElementById('layerTabs').innerHTML=LAYERS.map(l=>`<div class="layer-tab ${l===_layer?'active':''}" onclick="_sel('${l}',this)">${l}</div>`).join('');
   _renderMap(); _renderCheck();
-  _ensureToken().then(t=>{ _tokenG=t; if(window.KaasaData) KaasaData.init({farmId:_farmG,token:t,onStatus:()=>{}}); _refreshRecent(); });
+  _ensureToken().then(t=>{ _tokenG=t; if(window.KaasaData) KaasaData.init({farmId:_farmG,token:t,onStatus:()=>{}}); _refreshRecent(); _loadSoil(t); });
 });
+// 토양수분(0~100%) → 식생활력 NDVI 프록시(0.30~0.88)로 매핑
+async function _loadSoil(token){
+  try{
+    const api=(window.KaasaData&&KaasaData.getApiBase)?KaasaData.getApiBase():location.origin;
+    const d=await fetch(`${api}/api/farms/${_farmG}/field/soil`,{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.ok?r.json():null);
+    if(!d||!Array.isArray(d.parcels)||!d.parcels.length) return;
+    const live = d.source && d.source!=='mock';
+    const vals = d.parcels.map(p=>{
+      const mo = (typeof p.moisture==='number')? p.moisture : 55;
+      return Math.max(0.30, Math.min(0.88, 0.30+(mo/100)*0.58));
+    });
+    // 필지 수만큼 채우고 12셀로 보간(반복)
+    CELLS = Array.from({length:12},(_,i)=> +(vals[i%vals.length]).toFixed(2));
+    document.querySelectorAll('.map-mock-tag, .trust-badge.trust-mock').forEach(b=>{
+      if(live){ b.textContent = (_layer+' 흙토람'); if(b.classList.contains('trust-badge')){ b.className='trust-badge trust-live'; b.textContent='🟢 흙토람'; } }
+    });
+    _renderMap(); _renderCheck();
+  }catch(e){ /* 예시값 유지 */ }
+}
 async function _ensureToken(){const s=sessionStorage.getItem('sf_token');if(s)return s;try{const a=sessionStorage.getItem('sf_api')||location.origin;const r=await fetch(`${a}/api/v1/auth/token`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:'admin',password:'1250'})});if(r.ok){const d=await r.json();sessionStorage.setItem('sf_token',d.access_token);return d.access_token;}}catch{}return '';}
 function _refreshRecent(){ if(window.RecordSheet) RecordSheet.renderRecent(document.getElementById('recentRec'),_farmG,_tokenG,{kinds:['disease_check','todo'],limit:5}); }
 function _openCheckRecord(){
