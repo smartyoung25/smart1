@@ -130,6 +130,7 @@ _SMARTOS_INDEX = _SMARTOS_ROOT / "index.html"
 if _SMARTOS_INDEX.exists():
     @app.get("/smartos", include_in_schema=False)
     @app.get("/smartos/", include_in_schema=False)
+    @app.get("/index.html", include_in_schema=False)   # 화면들의 ../index.html 링크 대상
     def serve_smartos_index():
         return FileResponse(str(_SMARTOS_INDEX))
 
