@@ -170,6 +170,21 @@ C:\smart_farm\
 - C1 저장 후 CTA로 C16 연결 / `equipment_link.js`로 G2·G3에 '연동 장비' 배지 + device_alert 연계
 - 전 32화면 콘솔 에러 0건 회귀검수 통과
 
+## 사업계획서 정합 + 종합진단 (2026-06-04)
+
+### 프리바 관수 정밀화 (PDF/매뉴얼 벤치마킹)
+- P6 야간 dry-back 추가(일일 6단계 곡선) + 일사적산(J/cm²) 트리거
+- `data.js` IRRIGATION_START(시작조건 우선순위)·IRRIGATION_STRUCTURE(시작프로그램→밸브그룹→밸브·처방 EC/pH·유량 사전제어)
+- 백엔드: irrigation_adapter `dryback_night_pct` 계산, IrrigationPayload period le=6, store 등록
+
+### 사업계획서(SFROP v2.0) 반영 — `docs/BUSINESS_PLAN_ALIGNMENT.md`
+- C13 챗봇 UC1~UC10 활용사례 칩 + RAG 출처
+- C16 물리 캘리브레이션(액추에이터 응답·명령-실반응 편차)
+- **C17 시스템 종합진단(신규)**: GET /diagnosis — 장비·연동·데이터·운영·캘리브 5영역 점수 + ROI 개선 우선순위
+- overview 5대 농가문제·효과 / G2 AI에이전트 빠른루프(에너지 자동절감·LED) / G3 다층 시간창(7·14·작기)
+- F5 원격탐사 → 현장확인 기록 폐루프 통합
+- 전 33화면 콘솔 에러 0건
+
 ---
 
 ## 완료된 화면 (2026-06-01 — 원본 28개 100% 완성)
