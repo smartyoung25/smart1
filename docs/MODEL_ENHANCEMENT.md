@@ -37,6 +37,16 @@
 3. **과적합 억제** — max_depth↓·reg↑·n_est↓·early stopping.
 4. **검증 체계** — GroupKFold(농장)/TimeSeriesSplit, CV 지표만 게이트.
 
+### ⚠ 실증 결과 (2026-06-04) — M1 코드만으로는 회복 불가
+- 중요도 기반 top-18 feature 축소 + 정규화(depth5→3, reg_alpha/lambda↑)로 딸기 M1 재학습 실험.
+- 결과: plant_height R² **−0.196 → −0.294 (오히려 악화)**, LGB는 MemoryError.
+- 해석: 음수 R²의 원인은 feature 과다가 아니라 **검증 분할(미래 20%=다른 계절) 분포 불일치 + 소표본**.
+  → **②(코드 튜닝)만으로는 불가**. 아래 중기 데이터/구조 작업이 선행돼야 함:
+  - **GroupKFold(농장)·계절 단위 CV**로 분할 재설계 (현재 단일 시간분할이 분포 누수)
+  - **절대 생육량 대신 생육률(Δ/day)** 예측으로 재정의
+  - 농장·계절별 **계층/전이 모델**, 표본 확대(n≥500/타깃)
+- (코드 튜닝 트레이너는 회귀 방지 위해 원복, baseline 보존)
+
 ### 🟡 중기 (데이터 기반)
 5. **feature 보강** — VPD, 누적 DLI, 월 sin/cos, 온도×습도, 14일 std.
 6. **소표본 계층모델** — 작물군 글로벌 + 작물별 오프셋(hierarchical/transfer), Bayesian prior.
