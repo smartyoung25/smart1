@@ -451,6 +451,116 @@ const KaasaData = (() => {
   function getFarmId() { return _farmId; }
   function getApiBase() { return _apiBase; }
 
+  // ── 전역 기능형 메뉴 드로어 (전 화면 ≡ 메뉴 활성화) ─────────────────────────
+  const _NAV = [
+    { g: '바로가기', items: [
+      ['c3_home.html', '🏠', '통합 홈'],
+      ['g1_home.html', '🌱', '온실 홈'],
+      ['f1_field.html', '🌾', '노지 홈'],
+      ['c12_joint.html', '🚚', '공동출하'],
+    ]},
+    { g: '온실', items: [
+      ['g3_period.html', '💧', '관수·양액 (P1~P6)'],
+      ['g2_env.html', '🌡️', '환경 제어'],
+      ['g4_growth.html', '🌿', '생육·수확예측'],
+      ['g5_disease.html', '🔬', '병해·품질'],
+      ['g6_harvest.html', '📦', '수확·유통'],
+    ]},
+    { g: '노지', items: [
+      ['f4_soil.html', '💧', '토양수분·관개'],
+      ['f3_weather.html', '🌦️', '기상·재해'],
+      ['f2_gis.html', '🗺️', '필지 GIS'],
+      ['f5_remote.html', '🛰️', '원격탐사'],
+      ['f6_pest.html', '🐛', '병해충·방제'],
+      ['f7_harvest.html', '🚜', '노지 수확'],
+    ]},
+    { g: '경영·시스템', items: [
+      ['c17_diagnosis.html', '🩺', '시스템 종합진단'],
+      ['c16_equipment.html', '🔌', '시설 기자재'],
+      ['c5_erp.html', '💰', '수익성 ERP'],
+      ['c14_report.html', '📋', '월간 리포트'],
+      ['c4_diagnosis.html', '📊', 'AI 진단'],
+      ['c13_chat.html', '🤖', 'AI 비서'],
+      ['c15_education.html', '🎓', '교육'],
+    ]},
+  ];
+  function _drawerPrefix() {
+    return location.pathname.includes('/screens/') ? '' : 'screens/';
+  }
+  function _buildDrawer() {
+    if (document.getElementById('kaasaDrawer')) return;
+    const pfx = _drawerPrefix();
+    const farm = sessionStorage.getItem('sf_farm_id') || _farmId || 'farm_001';
+    const ov = document.createElement('div'); ov.className = 'drawer-overlay'; ov.id = 'kaasaDrawerOv';
+    const dr = document.createElement('aside'); dr.className = 'drawer'; dr.id = 'kaasaDrawer';
+    dr.innerHTML =
+      `<div class="drawer-head">
+         <h2>KAASA SmartOS</h2>
+         <p>농장 <b id="kdFarm">${farm}</b> · <span id="kdTier" style="padding:1px 7px;border-radius:6px;background:rgba(255,255,255,.18);font-weight:800;">등급 확인 중</span></p>
+         <button class="drawer-close" onclick="KaasaData.closeMenu()" aria-label="닫기">✕</button>
+       </div>
+       <div style="padding:10px 12px 0;">
+         <input id="kdSearch" placeholder="🔎 화면 검색…" style="width:100%;min-height:42px;padding:10px 12px;border:none;border-radius:10px;background:rgba(255,255,255,.12);color:#fff;font-size:14px;outline:none;"/>
+       </div>
+       <nav id="kdNav">${_NAV.map(s =>
+          `<div class="drawer-group">${s.g}</div>` +
+          s.items.map(([h,i,n]) => `<a href="${pfx}${h}" data-name="${n}"><span style="font-size:17px;">${i}</span> ${n}</a>`).join('')
+        ).join('')}</nav>
+       <div class="drawer-group">농장 전환</div>
+       <div style="padding:0 16px;">
+         <select id="kdFarmSel" style="width:100%;min-height:42px;border-radius:10px;padding:9px;background:rgba(255,255,255,.12);color:#fff;border:none;font-size:14px;">
+           ${['farm_001','farm_002','farm_003','farm_004','farm_005'].map(f=>`<option value="${f}" ${f===farm?'selected':''}>${f}</option>`).join('')}
+         </select>
+       </div>
+       <nav style="margin-top:6px;">
+         <a href="${pfx}c1_setup.html"><span style="font-size:17px;">⚙️</span> 농장 세팅</a>
+         <a href="${location.pathname.includes('/screens/')?'../index.html':'index.html'}"><span style="font-size:17px;">≡</span> 전체 메뉴</a>
+         <a href="javascript:void(0)" onclick="KaasaData.logout()"><span style="font-size:17px;">🚪</span> 로그아웃</a>
+       </nav>
+       <div style="padding:14px 18px;font-size:10px;opacity:.5;">KAASA SmartOS · SFROP v2.0</div>`;
+    document.body.appendChild(ov); document.body.appendChild(dr);
+    ov.addEventListener('click', closeMenu);
+    // 검색 필터
+    dr.querySelector('#kdSearch').addEventListener('input', e => {
+      const q = e.target.value.trim().toLowerCase();
+      dr.querySelectorAll('#kdNav a').forEach(a => {
+        const hit = a.dataset.name.toLowerCase().includes(q);
+        a.style.display = hit ? '' : 'none';
+      });
+      dr.querySelectorAll('#kdNav .drawer-group').forEach(g => { g.style.display = q ? 'none' : ''; });
+    });
+    // 농장 전환
+    dr.querySelector('#kdFarmSel').addEventListener('change', e => {
+      sessionStorage.setItem('sf_farm_id', e.target.value);
+      const u = new URL(location.href); u.searchParams.set('farm', e.target.value); location.href = u.toString();
+    });
+    // 등급 칩 (best-effort)
+    _loadTierChip(farm);
+  }
+  async function _loadTierChip(farm) {
+    const el = document.getElementById('kdTier');
+    if (!_token) { if (el) el.textContent = '기본 등급'; return; }   // 토큰 없으면 조회 생략(401 방지)
+    try {
+      const r = await fetch(`${_apiBase}/api/farms/${farm}/billing/plan`, { headers: { Authorization: `Bearer ${_token}` } });
+      if (!r.ok) return; const d = await r.json();
+      if (el) el.textContent = (d.tier_name_ko || d.tier || '기본') + ' 등급';
+    } catch (e) {}
+  }
+  function openMenu()  { _buildDrawer(); _loadTierChip(sessionStorage.getItem('sf_farm_id') || _farmId || 'farm_001'); document.getElementById('kaasaDrawerOv')?.classList.add('open'); document.getElementById('kaasaDrawer')?.classList.add('open'); }
+  function closeMenu() { document.getElementById('kaasaDrawerOv')?.classList.remove('open'); document.getElementById('kaasaDrawer')?.classList.remove('open'); }
+  function logout() { try { sessionStorage.removeItem('sf_token'); } catch(e){} location.href = _drawerPrefix() + 'c0_signup.html'; }
+  function _bindMenuTab() {
+    // 하단 5탭의 ≡ 메뉴 버튼을 드로어로 연결 (기존 navigator 이동 대체)
+    document.querySelectorAll('.sf-bottom-nav .bnav-tab, .bnav-tab').forEach(btn => {
+      if ((btn.textContent || '').includes('메뉴')) {
+        btn.onclick = (e) => { e.preventDefault(); openMenu(); };
+      }
+    });
+  }
+  if (typeof document !== 'undefined') {
+    document.addEventListener('DOMContentLoaded', () => { try { _buildDrawer(); _bindMenuTab(); } catch (e) {} });
+  }
+
   // ── 공개 API ───────────────────────────────────────────────────────────────
   return {
     // 초기화
@@ -461,6 +571,8 @@ const KaasaData = (() => {
     PERIODS, getCurrentPeriod, getDrainStatus,
     // 프리바 관수 시작 조건·구조
     IRRIGATION_START, getStartConditions, IRRIGATION_STRUCTURE,
+    // 전역 메뉴 드로어
+    openMenu, closeMenu, logout,
     // 데이터 로드
     loadPrivaSchedule, loadRecommend, loadEnvironment,
     submitIrrigation, loadIrrigationAnalysis,
