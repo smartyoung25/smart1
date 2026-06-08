@@ -50,6 +50,36 @@ app.add_middleware(
 # ── JWT 미들웨어 (JWT_SECRET_KEY 없으면 자동 비활성화) ────────────────────────
 app.add_middleware(JWTMiddleware)
 
+# ── 공개 데모(읽기 전용) 모드 ─────────────────────────────────────────────────
+# PUBLIC_DEMO=1 이면 외부 공개 시 안전하도록:
+#   · 모든 쓰기(POST/PUT/PATCH/DELETE) 차단 (단 로그인 토큰 발급은 허용)
+#   · /api/admin/* 전면 차단
+# → 누구나 데모 데이터를 '볼' 수만 있고, 변경·삭제·관리자 접근은 불가.
+_PUBLIC_DEMO = os.environ.get("PUBLIC_DEMO", "").lower() in ("1", "true", "yes")
+if _PUBLIC_DEMO:
+    from starlette.responses import JSONResponse as _JSONResp
+    _WRITE = {"POST", "PUT", "PATCH", "DELETE"}
+    _WRITE_ALLOW = {"/api/v1/auth/token"}   # 자동로그인(읽기 토큰 발급)만 허용
+
+    class PublicDemoMiddleware:
+        def __init__(self, app): self.app = app
+        async def __call__(self, scope, receive, send):
+            if scope.get("type") == "http":
+                path = scope.get("path", ""); method = scope.get("method", "GET")
+                blocked = (
+                    (path.startswith("/api/admin")) or
+                    (method in _WRITE and path.startswith("/api/") and path not in _WRITE_ALLOW)
+                )
+                if blocked:
+                    resp = _JSONResp(
+                        {"detail": "공개 데모(읽기 전용) 모드입니다. 변경·관리자 기능은 비활성화되어 있습니다."},
+                        status_code=403)
+                    await resp(scope, receive, send); return
+            await self.app(scope, receive, send)
+
+    app.add_middleware(PublicDemoMiddleware)
+    import logging as _lg; _lg.getLogger("uvicorn").warning("[main] PUBLIC_DEMO 읽기전용 모드 활성")
+
 # ── 라우터 등록 ───────────────────────────────────────────────────────────────
 app.include_router(auth_router)
 app.include_router(farmer.router)
