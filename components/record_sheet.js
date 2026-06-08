@@ -87,6 +87,7 @@
       method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (token||'') },
       body: JSON.stringify({ kind: rec.kind, item: rec.item || '', value: rec.value ?? null, detail: rec.detail || '' })
     });
+    if (r.status === 403) throw new Error('데모(읽기 전용) 모드 — 기록 저장은 비활성화되어 있습니다.');
     if (!r.ok) throw new Error('HTTP ' + r.status);
     return r.json();
   }
