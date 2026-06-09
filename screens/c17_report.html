@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>현장컨설팅 진단 결과보고서 | KAASA SmartOS</title>
+  <link rel="stylesheet" href="../components/base.css"/>
+  <style>
+    :root{ --ink:#1a2332; --line:#d4d9e0; }
+    body{background:#5a6678;}
+    .rp-toolbar{position:sticky;top:0;z-index:10;background:var(--panel);display:flex;gap:8px;padding:10px 14px;
+      max-width:794px;margin:0 auto;box-shadow:var(--shadow);}
+    .rp-toolbar button{flex:1;padding:11px;border:none;border-radius:9px;font-size:13px;font-weight:800;cursor:pointer;min-height:44px;}
+    .rp-print{background:var(--green);color:#fff;}
+    .rp-back{background:var(--gray-soft);color:var(--text);flex:0 0 90px;}
+    /* A4 용지 */
+    .page{background:#fff;color:var(--ink);width:794px;max-width:100%;margin:16px auto;padding:48px 54px;
+      box-shadow:0 4px 20px rgba(0,0,0,.3);box-sizing:border-box;font-size:13px;line-height:1.65;}
+    .rp-doc-title{text-align:center;font-size:23px;font-weight:900;letter-spacing:-.5px;margin:0 0 4px;}
+    .rp-doc-sub{text-align:center;font-size:13px;color:#5a6678;margin-bottom:6px;}
+    .rp-rule{height:3px;background:var(--ink);margin:10px 0 22px;}
+    .rp-meta{width:100%;border-collapse:collapse;margin-bottom:24px;font-size:12.5px;}
+    .rp-meta td{border:1px solid var(--line);padding:7px 11px;}
+    .rp-meta td.k{background:#f1f4f8;font-weight:800;width:90px;white-space:nowrap;}
+    .rp-h{font-size:15px;font-weight:900;margin:24px 0 9px;padding-left:9px;border-left:4px solid var(--ink);}
+    .rp-hero{display:flex;align-items:center;gap:18px;border:2px solid var(--ink);border-radius:8px;padding:14px 20px;margin-bottom:6px;}
+    .rp-hero-score{font-size:42px;font-weight:900;line-height:1;}
+    .rp-hero-grade{font-size:15px;font-weight:900;padding:3px 12px;border-radius:6px;color:#fff;}
+    .rp-tbl{width:100%;border-collapse:collapse;font-size:12.5px;}
+    .rp-tbl th,.rp-tbl td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top;}
+    .rp-tbl th{background:#f1f4f8;font-weight:800;}
+    .rp-bar{height:8px;background:#eef1f5;border-radius:4px;overflow:hidden;width:90px;display:inline-block;vertical-align:middle;}
+    .rp-bar > i{display:block;height:100%;}
+    .rp-chip{font-size:10.5px;font-weight:800;padding:1px 7px;border-radius:5px;color:#fff;}
+    .rp-prescr{border:1px solid var(--line);border-radius:7px;padding:10px 13px;margin-bottom:8px;}
+    .rp-prescr .t{font-size:13px;font-weight:800;}
+    .rp-prescr .d{font-size:12px;color:#48505e;margin-top:3px;}
+    .rp-summary{border:1px solid var(--line);background:#f7f9fb;border-radius:7px;padding:14px 16px;font-size:13px;line-height:1.8;}
+    .rp-foot{margin-top:30px;padding-top:12px;border-top:1px solid var(--line);font-size:11px;color:#7a8595;display:flex;justify-content:space-between;}
+    .rp-na{color:#9aa3b0;}
+    @media print{
+      body{background:#fff;}
+      .rp-toolbar,.sf-bottom-nav{display:none!important;}
+      .page{box-shadow:none;margin:0;width:100%;padding:0;}
+      @page{size:A4;margin:16mm 14mm;}
+    }
+  </style>
+</head>
+<body>
+<div class="rp-toolbar">
+  <button class="rp-back" onclick="location.href='c17_diagnosis.html'">‹ 진단</button>
+  <button class="rp-print" onclick="window.print()">🖨️ PDF로 저장 / 인쇄</button>
+</div>
+<div class="page" id="page">
+  <div style="text-align:center;padding:40px;color:#5a6678;">결과보고서 생성 중…</div>
+</div>
+<script src="../components/data.js"></script>
+<script>
+'use strict';
+let _farmG='farm_001';
+const SCOL=v=>v>=75?'#1f9d55':v>=45?'#d98324':'#d23b3b';
+const SLAB=v=>v>=75?'양호':v>=45?'주의':'개선필요';
+window.addEventListener('DOMContentLoaded',()=>{
+  _farmG=new URLSearchParams(location.search).get('farm')||sessionStorage.getItem('sf_farm_id')||'farm_001';
+  _ensureToken().then(t=>{ KaasaData.init&&KaasaData.init({farmId:_farmG,token:t,onStatus:()=>{}}); _build(t); });
+});
+async function _ensureToken(){const s=sessionStorage.getItem('sf_token');if(s)return s;try{const a=sessionStorage.getItem('sf_api')||location.origin;const r=await fetch(`${a}/api/v1/auth/token`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:'admin',password:'1250'})});if(r.ok){const d=await r.json();sessionStorage.setItem('sf_token',d.access_token);return d.access_token;}}catch{}return '';}
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+async function _build(token){
+  const api=KaasaData.getApiBase?KaasaData.getApiBase():location.origin, H={Authorization:`Bearer ${token}`};
+  let diag={},ck={},rep={};
+  try{
+    [diag,ck,rep]=await Promise.all([
+      fetch(`${api}/api/farms/${_farmG}/diagnosis`,{headers:H}).then(r=>r.json()),
+      fetch(`${api}/api/farms/${_farmG}/diagnosis/checklist`,{headers:H}).then(r=>r.ok?r.json():{}).catch(()=>({})),
+      fetch(`${api}/api/farms/${_farmG}/report/monthly`,{headers:H}).then(r=>r.ok?r.json():{}).catch(()=>({})),
+    ]);
+  }catch(e){ document.getElementById('page').innerHTML='<div style="padding:40px;text-align:center;color:#d23b3b;">데이터를 불러오지 못했습니다.</div>'; return; }
+
+  const doms=diag.domains||[], decs=diag.priority_decisions||[], st=diag.stats||{};
+  // 체크리스트 라벨 매핑
+  const idx={};
+  ((ck.schema&&ck.schema.sections)||[]).forEach(s=>s.items.forEach(it=>idx[it.id]=it.label));
+  const resp=ck.responses||{};
+  const chkRows=Object.entries(resp).filter(([id,r])=>(r||{}).status&&(r||{}).status!=='na')
+    .map(([id,r])=>({label:idx[id]||id,status:r.status,memo:r.memo||''}));
+  const SLABCK={good:'양호',warn:'주의',bad:'불량'};
+  const SCOLCK={good:'#1f9d55',warn:'#d98324',bad:'#d23b3b'};
+
+  const now=new Date();
+  const ymd=`${now.getFullYear()}. ${now.getMonth()+1}. ${now.getDate()}.`;
+  const region=(rep.region||'')||'';
+  const consultant=ck.consultant||'KAASA 진단AI';
+  const updated=ck.updated_at?ck.updated_at.slice(0,10):'';
+
+  // 총평 자동 생성
+  const sorted=doms.slice().sort((a,b)=>a.score-b.score);
+  const weak=sorted.slice(0,2).map(d=>d.name);
+  const strong=sorted.slice(-2).map(d=>d.name).reverse();
+  const nBad=chkRows.filter(r=>r.status==='bad').length, nWarn=chkRows.filter(r=>r.status==='warn').length;
+  const summary=`본 농가의 스마트팜 운영 성숙도는 종합 <b>${diag.overall_score}점(${diag.grade})</b>으로 진단되었다. `
+    + (strong.length?`<b>${strong.join('·')}</b> 영역은 비교적 양호하나, `:'')
+    + `<b>${weak.join('·')}</b> 영역의 개선 여지가 가장 크다. `
+    + (chkRows.length?`현장 점검 ${chkRows.length}개 항목 중 불량 ${nBad}건·주의 ${nWarn}건이 확인되었다. `:'')
+    + `아래 우선순위 처방을 ROI가 높은 순서로 이행할 것을 권고하며, 이행 결과는 KAASA SmartOS에 기록하여 다음 진단의 기준선으로 활용한다.`;
+
+  const html=`
+    <div class="rp-doc-title">스마트농업 현장컨설팅 진단 결과보고서</div>
+    <div class="rp-doc-sub">KAASA SmartOS · 시스템 종합진단(C17) + 현장 문진(C18) 기반</div>
+    <div class="rp-rule"></div>
+
+    <table class="rp-meta"><tbody>
+      <tr><td class="k">농장</td><td>${esc(_farmG)}${region?` (${esc(region)})`:''}</td><td class="k">작목</td><td>${esc(rep.crop||'-')}</td></tr>
+      <tr><td class="k">재배면적</td><td>${rep.area_m2?Math.round(rep.area_m2)+' m²':'-'}</td><td class="k">운영등급</td><td>${esc(diag.tier||'-')}</td></tr>
+      <tr><td class="k">점검자</td><td>${esc(consultant)}</td><td class="k">진단일</td><td>${ymd}${updated?` (현장점검 ${updated})`:''}</td></tr>
+    </tbody></table>
+
+    <div class="rp-h">Ⅰ. 종합 진단</div>
+    <div class="rp-hero">
+      <div class="rp-hero-score" style="color:${SCOL(diag.overall_score)}">${diag.overall_score}<span style="font-size:16px;">점</span></div>
+      <div>
+        <span class="rp-hero-grade" style="background:${SCOL(diag.overall_score)}">${esc(diag.grade)}</span>
+        <div style="font-size:12px;color:#5a6678;margin-top:6px;">등록장비 ${st.devices||0}대 · 연동 표준변수 ${st.mapped_vars||0}종 · 이달 이행기록 ${st.month_activities||0}건 · 캘리브 ${st.calib_points||0}P</div>
+      </div>
+    </div>
+
+    <div class="rp-h">Ⅱ. 영역별 진단 (현장컨설팅 6대 영역)</div>
+    <table class="rp-tbl"><thead><tr><th style="width:96px;">영역</th><th style="width:130px;">점수</th><th>진단 소견</th></tr></thead>
+      <tbody>${doms.map(d=>`<tr>
+        <td><b>${esc(d.name)}</b></td>
+        <td><span class="rp-bar"><i style="width:${d.score}%;background:${SCOL(d.score)}"></i></span>
+          <b style="color:${SCOL(d.score)}">${d.score}</b> <span class="rp-chip" style="background:${SCOL(d.score)}">${SLAB(d.score)}</span></td>
+        <td>${(d.findings||[]).map(f=>esc(f)).join('<br>')||'<span class="rp-na">-</span>'}</td>
+      </tr>`).join('')}</tbody></table>
+
+    <div class="rp-h">Ⅲ. 현장 점검 결과 (문진 체크리스트)</div>
+    ${chkRows.length?`<table class="rp-tbl"><thead><tr><th>점검 항목</th><th style="width:70px;">판정</th><th>비고(메모)</th></tr></thead>
+      <tbody>${chkRows.sort((a,b)=>({bad:0,warn:1,good:2}[a.status]-{bad:0,warn:1,good:2}[b.status])).map(r=>`<tr>
+        <td>${esc(r.label)}</td>
+        <td><span class="rp-chip" style="background:${SCOLCK[r.status]}">${SLABCK[r.status]}</span></td>
+        <td>${esc(r.memo)||'<span class="rp-na">-</span>'}</td></tr>`).join('')}</tbody></table>`
+      : '<div class="rp-na" style="font-size:12.5px;">현장 문진 미입력 — C18 현장 문진 입력 시 텔레메트리 외 항목(원수·필터·병해충 등)이 반영됩니다.</div>'}
+
+    <div class="rp-h">Ⅳ. 우선순위 개선 처방 (ROI 순)</div>
+    ${decs.length?decs.map((p,i)=>`<div class="rp-prescr">
+        <div class="t">${i+1}. ${esc(p.title)} <span class="rp-chip" style="background:${p.severity==='danger'?'#d23b3b':p.severity==='warn'?'#d98324':'#3a6fb0'}">${p.severity==='danger'?'시급':p.severity==='info'?'권장':'주의'}</span></div>
+        <div class="d">${esc(p.detail||'')} <span style="color:#7a8595;">— ${esc(p.domain)} 영역</span></div>
+      </div>`).join('') : '<div class="rp-na" style="font-size:12.5px;">우선 처방 항목 없음 — 6대 영역이 안정적입니다.</div>'}
+
+    <div class="rp-h">Ⅴ. 총평 및 권고</div>
+    <div class="rp-summary">${summary}</div>
+
+    <div class="rp-foot">
+      <span>KAASA SmartOS · 자동 생성 진단 결과보고서</span>
+      <span>출처: RDA 스마트농업 현장컨설팅 체크리스트 · 생성 ${ymd}</span>
+    </div>`;
+  document.getElementById('page').innerHTML=html;
+}
+</script>
+</body>
+</html>

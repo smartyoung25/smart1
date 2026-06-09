@@ -69,7 +69,10 @@
     <div class="dg-grade" id="dgGrade">진단 중…</div>
   </div>
   <div class="stat-row" id="dgStats"></div>
-  <button onclick="location.href='c18_checklist.html'" style="width:100%;padding:12px;margin-bottom:12px;background:var(--panel);border:1.5px dashed var(--green);color:var(--green-dark);border-radius:12px;font-size:13px;font-weight:800;cursor:pointer;min-height:46px;">📋 현장 문진 체크리스트 입력 → 진단 정밀화</button>
+  <div style="display:flex;gap:8px;margin-bottom:12px;">
+    <button onclick="location.href='c18_checklist.html'" style="flex:1;padding:12px;background:var(--panel);border:1.5px dashed var(--green);color:var(--green-dark);border-radius:12px;font-size:12.5px;font-weight:800;cursor:pointer;min-height:46px;">📋 현장 문진 입력</button>
+    <button onclick="location.href='c17_report.html'" style="flex:1;padding:12px;background:var(--panel);border:1.5px dashed var(--blue,#2563eb);color:var(--blue,#2563eb);border-radius:12px;font-size:12.5px;font-weight:800;cursor:pointer;min-height:46px;">📄 결과보고서 PDF</button>
+  </div>
   <div class="section-label">현장컨설팅 6대 영역 진단 <span class="trust-badge trust-model" style="font-size:9px;">RDA 체크리스트</span></div>
   <div id="dgDomains"><div style="text-align:center;padding:16px;color:var(--muted);"><div class="spinner"></div></div></div>
   <div class="section-label" style="margin-top:14px;">우선순위 처방 (의사결정) <span class="trust-badge trust-model">🔵 ROI</span></div>
