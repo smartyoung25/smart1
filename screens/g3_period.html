@@ -196,6 +196,15 @@
   <!-- ══ Period 점프 바 ══ -->
   <div class="jump-bar" id="jumpBar"></div>
 
+  <!-- ══ 일일 함수율(WC)·배액 곡선 (P1~P6 밴드) ══ -->
+  <div class="section-label" style="margin:6px 0 6px;">일일 함수율 곡선 <span class="trust-badge trust-model" style="font-size:9px;">Grodan/Priva</span></div>
+  <div class="card" style="padding:12px 8px 8px;margin-bottom:14px;">
+    <svg id="wcCurve" width="100%" height="170" viewBox="0 0 340 170" preserveAspectRatio="none"></svg>
+    <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--muted);padding:0 6px;">
+      <span>05시</span><span>09시</span><span>12시</span><span>15시</span><span>일몰</span><span>05시</span>
+    </div>
+  </div>
+
   <!-- ══ 관수 시작 조건 (프리바 방식) ══ -->
   <div class="card" id="startCondCard" style="padding:13px 14px;margin-bottom:14px;border-left:4px solid var(--p3-color);"></div>
 
@@ -532,6 +541,41 @@ function renderJumpBar() {
       ${p.icon} ${p.label} ${p.name}
     </button>`).join('');
   renderStartConditions();
+  try { _drawWcCurve(); } catch(e){}
+}
+
+/* ── 일일 함수율(WC) 곡선 — P1~P6 밴드 + Grodan/Priva 이상곡선 ── */
+function _drawWcCurve() {
+  const svg = document.getElementById('wcCurve'); if (!svg) return;
+  const W=340, H=170, padB=18, padT=10, x0=22;
+  const cur = (_currentPeriod || KaasaData.getCurrentPeriod() || {}).id;
+  // 시간축(05시~익일05시=24h) 정규화 → x. WC% 30~75 → y
+  const xs = h => x0 + (W-x0-6) * (h/24);
+  const ys = wc => padT + (H-padB-padT) * (1 - (wc-30)/(75-30));
+  // P1~P6 시간대(시작h, 끝h) 근사 + 색상
+  const bands=[['P1',0,2.5,'--p1-color'],['P2',2.5,5,'--p2-color'],['P3',5,8,'--p3-color'],
+               ['P4',8,12,'--p4-color'],['P5',12,16,'--p5-color'],['P6',16,24,'--p6-color']];
+  let s='';
+  bands.forEach(([id,a,bb,c])=>{
+    const x1=xs(a), x2=xs(bb), on=id===cur;
+    s+=`<rect x="${x1.toFixed(1)}" y="${padT}" width="${(x2-x1).toFixed(1)}" height="${H-padB-padT}"
+      fill="var(${c})" opacity="${on?0.28:0.12}"/>`;
+    s+=`<text x="${((x1+x2)/2).toFixed(1)}" y="${H-6}" font-size="9" font-weight="${on?800:600}"
+      fill="var(${c})" text-anchor="middle">${id}</text>`;
+  });
+  // 목표대(64~65%) 음영
+  s+=`<rect x="${x0}" y="${ys(66).toFixed(1)}" width="${W-x0-6}" height="${(ys(63)-ys(66)).toFixed(1)}" fill="var(--green)" opacity="0.1"/>`;
+  // 이상 WC 곡선: P1저점→P2재포화상승→P3-4유지→P5dry-down→P6야간dry-back
+  const pts=[[0,52],[2,48],[3,58],[5,64],[8,65],[12,64.5],[15,62],[18,56],[21,50],[24,46]];
+  const path=pts.map((p,i)=>`${i?'L':'M'}${xs(p[0]).toFixed(1)},${ys(p[1]).toFixed(1)}`).join(' ');
+  s+=`<path d="${path}" fill="none" stroke="#2563eb" stroke-width="2.2"/>`;
+  // y축 라벨
+  [40,55,70].forEach(v=>{ s+=`<text x="2" y="${(ys(v)+3).toFixed(1)}" font-size="8" fill="var(--muted)">${v}</text>`; });
+  // 현재시각 마커
+  try{ const now=new Date(); let h=now.getHours()+now.getMinutes()/60; h=(h>=5?h-5:h+19);
+    const mx=xs(h); s+=`<line x1="${mx.toFixed(1)}" y1="${padT}" x2="${mx.toFixed(1)}" y2="${H-padB}" stroke="var(--red)" stroke-width="1.5" stroke-dasharray="3,3"/>`;
+  }catch(e){}
+  svg.innerHTML=s;
 }
 
 // 관수 시작 조건 (프리바 운용매뉴얼 3.17.1 기반)
