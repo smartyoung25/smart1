@@ -4,6 +4,19 @@
 
 ---
 
+## 실데이터 주입 + 시각화·UX 강화 (2026-06-09 PM)
+### 제주 실데이터 주입(PII 제외 집계, 지역매칭 자동전환)
+- 흙토람 토양검정 13,842필지→`/field/soil` naas_soil_real / 팜맵 276,491필지→`/field/parcels`·F8 farmmap_real / 소득조사 102농가→`/benchmark` 실비교군
+- importer: `scripts/import_real_{soil,parcels,income,pest}.py`, `api/data/real/*.json`. `docs/REALDATA_VERIFICATION.md`
+- 병해충 예찰: `/field/pest` 파이프라인 완성(소형 parquet 인라인반환으로 적재대기). M2 재학습=생육조사 수확량타깃 부재로 불가(문서화)
+### 화면 시각화 10건(의존성0 SVG/CSS): C3 우수농가바·실데이터배지 / C17 6대영역 레이더 / F8 NDVI 히트맵 / G3 일일WC곡선 / C14 전월대비 다이버징 / G2 온습도·VPD추이 / G6 신뢰구간밴드 / F3 16일 기온·강수 / G4 초장추세
+### 프레임워크 통일(base.css 전역)
+- 차트 팔레트 토큰 --chart-hot/cool/good/warn/rain(hex 하드코딩 제거, 온실·노지·공통 동일 색의미)
+- 접근성: :focus-visible·prefers-reduced-motion·.sum-tab 40px
+- UX 효과성·효율성: 촉각 피드백 scale(.975)·헤더버튼 40×40·앵커 scroll-margin·hover 어포던스
+- 신규: C20 다중농가 클러스터 관제(723농가)+보고서PDF+일괄알림, c17_report·c14_report_pdf
+- 최종검수: **41화면 콘솔에러·API4xx·깨진링크 0 · 백엔드 22엔드포인트 200 OK**
+
 ## 외부연동·챗봇·릴리스 (2026-06-09)
 - **외부키 가이드**: `docs/INTEGRATION_GUIDE.md`(연동별 환경변수·미주입거동·단계활성화) + `check_integrations.py` 위성NDVI행 추가
 - **C13 챗봇 고도화**: build_farm_context에 진단·역량·작황 주입 + 신규의도(진단/역량·작황/위성·경영전략), /chat 폴백→컨텍스트 rule-v2(LLM키 없이 동작)
