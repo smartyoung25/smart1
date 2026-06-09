@@ -62,6 +62,9 @@
   <div class="section-label">6대 영역 종합</div>
   <div id="areaList"><div style="text-align:center;padding:14px;color:var(--muted);"><div class="spinner"></div></div></div>
 
+  <div class="section-label" style="margin-top:14px;">전월 대비 변화 <span class="trust-badge trust-live" id="prevTag">🟢 추이</span></div>
+  <div class="card" id="trendChart" style="padding:12px 14px;display:none;"></div>
+
   <div class="section-label" style="margin-top:14px;">9대 성과지표 (목표 대비) <span class="trust-badge trust-model">🔵 목표대비</span></div>
   <div class="card" style="padding:14px;" id="kpiList"></div>
 
@@ -145,6 +148,9 @@ async function _load(token,farmId){
   document.getElementById('repAch').textContent=`평균 목표달성률 ${d.avg_achievement_pct}%`;
   document.getElementById('repBar').style.width=`${Math.min(d.avg_achievement_pct,100)}%`;
 
+  // 전월 대비 변화 미니차트 (다이버징 바)
+  _renderTrend(d);
+
   // 6대 영역
   document.getElementById('areaList').innerHTML=Object.entries(d.areas).map(([name,m])=>`
     <div class="area-card"><div class="area-head">${AREA_ICON[name]||'📊'} ${name}관리</div>
@@ -195,6 +201,31 @@ async function _load(token,farmId){
   document.getElementById('repNote').textContent=d.note||'';
 }
 
+// 전월 대비 변화 다이버징 바 차트
+const _CHG_GOOD_UP={'소득률':1,'kg당원가절감':1,'에너지비절감':1,'생산량':1,'출하단가':1,'병해발생':-1}; // 값↑가 좋음(+1)/나쁨(-1)
+function _renderTrend(d){
+  const el=document.getElementById('trendChart'); if(!el) return;
+  const chg=d.changes_vs_prev||{};
+  const items=Object.entries(chg).filter(([,v])=>v!=null);
+  if(!d.has_prev||!items.length){ document.getElementById('prevTag').textContent='⚪ 전월 데이터 없음'; el.style.display='none'; return; }
+  document.getElementById('prevTag').textContent=`🟢 ${d.prev_period||'전월'} 대비`;
+  const mx=Math.max(1,...items.map(([,v])=>Math.abs(v)));
+  el.style.display='block';
+  el.innerHTML=items.map(([k,v])=>{
+    const good=(_CHG_GOOD_UP[k]||1)*v>=0;      // 방향 보정한 개선 여부
+    const col=Math.abs(v)<0.05?'var(--muted)':(good?'var(--green)':'var(--red)');
+    const w=Math.round(Math.abs(v)/mx*50);     // 중앙 기준 좌우 50%
+    const arrow=Math.abs(v)<0.05?'±':(v>0?'▲':'▼');
+    return `<div style="display:flex;align-items:center;gap:8px;margin:6px 0;font-size:12px;">
+      <span style="flex:0 0 92px;font-weight:700;">${k}</span>
+      <div style="flex:1;display:flex;align-items:center;height:14px;position:relative;">
+        <div style="position:absolute;left:50%;top:0;bottom:0;border-left:1px dashed var(--border);"></div>
+        <div style="position:absolute;left:${v>=0?50:50-w}%;width:${w}%;height:8px;top:3px;background:${col};border-radius:3px;opacity:.85;"></div>
+      </div>
+      <span style="flex:0 0 56px;text-align:right;font-weight:800;color:${col};">${arrow} ${Math.abs(v).toFixed(1)}%p</span>
+    </div>`;
+  }).join('');
+}
 const ACT_KIND={irrigation:['💧','관개'],disease_check:['🐛','방제·점검'],harvest:['🚜','수확'],
   env_setpoint:['🌡️','환경설정'],growth:['🌿','생육측정'],todo:['📋','작업계획'],
   education:['🎓','교육'],decision_apply:['🤖','AI결정'],consult:['🩺','전문가'],
