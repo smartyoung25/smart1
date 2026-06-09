@@ -90,3 +90,5 @@ api/data/kamis_price_cache.json
 dashboard/test_*.html
 data_real/
 deploy/cloudflare/bin/
+deploy/cloudflare/current_url.txt
+deploy/cloudflare/_tunnel.log
