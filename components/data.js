@@ -467,6 +467,7 @@ const KaasaData = (() => {
       ['g6_harvest.html', '📦', '수확·유통'],
     ]},
     { g: '노지', items: [
+      ['f8_cluster.html', '🛰️', '클러스터 작황'],
       ['f4_soil.html', '💧', '토양수분·관개'],
       ['f3_weather.html', '🌦️', '기상·재해'],
       ['f2_gis.html', '🗺️', '필지 GIS'],
