@@ -3031,15 +3031,44 @@ def get_system_diagnosis(farm_id: str):
                         "detail": "장비 0대 — 표준변수 연동 시작 필요", "roi": "실데이터 기반 운영 전환",
                         "effort": "낮음", "target": "c16_equipment.html"})
 
+    # ── 현장컨설팅 6대 도메인 진단 (센서·구동기·재배·경영노동·유통·데이터) ──
+    #    출처: RDA/이암허브 스마트농업 현장컨설팅 체크리스트·결과보고서
+    domains = []; consult = {}
+    try:
+        from api.services.consulting_diagnosis import build_domains, summarize
+        meta = _FARM_META.get(farm_id, {})
+        # 보조 지표(관수 배액률·경영 마진) — 실패해도 진단 지속
+        _irr = None
+        try:
+            from api.services.irrigation_store import get_irrigation_analysis as _gia
+            _irr = _gia(farm_id, days=7)
+        except Exception: _irr = None
+        _margin = None
+        try:
+            _crop = meta.get("crop", "딸기"); _area = float(meta.get("area_m2") or 1000.0)
+            _yld = float(get_yield_kg_m2(_crop)); _price = float(get_price_krw_kg(_crop))
+            _cost = _compute_costs(farm_id).cost_per_m2
+            _rev = _yld * _price
+            if _rev > 0: _margin = round((_rev - _cost) / _rev * 100, 0)
+        except Exception: _margin = None
+        domains = build_domains(eq=eq, acts=acts, month_acts=month_acts, meta=meta,
+                                trank=trank, irr=_irr, margin_pct=_margin)
+        consult = summarize(domains)
+    except Exception as _e:
+        domains = []; consult = {}
+
     return {
-        "farm_id": farm_id, "tier": tier, "overall_score": overall, "grade": grade,
+        "farm_id": farm_id, "tier": tier,
+        "overall_score": consult.get("overall", overall), "grade": consult.get("grade", grade),
         "scores": {
             "장비 등록": s_equip, "핵심변수 연동": s_link, "데이터 축적": s_data,
             "운영 성숙도": s_oper, "물리 캘리브레이션": s_calib,
         },
+        "domains": domains,                          # ★ 6대 컨설팅 도메인(점수+진단+처방)
+        "priority_decisions": consult.get("priority", []),  # ★ ROI 우선순위 의사결정
         "stats": {"devices": len(eq), "mapped_vars": len(mapped), "month_activities": len(month_acts), "calib_points": cal_pts},
         "recommendations": recs,
-        "note": "장비·데이터·운영·연동 성숙도 기반 자동 진단. 우선순위 높은 항목부터 개선 시 ROI가 큽니다.",
+        "note": "현장컨설팅 체크리스트(센서·구동기·재배·경영노동·유통·데이터) 기반 종합진단. 우선순위 높은 처방부터 실행 시 ROI가 큽니다.",
     }
 
 
