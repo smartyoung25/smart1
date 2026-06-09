@@ -41,6 +41,17 @@ extended_weather 16일 ET₀·강수 ┼→ field_cluster.build_cluster()
 - `screens/f8_cluster.html` — 작황 hero·균일도·기상스트레스·NDVI 그리드·위치특정 알림
 - 진입점: F1 노지홈 서브카드, 역량 4단계(경영고도화) 핵심서비스, 네비게이터 F8
 
+## 위성 실측 연동 (프록시 → 실측 자동 전환)
+`api/services/external_api_hub.satellite_ndvi()` 가 환경변수 주입 시 활성:
+- `SATELLITE_NDVI_URL` — 필지 NDVI JSON 엔드포인트(GET ?adm= 지원). 응답 자동 정규화:
+  `{"parcels":[{"name","ndvi"}]}` / `{"name":ndvi}` / `[{"name","ndvi"}]`
+- `SATELLITE_NDVI_KEY` — (선택) Authorization Bearer. Sentinel Hub 등 OAuth형은 프록시 URL 지정.
+- 6시간 캐시. 실패/미주입 시 None → `build_cluster(satellite_live=False)` 프록시 폴백.
+
+`GET /field/cluster` 가 URL 존재 시 자동으로 필지 NDVI를 실측으로 덮어쓰고 `source='sentinel-2'`.
+검증: 주입 O → source=sentinel-2(실측 NDVI 사용) / 주입 X → source=satellite-proxy.
+
 ## 검수
 farm_001(경남 창녕 4필지 2.3ha): 작황 우수·균일도 69%·평균 NDVI 0.70,
 2번 필지(무) NDVI 0.49 Δ−29.7% → 🚨 생육저조 위치특정 알림, 콘솔에러 0.
+프록시↔실측 자동전환 양방향 검증 완료(파일 스텁).

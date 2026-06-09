@@ -2206,8 +2206,10 @@ def get_field_cluster(farm_id: str):
     meta = _FARM_META.get(farm_id, {})
     region = f"{meta.get('sido','') or ''} {meta.get('sigungu','') or ''}".strip() or "-"
     # 필지 수집 (팜맵→Mock 폴백)
+    adm = ""
     try:
         pr = get_field_parcels(farm_id)
+        adm = pr.get("adm") or ""
         parcels = pr.get("parcels") or pr.get("data") or []
         if not isinstance(parcels, list) or not parcels:
             raise ValueError
@@ -2227,9 +2229,23 @@ def get_field_cluster(farm_id: str):
         soil = get_field_soil(farm_id)
     except Exception:
         soil = None
+    # 위성 NDVI 실측 — SATELLITE_NDVI_URL 주입 시 자동 활성(프록시→실측 전환)
+    satellite_live = False
+    try:
+        import os as _os
+        if _os.environ.get("SATELLITE_NDVI_URL"):
+            from api.services.external_api_hub import satellite_ndvi
+            sat = satellite_ndvi(adm or "", [p.get("name") for p in parcels])
+            if sat:
+                for p in parcels:
+                    if p.get("name") in sat:
+                        p["ndvi"] = sat[p["name"]]
+                satellite_live = any("ndvi" in p for p in parcels)
+    except Exception:
+        satellite_live = False
     from api.services.field_cluster import build_cluster
     return build_cluster(cluster_id=farm_id, region=region, parcels=parcels,
-                         region_wx=region_wx, soil=soil, satellite_live=False)
+                         region_wx=region_wx, soil=soil, satellite_live=satellite_live)
 
 
 # ── 관수 분석 결과 조회 ────────────────────────────────────────────────────────

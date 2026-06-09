@@ -852,6 +852,56 @@ def farmmap_parcels(pnu_prefix: str) -> Optional[dict]:
         return None
 
 
+def satellite_ndvi(adm: str = "", parcel_names: Optional[list] = None) -> Optional[dict]:
+    """위성 식생지수(NDVI) 필지별 조회 — 키/엔드포인트 주입 시 자동 활성.
+
+    환경변수(둘 중 하나로 주입):
+      · SATELLITE_NDVI_URL  : 필지 NDVI를 반환하는 JSON 엔드포인트
+                              (GET {URL}?adm={adm} → 응답 정규화 지원)
+      · SATELLITE_NDVI_KEY  : (선택) Authorization Bearer 헤더로 전달
+    지원 응답 형태(자동 정규화):
+      1) {"parcels":[{"name":"1번 필지","ndvi":0.78}, ...]}
+      2) {"1번 필지":0.78, "2번 필지":0.55}
+      3) [{"name":..,"ndvi":..}, ...]
+    Sentinel Hub Statistical API 등 OAuth형은 게이트웨이(프록시 URL)를 SATELLITE_NDVI_URL로 지정.
+
+    Returns: {name: ndvi(float)} 또는 None(미연동/실패 → 상위에서 프록시 폴백)
+    """
+    url = os.environ.get("SATELLITE_NDVI_URL", "").strip()
+    if not url:
+        return None
+    key = os.environ.get("SATELLITE_NDVI_KEY", "").strip()
+
+    def _fetch():
+        sep = "&" if "?" in url else "?"
+        full = f"{url}{sep}{urllib.parse.urlencode({'adm': adm})}" if adm else url
+        req = urllib.request.Request(full)
+        if key:
+            req.add_header("Authorization", f"Bearer {key}")
+        ctx = _insecure_ctx()
+        with urllib.request.urlopen(req, timeout=10, context=ctx) as r:
+            raw = json.loads(r.read().decode("utf-8", "replace"))
+        # 정규화
+        out = {}
+        rows = raw.get("parcels") if isinstance(raw, dict) else raw
+        if isinstance(raw, dict) and rows is None:
+            for k, v in raw.items():
+                try: out[str(k)] = float(v)
+                except (TypeError, ValueError): pass
+        elif isinstance(rows, list):
+            for it in rows:
+                if isinstance(it, dict) and it.get("name") is not None and it.get("ndvi") is not None:
+                    try: out[str(it["name"])] = float(it["ndvi"])
+                    except (TypeError, ValueError): pass
+        return out or None
+
+    try:
+        return _cached(f"sat_ndvi_{adm}", 6 * 3600, _fetch)
+    except Exception as e:
+        logger.warning("[satellite_ndvi] 조회 실패 adm=%s: %s", adm, e)
+        return None
+
+
 def _insecure_ctx():
     import ssl
     c = ssl.create_default_context()
