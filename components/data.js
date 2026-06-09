@@ -558,8 +558,29 @@ const KaasaData = (() => {
       }
     });
   }
+
+  // 경영전략 교차연결 밴드 — 진단→성과→수익성→ROI→벤치마킹 (고립 화면 단절 해소)
+  const _STRAT = [
+    ['c17', 'c17_diagnosis.html', '🩺 진단'],
+    ['c14', 'c14_report.html', '📋 성과'],
+    ['c5',  'c5_erp.html', '💰 수익성'],
+    ['c10', 'c10_roi.html', '📈 ROI'],
+    ['c9',  'c9_benchmark.html', '🏆 벤치마킹'],
+  ];
+  function _renderStratBands() {
+    document.querySelectorAll('.strat-band').forEach(el => {
+      const cur = el.getAttribute('data-cur') || '';
+      el.innerHTML = _STRAT.map(([k, href, label]) => {
+        const active = k === cur;
+        const st = active
+          ? 'background:var(--green);color:#fff;border:1px solid var(--green);'
+          : 'background:var(--panel);color:var(--text);border:1px solid var(--border);';
+        return `<a href="${href}" style="flex:0 0 auto;padding:7px 12px;border-radius:18px;font-size:12px;font-weight:700;text-decoration:none;white-space:nowrap;${st}">${label}</a>`;
+      }).join('');
+    });
+  }
   if (typeof document !== 'undefined') {
-    document.addEventListener('DOMContentLoaded', () => { try { _buildDrawer(); _bindMenuTab(); } catch (e) {} });
+    document.addEventListener('DOMContentLoaded', () => { try { _buildDrawer(); _bindMenuTab(); _renderStratBands(); } catch (e) {} });
   }
 
   // ── 공개 API ───────────────────────────────────────────────────────────────
