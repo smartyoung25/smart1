@@ -1,0 +1,25 @@
+# KAASA SmartOS — Caddy 자동 HTTPS 리버스 프록시 (DuckDNS 무료 도메인)
+# {SUBDOMAIN} 을 본인 DuckDNS 서브도메인으로 치환 (예: kaasafarm → kaasafarm.duckdns.org)
+# Caddy가 Let's Encrypt 인증서를 자동 발급·갱신합니다 (포트 80/443 공개 필요).
+
+{SUBDOMAIN}.duckdns.org {
+    encode gzip
+    reverse_proxy 127.0.0.1:8000
+
+    # 정적 캐싱 (PWA 자산)
+    @static path *.css *.js *.svg /manifest.webmanifest /icon.svg
+    header @static Cache-Control "public, max-age=86400"
+
+    # 보안 헤더
+    header {
+        Strict-Transport-Security "max-age=31536000"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "SAMEORIGIN"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        -Server
+    }
+
+    log {
+        output file C:\smart_farm\deploy\duckdns\caddy_access.log
+    }
+}
