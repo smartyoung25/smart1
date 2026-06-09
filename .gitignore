@@ -88,3 +88,4 @@ api/data/kamis_price_cache.json
 .mcp.json
 
 dashboard/test_*.html
+data_real/

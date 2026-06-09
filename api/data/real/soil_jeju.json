@@ -1,0 +1,544 @@
+{
+ "source": "흙토람 토양검정 2024 (제주)",
+ "rows": 13842,
+ "by_sigungu": {
+  "서귀포시": {
+   "n": 6653,
+   "ph": 5.66,
+   "ec": 1.943,
+   "organic": 106.4,
+   "phosphate": 379.6,
+   "potassium": 1.508
+  },
+  "제주시": {
+   "n": 7189,
+   "ph": 6.0,
+   "ec": 1.234,
+   "organic": 86.5,
+   "phosphate": 354.7,
+   "potassium": 1.227
+  }
+ },
+ "by_emd": {
+  "서귀포시 강정동": {
+   "n": 229,
+   "ph": 5.26,
+   "ec": 2.033,
+   "organic": 94.2,
+   "phosphate": 596.9,
+   "potassium": 1.806
+  },
+  "서귀포시 남원읍": {
+   "n": 1105,
+   "ph": 5.26,
+   "ec": 3.171,
+   "organic": 136.0,
+   "phosphate": 371.7,
+   "potassium": 1.904
+  },
+  "서귀포시 대정읍": {
+   "n": 1168,
+   "ph": 6.39,
+   "ec": 1.071,
+   "organic": 41.1,
+   "phosphate": 487.6,
+   "potassium": 1.504
+  },
+  "서귀포시 대포동": {
+   "n": 59,
+   "ph": 5.37,
+   "ec": 1.659,
+   "organic": 89.7,
+   "phosphate": 302.2,
+   "potassium": 1.305
+  },
+  "서귀포시 도순동": {
+   "n": 114,
+   "ph": 5.25,
+   "ec": 1.768,
+   "organic": 105.0,
+   "phosphate": 611.2,
+   "potassium": 1.512
+  },
+  "서귀포시 동홍동": {
+   "n": 92,
+   "ph": 5.34,
+   "ec": 1.722,
+   "organic": 139.1,
+   "phosphate": 331.5,
+   "potassium": 1.163
+  },
+  "서귀포시 법환동": {
+   "n": 44,
+   "ph": 5.35,
+   "ec": 4.16,
+   "organic": 134.6,
+   "phosphate": 630.7,
+   "potassium": 2.153
+  },
+  "서귀포시 보목동": {
+   "n": 70,
+   "ph": 5.4,
+   "ec": 3.672,
+   "organic": 157.7,
+   "phosphate": 750.5,
+   "potassium": 2.142
+  },
+  "서귀포시 상예동": {
+   "n": 109,
+   "ph": 5.65,
+   "ec": 3.159,
+   "organic": 104.4,
+   "phosphate": 408.3,
+   "potassium": 1.986
+  },
+  "서귀포시 상효동": {
+   "n": 103,
+   "ph": 5.37,
+   "ec": 2.057,
+   "organic": 142.5,
+   "phosphate": 480.4,
+   "potassium": 1.475
+  },
+  "서귀포시 색달동": {
+   "n": 55,
+   "ph": 5.69,
+   "ec": 1.797,
+   "organic": 111.5,
+   "phosphate": 242.5,
+   "potassium": 2.086
+  },
+  "서귀포시 서호동": {
+   "n": 56,
+   "ph": 5.58,
+   "ec": 1.666,
+   "organic": 139.4,
+   "phosphate": 284.1,
+   "potassium": 1.12
+  },
+  "서귀포시 서홍동": {
+   "n": 114,
+   "ph": 5.49,
+   "ec": 1.102,
+   "organic": 110.5,
+   "phosphate": 408.2,
+   "potassium": 1.104
+  },
+  "서귀포시 성산읍": {
+   "n": 615,
+   "ph": 5.82,
+   "ec": 2.048,
+   "organic": 124.0,
+   "phosphate": 216.3,
+   "potassium": 1.441
+  },
+  "서귀포시 신효동": {
+   "n": 71,
+   "ph": 4.67,
+   "ec": 3.958,
+   "organic": 132.2,
+   "phosphate": 685.9,
+   "potassium": 1.821
+  },
+  "서귀포시 안덕면": {
+   "n": 700,
+   "ph": 5.93,
+   "ec": 1.492,
+   "organic": 100.8,
+   "phosphate": 427.6,
+   "potassium": 1.409
+  },
+  "서귀포시 영남동": {
+   "n": 22,
+   "ph": 6.99,
+   "ec": 0.756,
+   "organic": 119.1,
+   "phosphate": 80.7,
+   "potassium": 1.13
+  },
+  "서귀포시 월평동": {
+   "n": 72,
+   "ph": 5.64,
+   "ec": 2.759,
+   "organic": 82.4,
+   "phosphate": 991.9,
+   "potassium": 2.562
+  },
+  "서귀포시 중문동": {
+   "n": 66,
+   "ph": 5.4,
+   "ec": 1.192,
+   "organic": 97.5,
+   "phosphate": 379.2,
+   "potassium": 1.259
+  },
+  "서귀포시 토평동": {
+   "n": 177,
+   "ph": 5.36,
+   "ec": 2.378,
+   "organic": 139.1,
+   "phosphate": 410.7,
+   "potassium": 1.481
+  },
+  "서귀포시 표선면": {
+   "n": 1195,
+   "ph": 5.53,
+   "ec": 1.494,
+   "organic": 125.7,
+   "phosphate": 168.3,
+   "potassium": 1.139
+  },
+  "서귀포시 하예동": {
+   "n": 51,
+   "ph": 5.8,
+   "ec": 1.239,
+   "organic": 86.3,
+   "phosphate": 369.6,
+   "potassium": 1.201
+  },
+  "서귀포시 하원동": {
+   "n": 141,
+   "ph": 5.29,
+   "ec": 1.266,
+   "organic": 95.8,
+   "phosphate": 291.6,
+   "potassium": 1.014
+  },
+  "서귀포시 하효동": {
+   "n": 58,
+   "ph": 5.13,
+   "ec": 3.026,
+   "organic": 124.5,
+   "phosphate": 817.3,
+   "potassium": 1.879
+  },
+  "서귀포시 호근동": {
+   "n": 100,
+   "ph": 5.22,
+   "ec": 2.53,
+   "organic": 102.2,
+   "phosphate": 596.0,
+   "potassium": 1.524
+  },
+  "서귀포시 회수동": {
+   "n": 67,
+   "ph": 5.49,
+   "ec": 2.658,
+   "organic": 105.4,
+   "phosphate": 301.4,
+   "potassium": 1.491
+  },
+  "제주시 건입동": {
+   "n": 6,
+   "ph": 4.72,
+   "ec": 0.282,
+   "organic": 47.7,
+   "phosphate": 932.5,
+   "potassium": 0.45
+  },
+  "제주시 구좌읍": {
+   "n": 1723,
+   "ph": 6.64,
+   "ec": 0.96,
+   "organic": 120.4,
+   "phosphate": 111.3,
+   "potassium": 0.946
+  },
+  "제주시 내도동": {
+   "n": 22,
+   "ph": 5.15,
+   "ec": 1.861,
+   "organic": 35.0,
+   "phosphate": 657.2,
+   "potassium": 1.195
+  },
+  "제주시 노형동": {
+   "n": 61,
+   "ph": 5.69,
+   "ec": 0.869,
+   "organic": 49.1,
+   "phosphate": 504.3,
+   "potassium": 0.963
+  },
+  "제주시 도남동": {
+   "n": 22,
+   "ph": 5.23,
+   "ec": 0.84,
+   "organic": 48.2,
+   "phosphate": 440.5,
+   "potassium": 0.673
+  },
+  "제주시 도두이동": {
+   "n": 9,
+   "ph": 5.86,
+   "ec": 0.2,
+   "organic": 46.9,
+   "phosphate": 596.7,
+   "potassium": 0.389
+  },
+  "제주시 도두일동": {
+   "n": 5,
+   "ph": 5.72,
+   "ec": 1.59,
+   "organic": 66.0,
+   "phosphate": 332.0,
+   "potassium": 1.28
+  },
+  "제주시 도련이동": {
+   "n": 58,
+   "ph": 5.9,
+   "ec": 1.275,
+   "organic": 44.3,
+   "phosphate": 593.4,
+   "potassium": 1.266
+  },
+  "제주시 도련일동": {
+   "n": 74,
+   "ph": 5.92,
+   "ec": 0.865,
+   "organic": 45.9,
+   "phosphate": 667.8,
+   "potassium": 1.272
+  },
+  "제주시 도평동": {
+   "n": 27,
+   "ph": 5.75,
+   "ec": 0.899,
+   "organic": 38.7,
+   "phosphate": 564.0,
+   "potassium": 0.859
+  },
+  "제주시 봉개동": {
+   "n": 64,
+   "ph": 5.42,
+   "ec": 1.228,
+   "organic": 48.4,
+   "phosphate": 655.8,
+   "potassium": 1.083
+  },
+  "제주시 삼양삼동": {
+   "n": 2,
+   "ph": 5.7,
+   "ec": 0.28,
+   "organic": 55.5,
+   "phosphate": 172.5,
+   "potassium": 0.8
+  },
+  "제주시 삼양이동": {
+   "n": 6,
+   "ph": 6.52,
+   "ec": 0.333,
+   "organic": 23.8,
+   "phosphate": 470.5,
+   "potassium": 1.267
+  },
+  "제주시 삼양일동": {
+   "n": 37,
+   "ph": 6.01,
+   "ec": 0.882,
+   "organic": 43.2,
+   "phosphate": 563.2,
+   "potassium": 1.065
+  },
+  "제주시 아라이동": {
+   "n": 24,
+   "ph": 5.33,
+   "ec": 0.338,
+   "organic": 41.9,
+   "phosphate": 549.6,
+   "potassium": 0.612
+  },
+  "제주시 아라일동": {
+   "n": 51,
+   "ph": 5.42,
+   "ec": 0.74,
+   "organic": 86.4,
+   "phosphate": 619.0,
+   "potassium": 1.36
+  },
+  "제주시 애월읍": {
+   "n": 1256,
+   "ph": 5.66,
+   "ec": 1.391,
+   "organic": 82.2,
+   "phosphate": 386.5,
+   "potassium": 1.254
+  },
+  "제주시 연동": {
+   "n": 18,
+   "ph": 5.66,
+   "ec": 1.157,
+   "organic": 39.9,
+   "phosphate": 270.0,
+   "potassium": 0.987
+  },
+  "제주시 영평동": {
+   "n": 53,
+   "ph": 5.59,
+   "ec": 1.951,
+   "organic": 74.9,
+   "phosphate": 506.7,
+   "potassium": 1.414
+  },
+  "제주시 오등동": {
+   "n": 67,
+   "ph": 5.98,
+   "ec": 0.757,
+   "organic": 53.1,
+   "phosphate": 293.6,
+   "potassium": 1.36
+  },
+  "제주시 오라삼동": {
+   "n": 4,
+   "ph": 7.02,
+   "ec": 0.303,
+   "organic": 53.5,
+   "phosphate": 48.8,
+   "potassium": 1.075
+  },
+  "제주시 오라이동": {
+   "n": 53,
+   "ph": 5.92,
+   "ec": 0.787,
+   "organic": 47.8,
+   "phosphate": 426.1,
+   "potassium": 0.984
+  },
+  "제주시 외도일동": {
+   "n": 32,
+   "ph": 5.71,
+   "ec": 1.065,
+   "organic": 29.9,
+   "phosphate": 470.4,
+   "potassium": 1.006
+  },
+  "제주시 용강동": {
+   "n": 31,
+   "ph": 5.79,
+   "ec": 0.9,
+   "organic": 115.0,
+   "phosphate": 411.3,
+   "potassium": 1.158
+  },
+  "제주시 용담이동": {
+   "n": 3,
+   "ph": 4.9,
+   "ec": 1.023,
+   "organic": 50.3,
+   "phosphate": 751.7,
+   "potassium": 1.3
+  },
+  "제주시 우도면": {
+   "n": 21,
+   "ph": 7.1,
+   "ec": 0.403,
+   "organic": 70.9,
+   "phosphate": 185.0,
+   "potassium": 1.769
+  },
+  "제주시 월평동": {
+   "n": 54,
+   "ph": 5.87,
+   "ec": 0.797,
+   "organic": 100.0,
+   "phosphate": 267.4,
+   "potassium": 1.511
+  },
+  "제주시 이도이동": {
+   "n": 1,
+   "ph": 6.0,
+   "ec": 0.28,
+   "organic": 175.0,
+   "phosphate": 418.0,
+   "potassium": 0.8
+  },
+  "제주시 이호이동": {
+   "n": 18,
+   "ph": 5.34,
+   "ec": 3.21,
+   "organic": 33.8,
+   "phosphate": 659.6,
+   "potassium": 0.939
+  },
+  "제주시 이호일동": {
+   "n": 5,
+   "ph": 5.24,
+   "ec": 1.472,
+   "organic": 35.8,
+   "phosphate": 666.6,
+   "potassium": 0.6
+  },
+  "제주시 일도이동": {
+   "n": 2,
+   "ph": 5.85,
+   "ec": 0.28,
+   "organic": 152.0,
+   "phosphate": 551.5,
+   "potassium": 0.65
+  },
+  "제주시 조천읍": {
+   "n": 1272,
+   "ph": 5.77,
+   "ec": 1.342,
+   "organic": 104.1,
+   "phosphate": 338.4,
+   "potassium": 1.163
+  },
+  "제주시 추자면": {
+   "n": 3,
+   "ph": 6.03,
+   "ec": 0.243,
+   "organic": 29.7,
+   "phosphate": 134.3,
+   "potassium": 0.733
+  },
+  "제주시 한경면": {
+   "n": 677,
+   "ph": 6.21,
+   "ec": 1.371,
+   "organic": 38.4,
+   "phosphate": 559.6,
+   "potassium": 1.757
+  },
+  "제주시 한림읍": {
+   "n": 1168,
+   "ph": 5.81,
+   "ec": 1.505,
+   "organic": 70.8,
+   "phosphate": 464.6,
+   "potassium": 1.46
+  },
+  "제주시 해안동": {
+   "n": 86,
+   "ph": 5.67,
+   "ec": 0.924,
+   "organic": 107.8,
+   "phosphate": 333.0,
+   "potassium": 1.177
+  },
+  "제주시 화북이동": {
+   "n": 61,
+   "ph": 5.72,
+   "ec": 1.108,
+   "organic": 54.2,
+   "phosphate": 426.6,
+   "potassium": 1.241
+  },
+  "제주시 화북일동": {
+   "n": 6,
+   "ph": 5.87,
+   "ec": 0.475,
+   "organic": 37.2,
+   "phosphate": 249.2,
+   "potassium": 0.883
+  },
+  "제주시 회천동": {
+   "n": 107,
+   "ph": 5.65,
+   "ec": 0.735,
+   "organic": 92.6,
+   "phosphate": 446.4,
+   "potassium": 0.966
+  }
+ }
+}

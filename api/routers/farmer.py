@@ -2152,7 +2152,51 @@ class IrrigationScheduleResponse(BaseModel):
 
 # ── 노지 공공데이터: 토양·필지 (흙토람/팜맵 → Mock 폴백) ──────────────────────
 
-@router.get("/field/soil", summary="노지 필지별 토양특성 (흙토람 OpenAPI → Mock 폴백)")
+_REAL_SOIL_CACHE = {"loaded": False, "data": None}
+
+def _real_soil_lookup(meta: dict):
+    """흙토람 토양검정 적재분(api/data/real/soil_jeju.json)에서 농장 지역 토양특성 조회.
+    sido에 '제주' 포함 시 시군구/읍면동 매칭 → 실측 ph·EC·유기물 반환. 없으면 None."""
+    import json as _json
+    from pathlib import Path as _P
+    sido = (meta.get("sido") or "")
+    if "제주" not in sido:
+        return None
+    if not _REAL_SOIL_CACHE["loaded"]:
+        try:
+            fp = _P(__file__).resolve().parents[1] / "data" / "real" / "soil_jeju.json"
+            _REAL_SOIL_CACHE["data"] = _json.loads(fp.read_text(encoding="utf-8")) if fp.exists() else None
+        except Exception:
+            _REAL_SOIL_CACHE["data"] = None
+        _REAL_SOIL_CACHE["loaded"] = True
+    db = _REAL_SOIL_CACHE["data"]
+    if not db:
+        return None
+    sgg = (meta.get("sigungu") or "").strip()
+    emd = (meta.get("emd") or meta.get("address_detail") or "").strip()
+    prof = None; scope = ""
+    if sgg and emd and f"{sgg} {emd}" in db.get("by_emd", {}):
+        prof = db["by_emd"][f"{sgg} {emd}"]; scope = f"{sgg} {emd}"
+    elif sgg and sgg in db.get("by_sigungu", {}):
+        prof = db["by_sigungu"][sgg]; scope = sgg
+    else:
+        # 제주 농장이나 세부지역 불명 → 시군구 평균(제주시) 사용
+        prof = (db.get("by_sigungu") or {}).get("제주시"); scope = "제주 평균"
+    if not prof:
+        return None
+    # EC(dS/m) → 토양수분 프록시 매핑 불가하므로 토양특성 자체 + 검정 표본수 제공
+    return {
+        "farm_id": meta.get("_fid", ""), "source": "naas_soil_real",
+        "region": scope,
+        "soil": {"ph": prof.get("ph"), "ec_dsm": prof.get("ec"),
+                 "organic_matter": prof.get("organic"), "phosphate": prof.get("phosphate"),
+                 "potassium": prof.get("potassium"), "samples": prof.get("n")},
+        "parcels": [],
+        "note": f"흙토람 토양검정 2024 실데이터({scope} {prof.get('n')}필지 평균). 출처: {db.get('source')}",
+    }
+
+
+@router.get("/field/soil", summary="노지 필지별 토양특성 (흙토람 적재 실데이터 → Mock 폴백)")
 def get_field_soil(farm_id: str):
     """흙토람 토양검정/토양특성을 PNU 기준 조회. 미연동 시 Mock 토양수분 반환.
 
@@ -2168,6 +2212,12 @@ def get_field_soil(farm_id: str):
     if live:
         return {"farm_id": farm_id, "source": "naas_soil", "pnu": pnu, "data": live.get("soil"),
                 "parcels": [], "note": "흙토람 실데이터"}
+
+    # 흙토람 실데이터 적재분(제주 토양검정 2024) — 농장 지역 매칭 시 실값 제공
+    real = _real_soil_lookup(meta)
+    if real:
+        real["farm_id"] = farm_id
+        return real
 
     # Mock 폴백 — 필지별 토양수분(센서 미연동)
     mock_parcels = [
