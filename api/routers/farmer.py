@@ -2435,6 +2435,20 @@ class WeatherForecastOut(BaseModel):
     daily: dict = {}
 
 
+@router.get("/environment/weather/extended", summary="장기 16일 기상예보 (Open-Meteo — ET₀·일사·재해)")
+def get_extended_weather(farm_id: str, days: int = Query(16, ge=1, le=16)):
+    """2주(14~16일) 일별 장기예보. 기상청 단기(~3일)·중기(~10일) 한계 보완.
+    농업변수(ET₀·일사·강수확률·풍속) + 재해경보(강풍·호우·폭염·서리) 포함."""
+    _require_farm(farm_id)
+    meta = _FARM_META.get(farm_id, {})
+    from api.services.extended_weather import get_extended_forecast
+    out = get_extended_forecast(meta.get("sido", ""), meta.get("sigungu", ""), days)
+    if out is None:
+        return {"source": "unavailable", "days": 0, "items": [], "hazards": [],
+                "note": "장기예보 일시 조회 실패 — 잠시 후 재시도"}
+    return out
+
+
 @router.get("/environment/weather/forecast", response_model=WeatherForecastOut,
             summary="기상 예보 + ET₀ 예측 (KMA + Open-Meteo 폴백)")
 def get_weather_et0_forecast(

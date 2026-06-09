@@ -38,6 +38,10 @@
   <div class="section-label">7일 예보 <span class="trust-badge trust-live">🟢 실측</span> <span id="wfSrc" style="font-weight:400;color:var(--muted);font-size:11px;"></span></div>
   <div class="card" style="padding:12px;"><div class="day-strip" id="dayStrip"></div></div>
   <div class="mock-note" id="mockNote">기상은 KMA 실데이터, 작업가능시간은 강우·풍속 기반 추정입니다.</div>
+  <div class="section-label">16일 장기예보 <span class="trust-badge trust-live">🟢 Open-Meteo</span> <span id="extSrc" style="font-weight:400;color:var(--muted);font-size:11px;"></span></div>
+  <div id="extHazard"></div>
+  <div class="card" style="padding:12px;overflow-x:auto;"><div id="extStrip" style="display:flex;gap:6px;min-width:max-content;"></div></div>
+  <div style="font-size:10px;color:var(--muted);margin:4px 2px 12px;">ET₀·일사·강수확률 기반 — 관수·작업 중기계획에 활용 (기상청 단기 3일·중기 10일 한계 보완)</div>
   <div class="section-label">작업 가능 시간대 (오늘)</div>
   <div class="card" style="padding:14px;" id="workWindow"></div>
   <button onclick="_openPlan()" style="width:100%;margin-top:14px;padding:15px;background:var(--green);color:#fff;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:800;cursor:pointer;min-height:48px;">📋 작업 계획 기록</button>
@@ -60,8 +64,32 @@ window.addEventListener('DOMContentLoaded',()=>{
   const farmId=new URLSearchParams(location.search).get('farm')||sessionStorage.getItem('sf_farm_id')||'farm_001';
   _farmG=farmId;
   _renderWork();
-  _ensureToken().then(t=>{_tokenG=t;KaasaData.init({farmId,token:t,onStatus:_ws});_loadWeather(t,farmId);_refreshRecent();});
+  _ensureToken().then(t=>{_tokenG=t;KaasaData.init({farmId,token:t,onStatus:_ws});_loadWeather(t,farmId);_refreshRecent();_loadExtended(t,farmId);});
 });
+const _WICON={0:'☀️',1:'🌤️',2:'⛅',3:'☁️',45:'🌫️',51:'🌦️',61:'🌧️',63:'🌧️',65:'⛈️',71:'🌨️',80:'🌦️',95:'⛈️'};
+async function _loadExtended(token,farmId){
+  try{
+    const api=KaasaData.getApiBase();
+    const d=await fetch(`${api}/api/farms/${farmId}/environment/weather/extended?days=16`,{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.json());
+    if(!d||!d.items||!d.items.length){document.getElementById('extStrip').innerHTML='<span style="font-size:12px;color:var(--muted);">장기예보 조회 실패</span>';return;}
+    document.getElementById('extSrc').textContent=`${d.region} · ET₀ ${d.summary.avg_et0} · 16일강수 ${d.summary.total_rain}mm`;
+    document.getElementById('extStrip').innerHTML=d.items.map((x,i)=>{
+      const md=x.date.slice(5), wi=_WICON[x.wcode]||'🌡️';
+      const rc=x.rain_mm>=10?'var(--blue)':'var(--muted)';
+      return `<div style="flex:0 0 auto;width:54px;text-align:center;padding:6px 2px;border-radius:8px;background:${i===0?'var(--green-soft)':'transparent'};">
+        <div style="font-size:10px;color:var(--muted);">${md}</div>
+        <div style="font-size:18px;">${wi}</div>
+        <div style="font-size:11px;font-weight:800;">${Math.round(x.t_max)}°</div>
+        <div style="font-size:10px;color:var(--muted);">${Math.round(x.t_min)}°</div>
+        <div style="font-size:9px;color:${rc};">💧${x.rain_prob??0}%</div>
+        <div style="font-size:9px;color:var(--green-dark);">ET${x.et0}</div></div>`;
+    }).join('');
+    const hz=d.hazards||[];
+    document.getElementById('extHazard').innerHTML=hz.length?hz.map(h=>`
+      <div style="display:flex;align-items:center;gap:8px;background:var(--orange-soft);color:var(--orange);border-radius:10px;padding:8px 11px;margin-bottom:6px;font-size:12px;font-weight:700;">
+        <span>⚠️</span><span>${h.date.slice(5)} ${h.type} 예보 (${h.value})</span></div>`).join(''):'';
+  }catch(e){ document.getElementById('extStrip').innerHTML='<span style="font-size:12px;color:var(--muted);">장기예보 조회 실패</span>'; }
+}
 function _refreshRecent(){ if(window.RecordSheet) RecordSheet.renderRecent(document.getElementById('recentRec'),_farmG,_tokenG,{kinds:['todo'],limit:5}); }
 function _openPlan(){
   RecordSheet.open({
