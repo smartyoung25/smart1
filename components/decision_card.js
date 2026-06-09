@@ -169,5 +169,40 @@
     return items;
   }
 
-  global.DecisionDeck = { render, buildGreenhouse, buildField };
+  // 16일 장기예보(Open-Meteo) 재해 → 선행 의사결정 카드
+  // hazards: [{date:'2026-06-22', type:'호우'|'폭염'|'강풍'|'서리/저온', value:48.4}]
+  function buildFieldHazards(hazards, opts) {
+    opts = opts || {}; const items = [];
+    const arr = (hazards || []).slice(0, 4);
+    const _md = d => { try { const p = String(d).split('-'); return `${+p[1]}/${+p[2]}`; } catch (e) { return d; } };
+    const _dleft = d => { try { const t = new Date(d + 'T00:00:00'), n = new Date();
+      return Math.max(0, Math.round((t - new Date(n.getFullYear(), n.getMonth(), n.getDate())) / 86400000)); } catch (e) { return null; } };
+    for (const h of arr) {
+      const dl = _dleft(h.date), when = dl === 0 ? '오늘' : dl === 1 ? '내일' : (dl != null ? `${dl}일 뒤` : _md(h.date));
+      const lead = `${_md(h.date)} (${when})`;
+      if (h.type === '호우') items.push({ severity:'danger', title:`${lead} 호우 ${Number(h.value).toFixed(0)}mm 예보 — 사전 대비`,
+        why:'장기예보 기준 집중호우 예상. 배수로 정비·관개 일정 조정·침수 우려 필지를 선점검하세요.',
+        action:'배수로 정비 · 관개 보류 · 멀칭 점검', confidence:62, source:'model', updatedMin:opts.age ?? 60,
+        evidence:`Open-Meteo 16일 예보 일강수 ${Number(h.value).toFixed(1)}mm(호우 임계 30mm↑). 선행 대비로 피해 경감.`,
+        applyLabel:'대비 조치 기록', target:'f3_weather.html' });
+      else if (h.type === '폭염') items.push({ severity:'warn', title:`${lead} 폭염 ${Number(h.value).toFixed(0)}℃ 예보 — 관개·차광 대비`,
+        why:'고온 스트레스 예상. 관개량 상향·차광·환기 계획을 미리 세우세요. 노약 작물 우선.',
+        action:'관개 증량 · 차광/환기 준비', confidence:60, source:'model', updatedMin:opts.age ?? 60,
+        evidence:`예보 최고기온 ${Number(h.value).toFixed(0)}℃(폭염 임계 33℃↑). 증발산 급증 대비.`,
+        applyLabel:'폭염 대비 기록', target:'f4_soil.html' });
+      else if (h.type === '강풍') items.push({ severity:'danger', title:`${lead} 강풍 ${Number(h.value).toFixed(0)}m/s 예보 — 시설 보강`,
+        why:'강풍 예상. 지주·피복 보강과 방풍 조치를 사전 시행하고 약제 살포는 연기하세요.',
+        action:'지주·피복 보강 · 살포 연기', confidence:64, source:'model', updatedMin:opts.age ?? 60,
+        evidence:`예보 최대풍속 ${Number(h.value).toFixed(0)}m/s. 비닐·지주 탈락 위험 구간 선제 대비.`,
+        applyLabel:'대비 조치 기록', target:'f3_weather.html' });
+      else if (h.type && h.type.indexOf('서리') >= 0) items.push({ severity:'warn', title:`${lead} 서리/저온(${Number(h.value).toFixed(0)}℃) 예보 — 보온 대비`,
+        why:'저온·서리 예상. 보온커튼·방상팬·관수 보온 등 동해 예방 조치를 준비하세요.',
+        action:'보온 자재 점검 · 야간 관수 검토', confidence:60, source:'model', updatedMin:opts.age ?? 60,
+        evidence:`예보 최저기온 ${Number(h.value).toFixed(0)}℃(서리 임계 0℃↓). 정식·개화기 동해 위험.`,
+        applyLabel:'보온 대비 기록', target:'f3_weather.html' });
+    }
+    return items;
+  }
+
+  global.DecisionDeck = { render, buildGreenhouse, buildField, buildFieldHazards };
 })(window);
