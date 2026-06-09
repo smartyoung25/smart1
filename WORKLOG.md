@@ -339,3 +339,10 @@ C3 우수농가바·실데이터배지 / C17 6대영역 레이더 / F8 NDVI히�
 ### 검수
 - **41화면 콘솔에러·API4xx·깨진링크 0건 · 백엔드 22엔드포인트 200 OK · FCP ~0.5s**
 - 신규 화면 C16~C20 + 결과보고서 PDF 2종, 릴리스 v1.3·v1.4
+
+### 공개배포·모니터링·압축 (2026-06-09 저녁)
+- 공개배포: Cloudflare 퀵터널(PUBLIC_DEMO 읽기전용+JWT회전) — 외부 접속·로그인·조회 검증
+- 모니터링(C): /api/telemetry/client+summary + data.js 전역 에러 비콘(Sentry 대체)
+- 견고성: C20 admin 403 graceful, 전역 오프라인 배너
+- 패키지: KAASA_SmartOS_v1.6.zip(83파일·386KB) + RELEASE_v1.6.md
+- 잔여 갭: B 상시도메인(도메인구매)·D 외부키(자격증명)·E ML(데이터) — 사용자 입력 대기
