@@ -223,6 +223,16 @@
 
   </div>
 
+  <!-- 온도·습도·VPD 추이 (세션 누적) -->
+  <div class="section-label">환경 추이 <span class="trust-badge trust-live" id="trendTag">🟢 실시간 누적</span></div>
+  <div class="card" id="envTrendCard" style="padding:12px 10px 8px;margin-bottom:14px;">
+    <div style="display:flex;gap:12px;font-size:10px;font-weight:700;margin-bottom:4px;padding:0 4px;">
+      <span style="color:#dc2626;">● 온도</span><span style="color:#2563eb;">● 습도</span><span style="color:#16a34a;">● VPD</span>
+      <span style="margin-left:auto;color:var(--muted);" id="trendN"></span>
+    </div>
+    <svg id="envTrend" width="100%" height="120" viewBox="0 0 340 120" preserveAspectRatio="none"></svg>
+  </div>
+
   <!-- 제어 모드 -->
   <div class="section-label">제어 모드</div>
   <div class="mode-tabs">
@@ -564,6 +574,36 @@ function _onSensor(env) {
   _updateOutdoor(_env, env.updated_at || env.timestamp);
   _updateAiControls(_env);
   _updateAlerts(_env);
+  _pushTrend(_env);
+}
+
+// 환경 추이 — 실시간 센서 세션 누적 + 스파크라인
+function _gv(o,k){ const v=o[k]; return (v&&typeof v==='object')?v.value:v; }
+function _calcVpd(t,rh){ if(t==null||rh==null) return null; const svp=0.6108*Math.exp(17.27*t/(t+237.3)); return +(svp*(1-rh/100)).toFixed(2); }
+function _pushTrend(env){
+  const t=_gv(env,'temp_internal'), rh=_gv(env,'humidity_int');
+  let vpd=_gv(env,'vpd'); if(vpd==null) vpd=_calcVpd(t,rh);
+  if(t==null&&rh==null&&vpd==null) return;
+  const key='sf_envtrend_'+_farmG;
+  let buf=[]; try{ buf=JSON.parse(sessionStorage.getItem(key)||'[]'); }catch(e){}
+  buf.push({t:t,rh:rh,v:vpd}); if(buf.length>60) buf=buf.slice(-60);
+  sessionStorage.setItem(key,JSON.stringify(buf));
+  _drawTrend(buf);
+}
+function _drawTrend(buf){
+  const svg=document.getElementById('envTrend'); if(!svg) return;
+  document.getElementById('trendN').textContent=`${buf.length}p`;
+  if(buf.length<2){ svg.innerHTML=`<text x="170" y="62" font-size="11" fill="var(--muted)" text-anchor="middle">데이터 누적 중… (측정값 2개↑ 필요)</text>`; return; }
+  const W=340,H=120,pad=8, n=buf.length;
+  const xs=i=>pad+(W-2*pad)*(i/(n-1));
+  const line=(key,lo,hi,col)=>{
+    const vals=buf.map(b=>b[key]); if(vals.every(v=>v==null)) return '';
+    const ys=v=>H-pad-(H-2*pad)*((v-lo)/((hi-lo)||1));
+    const pts=vals.map((v,i)=>v==null?null:`${xs(i).toFixed(1)},${ys(v).toFixed(1)}`).filter(Boolean).join(' ');
+    return `<polyline points="${pts}" fill="none" stroke="${col}" stroke-width="2"/>`;
+  };
+  // 스케일: 온도 5~40, 습도 30~100, VPD 0~3
+  svg.innerHTML = line('t',5,40,'#dc2626')+line('rh',30,100,'#2563eb')+line('v',0,3,'#16a34a');
 }
 
 // ── KPI 업데이트 ────────────────────────────────────────────────────────────

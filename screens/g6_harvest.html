@@ -135,6 +135,22 @@
     </div>
   </div>
 
+  <!-- 수확량 신뢰구간 -->
+  <div class="section-label">수확량 예측 신뢰구간 <span class="trust-badge trust-model" id="ciGrade">🔵 모델</span></div>
+  <div class="card" id="ciCard" style="padding:14px;display:none;">
+    <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:10px;">
+      <span style="font-size:24px;font-weight:900;" id="ciMid">—</span>
+      <span style="font-size:12px;color:var(--muted);">kg (중앙 예측)</span>
+      <span style="margin-left:auto;font-size:11px;font-weight:700;" id="ciConf"></span>
+    </div>
+    <svg id="ciBand" width="100%" height="56" viewBox="0 0 340 56" preserveAspectRatio="none"></svg>
+    <div style="display:flex;justify-content:space-between;font-size:11px;margin-top:2px;">
+      <span style="color:var(--muted);">하한 <b id="ciLo" style="color:var(--text)">—</b></span>
+      <span style="color:var(--muted);">상한 <b id="ciHi" style="color:var(--text)">—</b></span>
+    </div>
+    <div style="font-size:10.5px;color:var(--muted);margin-top:6px;" id="ciNote"></div>
+  </div>
+
   <!-- 수확 예측 시나리오 -->
   <div class="section-label">수확 시나리오</div>
   <div class="card" style="padding:14px;">
@@ -298,6 +314,7 @@ async function _loadAll(token, farmId) {
   if (lbl) lbl.textContent = `(${crop})`;
 
   _renderChannels(revenue, wholesale, crop);
+  _renderCI(harvest);
   _renderScenarios(harvest, revenue);
   _renderProfit(revenue);
   _renderPriceChart(history);
@@ -336,6 +353,36 @@ function _renderChannels(revenue, wholesale, crop) {
   const conEl = document.getElementById('jointCon');
   if (conEl) conEl.textContent = `${joint >= indiv ? '✓' : '✗'} 개별 대비 ${joint >= indiv ? '+' : ''}${Math.round(joint - indiv).toLocaleString()}원/kg`;
   if (conEl) conEl.style.color = joint >= indiv ? 'var(--green)' : 'var(--muted)';
+}
+
+// ── 수확량 신뢰구간 밴드 ─────────────────────────────────────────────────────
+function _renderCI(h){
+  if(!h) return;
+  const lo=h.yield_q10, mid=h.yield_kg_forecast, hi=h.yield_q90;
+  if(lo==null||mid==null||hi==null) return;
+  const fmt=v=>Math.round(v).toLocaleString();
+  document.getElementById('ciCard').style.display='block';
+  document.getElementById('ciMid').textContent=fmt(mid);
+  document.getElementById('ciLo').textContent=fmt(lo)+' kg';
+  document.getElementById('ciHi').textContent=fmt(hi)+' kg';
+  const conf=Math.round((h.model_confidence??h.confidence??0)*100);
+  document.getElementById('ciConf').textContent=`신뢰도 ${conf}%`;
+  document.getElementById('ciGrade').textContent='🔵 '+(h.confidence_grade||'모델');
+  document.getElementById('ciNote').textContent=`80% 신뢰구간: 실수확량이 ${fmt(lo)}~${fmt(hi)}kg 범위에 들 확률 80%. 생육측정 입력 시 구간이 좁아집니다.`;
+  // 밴드 SVG: lo~hi 범위를 막대로, mid 마커
+  const W=340,H=56,pad=14, y=22, bh=14;
+  const span=hi-lo||1;
+  const bx=pad, bw=W-2*pad;
+  const midX=bx+bw*((mid-lo)/span);
+  const svg=document.getElementById('ciBand');
+  svg.innerHTML=`
+    <rect x="${bx}" y="${y}" width="${bw}" height="${bh}" rx="7" fill="url(#cig)" opacity="0.85"/>
+    <defs><linearGradient id="cig" x1="0" x2="1"><stop offset="0" stop-color="#f59e0b"/><stop offset="0.5" stop-color="#16a34a"/><stop offset="1" stop-color="#f59e0b"/></linearGradient></defs>
+    <line x1="${midX.toFixed(1)}" y1="${y-6}" x2="${midX.toFixed(1)}" y2="${y+bh+6}" stroke="var(--text)" stroke-width="2.5"/>
+    <circle cx="${midX.toFixed(1)}" cy="${y+bh/2}" r="4" fill="#fff" stroke="var(--text)" stroke-width="2"/>
+    <text x="${bx}" y="${y+bh+16}" font-size="9" fill="var(--muted)">q10</text>
+    <text x="${(bx+bw).toFixed(1)}" y="${y+bh+16}" font-size="9" fill="var(--muted)" text-anchor="end">q90</text>
+    <text x="${midX.toFixed(1)}" y="${y-9}" font-size="9" font-weight="800" fill="var(--text)" text-anchor="middle">예측</text>`;
 }
 
 // ── 수확 시나리오 ───────────────────────────────────────────────────────────
