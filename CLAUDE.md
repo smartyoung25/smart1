@@ -4,6 +4,24 @@
 
 ---
 
+## 진단·장기예보 확장 (2026-06-09)
+
+### 16일 장기예보 + 노지 선행 의사결정
+- `api/services/extended_weather.py`: Open-Meteo 16일(무키)·시군구→좌표·6h캐시·재해경보(강풍/호우/폭염/서리)
+- `GET /environment/weather/extended`; F3 '16일 장기예보' 스트립(ET₀·일사·강수확률)
+- `DecisionDeck.buildFieldHazards()`: 16일 재해→F1 노지 선행 결정카드(D-day·처방·원탭기록)
+
+### 현장컨설팅 종합진단 (C17 확장 + C18 신규) — RDA 체크리스트 벤치마킹
+- 출처: RDA/이암허브 현장컨설팅 체크리스트·결과보고서·소득333 농가사례(안성·고양·가평)
+- `api/services/consulting_diagnosis.py`: **6대 도메인**(센서·구동기[환기/냉난방/스크린/양액]·재배·경영노동·유통·데이터) 점수+진단+ROI우선처방
+- `GET/POST /diagnosis/checklist` + `api/data/diagnosis_checklist_schema.json`(30항목): 텔레메트리 외 항목(원수·필터·RO·유황훈증·병해충·인증) 현장 점검
+- `_blend_checklist()`: 텔레메트리:현장=50:50, 불량→danger·주의→warn 처방 자동생성
+- **C18 `c18_checklist.html`**(신규): 현장 문진 입력 / **C17**: 6도메인 카드+우선처방+원탭기록
+- 폐루프 연결: **C14 월간리포트**(현장점검 진단 누적) + **C4 전문가컨설팅**(진단결과 자동첨부·추천전문가 자동선택)
+- 검수: 양액·병해충 불량 입력→재배 75→38, danger 처방 1순위 승격. **전 35화면 콘솔에러·API4xx·깨진링크 0건**
+
+---
+
 ## ★ 핵심 재정의 (2026-05-31 확정)
 
 ### P1~P6은 하루 관수 Period (Priority가 아님) — Grodan/Priva 일일 WC·EC 곡선 기반
