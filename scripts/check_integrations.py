@@ -46,6 +46,11 @@ rows.append(("농진청(작물·병해 표준)", "🟢 키있음" if has("RDA_AP
 soil="🟢 직연동" if has("NAAS_SOIL_API_URL") else ("🟡 폴백(DATA_GO_KR)" if has("DATA_GO_KR_SERVICE_KEY") else "⚪ 미설정")
 rows.append(("흙토람 토양", soil, "NAAS_SOIL_API_URL", "NAAS_SOIL_API_URL"))
 rows.append(("팜맵 필지", "🟢 직연동" if has("FARMMAP_API_URL") else "⚪ Mock", "FARMMAP_API_URL", "FARMMAP_API_URL"))
+# 4-1) 위성 NDVI(클러스터 작황) — 엔드포인트 source로 실측/프록시 판별
+cl=_get("/api/farms/farm_001/field/cluster", T) or {}
+clsrc=cl.get("source","")
+sat="🟢 실측(sentinel-2)" if "sentinel" in str(clsrc) else ("🟡 프록시" if clsrc else "⚪ 미연동")
+rows.append(("위성 NDVI 작황", sat, f"source={clsrc or '-'}", "SATELLITE_NDVI_URL"))
 # 5) LLM 챗봇
 if has("ANTHROPIC_API_KEY"): llm="🟢 Claude"
 elif has("OPENAI_API_KEY"): llm="🟢 OpenAI"
@@ -67,4 +72,5 @@ print(f"연동 {live} / 폴백·미설정 {len(rows)-live}")
 print("\n미연동 활성화: .env 에 해당 키를 채우면 코드 수정 없이 자동 전환됩니다.")
 print(" · LLM:    ANTHROPIC_API_KEY (또는 Ollama 모델 pull: 'ollama pull llama3.2')")
 print(" · 흙토람: NAAS_SOIL_API_URL (data.go.kr 흙토람 OpenAPI), 팜맵: FARMMAP_API_URL")
+print(" · 위성:   SATELLITE_NDVI_URL (필지 NDVI JSON 게이트웨이) → F8 프록시→sentinel-2 자동전환")
 print(" · 알림:   SLACK_WEBHOOK_URL / COOLSMS_* / SMTP_USER·PASSWORD")
