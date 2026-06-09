@@ -1,0 +1,72 @@
+{
+  "_comment": "현장컨설팅 문진 체크리스트 — 텔레메트리로 자동진단 안 되는 항목을 컨설턴트/농가가 직접 점검. 출처: RDA/이암허브 스마트농업 현장컨설팅 체크리스트(2024-08-13). 응답 status: good(양호)/warn(주의)/bad(불량)/na(해당없음). domain은 consulting_diagnosis 6대 도메인 키와 일치.",
+  "version": "1.0",
+  "status_options": [
+    {"v": "good", "label": "양호"},
+    {"v": "warn", "label": "주의"},
+    {"v": "bad", "label": "불량"},
+    {"v": "na", "label": "해당없음"}
+  ],
+  "sections": [
+    {
+      "domain": "sensor", "name": "센서 계측 점검",
+      "items": [
+        {"id": "sensor_calib", "label": "센서 영점·표준값 보정 상태(EC/pH 증류수 보정)"},
+        {"id": "sensor_clean", "label": "습도·PAR 센서 청소·증류수 보충(2주 주기)"},
+        {"id": "sensor_range", "label": "출력값 정상 범위·결측 매일 점검"},
+        {"id": "weather_station", "label": "외부 기상관측(풍향·풍속·감우·일사) 작동"}
+      ]
+    },
+    {
+      "domain": "actuator", "name": "구동기·제어 점검",
+      "items": [
+        {"id": "vent_motor", "label": "천창·측창 개폐 모터 작동·각도 보정"},
+        {"id": "heating_dev", "label": "난방기·튜브레일·FCU 작동·레일별 온도편차"},
+        {"id": "screen_dev", "label": "보온·차광 스크린 휨/처짐/찢김·열림각 보정"},
+        {"id": "nutrient_mix", "label": "양액기 EC/pH 보정·AB 100배 농도·필터 청소"},
+        {"id": "raw_water", "label": "원수탱크 저수량·필터 하우징 청소·압력 점검"},
+        {"id": "ro_filter", "label": "RO 유량·필터 전후 압력·교체 주기"},
+        {"id": "sulfur_fog", "label": "유황훈증기·포그(미세살포) 작동·열판 점검"},
+        {"id": "aircon_unit", "label": "공조기 제습·결로수 배출·3Way 밸브 시험"}
+      ]
+    },
+    {
+      "domain": "cultivation", "name": "환경·생육관리 점검",
+      "items": [
+        {"id": "env_setpoint", "label": "주야 온도·습도·CO₂ 설정값 적정성"},
+        {"id": "nutrient_recipe", "label": "생육단계·계절별 양수분(EC/pH·관수량) 레시피"},
+        {"id": "drain_analysis", "label": "배액 분석 기반 양액조성 조정"},
+        {"id": "pest_disease", "label": "병해충·생리장해 발생·약제/천적 관리"},
+        {"id": "pruning", "label": "적엽·생육조절(영양/생식 균형) 관리"},
+        {"id": "growth_record", "label": "초장·관부직경·착과수·수확수 주차별 기록"}
+      ]
+    },
+    {
+      "domain": "operation", "name": "경영·노동 점검",
+      "items": [
+        {"id": "biz_plan", "label": "생산목표·경영계획·재배력 수립"},
+        {"id": "labor_plan", "label": "작업 일정·노동력 배분·적기 작업"},
+        {"id": "cost_book", "label": "경영장부(경영기록장) 작성·원가 관리"},
+        {"id": "roi_monitor", "label": "스마트팜 투자 ROI 계산·모니터링"}
+      ]
+    },
+    {
+      "domain": "sales", "name": "유통·마케팅 점검",
+      "items": [
+        {"id": "sales_channel", "label": "출하 채널(도매·공판·직거래·공동출하) 다변화"},
+        {"id": "grading", "label": "선별·등급화·상품화 역량"},
+        {"id": "certification", "label": "GAP·저탄소 등 인증 보유·관리"},
+        {"id": "market_expand", "label": "판로 확대·출하 공백기 매출 대응"}
+      ]
+    },
+    {
+      "domain": "data", "name": "데이터 관리·분석 점검",
+      "items": [
+        {"id": "farm_software", "label": "농장관리 소프트웨어 도입·일/작기별 데이터 분석"},
+        {"id": "energy_data", "label": "에너지 사용·환경설정 데이터 관리"},
+        {"id": "below_ground", "label": "관부온습도·EC·배지저울 수분흡수/배액 데이터"},
+        {"id": "recycle_plan", "label": "물·영양소 재활용 계획"}
+      ]
+    }
+  ]
+}

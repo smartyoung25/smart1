@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <title>C18 — 현장컨설팅 문진 | KAASA SmartOS</title>
+  <link rel="stylesheet" href="../components/base.css"/>
+  <style>
+    .ck-body{padding:14px;max-width:480px;margin:0 auto;padding-bottom:110px;}
+    .ck-intro{background:var(--panel-soft);border-radius:12px;padding:11px 13px;font-size:11.5px;color:var(--muted);line-height:1.55;margin-bottom:12px;}
+    .ck-sec{background:var(--panel);border:1.5px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:11px;}
+    .ck-sec-h{font-size:14px;font-weight:800;margin-bottom:4px;display:flex;align-items:center;gap:6px;}
+    .ck-sec-prog{font-size:10px;font-weight:700;color:var(--muted);}
+    .ck-item{padding:10px 0;border-bottom:1px solid var(--border);}
+    .ck-item:last-child{border-bottom:none;}
+    .ck-label{font-size:12.5px;font-weight:600;line-height:1.5;margin-bottom:7px;}
+    .ck-opts{display:flex;gap:6px;}
+    .ck-opt{flex:1;padding:8px 4px;border:1.5px solid var(--border);border-radius:8px;font-size:12px;font-weight:700;
+      background:var(--panel);color:var(--muted);cursor:pointer;text-align:center;min-height:40px;}
+    .ck-opt.sel-good{background:var(--green);color:#fff;border-color:var(--green);}
+    .ck-opt.sel-warn{background:var(--orange);color:#fff;border-color:var(--orange);}
+    .ck-opt.sel-bad{background:var(--red);color:#fff;border-color:var(--red);}
+    .ck-opt.sel-na{background:var(--gray-soft);color:var(--text);border-color:var(--muted);}
+    .ck-memo{width:100%;margin-top:7px;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:12px;
+      background:var(--panel);color:var(--text);display:none;}
+    .ck-memo.show{display:block;}
+    .ck-save{position:fixed;left:0;right:0;bottom:0;max-width:480px;margin:0 auto;padding:12px 14px calc(12px + env(safe-area-inset-bottom));
+      background:var(--panel);border-top:1px solid var(--border);}
+    .ck-save-btn{width:100%;padding:15px;background:var(--green);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:800;cursor:pointer;min-height:50px;}
+    .ck-save-btn:disabled{opacity:.6;}
+    .ck-msg{font-size:12px;font-weight:700;text-align:center;min-height:16px;margin-bottom:6px;}
+    .ck-name{width:100%;padding:11px 13px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;background:var(--panel);color:var(--text);margin-bottom:12px;}
+  </style>
+</head>
+<body>
+<header class="sf-header">
+  <span style="font-size:13px;color:rgba(255,255,255,.85);cursor:pointer;" onclick="location.href='c17_diagnosis.html'">‹ 진단</span>
+  <span style="font-size:15px;font-weight:800;color:#fff;">C18 현장컨설팅 문진</span>
+  <span style="width:40px;"></span>
+</header>
+<main class="ck-body">
+  <div class="ck-intro">현장 점검 결과를 입력하면 <b>센서가 못 보는 항목(원수·필터·유황훈증·병해충·인증 등)</b>까지 종합진단에 반영됩니다. 각 항목 상태를 선택하세요 (불량·주의 선택 시 메모 입력). 출처: RDA 스마트농업 현장컨설팅 체크리스트.</div>
+  <input class="ck-name" id="ckName" placeholder="컨설턴트/점검자 이름 (선택)"/>
+  <div id="ckSections"><div style="text-align:center;padding:20px;color:var(--muted);"><div class="spinner"></div></div></div>
+</main>
+<div class="ck-save">
+  <div class="ck-msg" id="ckMsg"></div>
+  <button class="ck-save-btn" id="ckSaveBtn" onclick="_save()">진단에 반영 · 저장</button>
+</div>
+<nav class="sf-bottom-nav" style="bottom:74px;">
+  <button class="bnav-tab" onclick="location.href='c3_home.html'"><span class="bnav-icon">🏠</span>홈</button>
+  <button class="bnav-tab" onclick="location.href='g1_home.html'"><span class="bnav-icon">🌱</span>온실</button>
+  <button class="bnav-tab" onclick="location.href='f1_field.html'"><span class="bnav-icon">🌾</span>노지</button>
+  <button class="bnav-tab" onclick="location.href='c12_joint.html'"><span class="bnav-icon">🚚</span>출하</button>
+  <button class="bnav-tab" onclick="location.href='../index.html'"><span class="bnav-icon">≡</span>메뉴</button>
+</nav>
+<script src="../components/data.js"></script>
+<script>
+'use strict';
+let _farmG='farm_001', _tokG='', _resp={}, _opts=[];
+const DOM_ICO={sensor:'📡',actuator:'⚙️',cultivation:'🌿',operation:'📋',sales:'🚚',data:'🗂️'};
+window.addEventListener('DOMContentLoaded',()=>{
+  _farmG=new URLSearchParams(location.search).get('farm')||sessionStorage.getItem('sf_farm_id')||'farm_001';
+  _ensureToken().then(t=>{ _tokG=t; KaasaData.init&&KaasaData.init({farmId:_farmG,token:t,onStatus:()=>{}}); _load(t); });
+});
+async function _ensureToken(){const s=sessionStorage.getItem('sf_token');if(s)return s;try{const a=sessionStorage.getItem('sf_api')||location.origin;const r=await fetch(`${a}/api/v1/auth/token`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:'admin',password:'1250'})});if(r.ok){const d=await r.json();sessionStorage.setItem('sf_token',d.access_token);return d.access_token;}}catch{}return '';}
+
+async function _load(token){
+  const api=KaasaData.getApiBase?KaasaData.getApiBase():location.origin;
+  let d;
+  try{ d=await fetch(`${api}/api/farms/${_farmG}/diagnosis/checklist`,{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.json()); }
+  catch(e){ document.getElementById('ckSections').innerHTML='<div style="color:var(--muted);text-align:center;padding:20px;">불러오기 실패</div>'; return; }
+  _resp=d.responses||{}; _opts=(d.schema&&d.schema.status_options)||[];
+  if(d.consultant) document.getElementById('ckName').value=d.consultant;
+  const secs=(d.schema&&d.schema.sections)||[];
+  document.getElementById('ckSections').innerHTML=secs.map(sec=>{
+    const items=sec.items.map(it=>{
+      const cur=(_resp[it.id]||{}).status||'';
+      const opts=_opts.map(o=>`<div class="ck-opt ${cur===o.v?'sel-'+o.v:''}" data-item="${it.id}" data-v="${o.v}" onclick="_pick('${it.id}','${o.v}')">${o.label}</div>`).join('');
+      const memo=(_resp[it.id]||{}).memo||'';
+      const showMemo=(cur==='bad'||cur==='warn');
+      return `<div class="ck-item">
+        <div class="ck-label">${it.label}</div>
+        <div class="ck-opts" id="opts-${it.id}">${opts}</div>
+        <input class="ck-memo ${showMemo?'show':''}" id="memo-${it.id}" placeholder="메모 (조치사항·특이점)" value="${memo.replace(/"/g,'&quot;')}" oninput="_memo('${it.id}',this.value)"/>
+      </div>`;
+    }).join('');
+    return `<div class="ck-sec"><div class="ck-sec-h">${DOM_ICO[sec.domain]||'•'} ${sec.name}
+      <span class="ck-sec-prog" id="prog-${sec.domain}"></span></div>${items}</div>`;
+  }).join('');
+  secs.forEach(s=>_prog(s));
+}
+function _pick(id,v){
+  _resp[id]=_resp[id]||{}; _resp[id].status=v;
+  document.querySelectorAll(`#opts-${id} .ck-opt`).forEach(el=>{
+    el.className='ck-opt'+(el.dataset.v===v?' sel-'+v:'');
+  });
+  const m=document.getElementById('memo-'+id);
+  if(m) m.classList.toggle('show', v==='bad'||v==='warn');
+  // 진행률 갱신
+  document.querySelectorAll('[id^="prog-"]').forEach(p=>{});
+  _refreshProg();
+}
+function _memo(id,v){ _resp[id]=_resp[id]||{}; _resp[id].memo=v; }
+function _prog(sec){
+  const done=sec.items.filter(it=>(_resp[it.id]||{}).status).length;
+  const el=document.getElementById('prog-'+sec.domain);
+  if(el) el.textContent=`${done}/${sec.items.length}`;
+}
+function _refreshProg(){
+  // 섹션별 재계산(스키마 보관 대신 DOM 기반)
+  document.querySelectorAll('.ck-sec').forEach(sec=>{
+    const ids=[...sec.querySelectorAll('.ck-opts')].map(o=>o.id.replace('opts-',''));
+    const done=ids.filter(id=>(_resp[id]||{}).status).length;
+    const p=sec.querySelector('.ck-sec-prog'); if(p) p.textContent=`${done}/${ids.length}`;
+  });
+}
+async function _save(){
+  const btn=document.getElementById('ckSaveBtn'), msg=document.getElementById('ckMsg');
+  btn.disabled=true; btn.textContent='저장 중…';
+  const api=KaasaData.getApiBase?KaasaData.getApiBase():location.origin;
+  try{
+    const r=await fetch(`${api}/api/farms/${_farmG}/diagnosis/checklist`,{
+      method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${_tokG}`},
+      body:JSON.stringify({responses:_resp,consultant:document.getElementById('ckName').value.trim()})});
+    if(r.status===403){ msg.style.color='var(--orange)'; msg.textContent='데모(읽기전용) 모드 — 저장 비활성화'; }
+    else if(!r.ok){ throw new Error('HTTP '+r.status); }
+    else{
+      const d=await r.json();
+      msg.style.color='var(--green)'; msg.textContent=`✓ ${d.saved_items}항목 저장 — 진단 반영됨`;
+      setTimeout(()=>{ location.href='c17_diagnosis.html'; }, 900);
+    }
+  }catch(e){ msg.style.color='var(--orange)'; msg.textContent='⚠ 저장 실패: '+(e.message||'오류'); }
+  btn.disabled=false; btn.textContent='진단에 반영 · 저장';
+}
+</script>
+</body>
+</html>

@@ -32,6 +32,15 @@ C17 처방 카드 → `[조치하러 가기]`(해당 화면 딥링크) + `[기�
 - `api/routers/farmer.py /diagnosis` — domains·priority_decisions 추가(기존 scores 유지)
 - `screens/c17_diagnosis.html` — 6대 영역 카드 + 우선순위 처방 + 원탭 기록
 
+## 현장 문진 체크리스트 (C18) — 텔레메트리 외 항목 보강
+센서로 못 보는 항목(원수·필터·RO·유황훈증·공조기·병해충·인증·판로 등)을 컨설턴트/농가가 직접 점검.
+- `api/data/diagnosis_checklist_schema.json` — 6도메인 30항목(RDA 체크리스트 인코딩)
+- `GET/POST /diagnosis/checklist` — 응답 저장(`data/diagnosis/{farm}.json`)
+- `screens/c18_checklist.html` — 항목별 양호/주의/불량/해당없음 + 메모, 진행률
+- 블렌딩: `_blend_checklist()` 가 도메인 점수를 텔레메트리:현장 = 50:50 으로 혼합,
+  **불량→danger 처방 최상위 / 주의→warn 처방** 자동 생성(기록 kind=consult)
+- 검수: 양액 불량·병해충 불량 입력 시 재배 75→38, "[현장] 병해충…" danger 처방이 1순위로 승격
+
 ## 데이터 정직성
 텔레메트리가 없으면 허위 점수 대신 **'점검필요(체크리스트)'** 항목으로 노출.
 (예: 장비 미등록 → "구동기 보유현황 점검필요", 배액 데이터 없음 → "배지저울 도입 권장")

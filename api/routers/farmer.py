@@ -4,7 +4,7 @@ import logging
 from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Body
 from pydantic import BaseModel, Field
 from typing import Optional
 from api.middleware.auth import require_auth
@@ -2887,6 +2887,50 @@ def _equipment_path(farm_id: str):
     return d / f"{farm_id}.json"
 
 
+def _checklist_path(farm_id: str):
+    from pathlib import Path as _P
+    d = _P(__file__).resolve().parents[1] / "data" / "diagnosis"
+    d.mkdir(parents=True, exist_ok=True)
+    return d / f"{farm_id}.json"
+
+
+def _load_checklist(farm_id: str) -> dict:
+    import json as _json
+    fp = _checklist_path(farm_id)
+    if fp.exists():
+        try: return _json.loads(fp.read_text(encoding="utf-8"))
+        except Exception: return {}
+    return {}
+
+
+@router.get("/diagnosis/checklist", summary="현장컨설팅 문진 체크리스트 스키마 + 저장응답")
+def get_diagnosis_checklist(farm_id: str):
+    import json as _json
+    from pathlib import Path as _P
+    _require_farm(farm_id)
+    sp = _P(__file__).resolve().parents[1] / "data" / "diagnosis_checklist_schema.json"
+    try: schema = _json.loads(sp.read_text(encoding="utf-8"))
+    except Exception: schema = {"sections": [], "status_options": []}
+    saved = _load_checklist(farm_id)
+    return {"schema": schema, "responses": saved.get("responses", {}),
+            "updated_at": saved.get("updated_at"), "consultant": saved.get("consultant", "")}
+
+
+@router.post("/diagnosis/checklist", summary="현장컨설팅 문진 응답 저장")
+def post_diagnosis_checklist(farm_id: str, body: dict = Body(...)):
+    import json as _json
+    from datetime import datetime as _dt, timezone as _tz
+    _require_farm(farm_id)
+    rec = {
+        "responses": body.get("responses", {}) or {},
+        "consultant": (body.get("consultant") or "").strip(),
+        "updated_at": _dt.now(_tz.utc).isoformat(),
+    }
+    _checklist_path(farm_id).write_text(_json.dumps(rec, ensure_ascii=False, indent=2), encoding="utf-8")
+    n = len(rec["responses"])
+    return {"ok": True, "saved_items": n, "updated_at": rec["updated_at"]}
+
+
 @router.get("/equipment/schema", summary="기자재 분류·통합 입력 스키마 반환")
 def get_equipment_schema(farm_id: str):
     import json as _json
@@ -3051,8 +3095,9 @@ def get_system_diagnosis(farm_id: str):
             _rev = _yld * _price
             if _rev > 0: _margin = round((_rev - _cost) / _rev * 100, 0)
         except Exception: _margin = None
+        _chk = _load_checklist(farm_id).get("responses", {})
         domains = build_domains(eq=eq, acts=acts, month_acts=month_acts, meta=meta,
-                                trank=trank, irr=_irr, margin_pct=_margin)
+                                trank=trank, irr=_irr, margin_pct=_margin, checklist=_chk)
         consult = summarize(domains)
     except Exception as _e:
         domains = []; consult = {}

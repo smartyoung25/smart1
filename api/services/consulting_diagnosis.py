@@ -18,6 +18,32 @@ decisions[].target = 딥링크 화면, .record = RecordSheet kind(이행기록 �
 """
 from __future__ import annotations
 from typing import Optional
+import json as _json
+from pathlib import Path as _Path
+
+_SCHEMA_PATH = _Path(__file__).resolve().parents[1] / "data" / "diagnosis_checklist_schema.json"
+
+
+def _checklist_index():
+    """item_id → (domain, label) 매핑 + 섹션 타깃. 스키마 파일 기반."""
+    try:
+        sc = _json.loads(_SCHEMA_PATH.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    idx = {}
+    for sec in sc.get("sections", []):
+        dom = sec.get("domain")
+        for it in sec.get("items", []):
+            idx[it["id"]] = (dom, it.get("label", it["id"]))
+    return idx
+
+
+# 도메인별 처방 딥링크(체크리스트 불량 항목 조치 화면)
+_DOMAIN_TARGET = {
+    "sensor": "c16_equipment.html", "actuator": "c16_equipment.html",
+    "cultivation": "g3_period.html", "operation": "c14_report.html",
+    "sales": "c12_joint.html", "data": "c14_report.html",
+}
 
 # ── 체크리스트 기반 표준 변수 분류 ──────────────────────────────
 SENSOR_VARS = {
@@ -49,8 +75,12 @@ def _domain(key, name, score, findings, decisions):
 
 
 def build_domains(*, eq, acts, month_acts, meta, trank,
-                  irr=None, costs=None, revenue_pm2=None, margin_pct=None) -> list:
-    """현장컨설팅 6대 도메인 진단. 모든 입력은 상위(farmer.py)에서 수집해 전달."""
+                  irr=None, costs=None, revenue_pm2=None, margin_pct=None, checklist=None) -> list:
+    """현장컨설팅 6대 도메인 진단. 모든 입력은 상위(farmer.py)에서 수집해 전달.
+
+    checklist: {item_id: {"status": "good|warn|bad|na", "memo": str}} — 현장 문진 응답.
+               텔레메트리로 못 보는 항목(원수·필터·유황훈증·병해충·인증 등)을 점수·처방에 반영.
+    """
     eq = eq or []; acts = acts or []; month_acts = month_acts or []; meta = meta or {}
     # 장비 데이터포인트 → 매핑된 표준변수 / 카테고리
     mapped = {dp.get("canonical_name") for i in eq for dp in (i.get("datapoints") or []) if dp.get("canonical_name")}
@@ -186,7 +216,50 @@ def build_domains(*, eq, acts, month_acts, meta, trank,
                        "action": "기록 확대", "target": "c14_report.html", "record": "todo"})
     domains.append(_domain("data", "데이터·연동", s_data, f_data, d_data))
 
+    # ── 현장 문진 체크리스트 블렌딩 (텔레메트리 외 항목 반영) ──────
+    _blend_checklist(domains, checklist or {})
     return domains
+
+
+_SCORE_MAP = {"good": 100, "warn": 50, "bad": 0}
+
+
+def _blend_checklist(domains, responses):
+    """체크리스트 응답을 도메인별로 집계해 점수 블렌딩 + 불량/주의 항목을 진단·처방에 추가."""
+    if not responses:
+        return
+    idx = _checklist_index()
+    by_dom = {}
+    for item_id, resp in responses.items():
+        meta = idx.get(item_id)
+        if not meta:
+            continue
+        dom, label = meta
+        status = (resp or {}).get("status") if isinstance(resp, dict) else resp
+        if status not in _SCORE_MAP:   # na/빈값 제외
+            continue
+        memo = (resp or {}).get("memo", "") if isinstance(resp, dict) else ""
+        by_dom.setdefault(dom, []).append((item_id, label, status, memo))
+    for d in domains:
+        items = by_dom.get(d["key"])
+        if not items:
+            continue
+        chk_score = round(sum(_SCORE_MAP[s] for _, _, s, _ in items) / len(items))
+        # 텔레메트리 점수와 50:50 블렌딩 (현장 점검 반영)
+        d["score"] = int(round(d["score"] * 0.5 + chk_score * 0.5))
+        d["status"] = _status(d["score"])
+        bad = [(l, m) for _, l, s, m in items if s == "bad"]
+        warn = [(l, m) for _, l, s, m in items if s == "warn"]
+        d["findings"].append(f"📋 현장점검 {len(items)}항목 (불량 {len(bad)}·주의 {len(warn)})")
+        tgt = _DOMAIN_TARGET.get(d["key"], "c16_equipment.html")
+        for label, memo in bad:
+            d["decisions"].insert(0, {"severity": "danger", "title": f"[현장] {label}",
+                "detail": (memo or "현장 점검 결과 불량 — 즉시 조치 필요"),
+                "action": "현장 조치", "target": tgt, "record": "consult"})
+        for label, memo in warn:
+            d["decisions"].append({"severity": "warn", "title": f"[현장] {label}",
+                "detail": (memo or "현장 점검 결과 주의 — 개선 검토"),
+                "action": "개선 검토", "target": tgt, "record": "consult"})
 
 
 def summarize(domains: list) -> dict:
