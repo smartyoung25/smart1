@@ -610,6 +610,26 @@ const KaasaData = (() => {
     window.addEventListener('online',  () => _setNet(true));
   }
 
+  // ── 경량 텔레메트리 — 클라이언트 런타임 에러 자동 수집(Sentry 대체) ──────────
+  let _telCount = 0, _telSeen = {};
+  function _telSend(type, message, extra) {
+    if (_telCount >= 20) return;                 // 세션당 상한(폭주 방지)
+    const k = (type + '|' + (message || '')).slice(0, 120);
+    if (_telSeen[k]) return; _telSeen[k] = 1;    // 동일 에러 중복 제거
+    _telCount++;
+    try {
+      const api = (typeof KaasaData !== 'undefined' && KaasaData.getApiBase) ? KaasaData.getApiBase() : location.origin;
+      const body = JSON.stringify({ type, message: String(message || '').slice(0, 500),
+        url: location.pathname, ua: navigator.userAgent, extra: extra || null });
+      if (navigator.sendBeacon) navigator.sendBeacon(api + '/api/telemetry/client', new Blob([body], {type:'application/json'}));
+      else fetch(api + '/api/telemetry/client', {method:'POST', headers:{'Content-Type':'application/json'}, body, keepalive:true}).catch(()=>{});
+    } catch (e) {}
+  }
+  if (typeof window !== 'undefined') {
+    window.addEventListener('error', e => _telSend('js-error', (e.message||'') + ' @' + (e.filename||'').split('/').pop() + ':' + (e.lineno||'')));
+    window.addEventListener('unhandledrejection', e => _telSend('promise-reject', (e.reason && (e.reason.message||e.reason)) + ''));
+  }
+
   if (typeof document !== 'undefined') {
     document.addEventListener('DOMContentLoaded', () => {
       try {

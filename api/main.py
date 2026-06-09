@@ -21,6 +21,7 @@ from api.routers.recommend_v2 import router as recommend_v2_router
 from api.routers.ws import router as ws_router, _setup_mqtt_bridge
 from api.routers.billing import farm_router as billing_farm_router, admin_router as billing_admin_router
 from api.routers.data_collection import router as data_collection_router
+from api.routers.telemetry import router as telemetry_router
 from api.middleware.auth import JWTMiddleware
 
 # ── Rate limiter ──────────────────────────────────────────────────────────────
@@ -59,7 +60,7 @@ _PUBLIC_DEMO = os.environ.get("PUBLIC_DEMO", "").lower() in ("1", "true", "yes")
 if _PUBLIC_DEMO:
     from starlette.responses import JSONResponse as _JSONResp
     _WRITE = {"POST", "PUT", "PATCH", "DELETE"}
-    _WRITE_ALLOW = {"/api/v1/auth/token"}   # 자동로그인(읽기 토큰 발급)만 허용
+    _WRITE_ALLOW = {"/api/v1/auth/token", "/api/telemetry/client"}   # 로그인·에러텔레메트리만 허용
 
     class PublicDemoMiddleware:
         def __init__(self, app): self.app = app
@@ -91,6 +92,7 @@ app.include_router(billing_farm_router,  prefix="/api/farms/{farm_id}")
 app.include_router(billing_admin_router, prefix="/api/admin")
 # 데이터 수집 라우터 (생육 측정값 / 수확량 실측값)
 app.include_router(data_collection_router)
+app.include_router(telemetry_router)
 
 
 @app.on_event("startup")

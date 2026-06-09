@@ -39,6 +39,7 @@ _PUBLIC_PATHS: set[str] = {
     "/api/v1/auth/register",     # 신규 회원가입
     "/api/v1/auth/onboarding",   # 온보딩 저장 (JWT 의존성으로 별도 검증)
     "/api/v1/auth/onboarding/status",
+    "/api/telemetry/client",     # 클라이언트 에러 텔레메트리(비인증 수집)
     "/docs",
     "/redoc",
     "/openapi.json",
