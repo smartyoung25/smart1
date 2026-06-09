@@ -476,6 +476,7 @@ const KaasaData = (() => {
       ['f7_harvest.html', '🚜', '노지 수확'],
     ]},
     { g: '경영·시스템', items: [
+      ['c20_cluster_admin.html', '🗺️', '다중농가 클러스터 관제'],
       ['c17_diagnosis.html', '🩺', '시스템 종합진단'],
       ['c16_equipment.html', '🔌', '시설 기자재'],
       ['c5_erp.html', '💰', '수익성 ERP'],

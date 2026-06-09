@@ -1621,3 +1621,17 @@ def get_advisor_summary(days: int = Query(default=30, ge=1, le=90)):
         top_farms     = top_farms,
         top_fields    = top_fields,
     )
+
+
+@router.get("/cluster/overview", summary="다중농가 클러스터 관제 (지역·작목 광역 작황·진단 집계)")
+def get_cluster_overview(region: str = Query("", description="시도 필터"),
+                         crop: str = Query("", description="작목 필터")):
+    """등록 농장 전체를 지역·작목 클러스터로 집계 — 조직/정부사업/광역 작황 모니터링.
+    작황·진단 분포 + 이상 농가 위치특정 리스트. (require_role admin)"""
+    try:
+        from api.data.stats_loader import _farm_registry
+        farms = (_farm_registry() or {}).get("farms", {})
+    except Exception:
+        farms = {}
+    from api.services.cluster_overview import build_overview
+    return build_overview(farms, region=region, crop=crop)

@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <title>C20 — 다중농가 클러스터 관제 | KAASA SmartOS</title>
+  <link rel="stylesheet" href="../components/base.css"/>
+  <style>
+    .ca-body{padding:14px;max-width:480px;margin:0 auto;padding-bottom:90px;}
+    .ca-hero{background:linear-gradient(135deg,#0b3d2e,#14897a);border-radius:var(--radius);padding:16px 18px;color:#fff;margin-bottom:12px;}
+    .ca-hero-n{font-size:30px;font-weight:900;line-height:1;}
+    .ca-hero-s{font-size:12px;opacity:.92;margin-top:5px;}
+    .ca-stat-row{display:flex;gap:8px;margin-bottom:12px;}
+    .ca-stat{flex:1;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:10px;text-align:center;}
+    .ca-stat-v{font-size:18px;font-weight:900;}.ca-stat-l{font-size:10px;color:var(--muted);margin-top:2px;}
+    .ca-filter{display:flex;gap:8px;margin-bottom:12px;}
+    .ca-filter select{flex:1;min-height:42px;padding:8px 10px;border:1.5px solid var(--border);border-radius:10px;background:var(--panel);color:var(--text);font-size:13px;}
+    .ca-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);}
+    .ca-row:last-child{border-bottom:none;}
+    .ca-row-n{flex:0 0 78px;font-size:13px;font-weight:800;}
+    .ca-bar{flex:1;height:9px;background:var(--gray-soft);border-radius:5px;overflow:hidden;}
+    .ca-bar>i{display:block;height:100%;border-radius:5px;}
+    .ca-row-c{flex:0 0 auto;font-size:11px;color:var(--muted);white-space:nowrap;}
+    .ca-row-a{flex:0 0 auto;font-size:11px;font-weight:800;color:var(--red);white-space:nowrap;}
+    .al-card{display:flex;align-items:center;gap:10px;background:var(--panel);border:1.5px solid var(--border);border-left:4px solid var(--red);border-radius:12px;padding:11px 13px;margin-bottom:8px;}
+    .al-loc{flex:1;font-size:13px;font-weight:800;}
+    .al-d{font-size:11px;color:var(--muted);margin-top:2px;}
+    .al-go{flex:0 0 auto;padding:8px 12px;background:var(--green);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:800;cursor:pointer;}
+  </style>
+</head>
+<body>
+<header class="sf-header">
+  <span style="font-size:13px;color:rgba(255,255,255,.85);cursor:pointer;" onclick="location.href='../index.html'">‹ 메뉴</span>
+  <span style="font-size:15px;font-weight:800;color:#fff;">다중농가 클러스터 관제</span>
+  <span style="width:40px;"></span>
+</header>
+<main class="ca-body">
+  <div class="ca-hero">
+    <div style="font-size:12px;opacity:.9;">관제 대상 농가</div>
+    <div class="ca-hero-n" id="caTotal">—</div>
+    <div class="ca-hero-s" id="caSub">집계 중…</div>
+  </div>
+  <div class="ca-stat-row" id="caStats"></div>
+  <div class="ca-filter">
+    <select id="fRegion" onchange="_reload()"><option value="">전체 지역</option></select>
+    <select id="fCrop" onchange="_reload()"><option value="">전체 작목</option></select>
+  </div>
+
+  <div class="section-label">지역 클러스터 (작황·이상)</div>
+  <div class="card" style="padding:12px 14px;" id="caRegion"></div>
+
+  <div class="section-label" style="margin-top:14px;">작목 클러스터</div>
+  <div class="card" style="padding:12px 14px;" id="caCrop"></div>
+
+  <div class="section-label" style="margin-top:14px;">이상 농가 위치특정 <span class="trust-badge trust-live">🟢 진단→위치→실행</span></div>
+  <div id="caAlerts"></div>
+</main>
+<nav class="sf-bottom-nav">
+  <button class="bnav-tab" onclick="location.href='c3_home.html'"><span class="bnav-icon">🏠</span>홈</button>
+  <button class="bnav-tab" onclick="location.href='g1_home.html'"><span class="bnav-icon">🌱</span>온실</button>
+  <button class="bnav-tab" onclick="location.href='f1_field.html'"><span class="bnav-icon">🌾</span>노지</button>
+  <button class="bnav-tab" onclick="location.href='c12_joint.html'"><span class="bnav-icon">🚚</span>출하</button>
+  <button class="bnav-tab" onclick="location.href='../index.html'"><span class="bnav-icon">≡</span>메뉴</button>
+</nav>
+<script src="../components/data.js"></script>
+<script>
+'use strict';
+let _tokG='', _inited=false;
+const VCOL=v=>v>=0.62?'#16a34a':v>=0.55?'#f59e0b':'#dc2626';
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+window.addEventListener('DOMContentLoaded',()=>{ _ensureToken().then(t=>{ _tokG=t; _reload(); }); });
+async function _ensureToken(){const s=sessionStorage.getItem('sf_token');if(s)return s;try{const a=sessionStorage.getItem('sf_api')||location.origin;const r=await fetch(`${a}/api/v1/auth/token`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:'admin',password:'1250'})});if(r.ok){const d=await r.json();sessionStorage.setItem('sf_token',d.access_token);return d.access_token;}}catch{}return '';}
+function _drill(fid){ sessionStorage.setItem('sf_farm_id',fid); location.href='c17_diagnosis.html?farm='+encodeURIComponent(fid); }
+async function _reload(){
+  const api=(window.KaasaData&&KaasaData.getApiBase)?KaasaData.getApiBase():location.origin;
+  const region=document.getElementById('fRegion').value, crop=document.getElementById('fCrop').value;
+  let d;
+  try{ d=await fetch(`${api}/api/admin/cluster/overview?region=${encodeURIComponent(region)}&crop=${encodeURIComponent(crop)}`,{headers:{Authorization:`Bearer ${_tokG}`}}).then(r=>r.json()); }
+  catch(e){ document.getElementById('caSub').textContent='로드 실패'; return; }
+  const s=d.summary||{};
+  document.getElementById('caTotal').textContent=`${d.total_farms.toLocaleString()} 농가`;
+  document.getElementById('caSub').textContent=`평균 작황 NDVI ${s.avg_vigor} · 평균 진단 ${s.avg_diag}점`;
+  document.getElementById('caStats').innerHTML=`
+    <div class="ca-stat"><div class="ca-stat-v" style="color:var(--red)">${s.anomaly}</div><div class="ca-stat-l">이상 (${s.anomaly_pct}%)</div></div>
+    <div class="ca-stat"><div class="ca-stat-v" style="color:var(--orange)">${s.warn}</div><div class="ca-stat-l">주의</div></div>
+    <div class="ca-stat"><div class="ca-stat-v" style="color:var(--green)">${s.normal}</div><div class="ca-stat-l">정상</div></div>`;
+  if(!_inited){
+    document.getElementById('fRegion').innerHTML='<option value="">전체 지역</option>'+(d.regions||[]).map(r=>`<option value="${esc(r)}">${esc(r)}</option>`).join('');
+    document.getElementById('fCrop').innerHTML='<option value="">전체 작목</option>'+(d.crops||[]).map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('');
+    _inited=true;
+  }
+  const maxR=Math.max(...(d.by_region||[]).map(r=>r.count),1);
+  document.getElementById('caRegion').innerHTML=(d.by_region||[]).map(r=>`
+    <div class="ca-row"><span class="ca-row-n">${esc(r.name)}</span>
+      <div class="ca-bar"><i style="width:${Math.round(r.count/maxR*100)}%;background:${VCOL(r.avg_vigor)}"></i></div>
+      <span class="ca-row-c">${r.count}농가·작황${r.avg_vigor}</span>
+      ${r.anomaly?`<span class="ca-row-a">⚠${r.anomaly}</span>`:''}</div>`).join('')||'<div style="color:var(--muted);font-size:12px;">데이터 없음</div>';
+  const maxC=Math.max(...(d.by_crop||[]).map(r=>r.count),1);
+  document.getElementById('caCrop').innerHTML=(d.by_crop||[]).map(r=>`
+    <div class="ca-row"><span class="ca-row-n">${esc(r.name)}</span>
+      <div class="ca-bar"><i style="width:${Math.round(r.count/maxC*100)}%;background:${VCOL(r.avg_vigor)}"></i></div>
+      <span class="ca-row-c">${r.count}농가</span>
+      ${r.anomaly?`<span class="ca-row-a">⚠${r.anomaly}</span>`:''}</div>`).join('')||'<div style="color:var(--muted);font-size:12px;">데이터 없음</div>';
+  document.getElementById('caAlerts').innerHTML=(d.alerts||[]).slice(0,12).map(a=>`
+    <div class="al-card">
+      <div style="flex:1;"><div class="al-loc">📍 ${esc(a.location)} · ${esc(a.crop)}</div><div class="al-d">${esc(a.detail)}</div></div>
+      <button class="al-go" onclick="_drill('${esc(a.farm_id)}')">진단 →</button>
+    </div>`).join('')||'<div style="text-align:center;padding:16px;color:var(--green);font-size:13px;">✅ 이상 농가 없음</div>';
+}
+</script>
+</body>
+</html>
