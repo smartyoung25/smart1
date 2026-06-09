@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" rx="96" fill="#0f5132"/>
+  <circle cx="256" cy="256" r="150" fill="#1f9d55" opacity="0.25"/>
+  <!-- 잎 -->
+  <path d="M256 360 C256 240 320 170 410 150 C400 280 330 350 256 360 Z" fill="#2f9a62"/>
+  <path d="M256 360 C256 250 196 185 110 168 C122 285 188 350 256 360 Z" fill="#1f9d55"/>
+  <!-- 줄기 -->
+  <rect x="248" y="300" width="16" height="120" rx="8" fill="#0b3d2e"/>
+  <!-- 데이터 점 -->
+  <circle cx="160" cy="150" r="18" fill="#fff" opacity="0.9"/>
+  <circle cx="352" cy="130" r="14" fill="#ffd34d"/>
+</svg>

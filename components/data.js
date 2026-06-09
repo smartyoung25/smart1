@@ -630,10 +630,26 @@ const KaasaData = (() => {
     window.addEventListener('unhandledrejection', e => _telSend('promise-reject', (e.reason && (e.reason.message||e.reason)) + ''));
   }
 
+  // ── PWA — manifest 링크·테마색 주입 + 서비스워커 등록 (전 화면 공통) ──────────
+  function _installPwa() {
+    try {
+      const head = document.head;
+      if (head && !document.querySelector('link[rel="manifest"]')) {
+        const m = document.createElement('link'); m.rel = 'manifest'; m.href = '/manifest.webmanifest'; head.appendChild(m);
+        const t = document.createElement('meta'); t.name = 'theme-color'; t.content = '#0f5132'; head.appendChild(t);
+        const a = document.createElement('meta'); a.name = 'apple-mobile-web-app-capable'; a.content = 'yes'; head.appendChild(a);
+        const ai = document.createElement('link'); ai.rel = 'apple-touch-icon'; ai.href = '/icon.svg'; head.appendChild(ai);
+      }
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(() => {});
+      }
+    } catch (e) {}
+  }
+
   if (typeof document !== 'undefined') {
     document.addEventListener('DOMContentLoaded', () => {
       try {
-        _buildDrawer(); _bindMenuTab(); _renderStratBands();
+        _buildDrawer(); _bindMenuTab(); _renderStratBands(); _installPwa();
         if (navigator && navigator.onLine === false) _setNet(false);  // 진입 시 오프라인이면 즉시 표시
       } catch (e) {}
     });

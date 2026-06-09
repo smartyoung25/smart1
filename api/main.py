@@ -173,3 +173,18 @@ if _INTRO.exists():
     @app.get("/intro/", include_in_schema=False)
     def serve_intro():
         return FileResponse(str(_INTRO))
+
+# PWA — manifest·service worker·아이콘 (루트 스코프로 전 화면 제어)
+@app.get("/manifest.webmanifest", include_in_schema=False)
+def serve_manifest():
+    return FileResponse(str(_SMARTOS_ROOT / "manifest.webmanifest"), media_type="application/manifest+json")
+
+@app.get("/sw.js", include_in_schema=False)
+def serve_sw():
+    # SW는 루트 스코프 제어를 위해 캐시 무효화 헤더와 함께 서빙
+    return FileResponse(str(_SMARTOS_ROOT / "sw.js"), media_type="application/javascript",
+                        headers={"Cache-Control": "no-cache", "Service-Worker-Allowed": "/"})
+
+@app.get("/icon.svg", include_in_schema=False)
+def serve_icon():
+    return FileResponse(str(_SMARTOS_ROOT / "icon.svg"), media_type="image/svg+xml")

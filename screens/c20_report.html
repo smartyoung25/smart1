@@ -44,8 +44,17 @@ async function _build(token){
   const qp=new URLSearchParams(location.search);
   const region=qp.get('region')||'', crop=qp.get('crop')||'';
   let d;
-  try{ d=await fetch(`${api}/api/admin/cluster/overview?region=${encodeURIComponent(region)}&crop=${encodeURIComponent(crop)}`,{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.json()); }
-  catch(e){ document.getElementById('page').innerHTML='<div style="padding:40px;text-align:center;color:#d23b3b;">데이터를 불러오지 못했습니다.</div>'; return; }
+  try{
+    const r=await fetch(`${api}/api/admin/cluster/overview?region=${encodeURIComponent(region)}&crop=${encodeURIComponent(crop)}`,{headers:{Authorization:`Bearer ${token}`}});
+    if(!r.ok){
+      document.getElementById('page').innerHTML='<div style="padding:40px;text-align:center;color:#5a6678;">'
+        + (r.status===403 ? '관제 보고서는 관리자 전용입니다. (공개 데모에서는 비활성)' : `데이터를 불러오지 못했습니다 (${r.status}).`)
+        + '</div>'; return;
+    }
+    d=await r.json();
+  }
+  catch(e){ document.getElementById('page').innerHTML='<div style="padding:40px;text-align:center;color:#d23b3b;">데이터를 불러오지 못했습니다 — 네트워크 확인.</div>'; return; }
+  if(!d || d.total_farms==null){ document.getElementById('page').innerHTML='<div style="padding:40px;text-align:center;color:#5a6678;">집계 데이터가 없습니다.</div>'; return; }
   const s=d.summary||{};
   const now=new Date(), ymd=`${now.getFullYear()}. ${now.getMonth()+1}. ${now.getDate()}.`;
   const scope=[region||'전국', crop||'전작목'].join(' · ');

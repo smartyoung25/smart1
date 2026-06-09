@@ -1,0 +1,21 @@
+{
+  "name": "KAASA SmartOS — 스마트팜 의사결정 OS",
+  "short_name": "SmartOS",
+  "description": "온실·노지 통합 스마트팜 운영·진단·경영 의사결정 모바일 OS",
+  "start_url": "/intro",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f5132",
+  "theme_color": "#0f5132",
+  "lang": "ko",
+  "categories": ["agriculture", "productivity", "business"],
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ],
+  "shortcuts": [
+    { "name": "오늘의 결정(홈)", "url": "/screens/c3_home.html" },
+    { "name": "종합진단", "url": "/screens/c17_diagnosis.html" },
+    { "name": "노지 클러스터 작황", "url": "/screens/f8_cluster.html" }
+  ]
+}
