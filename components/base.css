@@ -330,3 +330,24 @@ section { margin-bottom: 24px; }
   min-height: 84px;
 }
 .kpi-value, .gh-kpi-val, .env-value, .pred-value { min-height: 24px; }
+
+/* ── 접근성 일관성 (전 화면 공통, 2026-06-09) ───────────────────────────── */
+/* 키보드 포커스 링 — 마우스 클릭엔 안 보이고 키보드 탐색 시만 표시 */
+a:focus-visible, button:focus-visible, select:focus-visible,
+input:focus-visible, textarea:focus-visible, [tabindex]:focus-visible,
+.bnav-tab:focus-visible, .sum-tab:focus-visible, [onclick]:focus-visible {
+  outline: 3px solid var(--green, #1f9d55);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+/* 콘텐츠 토글 탭 최소 터치 영역 확보 */
+.sum-tab { min-height: 40px; }
+/* 모션 감소 선호 사용자: 스피너·애니메이션 정지(어지럼 방지) */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
