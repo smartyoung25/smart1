@@ -52,6 +52,15 @@
   <div class="cl-wx" id="clWx"></div>
 
   <div class="section-label">필지별 식생활력 (NDVI) <span class="trust-badge trust-model">🛰️ 무센서</span></div>
+  <div class="card" id="clHeatCard" style="display:none;padding:12px 14px;margin-bottom:8px;">
+    <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:8px;">작황 히트맵 (필지 NDVI 분포)</div>
+    <div id="clHeat" style="display:flex;flex-wrap:wrap;gap:4px;"></div>
+    <div style="display:flex;align-items:center;gap:4px;margin-top:10px;font-size:9.5px;color:var(--muted);">
+      <span>저활력</span>
+      <span style="flex:1;height:8px;border-radius:4px;background:linear-gradient(90deg,#dc2626,#f59e0b,#16a34a);"></span>
+      <span>고활력</span>
+    </div>
+  </div>
   <div class="cl-grid" id="clGridCells"></div>
   <div style="font-size:10px;color:var(--muted);margin:2px 0 12px;">색상: 🟥 주의(&lt;0.55) · 🟧 보통(0.55~0.70) · 🟩 우수(≥0.70) · Δ는 클러스터 평균 대비 편차</div>
 
@@ -102,6 +111,21 @@ async function _load(token){
   const w=d.weather_stress||{};
   document.getElementById('clWx').innerHTML=`🌦️ <b>무센서 기상 스트레스</b> — ${esc(w.note||'데이터 없음')}`
     + (w.water_stress_pct>=25?` <span style="color:var(--orange);font-weight:700;">(관개 우선 검토)</span>`:'');
+  // 작황 히트맵 — 필지 NDVI 타일(연속 색상)
+  const _heatColor=v=>{ const t=Math.max(0,Math.min(1,(v-0.40)/0.50)); // 0.40~0.90
+    const r=t<0.5?220:Math.round(220-(t-0.5)*2*180), g=t<0.5?Math.round(38+t*2*120):158, b=38;
+    return `rgb(${r},${g},${b})`; };
+  const ps=d.parcels||[];
+  if(ps.length){
+    document.getElementById('clHeatCard').style.display='block';
+    document.getElementById('clHeat').innerHTML=ps.map((r,i)=>`
+      <div title="${esc(r.name)} · NDVI ${r.ndvi.toFixed(2)} (${esc(r.status)})"
+        onclick="document.querySelectorAll('.cl-cell')[${i}]?.scrollIntoView({block:'center'})"
+        style="width:30px;height:30px;border-radius:5px;cursor:pointer;background:${_heatColor(r.ndvi)};
+        ${r.status==='이상'?'box-shadow:0 0 0 2px var(--red);':''}
+        display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:800;color:#fff;">
+        ${r.ndvi.toFixed(2).slice(1)}</div>`).join('');
+  }
   document.getElementById('clGridCells').innerHTML=(d.parcels||[]).map(r=>`
     <div class="cl-cell" style="background:${NCOL(r.ndvi)}">
       <span class="cl-cell-badge">${esc(r.status)}</span>
