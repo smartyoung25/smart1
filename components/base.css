@@ -358,3 +358,26 @@ input:focus-visible, textarea:focus-visible, [tabindex]:focus-visible,
     scroll-behavior: auto !important;
   }
 }
+
+/* ── UI/UX 효과성·효율성 (전 화면 공통, 2026-06-09) ───────────────────────── */
+/* 1) 촉각 피드백 — 모든 인터랙티브 요소에 누름 반응(반응성 체감↑) */
+button, .bnav-tab, .screen-card, .sum-tab, .svc-card, .jump-btn, a.card, [role="button"] {
+  transition: transform .12s ease, box-shadow .12s ease, opacity .12s ease;
+}
+button:active, .bnav-tab:active, .screen-card:active, .sum-tab:active,
+.svc-card:active, .jump-btn:active, a.card:active, [role="button"]:active {
+  transform: scale(.975);
+}
+/* 2) 헤더 아이콘 버튼 최소 터치영역(44px 권장) — 누르기 쉬움 */
+.sf-header button, .sf-header [onclick] {
+  min-width: 40px; min-height: 40px;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+/* 3) 앵커 점프 시 sticky 헤더에 가리지 않도록 여유 확보(이동 정확도) */
+[id] { scroll-margin-top: 64px; }
+/* 4) 가로 스크롤 스트립 관성 스크롤(부드러운 탐색) */
+[style*="overflow-x"], .strat-band { -webkit-overflow-scrolling: touch; scrollbar-width: thin; }
+/* 5) 링크형 카드 hover 시 살짝 떠오름(가시적 어포던스, 데스크톱) */
+@media (hover: hover) {
+  .screen-card:hover, .svc-card:hover, a.card:hover { box-shadow: 0 4px 14px rgba(0,0,0,.12); }
+}
