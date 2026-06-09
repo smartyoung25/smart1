@@ -43,6 +43,11 @@
   <div class="section-label">등록 장비</div>
   <div id="eqList"><div class="eq-empty">불러오는 중…</div></div>
   <button class="addbtn" style="margin-top:12px;" onclick="_openAdd()">＋ 장비 추가</button>
+
+  <div id="nextStep" style="display:none;margin-top:16px;">
+    <div style="font-size:13px;color:var(--muted);text-align:center;margin-bottom:10px;line-height:1.5;">장비 연동을 마쳤습니다. 다음으로 <b>시스템 종합진단</b>으로 현재 역량과 개선 처방을 확인하세요.</div>
+    <button onclick="location.href='c17_diagnosis.html'" style="width:100%;padding:14px;background:var(--green);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:800;cursor:pointer;min-height:48px;">🩺 종합진단 받기 →</button>
+  </div>
 </main>
 
 <!-- 장비 추가 시트 -->
@@ -182,7 +187,9 @@ async function _loadList(){
   const d=await fetch(`${api}/api/farms/${_farmG}/equipment`,{headers:{Authorization:`Bearer ${_tokenG}`}}).then(r=>r.json()).catch(()=>({items:[]}));
   const items=d.items||[];
   const el=document.getElementById('eqList');
-  if(!items.length){ el.innerHTML='<div class="eq-empty">등록된 장비가 없습니다. ＋ 장비 추가로 시작하세요.</div>'; document.getElementById('mapSummary').style.display='none'; return; }
+  var _ns=document.getElementById('nextStep');
+  if(!items.length){ el.innerHTML='<div class="eq-empty">등록된 장비가 없습니다. ＋ 장비 추가로 시작하세요.</div>'; document.getElementById('mapSummary').style.display='none'; if(_ns)_ns.style.display='none'; return; }
+  if(_ns)_ns.style.display='block';
   el.innerHTML=items.map(it=>{
     const dps=(it.datapoints||[]);
     const mapped=dps.filter(p=>p.canonical_name);
