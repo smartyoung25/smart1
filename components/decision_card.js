@@ -204,5 +204,21 @@
     return items;
   }
 
-  global.DecisionDeck = { render, buildGreenhouse, buildField, buildFieldHazards };
+  // 노지 클러스터 작황 이상알림(/field/cluster) → 위치특정 의사결정 카드
+  // alerts: [{location,type,ndvi,deviation_pct,severity,action,target,record}]
+  function buildFieldCluster(alerts, opts) {
+    opts = opts || {}; const items = [];
+    for (const a of (alerts || []).slice(0, 3)) {
+      const sev = a.severity === 'danger' ? 'danger' : 'warn';
+      items.push({ severity: sev,
+        title: `📍 ${a.location} — ${a.type} (Δ${Number(a.deviation_pct).toFixed(0)}%)`,
+        why: `위성 식생지수 NDVI ${Number(a.ndvi).toFixed(2)} · 클러스터 평균 대비 ${Number(a.deviation_pct).toFixed(1)}%. ${a.action || '현장 확인 권장'}.`,
+        action: a.action || '현장 확인', confidence: 64, source: 'model', updatedMin: opts.age ?? 30,
+        evidence: '무센서 위성·기상 작황진단. 평균 대비 음(-)편차가 큰 필지를 우선 점검.',
+        applyLabel: '현장확인 기록', target: a.target || 'f8_cluster.html' });
+    }
+    return items;
+  }
+
+  global.DecisionDeck = { render, buildGreenhouse, buildField, buildFieldHazards, buildFieldCluster };
 })(window);
