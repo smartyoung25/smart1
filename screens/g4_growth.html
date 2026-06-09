@@ -192,6 +192,10 @@
   </div>
 
   <button onclick="_openGrowthMeasure()" style="width:100%;margin-top:14px;padding:15px;background:var(--green);color:#fff;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:800;cursor:pointer;min-height:48px;">🌿 생육 측정값 입력</button>
+  <div class="section-label" style="margin-top:16px;">생육 추세 (초장) <span class="trust-badge trust-live" id="growthTrendTag">🟢 측정기록</span></div>
+  <div class="card" id="growthTrendCard" style="padding:12px 8px 6px;display:none;">
+    <svg id="growthTrend" width="100%" height="120" viewBox="0 0 340 120" preserveAspectRatio="none"></svg>
+  </div>
   <div class="section-label" style="margin-top:16px;">최근 생육 측정</div>
   <div class="card" style="padding:12px 14px;" id="recentRec"></div>
 
@@ -242,7 +246,33 @@ const CROP_SEASON_DAYS = { '딸기':120, '오이':90, '완숙토마토':120, '�
 const CROP_DLI_TARGET  = { '딸기':10, '오이':20, '완숙토마토':25, '방울토마토':22, '파프리카':18, '참외':18 };
 let _tokenG='', _farmG='farm_001';
 
-function _refreshRecent(){ if(window.RecordSheet&&_tokenG) RecordSheet.renderRecent(document.getElementById('recentRec'),_farmG,_tokenG,{kinds:['growth'],limit:5}); }
+function _refreshRecent(){ if(window.RecordSheet&&_tokenG) RecordSheet.renderRecent(document.getElementById('recentRec'),_farmG,_tokenG,{kinds:['growth'],limit:5}); _loadGrowthTrend(); }
+
+// 초장 생육 추세 — growth 측정기록(value=초장) 시계열
+async function _loadGrowthTrend(){
+  try{
+    const api=KaasaData.getApiBase?KaasaData.getApiBase():location.origin;
+    const d=await fetch(`${api}/api/farms/${_farmG}/activity/summary`,{headers:{Authorization:`Bearer ${_tokenG}`}}).then(r=>r.json());
+    const gs=(d.recent||[]).filter(a=>a.kind==='growth'&&a.value!=null)
+      .map(a=>({t:a.ts, v:+a.value})).filter(a=>!isNaN(a.v))
+      .sort((a,b)=>(a.t||'').localeCompare(b.t||''));
+    const card=document.getElementById('growthTrendCard');
+    if(gs.length<2){ document.getElementById('growthTrendTag').textContent='⚪ 측정 2회↑ 필요'; card.style.display='none'; return; }
+    card.style.display='block';
+    const svg=document.getElementById('growthTrend'), W=340,H=120,pad=24,padT=10,padB=18, n=gs.length;
+    const vals=gs.map(g=>g.v), lo=Math.floor(Math.min(...vals)-5), hi=Math.ceil(Math.max(...vals)+5);
+    const xs=i=>pad+(W-pad-8)*(i/(n-1)), ys=v=>padT+(H-padB-padT)*(1-(v-lo)/((hi-lo)||1));
+    let s=`<polyline points="${gs.map((g,i)=>`${xs(i).toFixed(1)},${ys(g.v).toFixed(1)}`).join(' ')}" fill="none" stroke="#16a34a" stroke-width="2.5"/>`;
+    gs.forEach((g,i)=>{ s+=`<circle cx="${xs(i).toFixed(1)}" cy="${ys(g.v).toFixed(1)}" r="3.5" fill="#16a34a"/>
+      <text x="${xs(i).toFixed(1)}" y="${(ys(g.v)-7).toFixed(1)}" font-size="9" font-weight="700" fill="var(--text)" text-anchor="middle">${g.v}</text>`; });
+    [lo,hi].forEach(v=>{ s+=`<text x="2" y="${(ys(v)+3).toFixed(1)}" font-size="8" fill="var(--muted)">${v}</text>`; });
+    gs.forEach((g,i)=>{ if(i===0||i===n-1) s+=`<text x="${xs(i).toFixed(1)}" y="${H-4}" font-size="8" fill="var(--muted)" text-anchor="middle">${(g.t||'').slice(5,10)}</text>`; });
+    // 증가율
+    const rate=((vals[n-1]-vals[0])/Math.max(1,vals[0])*100).toFixed(0);
+    document.getElementById('growthTrendTag').textContent=`🟢 ${n}회 · 초장 ${vals[0]}→${vals[n-1]}cm (+${rate}%)`;
+    svg.innerHTML=s;
+  }catch(e){}
+}
 function _openGrowthMeasure(){
   RecordSheet.open({
     title:'🌿 생육 측정값 입력',
