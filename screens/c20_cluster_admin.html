@@ -98,8 +98,17 @@ async function _reload(){
   const api=(window.KaasaData&&KaasaData.getApiBase)?KaasaData.getApiBase():location.origin;
   const region=document.getElementById('fRegion').value, crop=document.getElementById('fCrop').value;
   let d;
-  try{ d=await fetch(`${api}/api/admin/cluster/overview?region=${encodeURIComponent(region)}&crop=${encodeURIComponent(crop)}`,{headers:{Authorization:`Bearer ${_tokG}`}}).then(r=>r.json()); }
-  catch(e){ document.getElementById('caSub').textContent='로드 실패'; return; }
+  try{
+    const r=await fetch(`${api}/api/admin/cluster/overview?region=${encodeURIComponent(region)}&crop=${encodeURIComponent(crop)}`,{headers:{Authorization:`Bearer ${_tokG}`}});
+    if(!r.ok){ // 403(데모/권한) 등 — graceful 안내
+      document.getElementById('caTotal').textContent='— 농가';
+      document.getElementById('caSub').textContent = r.status===403 ? '관제는 관리자 전용입니다 (공개 데모에서는 비활성)' : `로드 실패 (${r.status})`;
+      return;
+    }
+    d=await r.json();
+  }
+  catch(e){ document.getElementById('caSub').textContent='로드 실패 — 네트워크 확인'; return; }
+  if(!d || d.total_farms==null){ document.getElementById('caSub').textContent='데이터 없음'; return; }
   _DATA=d;
   const s=d.summary||{};
   document.getElementById('caTotal').textContent=`${d.total_farms.toLocaleString()} 농가`;
