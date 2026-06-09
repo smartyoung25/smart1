@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>월간 경영성과 리포트 (PDF) | KAASA SmartOS</title>
+  <link rel="stylesheet" href="../components/base.css"/>
+  <style>
+    :root{ --ink:#1a2332; --line:#d4d9e0; }
+    body{background:#5a6678;}
+    .rp-toolbar{position:sticky;top:0;z-index:10;background:var(--panel);display:flex;gap:8px;padding:10px 14px;max-width:794px;margin:0 auto;box-shadow:var(--shadow);}
+    .rp-toolbar button{flex:1;padding:11px;border:none;border-radius:9px;font-size:13px;font-weight:800;cursor:pointer;min-height:44px;}
+    .rp-print{background:var(--green);color:#fff;} .rp-back{background:var(--gray-soft);color:var(--text);flex:0 0 90px;}
+    .page{background:#fff;color:var(--ink);width:794px;max-width:100%;margin:16px auto;padding:48px 54px;box-shadow:0 4px 20px rgba(0,0,0,.3);box-sizing:border-box;font-size:13px;line-height:1.65;}
+    .rp-doc-title{text-align:center;font-size:23px;font-weight:900;letter-spacing:-.5px;margin:0 0 4px;}
+    .rp-doc-sub{text-align:center;font-size:13px;color:#5a6678;margin-bottom:6px;}
+    .rp-rule{height:3px;background:var(--ink);margin:10px 0 22px;}
+    .rp-meta{width:100%;border-collapse:collapse;margin-bottom:24px;font-size:12.5px;}
+    .rp-meta td{border:1px solid var(--line);padding:7px 11px;} .rp-meta td.k{background:#f1f4f8;font-weight:800;width:90px;white-space:nowrap;}
+    .rp-h{font-size:15px;font-weight:900;margin:24px 0 9px;padding-left:9px;border-left:4px solid var(--ink);}
+    .rp-hero{display:flex;align-items:center;gap:18px;border:2px solid var(--ink);border-radius:8px;padding:14px 20px;margin-bottom:6px;}
+    .rp-hero-score{font-size:38px;font-weight:900;line-height:1;}
+    .rp-hero-grade{font-size:15px;font-weight:900;padding:3px 12px;border-radius:6px;color:#fff;}
+    .rp-tbl{width:100%;border-collapse:collapse;font-size:12.5px;}
+    .rp-tbl th,.rp-tbl td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top;}
+    .rp-tbl th{background:#f1f4f8;font-weight:800;} .rp-tbl td.r{text-align:right;}
+    .rp-bar{height:8px;background:#eef1f5;border-radius:4px;overflow:hidden;width:80px;display:inline-block;vertical-align:middle;}
+    .rp-bar > i{display:block;height:100%;}
+    .rp-chip{font-size:10.5px;font-weight:800;padding:1px 7px;border-radius:5px;color:#fff;}
+    .up{color:#1f9d55;font-weight:800;} .down{color:#d23b3b;font-weight:800;} .flat{color:#7a8595;}
+    .rp-summary{border:1px solid var(--line);background:#f7f9fb;border-radius:7px;padding:14px 16px;font-size:13px;line-height:1.8;}
+    .rp-foot{margin-top:30px;padding-top:12px;border-top:1px solid var(--line);font-size:11px;color:#7a8595;display:flex;justify-content:space-between;}
+    .rp-na{color:#9aa3b0;}
+    @media print{ body{background:#fff;} .rp-toolbar,.sf-bottom-nav{display:none!important;} .page{box-shadow:none;margin:0;width:100%;padding:0;} @page{size:A4;margin:16mm 14mm;} }
+  </style>
+</head>
+<body>
+<div class="rp-toolbar">
+  <button class="rp-back" onclick="location.href='c14_report.html'">‹ 리포트</button>
+  <button class="rp-print" onclick="window.print()">🖨️ PDF로 저장 / 인쇄</button>
+</div>
+<div class="page" id="page"><div style="text-align:center;padding:40px;color:#5a6678;">리포트 생성 중…</div></div>
+<script src="../components/data.js"></script>
+<script>
+'use strict';
+let _farmG='farm_001';
+const SCOL=v=>v>=85?'#1f9d55':v>=60?'#d98324':'#d23b3b';
+const STLAB={good:'양호',warn:'주의',low:'미흡'};
+const STCOL={good:'#1f9d55',warn:'#d98324',low:'#d23b3b'};
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+window.addEventListener('DOMContentLoaded',()=>{
+  _farmG=new URLSearchParams(location.search).get('farm')||sessionStorage.getItem('sf_farm_id')||'farm_001';
+  _ensureToken().then(t=>{ KaasaData.init&&KaasaData.init({farmId:_farmG,token:t,onStatus:()=>{}}); _build(t); });
+});
+async function _ensureToken(){const s=sessionStorage.getItem('sf_token');if(s)return s;try{const a=sessionStorage.getItem('sf_api')||location.origin;const r=await fetch(`${a}/api/v1/auth/token`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:'admin',password:'1250'})});if(r.ok){const d=await r.json();sessionStorage.setItem('sf_token',d.access_token);return d.access_token;}}catch{}return '';}
+
+function _chg(v){ if(v==null) return '<span class="flat">-</span>';
+  const n=Number(v); if(Math.abs(n)<0.05) return '<span class="flat">±0.0%p</span>';
+  return n>0?`<span class="up">▲ ${n.toFixed(1)}%p</span>`:`<span class="down">▼ ${Math.abs(n).toFixed(1)}%p</span>`; }
+
+async function _build(token){
+  const api=KaasaData.getApiBase?KaasaData.getApiBase():location.origin, H={Authorization:`Bearer ${token}`};
+  let d;
+  try{ d=await fetch(`${api}/api/farms/${_farmG}/report/monthly`,{headers:H}).then(r=>r.json()); }
+  catch(e){ document.getElementById('page').innerHTML='<div style="padding:40px;text-align:center;color:#d23b3b;">데이터를 불러오지 못했습니다.</div>'; return; }
+  const now=new Date(), ymd=`${now.getFullYear()}. ${now.getMonth()+1}. ${now.getDate()}.`;
+  const areas=d.areas||{}, kpis=d.kpis||[], chg=d.changes_vs_prev||{}, L=d.learning||{};
+  const avg=d.avg_achievement_pct||0;
+
+  // 총평
+  const low=kpis.filter(k=>k.status==='low').map(k=>k.name);
+  const good=kpis.filter(k=>k.status==='good').map(k=>k.name);
+  const ups=Object.entries(chg).filter(([,v])=>Number(v)>0.05).map(([k])=>k);
+  const summary=`${esc(d.period)} 경영성과는 종합 <b>${esc(d.overall_grade)}</b> 등급(평균 목표달성률 ${avg}%)으로 평가된다. `
+    + (good.length?`<b>${good.slice(0,3).join('·')}</b> 지표는 목표를 충족하였으나, `:'')
+    + (low.length?`<b>${low.join('·')}</b> 지표는 목표 대비 미흡하여 우선 개선이 필요하다. `:'목표 미달 지표는 확인되지 않았다. ')
+    + (d.has_prev&&ups.length?`전월 대비 <b>${ups.slice(0,3).join('·')}</b> 항목이 개선되었다. `:'')
+    + `이행 데이터는 누적 ${L.month_activities||0}건(기여점수 ${L.contribution_points||0}P)으로, 농장 맞춤모델 재학습에 반영된다.`;
+
+  const html=`
+    <div class="rp-doc-title">월간 경영성과 리포트</div>
+    <div class="rp-doc-sub">KAASA SmartOS · 스마트농업 육성법 제5·6·9조 대응</div>
+    <div class="rp-rule"></div>
+    <table class="rp-meta"><tbody>
+      <tr><td class="k">농장</td><td>${esc(d.farm_id)}</td><td class="k">작목</td><td>${esc(d.crop||'-')}</td></tr>
+      <tr><td class="k">재배면적</td><td>${d.area_m2?Math.round(d.area_m2)+' m²':'-'}</td><td class="k">대상기간</td><td>${esc(d.period)}${d.has_prev?` (전월 ${esc(d.prev_period)})`:''}</td></tr>
+      <tr><td class="k">생성일</td><td colspan="3">${ymd}</td></tr>
+    </tbody></table>
+
+    <div class="rp-h">Ⅰ. 종합 경영성과</div>
+    <div class="rp-hero">
+      <div class="rp-hero-score" style="color:${SCOL(avg)}">${avg}<span style="font-size:15px;">%</span></div>
+      <div><span class="rp-hero-grade" style="background:${SCOL(avg)}">${esc(d.overall_grade)}</span>
+        <div style="font-size:12px;color:#5a6678;margin-top:6px;">평균 목표달성률 · 9대 성과지표 종합</div></div>
+    </div>
+
+    <div class="rp-h">Ⅱ. 6대 영역 종합</div>
+    <table class="rp-tbl"><tbody>${Object.entries(areas).map(([name,m])=>`<tr>
+      <th style="width:70px;">${esc(name)}</th>
+      <td>${Object.entries(m).map(([k,v])=>`<b>${esc(k)}</b> ${esc(v)}`).join('&nbsp;&nbsp;·&nbsp;&nbsp;')}</td></tr>`).join('')}</tbody></table>
+
+    <div class="rp-h">Ⅲ. 9대 성과지표 (목표 대비 · 전월 대비)</div>
+    <table class="rp-tbl"><thead><tr><th>지표</th><th style="width:110px;">실적/목표</th><th style="width:130px;">달성률</th><th style="width:90px;">전월대비</th></tr></thead>
+      <tbody>${kpis.map(k=>`<tr>
+        <td><b>${esc(k.name)}</b></td>
+        <td class="r">${esc(k.value)}${esc(k.unit||'')} / ${esc(k.target)}${esc(k.unit||'')}</td>
+        <td><span class="rp-bar"><i style="width:${Math.min(k.achievement_pct,100)}%;background:${STCOL[k.status]||'#7a8595'}"></i></span>
+          <b style="color:${STCOL[k.status]||'#7a8595'}">${k.achievement_pct}%</b> <span class="rp-chip" style="background:${STCOL[k.status]||'#7a8595'}">${STLAB[k.status]||k.status}</span></td>
+        <td>${_chg(chg[k.name]!=null?chg[k.name]:(k.name.includes('소득')?chg['소득률']:k.name.includes('단가')?chg['출하단가']:null))}</td>
+      </tr>`).join('')}</tbody></table>
+
+    <div class="rp-h">Ⅳ. 취약 항목 및 개선 과제</div>
+    ${(d.weak_points||[]).length?`<table class="rp-tbl"><thead><tr><th style="width:90px;">영역</th><th>진단</th></tr></thead>
+      <tbody>${d.weak_points.map(w=>`<tr><td><b>${esc(w.area)}</b></td><td>${esc(w.detail)}</td></tr>`).join('')}</tbody></table>`
+      :'<div class="rp-na" style="font-size:12.5px;">취약 항목 없음.</div>'}
+
+    <div class="rp-h">Ⅴ. 데이터 학습 기여 (이행→축적→학습 폐루프)</div>
+    <table class="rp-tbl"><tbody>
+      <tr><th style="width:140px;">이달 이행 기록</th><td>${L.month_activities||0} 건</td></tr>
+      <tr><th>누적 기여 점수</th><td>${L.contribution_points||0} P</td></tr>
+      <tr><th>재학습 진행</th><td>${L.message?esc(L.message):`${L.pending_train_rows||0}/${L.retrain_threshold||0} 행`}</td></tr>
+    </tbody></table>
+
+    <div class="rp-h">Ⅵ. 총평 및 권고</div>
+    <div class="rp-summary">${summary}</div>
+
+    <div class="rp-foot">
+      <span>KAASA SmartOS · 자동 생성 월간 경영성과 리포트</span>
+      <span>스마트농업 육성법 제5·6·9조 · 생성 ${ymd}</span>
+    </div>`;
+  document.getElementById('page').innerHTML=html;
+}
+</script>
+</body>
+</html>
