@@ -46,6 +46,12 @@ rows.append(("농진청(작물·병해 표준)", "🟢 키있음" if has("RDA_AP
 soil="🟢 직연동" if has("NAAS_SOIL_API_URL") else ("🟡 폴백(DATA_GO_KR)" if has("DATA_GO_KR_SERVICE_KEY") else "⚪ 미설정")
 rows.append(("흙토람 토양", soil, "NAAS_SOIL_API_URL", "NAAS_SOIL_API_URL"))
 rows.append(("팜맵 필지", "🟢 직연동" if has("FARMMAP_API_URL") else "⚪ Mock", "FARMMAP_API_URL", "FARMMAP_API_URL"))
+# 4-0) 실데이터 적재분(제주 흙토람·팜맵) — 파일 존재 여부
+import os.path as _op
+_soil_real = _op.exists("api/data/real/soil_jeju.json")
+_parc_real = _op.exists("api/data/real/parcels_jeju.json")
+rows.append(("흙토람 실적재(제주)", "🟢 적재됨" if _soil_real else "⚪ 미적재", "soil_jeju.json", "scripts/import_real_soil.py"))
+rows.append(("팜맵 실적재(제주)", "🟢 적재됨" if _parc_real else "⚪ 미적재", "parcels_jeju.json", "scripts/import_real_parcels.py"))
 # 4-1) 위성 NDVI(클러스터 작황) — 엔드포인트 source로 실측/프록시 판별
 cl=_get("/api/farms/farm_001/field/cluster", T) or {}
 clsrc=cl.get("source","")
