@@ -3339,7 +3339,29 @@ def get_system_diagnosis(farm_id: str):
     }
 
 
-@router.get("/benchmark", summary="우수농가 대비 벤치마킹 (실데이터 기반)")
+_REAL_INCOME_CACHE = {"loaded": False, "data": None}
+
+def _real_income_benchmark(crop: str):
+    """농진청 소득조사 적재분(api/data/real/income_benchmark.json)에서 작목 벤치마크 조회."""
+    import json as _json
+    from pathlib import Path as _P
+    if not _REAL_INCOME_CACHE["loaded"]:
+        try:
+            fp = _P(__file__).resolve().parents[1] / "data" / "real" / "income_benchmark.json"
+            _REAL_INCOME_CACHE["data"] = _json.loads(fp.read_text(encoding="utf-8")) if fp.exists() else None
+        except Exception:
+            _REAL_INCOME_CACHE["data"] = None
+        _REAL_INCOME_CACHE["loaded"] = True
+    db = _REAL_INCOME_CACHE["data"]
+    if not db:
+        return None
+    rec = (db.get("by_crop") or {}).get(crop)
+    if not rec:
+        return None
+    return {**rec, "_source": f"농진청 소득조사 2022 · {rec.get('orig', crop)} {rec.get('n')}농가 평균(상위 25% 기준)"}
+
+
+@router.get("/benchmark", summary="우수농가 대비 벤치마킹 (농진청 소득조사 실데이터)")
 def get_benchmark(farm_id: str):
     """내 농장 실값(수확량·마진율·에너지효율·배액률) vs 우수농가/RDA 기준 비교."""
     _require_farm(farm_id)
@@ -3379,6 +3401,19 @@ def get_benchmark(farm_id: str):
         {"key":"에너지 효율",    "mine":en_eff,            "top":88,                "unit":"","higher":True},
         {"key":"배액률 적정도",  "mine":drain_ok,          "top":90,                "unit":"","higher":True},
     ]
+    # 농진청 소득조사 실 벤치마크 주입 (작목 매칭 시 상위농가 실값 사용)
+    real_src = None
+    rb = _real_income_benchmark(crop)
+    if rb:
+        real_src = rb.get("_source")
+        # 마진율 → 소득률 상위25%(실측)로 비교 기준 교체
+        for m in metrics:
+            if m["key"].startswith("마진율") and rb.get("income_rate_top25_pct"):
+                m["key"] = "소득률 (%)"; m["top"] = rb["income_rate_top25_pct"]
+        # 농가수취가 메트릭 추가(내 시세 vs 실 평균 수취가)
+        if rb.get("farmprice_wn_kg"):
+            metrics.append({"key":"농가수취가 (원/kg)", "mine":round(price), "top":round(rb["farmprice_wn_kg"]), "unit":"", "higher":True})
+
     for m in metrics:
         m["pct"] = round(min(100, (m["mine"]/m["top"]*100) if m["top"] else 0))
         m["status"] = "good" if m["mine"] >= m["top"]*0.95 else ("warn" if m["mine"] >= m["top"]*0.8 else "low")
@@ -3387,7 +3422,7 @@ def get_benchmark(farm_id: str):
         "farm_id": farm_id, "crop": crop, "metrics": metrics,
         "weakest": weak["key"],
         "advice": f"{weak['key']} 항목이 우수농가 대비 낮습니다(내 {weak['mine']} / 상위 {weak['top']}). 해당 영역 화면에서 개선 조치를 확인하세요.",
-        "note": "비교군은 RDA 표준·우수농가 기준. 익명 집계 데이터 확보 시 동일 작기 피어 비교로 자동 고도화.",
+        "note": (f"비교군: {real_src}" if real_src else "비교군은 RDA 표준·우수농가 기준. 익명 집계 데이터 확보 시 동일 작기 피어 비교로 자동 고도화."),
     }
 
 

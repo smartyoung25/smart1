@@ -1,0 +1,32 @@
+{
+ "source": "농진청 소득조사 2022 (과수)",
+ "unit_py": 300,
+ "by_crop": {
+  "감귤": {
+   "n": 102,
+   "orig": "노지감귤",
+   "yield_kg_per_300py": 11061.0,
+   "farmprice_wn_kg": 1460.0,
+   "income_rate_pct": 45.4,
+   "income_rate_top25_pct": 66.2,
+   "production_cost_wn": 14136040.0,
+   "marketability_pct": 99.3,
+   "ship_wholesale_pct": 76.1,
+   "ship_direct_pct": 60.2,
+   "ship_nh_pct": 55.8
+  },
+  "키위": {
+   "n": 18,
+   "orig": "참다래(키위)",
+   "yield_kg_per_300py": 8211.0,
+   "farmprice_wn_kg": 3399.0,
+   "income_rate_pct": 62.4,
+   "income_rate_top25_pct": 68.2,
+   "production_cost_wn": 17835491.0,
+   "marketability_pct": 99.4,
+   "ship_wholesale_pct": 100.0,
+   "ship_direct_pct": 100.0,
+   "ship_nh_pct": 100.0
+  }
+ }
+}

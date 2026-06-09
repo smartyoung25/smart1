@@ -8,6 +8,7 @@
 |------|------------|------|------------------|------|
 | **흙토람 토양** | 토양검정 2024 (13,842필지) | `api/data/real/soil_jeju.json` | `naas_soil_real` | 서귀포시→ph 5.66·EC 1.943·유기물 106.4 (6,653필지 평균) |
 | **팜맵 필지** | 농경지전자지도 2024 (276,491필지) | `api/data/real/parcels_jeju.json` | `farmmap_real` | 서귀포 강정동→4,601필지 764ha 실 샘플(시설·과수·비경지) |
+| **소득조사 벤치마크** | 농진청 소득조사 2022 (과수 120농가) | `api/data/real/income_benchmark.json` | `/benchmark` 비교군 | 감귤 102농가→소득률 상위25% 66.2%·수취가 1,460원 (개인정보 제외 작목집계) |
 
 → `/field/soil`·`/field/parcels`·`/field/cluster`(F8)가 제주 농장에 실데이터 제공.
 재현: `python scripts/import_real_soil.py` / `python scripts/import_real_parcels.py`
