@@ -377,7 +377,7 @@ function _renderCI(h){
   const svg=document.getElementById('ciBand');
   svg.innerHTML=`
     <rect x="${bx}" y="${y}" width="${bw}" height="${bh}" rx="7" fill="url(#cig)" opacity="0.85"/>
-    <defs><linearGradient id="cig" x1="0" x2="1"><stop offset="0" stop-color="#f59e0b"/><stop offset="0.5" stop-color="#16a34a"/><stop offset="1" stop-color="#f59e0b"/></linearGradient></defs>
+    <defs><linearGradient id="cig" x1="0" x2="1"><stop offset="0" stop-color="var(--chart-warn)"/><stop offset="0.5" stop-color="var(--chart-good)"/><stop offset="1" stop-color="var(--chart-warn)"/></linearGradient></defs>
     <line x1="${midX.toFixed(1)}" y1="${y-6}" x2="${midX.toFixed(1)}" y2="${y+bh+6}" stroke="var(--text)" stroke-width="2.5"/>
     <circle cx="${midX.toFixed(1)}" cy="${y+bh/2}" r="4" fill="#fff" stroke="var(--text)" stroke-width="2"/>
     <text x="${bx}" y="${y+bh+16}" font-size="9" fill="var(--muted)">q10</text>

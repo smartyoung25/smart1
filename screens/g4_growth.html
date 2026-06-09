@@ -262,8 +262,8 @@ async function _loadGrowthTrend(){
     const svg=document.getElementById('growthTrend'), W=340,H=120,pad=24,padT=10,padB=18, n=gs.length;
     const vals=gs.map(g=>g.v), lo=Math.floor(Math.min(...vals)-5), hi=Math.ceil(Math.max(...vals)+5);
     const xs=i=>pad+(W-pad-8)*(i/(n-1)), ys=v=>padT+(H-padB-padT)*(1-(v-lo)/((hi-lo)||1));
-    let s=`<polyline points="${gs.map((g,i)=>`${xs(i).toFixed(1)},${ys(g.v).toFixed(1)}`).join(' ')}" fill="none" stroke="#16a34a" stroke-width="2.5"/>`;
-    gs.forEach((g,i)=>{ s+=`<circle cx="${xs(i).toFixed(1)}" cy="${ys(g.v).toFixed(1)}" r="3.5" fill="#16a34a"/>
+    let s=`<polyline points="${gs.map((g,i)=>`${xs(i).toFixed(1)},${ys(g.v).toFixed(1)}`).join(' ')}" fill="none" stroke="var(--chart-good)" stroke-width="2.5"/>`;
+    gs.forEach((g,i)=>{ s+=`<circle cx="${xs(i).toFixed(1)}" cy="${ys(g.v).toFixed(1)}" r="3.5" fill="var(--chart-good)"/>
       <text x="${xs(i).toFixed(1)}" y="${(ys(g.v)-7).toFixed(1)}" font-size="9" font-weight="700" fill="var(--text)" text-anchor="middle">${g.v}</text>`; });
     [lo,hi].forEach(v=>{ s+=`<text x="2" y="${(ys(v)+3).toFixed(1)}" font-size="8" fill="var(--muted)">${v}</text>`; });
     gs.forEach((g,i)=>{ if(i===0||i===n-1) s+=`<text x="${xs(i).toFixed(1)}" y="${H-4}" font-size="8" fill="var(--muted)" text-anchor="middle">${(g.t||'').slice(5,10)}</text>`; });

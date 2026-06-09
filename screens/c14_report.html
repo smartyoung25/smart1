@@ -6,7 +6,7 @@
   <title>월간 경영성과 리포트 | KAASA SmartOS</title>
   <link rel="stylesheet" href="../components/base.css"/>
   <style>
-    .rep-hero{background:linear-gradient(135deg,#0f5132 0%,#2563eb 100%);border-radius:var(--radius);padding:20px;margin-bottom:14px;color:#fff;}
+    .rep-hero{background:linear-gradient(135deg,#0f5132 0%,var(--chart-cool) 100%);border-radius:var(--radius);padding:20px;margin-bottom:14px;color:#fff;}
     .rep-period{font-size:12px;opacity:.75;}
     .rep-grade{font-size:30px;font-weight:900;margin:4px 0;}
     .rep-ach{font-size:13px;opacity:.85;}
@@ -57,7 +57,7 @@
     <div class="rep-bar"><div class="rep-bar-f" id="repBar" style="width:0%"></div></div>
   </div>
 
-  <button onclick="location.href='c14_report_pdf.html'" style="width:100%;padding:12px;margin-bottom:14px;background:var(--panel);border:1.5px dashed var(--blue,#2563eb);color:var(--blue,#2563eb);border-radius:12px;font-size:13px;font-weight:800;cursor:pointer;min-height:46px;">📄 월간 리포트 결과보고서 PDF 내보내기</button>
+  <button onclick="location.href='c14_report_pdf.html'" style="width:100%;padding:12px;margin-bottom:14px;background:var(--panel);border:1.5px dashed var(--blue,var(--chart-cool));color:var(--blue,var(--chart-cool));border-radius:12px;font-size:13px;font-weight:800;cursor:pointer;min-height:46px;">📄 월간 리포트 결과보고서 PDF 내보내기</button>
 
   <div class="section-label">6대 영역 종합</div>
   <div id="areaList"><div style="text-align:center;padding:14px;color:var(--muted);"><div class="spinner"></div></div></div>

@@ -130,7 +130,7 @@
     .ws-bar { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); margin-bottom: 10px; }
     /* 다층 시간창 토글 */
     .hz-btn { font-size: 11px; font-weight: 700; padding: 4px 9px; border-radius: 8px; border: 1.5px solid var(--border); background: var(--panel); color: var(--muted); cursor: pointer; min-height: 30px; }
-    .hz-btn.active { border-color: var(--blue,#2563eb); background: var(--blue-soft,#e0ecff); color: #1e40af; }
+    .hz-btn.active { border-color: var(--blue,var(--chart-cool)); background: var(--blue-soft,#e0ecff); color: #1e40af; }
   </style>
 </head>
 <body>
@@ -568,7 +568,7 @@ function _drawWcCurve() {
   // 이상 WC 곡선: P1저점→P2재포화상승→P3-4유지→P5dry-down→P6야간dry-back
   const pts=[[0,52],[2,48],[3,58],[5,64],[8,65],[12,64.5],[15,62],[18,56],[21,50],[24,46]];
   const path=pts.map((p,i)=>`${i?'L':'M'}${xs(p[0]).toFixed(1)},${ys(p[1]).toFixed(1)}`).join(' ');
-  s+=`<path d="${path}" fill="none" stroke="#2563eb" stroke-width="2.2"/>`;
+  s+=`<path d="${path}" fill="none" stroke="var(--chart-cool)" stroke-width="2.2"/>`;
   // y축 라벨
   [40,55,70].forEach(v=>{ s+=`<text x="2" y="${(ys(v)+3).toFixed(1)}" font-size="8" fill="var(--muted)">${v}</text>`; });
   // 현재시각 마커
@@ -698,7 +698,7 @@ function renderAnalysis(data) {
     if (series.length === 1 && data.dr_pct_mean != null)
       series.unshift({ t: '평균', v: Number(data.dr_pct_mean) });
     BandChart.render(document.getElementById('drainChart'), {
-      series, band: { lo: 20, hi: 30, label: '목표 20~30%' }, unit: '%', color: 'var(--blue,#2563eb)'
+      series, band: { lo: 20, hi: 30, label: '목표 20~30%' }, unit: '%', color: 'var(--blue,var(--chart-cool))'
     });
   }
 }

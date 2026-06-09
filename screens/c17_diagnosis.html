@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="../components/base.css"/>
   <style>
     .dg-body{padding:14px;max-width:480px;margin:0 auto;padding-bottom:90px;}
-    .dg-hero{background:linear-gradient(135deg,#1e3a5f,#2563eb);border-radius:var(--radius);padding:18px 20px;color:#fff;margin-bottom:14px;}
+    .dg-hero{background:linear-gradient(135deg,#1e3a5f,var(--chart-cool));border-radius:var(--radius);padding:18px 20px;color:#fff;margin-bottom:14px;}
     .dg-score{font-size:40px;font-weight:900;line-height:1;}
     .dg-grade{font-size:13px;font-weight:800;padding:3px 10px;border-radius:10px;background:rgba(255,255,255,.2);display:inline-block;margin-top:6px;}
     .dg-bar-row{display:flex;align-items:center;gap:10px;margin:9px 0;}
@@ -42,7 +42,7 @@
     .dom-find{font-size:11.5px;color:var(--muted);line-height:1.55;margin-top:2px;}
     .dec-card{background:var(--panel);border:1.5px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:10px;border-left:4px solid var(--orange);}
     .dec-card.danger{border-left-color:var(--red);}
-    .dec-card.info{border-left-color:var(--blue,#2563eb);}
+    .dec-card.info{border-left-color:var(--blue,var(--chart-cool));}
     .dec-head{display:flex;align-items:center;gap:8px;}
     .dec-title{font-size:13.5px;font-weight:800;flex:1;}
     .dec-sev{font-size:10px;font-weight:800;padding:2px 8px;border-radius:7px;}
@@ -81,7 +81,7 @@
   <button onclick="location.href='c19_capability.html'" style="width:100%;padding:13px;margin-bottom:10px;background:linear-gradient(135deg,#0f5132,#1f9d55);border:none;color:#fff;border-radius:12px;font-size:13.5px;font-weight:800;cursor:pointer;min-height:48px;">🧭 내 역량 단계별 핵심 서비스 보기 →</button>
   <div style="display:flex;gap:8px;margin-bottom:12px;">
     <button onclick="location.href='c18_checklist.html'" style="flex:1;padding:12px;background:var(--panel);border:1.5px dashed var(--green);color:var(--green-dark);border-radius:12px;font-size:12.5px;font-weight:800;cursor:pointer;min-height:46px;">📋 현장 문진 입력</button>
-    <button onclick="location.href='c17_report.html'" style="flex:1;padding:12px;background:var(--panel);border:1.5px dashed var(--blue,#2563eb);color:var(--blue,#2563eb);border-radius:12px;font-size:12.5px;font-weight:800;cursor:pointer;min-height:46px;">📄 결과보고서 PDF</button>
+    <button onclick="location.href='c17_report.html'" style="flex:1;padding:12px;background:var(--panel);border:1.5px dashed var(--blue,var(--chart-cool));color:var(--blue,var(--chart-cool));border-radius:12px;font-size:12.5px;font-weight:800;cursor:pointer;min-height:46px;">📄 결과보고서 PDF</button>
   </div>
   <div class="section-label">현장컨설팅 6대 영역 진단 <span class="trust-badge trust-model" style="font-size:9px;">RDA 체크리스트</span></div>
   <div class="card" id="dgRadarCard" style="display:none;padding:10px 4px;margin-bottom:10px;text-align:center;">
@@ -123,7 +123,7 @@ function _drawRadar(doms){
   doms.forEach((_,i)=>{ const [x,y]=pt(i,R); s+=`<line x1="${cx}" y1="${cy}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="var(--border)" stroke-width="1"/>`; });
   // 데이터 폴리곤
   const dp=doms.map((x,i)=>pt(i,R*Math.max(0,Math.min(100,x.score))/100).map(v=>v.toFixed(1)).join(',')).join(' ');
-  s+=`<polygon points="${dp}" fill="rgba(37,99,235,.18)" stroke="#2563eb" stroke-width="2"/>`;
+  s+=`<polygon points="${dp}" fill="rgba(37,99,235,.18)" stroke="var(--chart-cool)" stroke-width="2"/>`;
   doms.forEach((x,i)=>{ const [px,py]=pt(i,R*x.score/100); s+=`<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="3" fill="${_col(x.score)}"/>`; });
   // 라벨
   const DI={sensor:'📡센서',actuator:'⚙️구동기',cultivation:'🌿재배',operation:'📋경영',sales:'🚚유통',data:'🗂️데이터'};
@@ -160,8 +160,8 @@ async function _loadTrend(token){
     const xs=i=>pad+(W-2*pad)*(snaps.length<2?0:i/(snaps.length-1));
     const ys=v=>Hh-pad-(Hh-2*pad)*((v-mn)/((mx-mn)||1));
     const pts=vals.map((v,i)=>`${xs(i).toFixed(1)},${ys(v).toFixed(1)}`).join(' ');
-    const dots=vals.map((v,i)=>`<circle cx="${xs(i).toFixed(1)}" cy="${ys(v).toFixed(1)}" r="3" fill="#2563eb"/><text x="${xs(i).toFixed(1)}" y="${(ys(v)-6).toFixed(1)}" font-size="10" fill="#2563eb" text-anchor="middle" font-weight="700">${v}</text>`).join('');
-    document.getElementById('dgSpark').innerHTML=`<polyline points="${pts}" fill="none" stroke="#2563eb" stroke-width="2"/>${dots}`;
+    const dots=vals.map((v,i)=>`<circle cx="${xs(i).toFixed(1)}" cy="${ys(v).toFixed(1)}" r="3" fill="var(--chart-cool)"/><text x="${xs(i).toFixed(1)}" y="${(ys(v)-6).toFixed(1)}" font-size="10" fill="var(--chart-cool)" text-anchor="middle" font-weight="700">${v}</text>`).join('');
+    document.getElementById('dgSpark').innerHTML=`<polyline points="${pts}" fill="none" stroke="var(--chart-cool)" stroke-width="2"/>${dots}`;
     document.getElementById('dgTrendLabels').innerHTML=snaps.map(s=>`<span>${(s.date||'').slice(5)}</span>`).join('');
     const dl=h.latest_delta;
     const de=document.getElementById('dgDelta');

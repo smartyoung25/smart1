@@ -42,7 +42,7 @@
   <div id="extHazard"></div>
   <div class="card" id="extChartCard" style="padding:12px 8px 6px;margin-bottom:8px;display:none;">
     <div style="display:flex;gap:12px;font-size:10px;font-weight:700;padding:0 4px 4px;">
-      <span style="color:#dc2626;">— 최고℃</span><span style="color:#2563eb;">— 최저℃</span><span style="color:#60a5fa;">▮ 강수mm</span><span style="margin-left:auto;color:var(--muted);">16일</span>
+      <span style="color:var(--chart-hot);">— 최고℃</span><span style="color:var(--chart-cool);">— 최저℃</span><span style="color:var(--chart-rain);">▮ 강수mm</span><span style="margin-left:auto;color:var(--muted);">16일</span>
     </div>
     <svg id="extChart" width="100%" height="150" viewBox="0 0 340 150" preserveAspectRatio="none"></svg>
   </div>
@@ -85,13 +85,13 @@ function _drawExtChart(items){
   let s='';
   // 강수 바(하단)
   items.forEach((x,i)=>{ const rh=(x.rain_mm||0)/rmax*38; if(rh>0.5){
-    s+=`<rect x="${(xs(i)-3).toFixed(1)}" y="${(H-padB-rh).toFixed(1)}" width="6" height="${rh.toFixed(1)}" fill="#60a5fa" opacity="0.7" rx="1"/>`; }});
+    s+=`<rect x="${(xs(i)-3).toFixed(1)}" y="${(H-padB-rh).toFixed(1)}" width="6" height="${rh.toFixed(1)}" fill="var(--chart-rain)" opacity="0.7" rx="1"/>`; }});
   // 기온 밴드(max-min 영역)
   const top=items.map((x,i)=>`${xs(i).toFixed(1)},${ys(x.t_max).toFixed(1)}`);
   const bot=items.map((x,i)=>`${xs(i).toFixed(1)},${ys(x.t_min).toFixed(1)}`).reverse();
-  s+=`<polygon points="${top.concat(bot).join(' ')}" fill="#f59e0b" opacity="0.12"/>`;
-  s+=`<polyline points="${items.map((x,i)=>`${xs(i).toFixed(1)},${ys(x.t_max).toFixed(1)}`).join(' ')}" fill="none" stroke="#dc2626" stroke-width="2"/>`;
-  s+=`<polyline points="${items.map((x,i)=>`${xs(i).toFixed(1)},${ys(x.t_min).toFixed(1)}`).join(' ')}" fill="none" stroke="#2563eb" stroke-width="2"/>`;
+  s+=`<polygon points="${top.concat(bot).join(' ')}" fill="var(--chart-warn)" opacity="0.12"/>`;
+  s+=`<polyline points="${items.map((x,i)=>`${xs(i).toFixed(1)},${ys(x.t_max).toFixed(1)}`).join(' ')}" fill="none" stroke="var(--chart-hot)" stroke-width="2"/>`;
+  s+=`<polyline points="${items.map((x,i)=>`${xs(i).toFixed(1)},${ys(x.t_min).toFixed(1)}`).join(' ')}" fill="none" stroke="var(--chart-cool)" stroke-width="2"/>`;
   // y축 라벨
   [lo,Math.round((lo+hi)/2),hi].forEach(t=>{ s+=`<text x="2" y="${(ys(t)+3).toFixed(1)}" font-size="8" fill="var(--muted)">${t}°</text>`; });
   // x축 날짜(처음·중간·끝)

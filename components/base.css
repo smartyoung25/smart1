@@ -58,6 +58,13 @@
   --warn:         var(--orange);
   --danger:       var(--red);
   --info:         var(--blue);
+
+  /* 차트 공통 팔레트 (전 화면 차트 색의미 통일 — 온실/노지/공통 동일) */
+  --chart-hot:    #dc2626;  /* 고온·최고기온·위험 */
+  --chart-cool:   #2563eb;  /* 저온·습도·기본 라인 */
+  --chart-good:   #16a34a;  /* 양호·VPD·생육 */
+  --chart-warn:   #f59e0b;  /* 주의·경계 */
+  --chart-rain:   #60a5fa;  /* 강수 */
 }
 
 /* ── 리셋 & 기본 ── */
