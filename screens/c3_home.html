@@ -215,6 +215,15 @@
     </div>
   </div>
 
+  <!-- 우수농가 대비 + 연결 실데이터 (실데이터 주입 반영) -->
+  <div class="section-label" style="display:flex;align-items:center;justify-content:space-between;">
+    <span>우수농가 대비 <span class="trust-badge trust-model" style="font-size:9px;">🔵 벤치마크</span></span>
+    <span id="bmSrc" style="font-size:10px;color:var(--muted);"></span>
+  </div>
+  <a class="card" id="bmCard" href="c9_benchmark.html" style="display:none;padding:14px;text-decoration:none;color:var(--text);"></a>
+  <div id="bmEmpty" style="display:none;"></div>
+  <div id="dataConn" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;"></div>
+
   <!-- 오늘 할 일 (Period 연동) -->
   <div class="section-label" style="display:flex;align-items:center;justify-content:space-between;">
     <span>오늘 할 일</span>
@@ -349,8 +358,49 @@ window.addEventListener('DOMContentLoaded', () => {
     _loadPrices(token);
     _loadYieldForecast(token, farmId);
     _loadCapability(token, farmId);
+    _loadBenchmark(token, farmId);
+    _loadDataConn(token, farmId);
   });
 });
+
+// 우수농가 대비 미니 벤치마크 (실 소득조사 비교군)
+async function _loadBenchmark(token, farmId){
+  try{
+    const api=KaasaData.getApiBase?KaasaData.getApiBase():location.origin;
+    const d=await fetch(`${api}/api/farms/${farmId}/benchmark`,{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.json());
+    const ms=(d.metrics||[]).slice(0,3);
+    if(!ms.length) return;
+    const col=s=>s==='good'?'var(--green)':s==='warn'?'var(--orange)':'var(--red)';
+    document.getElementById('bmSrc').textContent=(d.note||'').includes('소득조사')?'농진청 소득조사 실측':'RDA 기준';
+    const el=document.getElementById('bmCard'); el.style.display='block';
+    el.innerHTML=ms.map(m=>`
+      <div style="margin-bottom:8px;">
+        <div style="display:flex;font-size:12px;font-weight:700;"><span>${m.key}</span>
+          <span style="margin-left:auto;color:${col(m.status)}">내 ${m.mine}${m.unit||''} / 상위 ${m.top}${m.unit||''}</span></div>
+        <div style="height:7px;background:var(--gray-soft);border-radius:4px;overflow:hidden;margin-top:4px;">
+          <div style="height:100%;width:${m.pct}%;background:${col(m.status)};border-radius:4px;"></div></div>
+      </div>`).join('')
+      + `<div style="font-size:11px;color:var(--muted);margin-top:4px;">⚡ ${d.weakest} 개선 여지 · 자세히 →</div>`;
+  }catch(e){}
+}
+
+// 연결된 실데이터 배지 (흙토람·팜맵·시세·기상)
+async function _loadDataConn(token, farmId){
+  try{
+    const api=KaasaData.getApiBase?KaasaData.getApiBase():location.origin, H={Authorization:`Bearer ${token}`};
+    const [soil,parc]=await Promise.all([
+      fetch(`${api}/api/farms/${farmId}/field/soil`,{headers:H}).then(r=>r.ok?r.json():{}).catch(()=>({})),
+      fetch(`${api}/api/farms/${farmId}/field/parcels`,{headers:H}).then(r=>r.ok?r.json():{}).catch(()=>({})),
+    ]);
+    const chips=[];
+    const mk=(label,live)=>`<span style="font-size:10.5px;font-weight:700;padding:4px 9px;border-radius:11px;background:${live?'var(--green-soft)':'var(--gray-soft)'};color:${live?'var(--green-dark)':'var(--muted)'};">${live?'🟢':'⚪'} ${label}</span>`;
+    chips.push(mk('토양 실측', (soil.source||'').includes('real')));
+    chips.push(mk('필지 실측', (parc.source||'').includes('real')));
+    chips.push(mk('KAMIS 시세', true));
+    chips.push(mk('KMA 기상', true));
+    document.getElementById('dataConn').innerHTML=chips.join('');
+  }catch(e){}
+}
 
 // 역량 단계 배너 (역량별 핵심 서비스 라우팅)
 async function _loadCapability(token, farmId){
