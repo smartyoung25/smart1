@@ -81,6 +81,11 @@
     <div id="actRecent"></div>
   </div>
 
+  <div class="section-label" style="margin-top:14px;">현장 점검 진단 <span class="trust-badge trust-model">🔵 컨설팅</span></div>
+  <div class="card" style="padding:14px;" id="fieldDiag">
+    <div style="font-size:12px;color:var(--muted);">불러오는 중…</div>
+  </div>
+
   <div class="section-label" style="margin-top:14px;">취약 항목</div>
   <div id="weakList"></div>
 
@@ -171,6 +176,7 @@ async function _load(token,farmId){
 
   // 이행 활동 상세 (운영 기록 by_kind + 최근)
   _loadActivityDetail(token,farmId);
+  _loadFieldDiag(token,farmId);
 
   // 취약항목
   document.getElementById('weakList').innerHTML=d.weak_points.map(w=>`
@@ -202,6 +208,39 @@ async function _loadActivityDetail(token,farmId){
       '<span style="font-size:12px;color:var(--muted);">이번 달 운영 기록이 아직 없습니다.</span>';
     if(window.RecordSheet) RecordSheet.renderRecent(document.getElementById('actRecent'),farmId,token,{limit:6});
   }catch(e){ document.getElementById('actBreakdown').innerHTML='<span style="font-size:12px;color:var(--muted);">기록을 불러오지 못했습니다.</span>'; }
+}
+
+// ★ 현장 점검 진단 — C17/C18 종합진단 요약 + 우선 처방 (월간리포트 누적 가시화)
+async function _loadFieldDiag(token,farmId){
+  const el=document.getElementById('fieldDiag'); if(!el) return;
+  const _col=v=>v>=75?'var(--green)':v>=45?'var(--orange)':'var(--red)';
+  try{
+    const api=KaasaData.getApiBase();
+    const H={Authorization:`Bearer ${token}`};
+    const [d,ck]=await Promise.all([
+      fetch(`${api}/api/farms/${farmId}/diagnosis`,{headers:H}).then(r=>r.json()),
+      fetch(`${api}/api/farms/${farmId}/diagnosis/checklist`,{headers:H}).then(r=>r.ok?r.json():{}).catch(()=>({})),
+    ]);
+    const doms=d.domains||[];
+    const resp=ck.responses||{};
+    const nChk=Object.keys(resp).length;
+    const nBad=Object.values(resp).filter(r=>(r||{}).status==='bad').length;
+    const nWarn=Object.values(resp).filter(r=>(r||{}).status==='warn').length;
+    const decs=(d.priority_decisions||[]).slice(0,3);
+    const grid=doms.map(x=>`<div style="text-align:center;flex:1;min-width:70px;">
+        <div style="font-size:17px;font-weight:900;color:${_col(x.score)}">${x.score}</div>
+        <div style="font-size:10px;color:var(--muted);">${x.name}</div></div>`).join('');
+    el.innerHTML=`
+      <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:8px;">
+        <div style="font-size:22px;font-weight:900;color:${_col(d.overall_score)}">${d.overall_score}</div>
+        <div style="font-size:12px;font-weight:800;">종합 ${d.grade}</div>
+        <div style="margin-left:auto;font-size:11px;color:var(--muted);">${ck.consultant?`점검자 ${ck.consultant} · `:''}${nChk?`현장 ${nChk}항목(불량 ${nBad}·주의 ${nWarn})`:'현장점검 미입력'}</div>
+      </div>
+      <div style="display:flex;gap:4px;flex-wrap:wrap;padding:8px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);margin-bottom:8px;">${grid}</div>
+      ${decs.length?`<div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px;">우선 처방</div>`+decs.map(p=>`
+        <div style="font-size:12px;padding:4px 0;">${p.severity==='danger'?'🚨':p.severity==='warn'?'⚠️':'💡'} ${p.title} <span style="color:var(--muted);font-size:10px;">(${p.domain})</span></div>`).join(''):''}
+      <button onclick="location.href='c18_checklist.html'" style="width:100%;margin-top:8px;padding:9px;background:var(--panel-soft);border:1px dashed var(--green);color:var(--green-dark);border-radius:9px;font-size:12px;font-weight:700;cursor:pointer;">📋 현장 문진 갱신 →</button>`;
+  }catch(e){ el.innerHTML='<div style="font-size:12px;color:var(--muted);">진단 데이터를 불러오지 못했습니다.</div>'; }
 }
 </script>
 </body>

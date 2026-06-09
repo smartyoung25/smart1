@@ -74,7 +74,8 @@
   <!-- 전문가 상담 -->
   <div class="section-label" style="margin-top:16px;">전문가 컨설팅</div>
   <div class="card" style="padding:14px;">
-    <div style="font-size:13px;color:var(--muted);margin-bottom:12px;line-height:1.5;">AI 진단으로 해결이 어려운 경우, 분야별 전문가 미팅을 예약할 수 있습니다.</div>
+    <div id="consultCtx"></div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:12px;line-height:1.5;">AI 진단으로 해결이 어려운 경우, 분야별 전문가 미팅을 예약할 수 있습니다. <b>현장 점검 결과가 자동 첨부</b>됩니다.</div>
     <button class="expert-btn" onclick="_openSheet()">전문가 미팅 예약</button>
   </div>
 
@@ -108,6 +109,7 @@
 'use strict';
 let _expert='';
 let _tokenG='', _farmG='farm_001';
+let _diagCtx=null;   // 종합진단 컨텍스트(전문가 첨부용)
 
 window.addEventListener('DOMContentLoaded', ()=>{
   const farmId=new URLSearchParams(location.search).get('farm')||sessionStorage.getItem('sf_farm_id')||'farm_001';
@@ -139,6 +141,31 @@ async function _loadAll(token, farmId){
   _renderScore(rec, anom, summary);
   _renderRecs(rec);
   _renderAnoms(anom);
+  _loadDiagCtx(token, farmId);
+}
+
+// ★ 종합진단(C17/C18) 컨텍스트 → 전문가 추천·첨부
+const _EXPERT_BY_DOMAIN={actuator:'재배기술',cultivation:'재배기술',sensor:'재배기술',sales:'경영컨설팅',operation:'경영컨설팅',data:'경영컨설팅'};
+async function _loadDiagCtx(token, farmId){
+  try{
+    const api=KaasaData.getApiBase(), H={Authorization:`Bearer ${token}`};
+    const d=await fetch(`${api}/api/farms/${farmId}/diagnosis`,{headers:H}).then(r=>r.json());
+    const doms=(d.domains||[]).slice().sort((a,b)=>a.score-b.score);
+    const decs=(d.priority_decisions||[]).slice(0,3);
+    _diagCtx={overall:d.overall_score, grade:d.grade, weak:doms.slice(0,2), decisions:decs};
+    // 병해 키워드 있으면 병해방제 추천
+    const txt=decs.map(p=>p.title+p.detail).join(' ');
+    let exp = /병해|흰가루|진딧|응애|곰팡|방제|생리장해/.test(txt) ? '병해방제'
+            : (_EXPERT_BY_DOMAIN[(doms[0]||{}).key] || '재배기술');
+    _diagCtx.recommendedExpert=exp;
+    const el=document.getElementById('consultCtx'); if(!el) return;
+    if(!decs.length){ el.innerHTML=''; return; }
+    el.innerHTML=`<div style="background:var(--panel-soft);border-radius:10px;padding:10px 12px;margin-bottom:10px;">
+      <div style="font-size:11px;font-weight:800;color:var(--muted);margin-bottom:5px;">종합진단 ${_diagCtx.overall}점 · 취약 영역 처방</div>
+      ${decs.map(p=>`<div style="font-size:12px;padding:2px 0;">${p.severity==='danger'?'🚨':p.severity==='warn'?'⚠️':'💡'} ${p.title} <span style="color:var(--muted);font-size:10px;">(${p.domain})</span></div>`).join('')}
+      <div style="font-size:11px;font-weight:700;color:var(--purple);margin-top:6px;">→ 추천 전문가: ${exp==='병해방제'?'병해 방제':exp==='경영컨설팅'?'경영 컨설턴트':'재배 기술'} 전문가</div>
+    </div>`;
+  }catch(e){}
 }
 
 function _renderScore(rec, anom, summary){
@@ -189,15 +216,30 @@ function _renderAnoms(anom){
   }).join('');
 }
 
-function _openSheet(){document.getElementById('sheetBd').style.display='block';document.getElementById('sheet').style.display='block';document.getElementById('expertResult').textContent='';}
+function _openSheet(){
+  document.getElementById('sheetBd').style.display='block';document.getElementById('sheet').style.display='block';document.getElementById('expertResult').textContent='';
+  // 진단 추천 전문가 자동 선택
+  if(_diagCtx&&_diagCtx.recommendedExpert){
+    document.querySelectorAll('.expert-opt').forEach(x=>{
+      if(x.getAttribute('onclick').includes("'"+_diagCtx.recommendedExpert+"'")){ _expert=_diagCtx.recommendedExpert; x.classList.add('sel'); }
+      else x.classList.remove('sel');
+    });
+  }
+}
 function _closeSheet(){document.getElementById('sheetBd').style.display='none';document.getElementById('sheet').style.display='none';}
 function _selExpert(t,el){_expert=t;document.querySelectorAll('.expert-opt').forEach(x=>x.classList.remove('sel'));el.classList.add('sel');}
 function _confirmExpert(){
   if(!_expert){alert('전문가 유형을 선택하세요');return;}
   const r=document.getElementById('expertResult');
   r.textContent='예약 신청 중…';
-  _logActivity({kind:'consult', item:`전문가 예약: ${_expert}`, detail:`${_expert} 미팅 신청 · ${new Date().toISOString().slice(0,10)}`})
-    .then(()=>{ r.textContent=`✓ ${_expert} 미팅 예약 신청 완료 (영업일 1일 내 연락)`; setTimeout(_closeSheet,1800); });
+  // 현장 점검·진단 컨텍스트 자동 첨부 (전문가가 사전 파악)
+  let ctx='';
+  if(_diagCtx){
+    const issues=(_diagCtx.decisions||[]).map(p=>p.title).join('; ');
+    ctx=` · 진단 ${_diagCtx.overall}점(${_diagCtx.grade}) · 취약: ${issues||'—'}`;
+  }
+  _logActivity({kind:'consult', item:`전문가 예약: ${_expert}`, detail:`${_expert} 미팅 신청 · ${new Date().toISOString().slice(0,10)}${ctx}`})
+    .then(()=>{ r.textContent=`✓ ${_expert} 미팅 예약 완료 — 현장 진단결과 첨부됨 (영업일 1일 내 연락)`; setTimeout(_closeSheet,1900); });
 }
 </script>
 </body>
