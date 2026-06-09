@@ -84,6 +84,9 @@
     <button onclick="location.href='c17_report.html'" style="flex:1;padding:12px;background:var(--panel);border:1.5px dashed var(--blue,#2563eb);color:var(--blue,#2563eb);border-radius:12px;font-size:12.5px;font-weight:800;cursor:pointer;min-height:46px;">📄 결과보고서 PDF</button>
   </div>
   <div class="section-label">현장컨설팅 6대 영역 진단 <span class="trust-badge trust-model" style="font-size:9px;">RDA 체크리스트</span></div>
+  <div class="card" id="dgRadarCard" style="display:none;padding:10px 4px;margin-bottom:10px;text-align:center;">
+    <svg id="dgRadar" width="100%" height="260" viewBox="0 0 300 260" preserveAspectRatio="xMidYMid meet"></svg>
+  </div>
   <div id="dgDomains"><div style="text-align:center;padding:16px;color:var(--muted);"><div class="spinner"></div></div></div>
   <div class="section-label" style="margin-top:14px;">우선순위 처방 (의사결정) <span class="trust-badge trust-model">🔵 ROI</span></div>
   <div id="dgDecisions"></div>
@@ -105,6 +108,31 @@
 'use strict';
 let _farmG='farm_001', _tokG='', _DECS=[];
 function _col(v){ return v>=75?'var(--green)':v>=45?'var(--orange)':'var(--red)'; }
+// 6대 영역 레이더(육각) 차트 — 의존성 0 SVG
+function _drawRadar(doms){
+  const cx=150, cy=130, R=92, n=doms.length;
+  const ang=i=>(-Math.PI/2)+(2*Math.PI*i/n);
+  const pt=(i,r)=>[cx+r*Math.cos(ang(i)), cy+r*Math.sin(ang(i))];
+  let s='';
+  // 격자 링(25/50/75/100)
+  [0.25,0.5,0.75,1].forEach(f=>{
+    const pts=doms.map((_,i)=>pt(i,R*f).map(v=>v.toFixed(1)).join(',')).join(' ');
+    s+=`<polygon points="${pts}" fill="none" stroke="var(--border)" stroke-width="1"/>`;
+  });
+  // 축
+  doms.forEach((_,i)=>{ const [x,y]=pt(i,R); s+=`<line x1="${cx}" y1="${cy}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="var(--border)" stroke-width="1"/>`; });
+  // 데이터 폴리곤
+  const dp=doms.map((x,i)=>pt(i,R*Math.max(0,Math.min(100,x.score))/100).map(v=>v.toFixed(1)).join(',')).join(' ');
+  s+=`<polygon points="${dp}" fill="rgba(37,99,235,.18)" stroke="#2563eb" stroke-width="2"/>`;
+  doms.forEach((x,i)=>{ const [px,py]=pt(i,R*x.score/100); s+=`<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="3" fill="${_col(x.score)}"/>`; });
+  // 라벨
+  const DI={sensor:'📡센서',actuator:'⚙️구동기',cultivation:'🌿재배',operation:'📋경영',sales:'🚚유통',data:'🗂️데이터'};
+  doms.forEach((x,i)=>{ const [lx,ly]=pt(i,R+22); const a=Math.cos(ang(i));
+    const anc=Math.abs(a)<0.3?'middle':(a>0?'start':'end');
+    s+=`<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" font-size="10" font-weight="700" fill="var(--text)" text-anchor="${anc}" dominant-baseline="middle">${DI[x.key]||x.name} ${x.score}</text>`; });
+  document.getElementById('dgRadar').innerHTML=s;
+  document.getElementById('dgRadarCard').style.display='block';
+}
 function _logDec(i){
   const p=_DECS[i]; if(!p||!window.RecordSheet) return;
   RecordSheet.open({ title:`진단 처방 기록 — ${p.title}`,
@@ -158,6 +186,7 @@ async function _load(token){
   // ★ 현장컨설팅 6대 도메인 진단
   const DOM_ICO={sensor:'📡',actuator:'⚙️',cultivation:'🌿',operation:'📋',sales:'🚚',data:'🗂️'};
   const doms=d.domains||[];
+  if(doms.length>=3) _drawRadar(doms);
   document.getElementById('dgDomains').innerHTML = doms.length ? doms.map(x=>`
     <div class="dom-card">
       <div class="dom-head"><span>${DOM_ICO[x.key]||'•'}</span><span class="dom-name">${x.name}</span>
