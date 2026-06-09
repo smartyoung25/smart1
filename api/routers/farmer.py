@@ -2350,6 +2350,41 @@ def get_field_cluster(farm_id: str):
                          region_wx=region_wx, soil=soil, satellite_live=satellite_live)
 
 
+_REAL_PEST_CACHE = {"loaded": False, "data": None}
+
+@router.get("/field/pest", summary="병해충 예찰 실발병률 (감귤 예찰조사 → 룰기반 폴백)")
+def get_field_pest(farm_id: str):
+    """감귤 병해충 예찰조사 적재분(api/data/real/pest_jeju.json)에서 지역 실발병률 제공.
+    제주 농장 매칭 시 source='pest_survey_real', 미적재/비제주는 'none'(G5/F6 룰기반 유지)."""
+    import json as _json
+    from pathlib import Path as _P
+    _require_farm(farm_id)
+    meta = _FARM_META.get(farm_id, {})
+    if "제주" not in (meta.get("sido") or ""):
+        return {"farm_id": farm_id, "source": "none", "diseases": [],
+                "note": "비제주 — 예찰 실데이터 없음(G5/F6 룰기반 조기경보 유지)"}
+    if not _REAL_PEST_CACHE["loaded"]:
+        try:
+            fp = _P(__file__).resolve().parents[1] / "data" / "real" / "pest_jeju.json"
+            _REAL_PEST_CACHE["data"] = _json.loads(fp.read_text(encoding="utf-8")) if fp.exists() else None
+        except Exception:
+            _REAL_PEST_CACHE["data"] = None
+        _REAL_PEST_CACHE["loaded"] = True
+    db = _REAL_PEST_CACHE["data"]
+    if not db:
+        return {"farm_id": farm_id, "source": "pending_import", "diseases": [],
+                "note": "예찰 parquet 적재 대기 — python scripts/import_real_pest.py 실행 시 활성화"}
+    emd = (meta.get("emd") or meta.get("address_detail") or "").strip()
+    rec = (db.get("by_emd") or {}).get(emd)
+    diseases = (rec or {}).get("disease") if rec else db.get("overall", {})
+    scope = emd if rec else "제주 평균"
+    items = sorted([{"name": k, "rate_pct": v,
+                     "level": "위험" if v >= 20 else "주의" if v >= 5 else "낮음"}
+                    for k, v in (diseases or {}).items()], key=lambda x: -x["rate_pct"])
+    return {"farm_id": farm_id, "source": "pest_survey_real", "region": scope,
+            "diseases": items, "note": f"감귤 병해충 예찰조사 실발병률({scope}). 출처: {db.get('source')}"}
+
+
 # ── 관수 분석 결과 조회 ────────────────────────────────────────────────────────
 
 @router.get("/irrigation/analysis", summary="관수 품질 분석 (함수율·배액률·EC 등)")
