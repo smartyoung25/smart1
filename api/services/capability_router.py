@@ -64,6 +64,35 @@ SERVICE_CATALOG = {
 }
 
 
+# 노지(field) 전용 핵심 서비스 — 무센서 위성·기상·필지 중심으로 치환
+FIELD_SERVICES = {
+    1: [  # 기반 구축기(노지) — 필지·작황 기반부터
+        {"title": "노지 농장·필지 정보", "target": "f1_field.html", "why": "재배환경·필지 현황 확인"},
+        {"title": "필지 GIS·경계", "target": "f2_gis.html", "why": "팜맵 필지 경계·구획 등록"},
+        {"title": "클러스터 작황 모니터링", "target": "f8_cluster.html", "why": "무센서 위성·기상 작황 진단"},
+        {"title": "시스템 종합진단", "target": "c17_diagnosis.html", "why": "현재 역량·취약점 파악"},
+    ],
+    2: [  # 데이터 정착기(노지)
+        {"title": "토양수분·관개", "target": "f4_soil.html", "why": "ETc 기반 관개 우선순위"},
+        {"title": "16일 장기예보·재해", "target": "f3_weather.html", "why": "ET₀·재해 선행 대비"},
+        {"title": "원격탐사 NDVI", "target": "f5_remote.html", "why": "생육 편차·이상 셀 점검"},
+        {"title": "월간 경영성과 리포트", "target": "c14_report.html", "why": "성과지표 확인"},
+    ],
+    3: [  # 정밀 제어기(노지)
+        {"title": "클러스터 작황·이상알림", "target": "f8_cluster.html", "why": "위치특정 정량편차 알림"},
+        {"title": "병해충·방제 윈도우", "target": "f6_pest.html", "why": "기상기반 방제 적기"},
+        {"title": "노지 의사결정(홈)", "target": "f1_field.html", "why": "작황·재해 통합 결정"},
+        {"title": "16일 장기예보·재해", "target": "f3_weather.html", "why": "선행 의사결정"},
+    ],
+    4: [  # 경영 고도화기(노지) — 광역·클러스터·판로
+        {"title": "클러스터 작황 모니터링", "target": "f8_cluster.html", "why": "다수필지·광역 무센서 작황"},
+        {"title": "노지 수확·공동출하", "target": "f7_harvest.html", "why": "필지별 수확·판로 연계"},
+        {"title": "우수농가 벤치마킹", "target": "c9_benchmark.html", "why": "상위농가 대비 격차"},
+        {"title": "데이터 환원·보상", "target": "c7_reward.html", "why": "학습 기여 자산화"},
+    ],
+}
+
+
 def _stage_of(overall, scores, trank):
     """역량 단계 판정 — 종합점수 + 기반(센서·데이터) 충족 여부 + 등급 보정."""
     sensor = scores.get("sensor", 0)
@@ -78,8 +107,9 @@ def _stage_of(overall, scores, trank):
     return 4
 
 
-def build_capability(diag: dict) -> dict:
-    """C17 진단 결과 → 역량 단계 + 핵심 서비스 + 다음 단계 과제."""
+def build_capability(diag: dict, farm_type: str = "greenhouse") -> dict:
+    """C17 진단 결과 → 역량 단계 + 핵심 서비스 + 다음 단계 과제.
+    farm_type='field'이면 노지(무센서 위성·기상·필지) 핵심 서비스로 치환."""
     overall = diag.get("overall_score", 0)
     trank = 1
     tier = diag.get("tier", "basic")
@@ -88,6 +118,8 @@ def build_capability(diag: dict) -> dict:
     scores = {d["key"]: d["score"] for d in diag.get("domains", [])}
     stage = _stage_of(overall, scores, trank)
     cat = SERVICE_CATALOG[stage]
+    is_field = (farm_type == "field")
+    services = FIELD_SERVICES[stage] if is_field else cat["services"]
 
     # 다음 단계 진입 핵심 과제 = 진단 우선처방 상위 2건(취약 영역)
     next_tasks = []
@@ -104,8 +136,8 @@ def build_capability(diag: dict) -> dict:
 
     return {
         "stage": stage, "stage_name": cat["name"], "slogan": cat["slogan"], "focus": cat["focus"],
-        "overall": overall, "tier": tier,
-        "core_services": cat["services"],
+        "overall": overall, "tier": tier, "farm_type": farm_type,
+        "core_services": services,
         "next_tasks": next_tasks,
         "progress_pct": progress,
         "next_stage": (SERVICE_CATALOG.get(stage + 1, {}) or {}).get("name") if stage < 4 else None,

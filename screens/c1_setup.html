@@ -285,17 +285,24 @@ async function _save(){
   }
 }
 
-// 저장 후: 시설 기자재 등록으로 이어가기 (이기종 통합 매핑)
+// 저장 후: 농장유형(노지/온실)에 맞는 다음 단계로 이어가기 (여정 단절 방지)
 function _postSaveCTA(){
   const fid=encodeURIComponent(form.farm_id||'farm_001');
   const box=document.getElementById('saveResult');
+  const field=_isField();
+  const cta = field ? {
+    msg:'다음으로 <b>노지 필지·위성 작황</b>을 확인하세요. 고가 센서 없이도 위성·기상으로 작황과 이상 필지를 진단합니다.',
+    primary:`f8_cluster.html?farm=${fid}`, primaryLabel:'🛰️ 클러스터 작황 보기', home:'f1_field.html'
+  } : {
+    msg:'다음으로 <b>시설 기자재</b>를 등록하면 보유 장비(제조사·프로토콜)를 표준 변수로 연동할 수 있습니다.',
+    primary:`c16_equipment.html?farm=${fid}`, primaryLabel:'🔌 기자재 등록하기', home:'c3_home.html'
+  };
   box.insertAdjacentHTML('afterend', `
     <div id="ctaBox" style="margin-top:14px;">
-      <div style="font-size:13px;color:var(--muted);text-align:center;margin-bottom:10px;line-height:1.5;">
-        다음으로 <b>시설 기자재</b>를 등록하면 보유 장비(제조사·프로토콜)를<br>표준 변수로 연동할 수 있습니다.</div>
+      <div style="font-size:13px;color:var(--muted);text-align:center;margin-bottom:10px;line-height:1.5;">${cta.msg}</div>
       <div style="display:flex;gap:10px;">
-        <button onclick="location.href='c16_equipment.html?farm=${fid}'" style="flex:1;padding:14px;background:var(--green);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:800;cursor:pointer;min-height:48px;">🔌 기자재 등록하기</button>
-        <button onclick="location.href='c3_home.html'" style="flex:0 0 110px;padding:14px;background:var(--gray-soft);color:var(--muted);border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:700;cursor:pointer;min-height:48px;">나중에</button>
+        <button onclick="location.href='${cta.primary}'" style="flex:1;padding:14px;background:var(--green);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:800;cursor:pointer;min-height:48px;">${cta.primaryLabel}</button>
+        <button onclick="location.href='${cta.home}'" style="flex:0 0 110px;padding:14px;background:var(--gray-soft);color:var(--muted);border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:700;cursor:pointer;min-height:48px;">${field?'노지홈':'나중에'}</button>
       </div>
     </div>`);
 }

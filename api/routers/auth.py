@@ -141,6 +141,9 @@ def _register_farm_from_onboarding(farm_id: str, req: "OnboardingRequest") -> No
             sido     = region_parts[0] if len(region_parts) > 0 else None
             sigungu  = region_parts[1] if len(region_parts) > 1 else None
 
+            _fac = req.facility_type or ""
+            _cm  = req.cultivation_method or ""
+            _is_field = ("노지" in _fac) or ("비가림" in _fac) or ("노지" in _cm)
             _FARM_META[farm_id] = {
                 "tier":           FarmTier.MANUAL,
                 "area_m2":        float(req.area_m2) if req.area_m2 else 1000.0,
@@ -150,6 +153,9 @@ def _register_farm_from_onboarding(farm_id: str, req: "OnboardingRequest") -> No
                 "sido":           sido,
                 "sigungu":        sigungu,
                 "address_detail": "",
+                "facility_type":  _fac,
+                "cultivation_method": _cm,
+                "farm_type":      "field" if _is_field else "greenhouse",
             }
             logger.info("[auth] _FARM_META 동적 등록: %s (작목=%s)", farm_id, crop)
     except Exception as e:

@@ -2994,7 +2994,8 @@ def get_capability(farm_id: str):
     _require_farm(farm_id)
     from api.services.capability_router import build_capability
     diag = get_system_diagnosis(farm_id)
-    return build_capability(diag)
+    farm_type = (_FARM_META.get(farm_id, {}) or {}).get("farm_type", "greenhouse")
+    return build_capability(diag, farm_type=farm_type)
 
 
 @router.get("/diagnosis/history", summary="진단 점수 이력(회차별 추세)")
