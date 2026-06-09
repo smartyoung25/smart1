@@ -170,6 +170,17 @@
   <!-- 데이터 경보 배너 -->
   <div id="alertBanners"></div>
 
+  <!-- ★ 역량 단계 배너 (역량별 핵심 서비스 라우팅) -->
+  <a id="capBanner" href="c19_capability.html" style="display:none;align-items:center;gap:12px;text-decoration:none;background:linear-gradient(135deg,#0f5132,#1f9d55);color:#fff;border-radius:14px;padding:13px 16px;margin-bottom:14px;">
+    <span style="font-size:22px;">🧭</span>
+    <div style="flex:1;min-width:0;">
+      <div style="font-size:11px;opacity:.9;font-weight:700;" id="capNo">역량 단계</div>
+      <div style="font-size:15px;font-weight:900;" id="capStage">—</div>
+      <div style="height:6px;background:rgba(255,255,255,.25);border-radius:3px;margin-top:6px;overflow:hidden;"><div id="capProg" style="height:100%;width:0%;background:#fff;border-radius:3px;"></div></div>
+    </div>
+    <span style="font-size:11px;font-weight:800;white-space:nowrap;">핵심 서비스 ›</span>
+  </a>
+
   <!-- ★ 오늘의 결정 (글로벌 의사결정 UI 벤치마킹: 이상감지+처방+신뢰도+출처+원탭) -->
   <div class="section-label" style="display:flex;align-items:center;justify-content:space-between;">
     <span>오늘의 결정 <span style="font-size:10px;color:var(--muted);font-weight:600;">AI 의사결정</span></span>
@@ -337,8 +348,22 @@ window.addEventListener('DOMContentLoaded', () => {
     KaasaData.loadRecommend({ crop: '토마토', tier: 'semi_auto', areaMeter: 1000 });
     _loadPrices(token);
     _loadYieldForecast(token, farmId);
+    _loadCapability(token, farmId);
   });
 });
+
+// 역량 단계 배너 (역량별 핵심 서비스 라우팅)
+async function _loadCapability(token, farmId){
+  try{
+    const api=KaasaData.getApiBase?KaasaData.getApiBase():location.origin;
+    const d=await fetch(`${api}/api/farms/${farmId}/capability`,{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.json());
+    if(!d||!d.stage_name) return;
+    document.getElementById('capNo').textContent=`${d.stage}단계 · 종합 ${d.overall}점`;
+    document.getElementById('capStage').textContent=d.stage_name;
+    document.getElementById('capProg').style.width=`${d.progress_pct||0}%`;
+    document.getElementById('capBanner').style.display='flex';
+  }catch(e){}
+}
 
 function onFarmChange(farmId) {
   sessionStorage.setItem('sf_farm_id', farmId);

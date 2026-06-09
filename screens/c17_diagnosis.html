@@ -69,6 +69,15 @@
     <div class="dg-grade" id="dgGrade">진단 중…</div>
   </div>
   <div class="stat-row" id="dgStats"></div>
+  <div id="dgTrend" style="display:none;" class="card">
+    <div style="display:flex;align-items:center;margin-bottom:6px;">
+      <span style="font-size:12px;font-weight:800;">진단 추세 (회차별)</span>
+      <span id="dgDelta" style="margin-left:auto;font-size:12px;font-weight:800;"></span>
+    </div>
+    <svg id="dgSpark" width="100%" height="60" viewBox="0 0 300 60" preserveAspectRatio="none"></svg>
+    <div id="dgTrendLabels" style="display:flex;justify-content:space-between;font-size:9.5px;color:var(--muted);margin-top:2px;"></div>
+  </div>
+  <button onclick="location.href='c19_capability.html'" style="width:100%;padding:13px;margin-bottom:10px;background:linear-gradient(135deg,#0f5132,#1f9d55);border:none;color:#fff;border-radius:12px;font-size:13.5px;font-weight:800;cursor:pointer;min-height:48px;">🧭 내 역량 단계별 핵심 서비스 보기 →</button>
   <div style="display:flex;gap:8px;margin-bottom:12px;">
     <button onclick="location.href='c18_checklist.html'" style="flex:1;padding:12px;background:var(--panel);border:1.5px dashed var(--green);color:var(--green-dark);border-radius:12px;font-size:12.5px;font-weight:800;cursor:pointer;min-height:46px;">📋 현장 문진 입력</button>
     <button onclick="location.href='c17_report.html'" style="flex:1;padding:12px;background:var(--panel);border:1.5px dashed var(--blue,#2563eb);color:var(--blue,#2563eb);border-radius:12px;font-size:12.5px;font-weight:800;cursor:pointer;min-height:46px;">📄 결과보고서 PDF</button>
@@ -110,6 +119,27 @@ window.addEventListener('DOMContentLoaded',()=>{
 async function _ensureToken(){const s=sessionStorage.getItem('sf_token');if(s)return s;try{const a=sessionStorage.getItem('sf_api')||location.origin;const r=await fetch(`${a}/api/v1/auth/token`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:'admin',password:'1250'})});if(r.ok){const d=await r.json();sessionStorage.setItem('sf_token',d.access_token);return d.access_token;}}catch{}return '';}
 function onFarmChange(id){sessionStorage.setItem('sf_farm_id',id);location.reload();}
 
+async function _loadTrend(token){
+  try{
+    const api=KaasaData.getApiBase();
+    const h=await fetch(`${api}/api/farms/${_farmG}/diagnosis/history`,{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.json());
+    const snaps=(h.snapshots||[]).filter(s=>s.overall!=null);
+    if(snaps.length<2) return;
+    const box=document.getElementById('dgTrend'); box.style.display='block';
+    const vals=snaps.map(s=>s.overall), W=300,Hh=60,pad=6;
+    const mn=Math.min(...vals,40), mx=Math.max(...vals,100);
+    const xs=i=>pad+(W-2*pad)*(snaps.length<2?0:i/(snaps.length-1));
+    const ys=v=>Hh-pad-(Hh-2*pad)*((v-mn)/((mx-mn)||1));
+    const pts=vals.map((v,i)=>`${xs(i).toFixed(1)},${ys(v).toFixed(1)}`).join(' ');
+    const dots=vals.map((v,i)=>`<circle cx="${xs(i).toFixed(1)}" cy="${ys(v).toFixed(1)}" r="3" fill="#2563eb"/><text x="${xs(i).toFixed(1)}" y="${(ys(v)-6).toFixed(1)}" font-size="10" fill="#2563eb" text-anchor="middle" font-weight="700">${v}</text>`).join('');
+    document.getElementById('dgSpark').innerHTML=`<polyline points="${pts}" fill="none" stroke="#2563eb" stroke-width="2"/>${dots}`;
+    document.getElementById('dgTrendLabels').innerHTML=snaps.map(s=>`<span>${(s.date||'').slice(5)}</span>`).join('');
+    const dl=h.latest_delta;
+    const de=document.getElementById('dgDelta');
+    if(dl!=null) de.innerHTML = dl>0?`<span style="color:var(--green)">▲ 전회比 +${dl}점</span>`:dl<0?`<span style="color:var(--red)">▼ 전회比 ${dl}점</span>`:`<span style="color:var(--muted)">전회比 ±0</span>`;
+  }catch(e){}
+}
+
 async function _load(token){
   const api=KaasaData.getApiBase();
   let d;
@@ -117,6 +147,7 @@ async function _load(token){
   catch(e){ document.getElementById('dgGrade').textContent='진단 실패'; return; }
   document.getElementById('dgScore').textContent=d.overall_score;
   document.getElementById('dgGrade').textContent=`종합 ${d.grade} · ${d.tier} 등급`;
+  _loadTrend(token);
   const st=d.stats||{};
   document.getElementById('dgStats').innerHTML=`
     <div class="stat"><div class="stat-v">${st.devices||0}</div><div class="stat-l">등록 장비</div></div>

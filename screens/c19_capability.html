@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <title>C19 — 역량별 핵심 서비스 | KAASA SmartOS</title>
+  <link rel="stylesheet" href="../components/base.css"/>
+  <style>
+    .cb-body{padding:14px;max-width:480px;margin:0 auto;padding-bottom:90px;}
+    .cb-hero{background:linear-gradient(135deg,#0f5132,#1f9d55);border-radius:var(--radius);padding:18px 20px;color:#fff;margin-bottom:14px;}
+    .cb-stage-no{font-size:12px;opacity:.9;font-weight:700;}
+    .cb-stage{font-size:26px;font-weight:900;line-height:1.1;margin:2px 0 4px;}
+    .cb-slogan{font-size:12.5px;opacity:.92;line-height:1.5;}
+    .cb-steps{display:flex;gap:5px;margin:14px 0 12px;}
+    .cb-step{flex:1;text-align:center;}
+    .cb-step-dot{height:6px;border-radius:3px;background:var(--gray-soft);}
+    .cb-step.on .cb-step-dot{background:var(--green);}
+    .cb-step.cur .cb-step-dot{background:var(--green);box-shadow:0 0 0 2px var(--green-soft);}
+    .cb-step-l{font-size:9.5px;color:var(--muted);margin-top:4px;font-weight:700;}
+    .cb-step.cur .cb-step-l{color:var(--green-dark);}
+    .cb-prog-wrap{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:13px 15px;margin-bottom:14px;}
+    .cb-prog-bar{height:9px;background:var(--gray-soft);border-radius:5px;overflow:hidden;margin-top:8px;}
+    .cb-prog-f{height:100%;background:var(--green);border-radius:5px;}
+    .cb-focus{font-size:12.5px;color:var(--muted);line-height:1.6;background:var(--panel-soft);border-radius:10px;padding:11px 13px;margin-bottom:14px;}
+    .svc-card{display:flex;align-items:center;gap:12px;background:var(--panel);border:1.5px solid var(--border);border-radius:12px;padding:13px 14px;margin-bottom:9px;text-decoration:none;color:var(--text);}
+    .svc-num{width:28px;height:28px;border-radius:50%;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;flex-shrink:0;}
+    .svc-t{font-size:14px;font-weight:800;}
+    .svc-w{font-size:11.5px;color:var(--muted);margin-top:2px;line-height:1.4;}
+    .svc-arrow{margin-left:auto;color:var(--muted);font-size:18px;}
+    .task-card{background:var(--panel);border:1.5px solid var(--border);border-left:4px solid var(--orange);border-radius:12px;padding:12px 14px;margin-bottom:9px;}
+    .task-t{font-size:13px;font-weight:800;}
+    .task-d{font-size:11.5px;color:var(--muted);margin-top:3px;line-height:1.5;}
+    .task-btn{margin-top:8px;width:100%;padding:10px;background:var(--orange-soft);color:var(--orange);border:none;border-radius:9px;font-size:12.5px;font-weight:800;cursor:pointer;}
+  </style>
+</head>
+<body>
+<header class="sf-header">
+  <span style="font-size:13px;color:rgba(255,255,255,.85);cursor:pointer;" onclick="location.href='../index.html'">‹ 메뉴</span>
+  <span style="font-size:15px;font-weight:800;color:#fff;">역량별 핵심 서비스</span>
+  <span style="width:40px;"></span>
+</header>
+<main class="cb-body">
+  <div class="cb-hero">
+    <div class="cb-stage-no" id="cbNo">역량 진단 중…</div>
+    <div class="cb-stage" id="cbStage">—</div>
+    <div class="cb-slogan" id="cbSlogan"></div>
+    <div class="cb-steps" id="cbSteps"></div>
+  </div>
+  <div class="cb-prog-wrap">
+    <div style="display:flex;align-items:center;font-size:12px;font-weight:700;">
+      <span id="cbProgLabel">현재 단계 진행도</span>
+      <span style="margin-left:auto;color:var(--green-dark);font-weight:800;" id="cbProgPct">—</span>
+    </div>
+    <div class="cb-prog-bar"><div class="cb-prog-f" id="cbProgF" style="width:0%"></div></div>
+    <div style="font-size:11px;color:var(--muted);margin-top:7px;" id="cbNext"></div>
+  </div>
+  <div class="cb-focus" id="cbFocus"></div>
+
+  <div class="section-label">이 단계의 핵심 서비스 <span class="trust-badge trust-model">🔵 역량맞춤</span></div>
+  <div id="cbServices"><div style="text-align:center;padding:16px;color:var(--muted);"><div class="spinner"></div></div></div>
+
+  <div class="section-label" style="margin-top:16px;">다음 단계 진입 핵심 과제</div>
+  <div id="cbTasks"></div>
+
+  <div style="margin-top:14px;">
+    <button onclick="location.href='c17_diagnosis.html'" style="width:100%;padding:13px;background:var(--panel);border:1.5px dashed var(--green);color:var(--green-dark);border-radius:12px;font-size:13px;font-weight:800;cursor:pointer;">🩺 종합진단 상세 보기</button>
+  </div>
+</main>
+<nav class="sf-bottom-nav">
+  <button class="bnav-tab" onclick="location.href='c3_home.html'"><span class="bnav-icon">🏠</span>홈</button>
+  <button class="bnav-tab" onclick="location.href='g1_home.html'"><span class="bnav-icon">🌱</span>온실</button>
+  <button class="bnav-tab" onclick="location.href='f1_field.html'"><span class="bnav-icon">🌾</span>노지</button>
+  <button class="bnav-tab" onclick="location.href='c12_joint.html'"><span class="bnav-icon">🚚</span>출하</button>
+  <button class="bnav-tab" onclick="location.href='../index.html'"><span class="bnav-icon">≡</span>메뉴</button>
+</nav>
+<script src="../components/data.js"></script>
+<script>
+'use strict';
+let _farmG='farm_001';
+const STAGES=['기반 구축','데이터 정착','정밀 제어','경영 고도화'];
+window.addEventListener('DOMContentLoaded',()=>{
+  _farmG=new URLSearchParams(location.search).get('farm')||sessionStorage.getItem('sf_farm_id')||'farm_001';
+  _ensureToken().then(t=>{ KaasaData.init&&KaasaData.init({farmId:_farmG,token:t,onStatus:()=>{}}); _load(t); });
+});
+async function _ensureToken(){const s=sessionStorage.getItem('sf_token');if(s)return s;try{const a=sessionStorage.getItem('sf_api')||location.origin;const r=await fetch(`${a}/api/v1/auth/token`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:'admin',password:'1250'})});if(r.ok){const d=await r.json();sessionStorage.setItem('sf_token',d.access_token);return d.access_token;}}catch{}return '';}
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+async function _load(token){
+  const api=KaasaData.getApiBase?KaasaData.getApiBase():location.origin;
+  let d;
+  try{ d=await fetch(`${api}/api/farms/${_farmG}/capability`,{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.json()); }
+  catch(e){ document.getElementById('cbStage').textContent='로드 실패'; return; }
+  document.getElementById('cbNo').textContent=`${d.stage}단계 · 종합 ${d.overall}점 · ${d.tier} 등급`;
+  document.getElementById('cbStage').textContent=d.stage_name;
+  document.getElementById('cbSlogan').textContent=d.slogan;
+  document.getElementById('cbSteps').innerHTML=STAGES.map((s,i)=>{
+    const n=i+1, cls=n<d.stage?'on':n===d.stage?'on cur':'';
+    return `<div class="cb-step ${cls}"><div class="cb-step-dot"></div><div class="cb-step-l">${s}</div></div>`;
+  }).join('');
+  document.getElementById('cbProgPct').textContent=`${d.progress_pct}%`;
+  document.getElementById('cbProgF').style.width=`${d.progress_pct}%`;
+  document.getElementById('cbNext').textContent=d.next_stage?`다음 단계: ${d.next_stage} (핵심 과제 해결 시 진입)`:'최고 단계 — 선도 농가입니다.';
+  document.getElementById('cbFocus').textContent=d.focus;
+  document.getElementById('cbServices').innerHTML=(d.core_services||[]).map((s,i)=>`
+    <a class="svc-card" href="${esc(s.target)}">
+      <span class="svc-num">${i+1}</span>
+      <div><div class="svc-t">${esc(s.title)}</div><div class="svc-w">${esc(s.why)}</div></div>
+      <span class="svc-arrow">›</span></a>`).join('');
+  const tasks=d.next_tasks||[];
+  document.getElementById('cbTasks').innerHTML=tasks.length?tasks.map(t=>`
+    <div class="task-card">
+      <div class="task-t">${esc(t.title)}</div>
+      <div class="task-d">${esc(t.detail||'')} ${t.domain?`<b>· ${esc(t.domain)}</b>`:''}</div>
+      ${t.target?`<button class="task-btn" onclick="location.href='${esc(t.target)}'">해결하러 가기 →</button>`:''}
+    </div>`).join('')
+    :'<div style="text-align:center;padding:14px;color:var(--green);font-size:13px;">✅ 현 단계 과제 없음 — 다음 단계 진입 준비 완료</div>';
+}
+</script>
+</body>
+</html>

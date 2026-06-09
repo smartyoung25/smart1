@@ -69,12 +69,13 @@ const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;',
 
 async function _build(token){
   const api=KaasaData.getApiBase?KaasaData.getApiBase():location.origin, H={Authorization:`Bearer ${token}`};
-  let diag={},ck={},rep={};
+  let diag={},ck={},rep={},hist={};
   try{
-    [diag,ck,rep]=await Promise.all([
+    [diag,ck,rep,hist]=await Promise.all([
       fetch(`${api}/api/farms/${_farmG}/diagnosis`,{headers:H}).then(r=>r.json()),
       fetch(`${api}/api/farms/${_farmG}/diagnosis/checklist`,{headers:H}).then(r=>r.ok?r.json():{}).catch(()=>({})),
       fetch(`${api}/api/farms/${_farmG}/report/monthly`,{headers:H}).then(r=>r.ok?r.json():{}).catch(()=>({})),
+      fetch(`${api}/api/farms/${_farmG}/diagnosis/history`,{headers:H}).then(r=>r.ok?r.json():{}).catch(()=>({})),
     ]);
   }catch(e){ document.getElementById('page').innerHTML='<div style="padding:40px;text-align:center;color:#d23b3b;">데이터를 불러오지 못했습니다.</div>'; return; }
 
@@ -124,6 +125,13 @@ async function _build(token){
         <div style="font-size:12px;color:#5a6678;margin-top:6px;">등록장비 ${st.devices||0}대 · 연동 표준변수 ${st.mapped_vars||0}종 · 이달 이행기록 ${st.month_activities||0}건 · 캘리브 ${st.calib_points||0}P</div>
       </div>
     </div>
+
+    ${(()=>{ const sn=(hist.snapshots||[]).filter(s=>s.overall!=null); if(sn.length<2) return '';
+      return `<div class="rp-h" style="font-size:13px;margin:14px 0 6px;">회차별 진단 추세</div>
+      <table class="rp-tbl"><thead><tr><th style="width:90px;">진단일</th>${sn.map(s=>`<th>${esc((s.date||'').slice(5))}</th>`).join('')}</tr></thead>
+        <tbody><tr><td><b>종합점수</b></td>${sn.map((s,i)=>{const prev=i>0?sn[i-1].overall:null;const dl=prev!=null?s.overall-prev:null;
+          return `<td><b>${s.overall}</b>${dl!=null?` <span style="font-size:10px;color:${dl>0?'#1f9d55':dl<0?'#d23b3b':'#7a8595'}">${dl>0?'▲'+dl:dl<0?'▼'+Math.abs(dl):'±0'}</span>`:''}</td>`;}).join('')}</tr></tbody></table>`;
+    })()}
 
     <div class="rp-h">Ⅱ. 영역별 진단 (현장컨설팅 6대 영역)</div>
     <table class="rp-tbl"><thead><tr><th style="width:96px;">영역</th><th style="width:130px;">점수</th><th>진단 소견</th></tr></thead>

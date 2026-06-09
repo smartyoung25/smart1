@@ -2903,6 +2903,72 @@ def _load_checklist(farm_id: str) -> dict:
     return {}
 
 
+def _diag_history_path(farm_id: str):
+    from pathlib import Path as _P
+    d = _P(__file__).resolve().parents[1] / "data" / "diagnosis"
+    d.mkdir(parents=True, exist_ok=True)
+    return d / f"{farm_id}_history.json"
+
+
+def _append_diag_snapshot(farm_id: str, consultant: str = "") -> dict:
+    """현재 진단을 스냅샷으로 누적(같은 날짜는 갱신). 회차별 개선 추적용."""
+    import json as _json
+    from datetime import datetime as _dt, timezone as _tz
+    try:
+        diag = get_system_diagnosis(farm_id)
+    except Exception:
+        return {}
+    now = _dt.now(_tz.utc)
+    snap = {
+        "date": now.isoformat()[:10], "ts": now.isoformat(),
+        "overall": diag.get("overall_score"), "grade": diag.get("grade"),
+        "domains": {d["key"]: d["score"] for d in diag.get("domains", [])},
+        "consultant": consultant or "",
+    }
+    fp = _diag_history_path(farm_id)
+    hist = []
+    if fp.exists():
+        try: hist = _json.loads(fp.read_text(encoding="utf-8"))
+        except Exception: hist = []
+    hist = [h for h in hist if h.get("date") != snap["date"]]  # 같은 날 갱신
+    hist.append(snap)
+    hist = sorted(hist, key=lambda h: h.get("ts", ""))[-24:]   # 최근 24회
+    fp.write_text(_json.dumps(hist, ensure_ascii=False, indent=2), encoding="utf-8")
+    return snap
+
+
+@router.get("/capability", summary="역량 단계별 핵심 서비스 큐레이션")
+def get_capability(farm_id: str):
+    """C17 종합진단 → 역량 단계(기반구축/데이터정착/정밀제어/경영고도화) +
+    단계별 핵심 서비스 3~5개 + 다음 단계 진입 과제. (서비스 과잉 방지·역량 맞춤 라우팅)"""
+    _require_farm(farm_id)
+    from api.services.capability_router import build_capability
+    diag = get_system_diagnosis(farm_id)
+    return build_capability(diag)
+
+
+@router.get("/diagnosis/history", summary="진단 점수 이력(회차별 추세)")
+def get_diagnosis_history(farm_id: str):
+    import json as _json
+    _require_farm(farm_id)
+    fp = _diag_history_path(farm_id)
+    hist = []
+    if fp.exists():
+        try: hist = _json.loads(fp.read_text(encoding="utf-8"))
+        except Exception: hist = []
+    delta = None
+    if len(hist) >= 2 and hist[-1].get("overall") is not None and hist[-2].get("overall") is not None:
+        delta = hist[-1]["overall"] - hist[-2]["overall"]
+    return {"snapshots": hist, "count": len(hist), "latest_delta": delta}
+
+
+@router.post("/diagnosis/snapshot", summary="현재 진단을 이력에 저장")
+def post_diagnosis_snapshot(farm_id: str, body: dict = Body(default={})):
+    _require_farm(farm_id)
+    snap = _append_diag_snapshot(farm_id, (body or {}).get("consultant", ""))
+    return {"ok": bool(snap), "snapshot": snap}
+
+
 @router.get("/diagnosis/checklist", summary="현장컨설팅 문진 체크리스트 스키마 + 저장응답")
 def get_diagnosis_checklist(farm_id: str):
     import json as _json
@@ -2928,6 +2994,9 @@ def post_diagnosis_checklist(farm_id: str, body: dict = Body(...)):
     }
     _checklist_path(farm_id).write_text(_json.dumps(rec, ensure_ascii=False, indent=2), encoding="utf-8")
     n = len(rec["responses"])
+    # 문진 저장 시 진단 스냅샷 자동 누적(회차 추적)
+    try: _append_diag_snapshot(farm_id, rec["consultant"])
+    except Exception: pass
     return {"ok": True, "saved_items": n, "updated_at": rec["updated_at"]}
 
 
