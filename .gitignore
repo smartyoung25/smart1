@@ -89,3 +89,4 @@ api/data/kamis_price_cache.json
 
 dashboard/test_*.html
 data_real/
+deploy/cloudflare/bin/
