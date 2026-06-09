@@ -2035,8 +2035,19 @@ def post_chat(farm_id: str, body: ChatRequest):
             referenced_data = _result.get("referenced_data", []),
         )
 
-    # Smart 이하 또는 API 키 미설정 → 규칙 기반 stub
-    return _stub_reply(farm_id, body.message)
+    # Smart 이하 또는 API 키 미설정 → 컨텍스트 기반 규칙형 응답(진단·역량·작황·경영전략 포함)
+    try:
+        from api.services.ai_chat import build_farm_context, _rule_based_reply
+        _meta   = _FARM_META.get(farm_id, {})
+        _env    = _get_env(farm_id) or {}
+        _alerts = _detect_alerts(farm_id, _env, crop_ko=_meta.get("crop", "딸기")) if _env else []
+        _ctx    = build_farm_context(farm_id, _meta, _env, _alerts)
+        _r      = _rule_based_reply(body.message, _ctx)
+        return ChatResponse(reply=_r["reply"], suggestions=_r.get("suggestions", []),
+                            model_used=_r.get("model_used", "rule-v2"),
+                            referenced_data=_r.get("referenced_data", []))
+    except Exception:
+        return _stub_reply(farm_id, body.message)
 
 # ── P4 관수 데이터 수신 (관수통합관리시스템 연동) ─────────────────────────────
 

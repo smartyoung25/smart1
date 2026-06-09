@@ -464,6 +464,41 @@ def _rule_based_reply(message: str, context: dict) -> dict:
             reply = (f"✅ 현재 {crop} 농장에 활성 경보가 없습니다.\n온도 {_fmt(temp,'°C')} · 습도 {_fmt(hum,'%')} · VPD {_fmt(vpd,' kPa',2)} 모두 모니터링 중입니다.")
         sugg = ["오늘의 결정 보기", "관수 상태는?", "수확 예측 보기"]
 
+    # 6-1) 진단·역량 단계
+    elif any(k in m for k in ["진단", "역량", "단계", "성숙도", "어디까지", "수준"]):
+        dg = context.get("diagnosis", {}) or {}
+        cp = context.get("capability", {}) or {}
+        lines = []
+        if dg.get("overall") is not None:
+            lines.append(f"종합진단 {dg['overall']}점({dg.get('grade','-')}) · 취약 {'·'.join(dg.get('weak',[])) or '-'}")
+            if dg.get("top_action"): lines.append(f"최우선 처방: {dg['top_action']}")
+        if cp.get("stage_name"):
+            lines.append(f"역량 {cp['stage']}단계 '{cp['stage_name']}' (진행 {cp.get('progress','-')}%)")
+            if cp.get("services"): lines.append(f"이 단계 핵심: {', '.join(cp['services'])}")
+            if cp.get("next_stage"): lines.append(f"다음 단계: {cp['next_stage']}")
+        body = "\n".join(lines) if lines else "C17 종합진단을 먼저 실행하면 역량 단계와 처방을 안내합니다."
+        reply = f"🩺 {crop} 진단·역량\n{body}\n\n자세한 처방·추세는 C17 종합진단, 단계별 서비스는 C19에서 확인하세요."
+        sugg = ["내 취약 영역은?", "다음 단계 가려면?", "결과보고서 PDF"]
+
+    # 6-2) 노지 작황·위성
+    elif any(k in m for k in ["작황", "위성", "ndvi", "필지", "클러스터", "노지"]):
+        cl = context.get("cluster", {}) or {}
+        if cl.get("grade"):
+            reply = (f"🛰️ 클러스터 작황\n작황 {cl['grade']} · 균일도 {cl.get('uniformity','-')}% · 이상필지 {cl.get('anomaly',0)}개"
+                     + (f"\n주의 위치: {cl['top_alert']}" if cl.get('top_alert') else "")
+                     + "\n\n고가 센서 없이 위성·기상으로 진단합니다. 이상 필지는 F8에서 위치·편차·현장확인 지시로 확인하세요.")
+        else:
+            reply = "🛰️ 노지 클러스터 작황은 F8에서 위성·기상 기반 무센서로 진단합니다. 노지 농장으로 전환 시 필지별 NDVI·이상알림을 제공합니다."
+        sugg = ["이상 필지 어디야?", "관개 우선순위는?", "16일 재해 예보"]
+
+    # 6-3) 경영전략
+    elif any(k in m for k in ["경영", "전략", "roi", "투자", "벤치마킹", "원가", "마진"]):
+        reply = ("💼 경영전략 한 바퀴\n진단(C17) → 성과(C14) → 수익성(C5) → ROI(C10) → 벤치마킹(C9)을 "
+                 "상단 연결 밴드로 한 번에 오갈 수 있습니다.\n\n"
+                 "월간리포트에서 9대 성과지표·전월대비를 보고, 수익성 ERP로 원가·마진을, "
+                 "벤치마킹으로 우수농가 대비 격차를 점검해 ROI 높은 투자부터 실행하세요.")
+        sugg = ["이번 달 성과는?", "원가 절감 방법은?", "우수농가 대비 격차"]
+
     # 7) 에너지
     elif any(k in m for k in ["에너지", "전기", "전력", "난방", "요금"]):
         reply = ("⚡ 에너지 절감\n한전 시간대별 요금 기준, 피크시간(10~17시)에 난방·LED를 20~50% 자동 감축하면 "
@@ -528,4 +563,46 @@ def build_farm_context(
         "price_krw_kg": round(price, 0),
         "yield_kg_m2":  round(yield_, 3),
         "cost_per_m2":  round(cost_per_m2, 0),
+        "farm_type":    meta.get("farm_type", "greenhouse"),
+        # 진단·역량·작황 요약 (실패해도 챗봇 지속)
+        "diagnosis":  _safe_diagnosis(farm_id),
+        "capability": _safe_capability(farm_id),
+        "cluster":    _safe_cluster(farm_id, meta),
     }
+
+
+def _safe_diagnosis(farm_id: str) -> dict:
+    try:
+        from api.routers.farmer import get_system_diagnosis
+        d = get_system_diagnosis(farm_id)
+        doms = sorted(d.get("domains", []), key=lambda x: x["score"])
+        return {"overall": d.get("overall_score"), "grade": d.get("grade"),
+                "weak": [x["name"] for x in doms[:2]],
+                "top_action": (d.get("priority_decisions") or [{}])[0].get("title")}
+    except Exception:
+        return {}
+
+
+def _safe_capability(farm_id: str) -> dict:
+    try:
+        from api.routers.farmer import get_capability
+        c = get_capability(farm_id)
+        return {"stage": c.get("stage"), "stage_name": c.get("stage_name"),
+                "progress": c.get("progress_pct"), "next_stage": c.get("next_stage"),
+                "services": [s["title"] for s in (c.get("core_services") or [])[:3]]}
+    except Exception:
+        return {}
+
+
+def _safe_cluster(farm_id: str, meta: dict) -> dict:
+    if meta.get("farm_type") != "field":
+        return {}
+    try:
+        from api.routers.farmer import get_field_cluster
+        cl = get_field_cluster(farm_id)
+        s = cl.get("summary", {})
+        return {"grade": s.get("vigor_grade"), "anomaly": s.get("anomaly_count"),
+                "uniformity": s.get("uniformity_pct"),
+                "top_alert": (cl.get("alerts") or [{}])[0].get("location")}
+    except Exception:
+        return {}
