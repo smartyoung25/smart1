@@ -1,0 +1,2616 @@
+{
+ "source": "팜맵 농경지전자지도 2024 (제주)",
+ "rows": 276491,
+ "by_sigungu": {
+  "서귀포시": {
+   "count": 128104,
+   "total_area_ha": 28255.8,
+   "by_clsf": {
+    "밭": 48293,
+    "과수": 44945,
+    "시설": 21145,
+    "비경지": 13588,
+    "논": 132,
+    "인삼": 1
+   }
+  },
+  "제주시": {
+   "count": 148387,
+   "total_area_ha": 28069.1,
+   "by_clsf": {
+    "밭": 93576,
+    "과수": 27747,
+    "비경지": 15742,
+    "시설": 11322
+   }
+  }
+ },
+ "by_emd": {
+  "서귀포시 강정동": {
+   "count": 4601,
+   "total_area_ha": 764.1,
+   "parcels": [
+    {
+     "name": " 2635",
+     "jimok": "시설",
+     "area_ha": 0.119,
+     "crop": "시설"
+    },
+    {
+     "name": " 1557",
+     "jimok": "비경지",
+     "area_ha": 0.003,
+     "crop": "비경지"
+    },
+    {
+     "name": " 3651",
+     "jimok": "시설",
+     "area_ha": 0.135,
+     "crop": "시설"
+    },
+    {
+     "name": " 0798",
+     "jimok": "비경지",
+     "area_ha": 0.002,
+     "crop": "비경지"
+    },
+    {
+     "name": " 2543",
+     "jimok": "비경지",
+     "area_ha": 0.003,
+     "crop": "비경지"
+    }
+   ]
+  },
+  "서귀포시 남원읍": {
+   "count": 24621,
+   "total_area_ha": 5575.2,
+   "parcels": [
+    {
+     "name": "신례리 2220",
+     "jimok": "시설",
+     "area_ha": 0.283,
+     "crop": "시설"
+    },
+    {
+     "name": "신례리 2205",
+     "jimok": "시설",
+     "area_ha": 0.292,
+     "crop": "시설"
+    },
+    {
+     "name": "남원리 1684",
+     "jimok": "과수",
+     "area_ha": 0.024,
+     "crop": "과수"
+    },
+    {
+     "name": "신례리 1490",
+     "jimok": "과수",
+     "area_ha": 0.038,
+     "crop": "과수"
+    },
+    {
+     "name": "신흥리 1570",
+     "jimok": "과수",
+     "area_ha": 0.102,
+     "crop": "과수"
+    }
+   ]
+  },
+  "서귀포시 대정읍": {
+   "count": 21871,
+   "total_area_ha": 4437.2,
+   "parcels": [
+    {
+     "name": "상모리 2856",
+     "jimok": "밭",
+     "area_ha": 0.223,
+     "crop": "밭"
+    },
+    {
+     "name": "상모리 1103",
+     "jimok": "시설",
+     "area_ha": 0.215,
+     "crop": "시설"
+    },
+    {
+     "name": "무릉리 0993",
+     "jimok": "시설",
+     "area_ha": 0.022,
+     "crop": "시설"
+    },
+    {
+     "name": "상모리 1587",
+     "jimok": "밭",
+     "area_ha": 0.027,
+     "crop": "밭"
+    },
+    {
+     "name": "영락리 0997",
+     "jimok": "밭",
+     "area_ha": 0.407,
+     "crop": "밭"
+    }
+   ]
+  },
+  "서귀포시 대포동": {
+   "count": 1836,
+   "total_area_ha": 245.2,
+   "parcels": [
+    {
+     "name": " 1750",
+     "jimok": "비경지",
+     "area_ha": 0.002,
+     "crop": "비경지"
+    },
+    {
+     "name": " 0340",
+     "jimok": "시설",
+     "area_ha": 0.116,
+     "crop": "시설"
+    },
+    {
+     "name": " 2075",
+     "jimok": "밭",
+     "area_ha": 0.029,
+     "crop": "밭"
+    },
+    {
+     "name": " 1156",
+     "jimok": "비경지",
+     "area_ha": 0.008,
+     "crop": "비경지"
+    },
+    {
+     "name": " 0787",
+     "jimok": "비경지",
+     "area_ha": 0.003,
+     "crop": "비경지"
+    }
+   ]
+  },
+  "서귀포시 도순동": {
+   "count": 1493,
+   "total_area_ha": 248.3,
+   "parcels": [
+    {
+     "name": " 1641",
+     "jimok": "시설",
+     "area_ha": 0.283,
+     "crop": "시설"
+    },
+    {
+     "name": " 1488",
+     "jimok": "시설",
+     "area_ha": 0.139,
+     "crop": "시설"
+    },
+    {
+     "name": " 0740",
+     "jimok": "비경지",
+     "area_ha": 0.013,
+     "crop": "과수"
+    },
+    {
+     "name": " 0578",
+     "jimok": "과수",
+     "area_ha": 0.092,
+     "crop": "과수"
+    },
+    {
+     "name": " 1621",
+     "jimok": "시설",
+     "area_ha": 0.002,
+     "crop": "시설"
+    }
+   ]
+  },
+  "서귀포시 동홍동": {
+   "count": 1110,
+   "total_area_ha": 272.8,
+   "parcels": [
+    {
+     "name": " 1138",
+     "jimok": "과수",
+     "area_ha": 0.059,
+     "crop": "과수"
+    },
+    {
+     "name": " 0826",
+     "jimok": "비경지",
+     "area_ha": 0.013,
+     "crop": "비경지"
+    },
+    {
+     "name": " 0161",
+     "jimok": "시설",
+     "area_ha": 0.175,
+     "crop": "시설"
+    },
+    {
+     "name": " 0207",
+     "jimok": "시설",
+     "area_ha": 0.218,
+     "crop": "시설"
+    },
+    {
+     "name": " 0938",
+     "jimok": "밭",
+     "area_ha": 0.076,
+     "crop": "밭"
+    }
+   ]
+  },
+  "서귀포시 법환동": {
+   "count": 637,
+   "total_area_ha": 88.6,
+   "parcels": [
+    {
+     "name": " 0448",
+     "jimok": "시설",
+     "area_ha": 0.042,
+     "crop": "시설"
+    },
+    {
+     "name": " 0758",
+     "jimok": "시설",
+     "area_ha": 0.004,
+     "crop": NaN
+    },
+    {
+     "name": " 0259",
+     "jimok": "비경지",
+     "area_ha": 0.003,
+     "crop": "비경지"
+    },
+    {
+     "name": " 0670",
+     "jimok": "시설",
+     "area_ha": 0.003,
+     "crop": "시설"
+    },
+    {
+     "name": " 0549",
+     "jimok": "밭",
+     "area_ha": 0.007,
+     "crop": "밭"
+    }
+   ]
+  },
+  "서귀포시 보목동": {
+   "count": 1291,
+   "total_area_ha": 209.0,
+   "parcels": [
+    {
+     "name": " 0147",
+     "jimok": "비경지",
+     "area_ha": 0.003,
+     "crop": "비경지"
+    },
+    {
+     "name": " 1047",
+     "jimok": "비경지",
+     "area_ha": 0.009,
+     "crop": "비경지"
+    },
+    {
+     "name": " 0603",
+     "jimok": "시설",
+     "area_ha": 0.19,
+     "crop": "시설"
+    },
+    {
+     "name": " 0747",
+     "jimok": "시설",
+     "area_ha": 0.172,
+     "crop": "시설"
+    },
+    {
+     "name": " 0763",
+     "jimok": "비경지",
+     "area_ha": 0.012,
+     "crop": "시설"
+    }
+   ]
+  },
+  "서귀포시 상예동": {
+   "count": 3095,
+   "total_area_ha": 576.9,
+   "parcels": [
+    {
+     "name": " 2046",
+     "jimok": "비경지",
+     "area_ha": 0.006,
+     "crop": "비경지"
+    },
+    {
+     "name": " 0490",
+     "jimok": "밭",
+     "area_ha": 0.194,
+     "crop": "밭"
+    },
+    {
+     "name": " 1135",
+     "jimok": "시설",
+     "area_ha": 0.144,
+     "crop": "시설"
+    },
+    {
+     "name": " 1870",
+     "jimok": "비경지",
+     "area_ha": 0.007,
+     "crop": "비경지"
+    },
+    {
+     "name": " 0932",
+     "jimok": "시설",
+     "area_ha": 0.25,
+     "crop": "시설"
+    }
+   ]
+  },
+  "서귀포시 상효동": {
+   "count": 1802,
+   "total_area_ha": 364.5,
+   "parcels": [
+    {
+     "name": " 0764",
+     "jimok": "시설",
+     "area_ha": 0.039,
+     "crop": "시설"
+    },
+    {
+     "name": " 1000",
+     "jimok": "비경지",
+     "area_ha": 0.003,
+     "crop": "비경지"
+    },
+    {
+     "name": " 0249",
+     "jimok": "과수",
+     "area_ha": 0.073,
+     "crop": "과수"
+    },
+    {
+     "name": " 0238",
+     "jimok": "시설",
+     "area_ha": 0.389,
+     "crop": "시설"
+    },
+    {
+     "name": " 1631",
+     "jimok": "비경지",
+     "area_ha": 0.01,
+     "crop": "비경지"
+    }
+   ]
+  },
+  "서귀포시 색달동": {
+   "count": 1311,
+   "total_area_ha": 295.3,
+   "parcels": [
+    {
+     "name": " 0818",
+     "jimok": "과수",
+     "area_ha": 0.332,
+     "crop": "과수"
+    },
+    {
+     "name": " 1592",
+     "jimok": "과수",
+     "area_ha": 0.114,
+     "crop": "과수"
+    },
+    {
+     "name": " 0974",
+     "jimok": "과수",
+     "area_ha": 0.586,
+     "crop": "과수,과수,과수"
+    },
+    {
+     "name": " 1378",
+     "jimok": "과수",
+     "area_ha": 0.03,
+     "crop": "과수"
+    },
+    {
+     "name": " 0483",
+     "jimok": "비경지",
+     "area_ha": 0.006,
+     "crop": "비경지"
+    }
+   ]
+  },
+  "서귀포시 서귀동": {
+   "count": 22,
+   "total_area_ha": 1.0,
+   "parcels": [
+    {
+     "name": " 0009",
+     "jimok": "밭",
+     "area_ha": 0.093,
+     "crop": "밭"
+    },
+    {
+     "name": " 0019",
+     "jimok": "과수",
+     "area_ha": 0.108,
+     "crop": "과수"
+    },
+    {
+     "name": " 0014",
+     "jimok": "밭",
+     "area_ha": 0.037,
+     "crop": "밭"
+    },
+    {
+     "name": " 0004",
+     "jimok": "밭",
+     "area_ha": 0.012,
+     "crop": "밭"
+    },
+    {
+     "name": " 0011",
+     "jimok": "밭",
+     "area_ha": 0.022,
+     "crop": "밭"
+    }
+   ]
+  },
+  "서귀포시 서호동": {
+   "count": 783,
+   "total_area_ha": 146.3,
+   "parcels": [
+    {
+     "name": " 0710",
+     "jimok": "과수",
+     "area_ha": 0.075,
+     "crop": "과수"
+    },
+    {
+     "name": " 0733",
+     "jimok": "시설",
+     "area_ha": 0.004,
+     "crop": "시설"
+    },
+    {
+     "name": " 0879",
+     "jimok": "밭",
+     "area_ha": 0.043,
+     "crop": "밭"
+    },
+    {
+     "name": " 0039",
+     "jimok": "시설",
+     "area_ha": 0.009,
+     "crop": "시설"
+    },
+    {
+     "name": " 0754",
+     "jimok": "비경지",
+     "area_ha": 0.002,
+     "crop": "비경지"
+    }
+   ]
+  },
+  "서귀포시 서홍동": {
+   "count": 1941,
+   "total_area_ha": 377.7,
+   "parcels": [
+    {
+     "name": " 1072",
+     "jimok": "과수",
+     "area_ha": 0.134,
+     "crop": "과수"
+    },
+    {
+     "name": " 1817",
+     "jimok": "밭",
+     "area_ha": 0.499,
+     "crop": "밭"
+    },
+    {
+     "name": " 1682",
+     "jimok": "밭",
+     "area_ha": 0.01,
+     "crop": "밭"
+    },
+    {
+     "name": " 1945",
+     "jimok": "과수",
+     "area_ha": 0.305,
+     "crop": "과수,과수"
+    },
+    {
+     "name": " 1873",
+     "jimok": "밭",
+     "area_ha": 0.292,
+     "crop": "밭"
+    }
+   ]
+  },
+  "서귀포시 성산읍": {
+   "count": 20968,
+   "total_area_ha": 4707.5,
+   "parcels": [
+    {
+     "name": "신천리 0116",
+     "jimok": "밭",
+     "area_ha": 0.068,
+     "crop": "밭"
+    },
+    {
+     "name": "수산리 3193",
+     "jimok": "밭",
+     "area_ha": 0.312,
+     "crop": "밭"
+    },
+    {
+     "name": "수산리 1538",
+     "jimok": "과수",
+     "area_ha": 0.139,
+     "crop": "과수"
+    },
+    {
+     "name": "고성리 0826",
+     "jimok": "밭",
+     "area_ha": 0.282,
+     "crop": "밭"
+    },
+    {
+     "name": "수산리 3500",
+     "jimok": "밭",
+     "area_ha": 0.195,
+     "crop": "밭"
+    }
+   ]
+  },
+  "서귀포시 신효동": {
+   "count": 1305,
+   "total_area_ha": 256.5,
+   "parcels": [
+    {
+     "name": " 0643",
+     "jimok": "비경지",
+     "area_ha": 0.005,
+     "crop": "비경지"
+    },
+    {
+     "name": " 1353",
+     "jimok": "시설",
+     "area_ha": 0.212,
+     "crop": "시설"
+    },
+    {
+     "name": " 0116",
+     "jimok": "비경지",
+     "area_ha": 0.004,
+     "crop": "비경지"
+    },
+    {
+     "name": " 0604",
+     "jimok": "과수",
+     "area_ha": 0.358,
+     "crop": "과수"
+    },
+    {
+     "name": " 1138",
+     "jimok": "시설",
+     "area_ha": 0.213,
+     "crop": "시설"
+    }
+   ]
+  },
+  "서귀포시 안덕면": {
+   "count": 14702,
+   "total_area_ha": 3038.9,
+   "parcels": [
+    {
+     "name": "사계리 1298",
+     "jimok": "비경지",
+     "area_ha": 0.007,
+     "crop": "비경지"
+    },
+    {
+     "name": "덕수리 0545",
+     "jimok": "밭",
+     "area_ha": 0.166,
+     "crop": "밭,밭"
+    },
+    {
+     "name": "광평리 0059",
+     "jimok": "밭",
+     "area_ha": 0.758,
+     "crop": "밭,밭"
+    },
+    {
+     "name": "상창리 2436",
+     "jimok": "비경지",
+     "area_ha": 0.006,
+     "crop": "비경지"
+    },
+    {
+     "name": "덕수리 2156",
+     "jimok": "비경지",
+     "area_ha": 0.005,
+     "crop": "비경지"
+    }
+   ]
+  },
+  "서귀포시 영남동": {
+   "count": 242,
+   "total_area_ha": 56.7,
+   "parcels": [
+    {
+     "name": " 0228",
+     "jimok": "과수",
+     "area_ha": 0.251,
+     "crop": "과수"
+    },
+    {
+     "name": " 0007",
+     "jimok": "밭",
+     "area_ha": 0.055,
+     "crop": "시설"
+    },
+    {
+     "name": " 0004",
+     "jimok": "시설",
+     "area_ha": 0.049,
+     "crop": "시설"
+    },
+    {
+     "name": " 0081",
+     "jimok": "밭",
+     "area_ha": 0.129,
+     "crop": "밭"
+    },
+    {
+     "name": " 0009",
+     "jimok": "시설",
+     "area_ha": 0.011,
+     "crop": "시설"
+    }
+   ]
+  },
+  "서귀포시 월평동": {
+   "count": 711,
+   "total_area_ha": 108.6,
+   "parcels": [
+    {
+     "name": " 0320",
+     "jimok": "시설",
+     "area_ha": 0.004,
+     "crop": "시설"
+    },
+    {
+     "name": " 0085",
+     "jimok": "시설",
+     "area_ha": 0.41,
+     "crop": "밭"
+    },
+    {
+     "name": " 0666",
+     "jimok": "시설",
+     "area_ha": 0.004,
+     "crop": "시설"
+    },
+    {
+     "name": " 0805",
+     "jimok": "시설",
+     "area_ha": 0.08,
+     "crop": "밭"
+    },
+    {
+     "name": " 0501",
+     "jimok": "시설",
+     "area_ha": 0.025,
+     "crop": "시설"
+    }
+   ]
+  },
+  "서귀포시 중문동": {
+   "count": 1507,
+   "total_area_ha": 254.0,
+   "parcels": [
+    {
+     "name": " 1075",
+     "jimok": "과수",
+     "area_ha": 0.054,
+     "crop": "과수"
+    },
+    {
+     "name": " 0637",
+     "jimok": "과수",
+     "area_ha": 0.142,
+     "crop": "과수"
+    },
+    {
+     "name": " 1429",
+     "jimok": "과수",
+     "area_ha": 0.341,
+     "crop": "과수,과수"
+    },
+    {
+     "name": " 0844",
+     "jimok": "비경지",
+     "area_ha": 0.005,
+     "crop": "비경지"
+    },
+    {
+     "name": " 1418",
+     "jimok": "밭",
+     "area_ha": 0.056,
+     "crop": "밭"
+    }
+   ]
+  },
+  "서귀포시 토평동": {
+   "count": 2685,
+   "total_area_ha": 527.8,
+   "parcels": [
+    {
+     "name": " 3094",
+     "jimok": "비경지",
+     "area_ha": 0.003,
+     "crop": "과수"
+    },
+    {
+     "name": " 0609",
+     "jimok": "과수",
+     "area_ha": 0.13,
+     "crop": "과수"
+    },
+    {
+     "name": " 3091",
+     "jimok": "비경지",
+     "area_ha": 0.002,
+     "crop": "과수"
+    },
+    {
+     "name": " 2158",
+     "jimok": "시설",
+     "area_ha": 0.197,
+     "crop": "시설"
+    },
+    {
+     "name": " 1052",
+     "jimok": "비경지",
+     "area_ha": 0.009,
+     "crop": "비경지"
+    }
+   ]
+  },
+  "서귀포시 표선면": {
+   "count": 13268,
+   "total_area_ha": 4654.5,
+   "parcels": [
+    {
+     "name": "성읍리 0422",
+     "jimok": "비경지",
+     "area_ha": 0.023,
+     "crop": "비경지"
+    },
+    {
+     "name": "세화리 1209",
+     "jimok": "과수",
+     "area_ha": 0.213,
+     "crop": "과수"
+    },
+    {
+     "name": "표선리 0034",
+     "jimok": "비경지",
+     "area_ha": 0.009,
+     "crop": "비경지"
+    },
+    {
+     "name": "표선리 0608",
+     "jimok": "시설",
+     "area_ha": 0.197,
+     "crop": "시설"
+    },
+    {
+     "name": "하천리 0878",
+     "jimok": "과수",
+     "area_ha": 0.055,
+     "crop": "과수"
+    }
+   ]
+  },
+  "서귀포시 하예동": {
+   "count": 1170,
+   "total_area_ha": 137.0,
+   "parcels": [
+    {
+     "name": " 0510",
+     "jimok": "과수",
+     "area_ha": 0.025,
+     "crop": "과수"
+    },
+    {
+     "name": " 1295",
+     "jimok": "밭",
+     "area_ha": 0.019,
+     "crop": "밭"
+    },
+    {
+     "name": " 0501",
+     "jimok": "밭",
+     "area_ha": 0.01,
+     "crop": "비경지"
+    },
+    {
+     "name": " 0916",
+     "jimok": "과수",
+     "area_ha": 0.053,
+     "crop": "과수"
+    },
+    {
+     "name": " 0560",
+     "jimok": "과수",
+     "area_ha": 0.086,
+     "crop": "과수"
+    }
+   ]
+  },
+  "서귀포시 하원동": {
+   "count": 1783,
+   "total_area_ha": 303.2,
+   "parcels": [
+    {
+     "name": " 0384",
+     "jimok": "과수",
+     "area_ha": 0.028,
+     "crop": "과수"
+    },
+    {
+     "name": " 1786",
+     "jimok": "과수",
+     "area_ha": 0.042,
+     "crop": "과수"
+    },
+    {
+     "name": " 0861",
+     "jimok": "비경지",
+     "area_ha": 0.007,
+     "crop": "비경지"
+    },
+    {
+     "name": " 1809",
+     "jimok": "과수",
+     "area_ha": 0.118,
+     "crop": "과수"
+    },
+    {
+     "name": " 1164",
+     "jimok": "시설",
+     "area_ha": 0.158,
+     "crop": "시설"
+    }
+   ]
+  },
+  "서귀포시 하효동": {
+   "count": 752,
+   "total_area_ha": 130.6,
+   "parcels": [
+    {
+     "name": " 0494",
+     "jimok": "시설",
+     "area_ha": 0.079,
+     "crop": "시설"
+    },
+    {
+     "name": " 0662",
+     "jimok": "시설",
+     "area_ha": 0.141,
+     "crop": "시설"
+    },
+    {
+     "name": " 0635",
+     "jimok": "시설",
+     "area_ha": 0.23,
+     "crop": "시설"
+    },
+    {
+     "name": " 0602",
+     "jimok": "과수",
+     "area_ha": 0.089,
+     "crop": "과수"
+    },
+    {
+     "name": " 0570",
+     "jimok": "과수",
+     "area_ha": 0.185,
+     "crop": "과수"
+    }
+   ]
+  },
+  "서귀포시 호근동": {
+   "count": 1694,
+   "total_area_ha": 334.9,
+   "parcels": [
+    {
+     "name": " 0564",
+     "jimok": "비경지",
+     "area_ha": 0.006,
+     "crop": "시설"
+    },
+    {
+     "name": " 1548",
+     "jimok": "비경지",
+     "area_ha": 0.004,
+     "crop": "비경지"
+    },
+    {
+     "name": " 1388",
+     "jimok": "과수",
+     "area_ha": 0.256,
+     "crop": "과수"
+    },
+    {
+     "name": " 0116",
+     "jimok": "시설",
+     "area_ha": 0.172,
+     "crop": "시설"
+    },
+    {
+     "name": " 0024",
+     "jimok": "시설",
+     "area_ha": 0.016,
+     "crop": "시설"
+    }
+   ]
+  },
+  "서귀포시 회수동": {
+   "count": 903,
+   "total_area_ha": 143.5,
+   "parcels": [
+    {
+     "name": " 0978",
+     "jimok": "과수",
+     "area_ha": 0.026,
+     "crop": "과수"
+    },
+    {
+     "name": " 0788",
+     "jimok": "시설",
+     "area_ha": 0.156,
+     "crop": "시설"
+    },
+    {
+     "name": " 0460",
+     "jimok": "과수",
+     "area_ha": 0.027,
+     "crop": "과수"
+    },
+    {
+     "name": " 0606",
+     "jimok": "과수",
+     "area_ha": 0.079,
+     "crop": "과수"
+    },
+    {
+     "name": " 1033",
+     "jimok": "비경지",
+     "area_ha": 0.004,
+     "crop": "과수"
+    }
+   ]
+  },
+  "제주시 건입동": {
+   "count": 259,
+   "total_area_ha": 25.2,
+   "parcels": [
+    {
+     "name": " 0061",
+     "jimok": "밭",
+     "area_ha": 0.05,
+     "crop": "밭"
+    },
+    {
+     "name": " 0043",
+     "jimok": "밭",
+     "area_ha": 0.024,
+     "crop": "밭"
+    },
+    {
+     "name": " 0012",
+     "jimok": "밭",
+     "area_ha": 0.073,
+     "crop": "밭"
+    },
+    {
+     "name": " 0258",
+     "jimok": "밭",
+     "area_ha": 0.338,
+     "crop": "밭"
+    },
+    {
+     "name": " 0261",
+     "jimok": "밭",
+     "area_ha": 0.173,
+     "crop": "밭"
+    }
+   ]
+  },
+  "제주시 구좌읍": {
+   "count": 29021,
+   "total_area_ha": 6567.5,
+   "parcels": [
+    {
+     "name": "송당리 2758",
+     "jimok": "밭",
+     "area_ha": 0.658,
+     "crop": "밭,비경지"
+    },
+    {
+     "name": "송당리 2767",
+     "jimok": "밭",
+     "area_ha": 0.968,
+     "crop": "밭"
+    },
+    {
+     "name": "송당리 0949",
+     "jimok": "시설",
+     "area_ha": 0.219,
+     "crop": "시설"
+    },
+    {
+     "name": "송당리 1551",
+     "jimok": "밭",
+     "area_ha": 1.05,
+     "crop": "밭"
+    },
+    {
+     "name": "송당리 2817",
+     "jimok": "밭",
+     "area_ha": 1.836,
+     "crop": "밭"
+    }
+   ]
+  },
+  "제주시 내도동": {
+   "count": 403,
+   "total_area_ha": 59.6,
+   "parcels": [
+    {
+     "name": " 0422",
+     "jimok": "과수",
+     "area_ha": 0.057,
+     "crop": "과수"
+    },
+    {
+     "name": " 0184",
+     "jimok": "밭",
+     "area_ha": 0.147,
+     "crop": "밭"
+    },
+    {
+     "name": " 0162",
+     "jimok": "밭",
+     "area_ha": 0.11,
+     "crop": "밭"
+    },
+    {
+     "name": " 0420",
+     "jimok": "과수",
+     "area_ha": 0.073,
+     "crop": "과수"
+    },
+    {
+     "name": " 0394",
+     "jimok": "밭",
+     "area_ha": 0.313,
+     "crop": "밭"
+    }
+   ]
+  },
+  "제주시 노형동": {
+   "count": 1408,
+   "total_area_ha": 236.3,
+   "parcels": [
+    {
+     "name": " 1447",
+     "jimok": "밭",
+     "area_ha": 0.198,
+     "crop": "밭"
+    },
+    {
+     "name": " 1438",
+     "jimok": "밭",
+     "area_ha": 0.025,
+     "crop": "밭"
+    },
+    {
+     "name": " 0902",
+     "jimok": "과수",
+     "area_ha": 0.53,
+     "crop": "과수"
+    },
+    {
+     "name": " 0404",
+     "jimok": "밭",
+     "area_ha": 0.173,
+     "crop": "시설"
+    },
+    {
+     "name": " 0083",
+     "jimok": "과수",
+     "area_ha": 0.204,
+     "crop": "과수"
+    }
+   ]
+  },
+  "제주시 도남동": {
+   "count": 450,
+   "total_area_ha": 66.4,
+   "parcels": [
+    {
+     "name": " 0027",
+     "jimok": "밭",
+     "area_ha": 0.088,
+     "crop": "밭"
+    },
+    {
+     "name": " 0526",
+     "jimok": "밭",
+     "area_ha": 0.36,
+     "crop": "밭"
+    },
+    {
+     "name": " 0541",
+     "jimok": "밭",
+     "area_ha": 0.15,
+     "crop": "밭"
+    },
+    {
+     "name": " 0021",
+     "jimok": "밭",
+     "area_ha": 0.084,
+     "crop": "밭"
+    },
+    {
+     "name": " 0534",
+     "jimok": "과수",
+     "area_ha": 0.123,
+     "crop": "과수"
+    }
+   ]
+  },
+  "제주시 도두이동": {
+   "count": 339,
+   "total_area_ha": 47.9,
+   "parcels": [
+    {
+     "name": " 0253",
+     "jimok": "밭",
+     "area_ha": 0.605,
+     "crop": "밭"
+    },
+    {
+     "name": " 0178",
+     "jimok": "밭",
+     "area_ha": 0.122,
+     "crop": "밭"
+    },
+    {
+     "name": " 0093",
+     "jimok": "밭",
+     "area_ha": 0.188,
+     "crop": "밭"
+    },
+    {
+     "name": " 0440",
+     "jimok": "시설",
+     "area_ha": 0.291,
+     "crop": "밭"
+    },
+    {
+     "name": " 0143",
+     "jimok": "밭",
+     "area_ha": 0.703,
+     "crop": "밭"
+    }
+   ]
+  },
+  "제주시 도두일동": {
+   "count": 290,
+   "total_area_ha": 33.6,
+   "parcels": [
+    {
+     "name": " 0229",
+     "jimok": "밭",
+     "area_ha": 0.316,
+     "crop": "밭"
+    },
+    {
+     "name": " 0232",
+     "jimok": "밭",
+     "area_ha": 0.176,
+     "crop": "밭"
+    },
+    {
+     "name": " 0224",
+     "jimok": "밭",
+     "area_ha": 0.351,
+     "crop": "밭"
+    },
+    {
+     "name": " 0372",
+     "jimok": "시설",
+     "area_ha": 0.079,
+     "crop": "시설"
+    },
+    {
+     "name": " 0215",
+     "jimok": "밭",
+     "area_ha": 0.084,
+     "crop": "밭"
+    }
+   ]
+  },
+  "제주시 도련이동": {
+   "count": 422,
+   "total_area_ha": 80.1,
+   "parcels": [
+    {
+     "name": " 0159",
+     "jimok": "밭",
+     "area_ha": 0.019,
+     "crop": "밭"
+    },
+    {
+     "name": " 0458",
+     "jimok": "밭",
+     "area_ha": 0.243,
+     "crop": "밭,밭"
+    },
+    {
+     "name": " 0192",
+     "jimok": "밭",
+     "area_ha": 0.2,
+     "crop": "밭"
+    },
+    {
+     "name": " 0505",
+     "jimok": "밭",
+     "area_ha": 0.024,
+     "crop": "밭"
+    },
+    {
+     "name": " 0155",
+     "jimok": "밭",
+     "area_ha": 0.084,
+     "crop": "밭"
+    }
+   ]
+  },
+  "제주시 도련일동": {
+   "count": 1305,
+   "total_area_ha": 195.3,
+   "parcels": [
+    {
+     "name": " 1460",
+     "jimok": "시설",
+     "area_ha": 0.023,
+     "crop": "밭"
+    },
+    {
+     "name": " 0543",
+     "jimok": "밭",
+     "area_ha": 0.037,
+     "crop": "밭"
+    },
+    {
+     "name": " 0918",
+     "jimok": "과수",
+     "area_ha": 0.401,
+     "crop": "과수"
+    },
+    {
+     "name": " 0914",
+     "jimok": "과수",
+     "area_ha": 0.973,
+     "crop": "과수"
+    },
+    {
+     "name": " 1410",
+     "jimok": "과수",
+     "area_ha": 0.39,
+     "crop": "과수"
+    }
+   ]
+  },
+  "제주시 도평동": {
+   "count": 1009,
+   "total_area_ha": 148.3,
+   "parcels": [
+    {
+     "name": " 0673",
+     "jimok": "과수",
+     "area_ha": 0.173,
+     "crop": "과수"
+    },
+    {
+     "name": " 1084",
+     "jimok": "과수",
+     "area_ha": 0.263,
+     "crop": "과수"
+    },
+    {
+     "name": " 0290",
+     "jimok": "밭",
+     "area_ha": 0.075,
+     "crop": "밭"
+    },
+    {
+     "name": " 0339",
+     "jimok": "과수",
+     "area_ha": 0.42,
+     "crop": "과수"
+    },
+    {
+     "name": " 0342",
+     "jimok": "밭",
+     "area_ha": 0.112,
+     "crop": "밭"
+    }
+   ]
+  },
+  "제주시 봉개동": {
+   "count": 1705,
+   "total_area_ha": 393.1,
+   "parcels": [
+    {
+     "name": " 0502",
+     "jimok": "밭",
+     "area_ha": 0.194,
+     "crop": "밭"
+    },
+    {
+     "name": " 1995",
+     "jimok": "밭",
+     "area_ha": 0.141,
+     "crop": "밭"
+    },
+    {
+     "name": " 0198",
+     "jimok": "시설",
+     "area_ha": 0.188,
+     "crop": "시설"
+    },
+    {
+     "name": " 0134",
+     "jimok": "밭",
+     "area_ha": 0.243,
+     "crop": "밭"
+    },
+    {
+     "name": " 0422",
+     "jimok": "시설",
+     "area_ha": 0.023,
+     "crop": "시설"
+    }
+   ]
+  },
+  "제주시 삼도이동": {
+   "count": 14,
+   "total_area_ha": 0.8,
+   "parcels": [
+    {
+     "name": " 0007",
+     "jimok": "밭",
+     "area_ha": 0.293,
+     "crop": "밭"
+    },
+    {
+     "name": " 0004",
+     "jimok": "밭",
+     "area_ha": 0.015,
+     "crop": "밭"
+    },
+    {
+     "name": " 0016",
+     "jimok": "밭",
+     "area_ha": 0.041,
+     "crop": NaN
+    },
+    {
+     "name": " 0015",
+     "jimok": "밭",
+     "area_ha": 0.013,
+     "crop": NaN
+    },
+    {
+     "name": " 0014",
+     "jimok": "밭",
+     "area_ha": 0.005,
+     "crop": NaN
+    }
+   ]
+  },
+  "제주시 삼도일동": {
+   "count": 2,
+   "total_area_ha": 0.1,
+   "parcels": [
+    {
+     "name": " 0002",
+     "jimok": "밭",
+     "area_ha": 0.021,
+     "crop": "밭"
+    },
+    {
+     "name": " 0001",
+     "jimok": "밭",
+     "area_ha": 0.066,
+     "crop": "밭"
+    }
+   ]
+  },
+  "제주시 삼양삼동": {
+   "count": 97,
+   "total_area_ha": 7.7,
+   "parcels": [
+    {
+     "name": " 0064",
+     "jimok": "밭",
+     "area_ha": 0.659,
+     "crop": "밭"
+    },
+    {
+     "name": " 0110",
+     "jimok": "밭",
+     "area_ha": 0.091,
+     "crop": "밭"
+    },
+    {
+     "name": " 0098",
+     "jimok": "밭",
+     "area_ha": 0.089,
+     "crop": "밭"
+    },
+    {
+     "name": " 0041",
+     "jimok": "밭",
+     "area_ha": 0.034,
+     "crop": "밭"
+    },
+    {
+     "name": " 0034",
+     "jimok": "밭",
+     "area_ha": 0.035,
+     "crop": "밭"
+    }
+   ]
+  },
+  "제주시 삼양이동": {
+   "count": 93,
+   "total_area_ha": 9.1,
+   "parcels": [
+    {
+     "name": " 0015",
+     "jimok": "밭",
+     "area_ha": 0.062,
+     "crop": "밭"
+    },
+    {
+     "name": " 0001",
+     "jimok": "밭",
+     "area_ha": 0.016,
+     "crop": "밭"
+    },
+    {
+     "name": " 0026",
+     "jimok": "밭",
+     "area_ha": 0.032,
+     "crop": "밭"
+    },
+    {
+     "name": " 0062",
+     "jimok": "밭",
+     "area_ha": 0.103,
+     "crop": "밭"
+    },
+    {
+     "name": " 0035",
+     "jimok": "밭",
+     "area_ha": 0.04,
+     "crop": "밭"
+    }
+   ]
+  },
+  "제주시 삼양일동": {
+   "count": 750,
+   "total_area_ha": 121.8,
+   "parcels": [
+    {
+     "name": " 0803",
+     "jimok": "밭",
+     "area_ha": 0.154,
+     "crop": "밭,밭"
+    },
+    {
+     "name": " 0804",
+     "jimok": "밭",
+     "area_ha": 0.038,
+     "crop": "밭"
+    },
+    {
+     "name": " 0822",
+     "jimok": "밭",
+     "area_ha": 0.326,
+     "crop": "밭"
+    },
+    {
+     "name": " 0412",
+     "jimok": "밭",
+     "area_ha": 0.097,
+     "crop": "밭"
+    },
+    {
+     "name": " 0636",
+     "jimok": "과수",
+     "area_ha": 0.198,
+     "crop": "과수"
+    }
+   ]
+  },
+  "제주시 아라이동": {
+   "count": 626,
+   "total_area_ha": 113.9,
+   "parcels": [
+    {
+     "name": " 0683",
+     "jimok": "밭",
+     "area_ha": 0.335,
+     "crop": "밭"
+    },
+    {
+     "name": " 0258",
+     "jimok": "과수",
+     "area_ha": 0.098,
+     "crop": "과수"
+    },
+    {
+     "name": " 0002",
+     "jimok": "밭",
+     "area_ha": 0.043,
+     "crop": "밭"
+    },
+    {
+     "name": " 0347",
+     "jimok": "밭",
+     "area_ha": 0.265,
+     "crop": "밭"
+    },
+    {
+     "name": " 0672",
+     "jimok": "과수",
+     "area_ha": 0.207,
+     "crop": "과수"
+    }
+   ]
+  },
+  "제주시 아라일동": {
+   "count": 1024,
+   "total_area_ha": 171.6,
+   "parcels": [
+    {
+     "name": " 1131",
+     "jimok": "밭",
+     "area_ha": 0.43,
+     "crop": "밭"
+    },
+    {
+     "name": " 0417",
+     "jimok": "밭",
+     "area_ha": 0.414,
+     "crop": "밭,밭"
+    },
+    {
+     "name": " 1130",
+     "jimok": "밭",
+     "area_ha": 0.303,
+     "crop": "밭"
+    },
+    {
+     "name": " 0378",
+     "jimok": "밭",
+     "area_ha": 0.34,
+     "crop": "밭"
+    },
+    {
+     "name": " 0333",
+     "jimok": "밭",
+     "area_ha": 0.349,
+     "crop": "밭"
+    }
+   ]
+  },
+  "제주시 애월읍": {
+   "count": 31406,
+   "total_area_ha": 5100.7,
+   "parcels": [
+    {
+     "name": "봉성리 4219",
+     "jimok": "밭",
+     "area_ha": 0.205,
+     "crop": "밭,비경지"
+    },
+    {
+     "name": "봉성리 1718",
+     "jimok": "밭",
+     "area_ha": 0.238,
+     "crop": "밭"
+    },
+    {
+     "name": "봉성리 2836",
+     "jimok": "밭",
+     "area_ha": 0.162,
+     "crop": "밭"
+    },
+    {
+     "name": "봉성리 4322",
+     "jimok": "시설",
+     "area_ha": 0.243,
+     "crop": "과수"
+    },
+    {
+     "name": "봉성리 2046",
+     "jimok": "밭",
+     "area_ha": 0.665,
+     "crop": "밭"
+    }
+   ]
+  },
+  "제주시 연동": {
+   "count": 582,
+   "total_area_ha": 151.1,
+   "parcels": [
+    {
+     "name": " 0063",
+     "jimok": "밭",
+     "area_ha": 0.203,
+     "crop": "밭"
+    },
+    {
+     "name": " 0122",
+     "jimok": "밭",
+     "area_ha": 0.013,
+     "crop": "밭"
+    },
+    {
+     "name": " 0662",
+     "jimok": "밭",
+     "area_ha": 0.072,
+     "crop": "밭"
+    },
+    {
+     "name": " 0609",
+     "jimok": "밭",
+     "area_ha": 0.15,
+     "crop": "밭"
+    },
+    {
+     "name": " 0592",
+     "jimok": "밭",
+     "area_ha": 0.48,
+     "crop": "밭"
+    }
+   ]
+  },
+  "제주시 영평동": {
+   "count": 1595,
+   "total_area_ha": 266.8,
+   "parcels": [
+    {
+     "name": " 1670",
+     "jimok": "밭",
+     "area_ha": 0.153,
+     "crop": "밭"
+    },
+    {
+     "name": " 0415",
+     "jimok": "과수",
+     "area_ha": 0.077,
+     "crop": "과수"
+    },
+    {
+     "name": " 0726",
+     "jimok": "밭",
+     "area_ha": 0.581,
+     "crop": "밭"
+    },
+    {
+     "name": " 0526",
+     "jimok": "밭",
+     "area_ha": 0.163,
+     "crop": "밭"
+    },
+    {
+     "name": " 0738",
+     "jimok": "밭",
+     "area_ha": 0.242,
+     "crop": "밭"
+    }
+   ]
+  },
+  "제주시 오등동": {
+   "count": 1575,
+   "total_area_ha": 367.9,
+   "parcels": [
+    {
+     "name": " 0683",
+     "jimok": "밭",
+     "area_ha": 0.808,
+     "crop": "밭"
+    },
+    {
+     "name": " 0436",
+     "jimok": "밭",
+     "area_ha": 0.338,
+     "crop": "밭"
+    },
+    {
+     "name": " 0449",
+     "jimok": "밭",
+     "area_ha": 0.881,
+     "crop": "밭"
+    },
+    {
+     "name": " 0305",
+     "jimok": "과수",
+     "area_ha": 0.246,
+     "crop": "과수"
+    },
+    {
+     "name": " 0634",
+     "jimok": "밭",
+     "area_ha": 1.119,
+     "crop": "밭"
+    }
+   ]
+  },
+  "제주시 오라삼동": {
+   "count": 228,
+   "total_area_ha": 21.7,
+   "parcels": [
+    {
+     "name": " 0215",
+     "jimok": "밭",
+     "area_ha": 0.223,
+     "crop": "밭"
+    },
+    {
+     "name": " 0272",
+     "jimok": "밭",
+     "area_ha": 0.317,
+     "crop": "밭"
+    },
+    {
+     "name": " 0112",
+     "jimok": "밭",
+     "area_ha": 0.422,
+     "crop": "밭"
+    },
+    {
+     "name": " 0274",
+     "jimok": "밭",
+     "area_ha": 0.089,
+     "crop": "밭"
+    },
+    {
+     "name": " 0273",
+     "jimok": "밭",
+     "area_ha": 0.063,
+     "crop": "밭"
+    }
+   ]
+  },
+  "제주시 오라이동": {
+   "count": 1301,
+   "total_area_ha": 364.8,
+   "parcels": [
+    {
+     "name": " 1375",
+     "jimok": "밭",
+     "area_ha": 0.051,
+     "crop": "밭"
+    },
+    {
+     "name": " 0295",
+     "jimok": "밭",
+     "area_ha": 0.273,
+     "crop": "밭"
+    },
+    {
+     "name": " 1534",
+     "jimok": "과수",
+     "area_ha": 0.161,
+     "crop": "과수"
+    },
+    {
+     "name": " 0657",
+     "jimok": "밭",
+     "area_ha": 1.8,
+     "crop": "밭"
+    },
+    {
+     "name": " 1514",
+     "jimok": "밭",
+     "area_ha": 0.076,
+     "crop": "밭"
+    }
+   ]
+  },
+  "제주시 오라일동": {
+   "count": 40,
+   "total_area_ha": 3.1,
+   "parcels": [
+    {
+     "name": " 0051",
+     "jimok": "과수",
+     "area_ha": 0.045,
+     "crop": "과수"
+    },
+    {
+     "name": " 0047",
+     "jimok": "밭",
+     "area_ha": 0.104,
+     "crop": "밭"
+    },
+    {
+     "name": " 0017",
+     "jimok": "밭",
+     "area_ha": 0.057,
+     "crop": "밭,밭"
+    },
+    {
+     "name": " 0039",
+     "jimok": "과수",
+     "area_ha": 0.093,
+     "crop": "과수"
+    },
+    {
+     "name": " 0015",
+     "jimok": "밭",
+     "area_ha": 0.02,
+     "crop": "밭"
+    }
+   ]
+  },
+  "제주시 외도이동": {
+   "count": 38,
+   "total_area_ha": 3.3,
+   "parcels": [
+    {
+     "name": " 0033",
+     "jimok": "밭",
+     "area_ha": 0.014,
+     "crop": "밭"
+    },
+    {
+     "name": " 0005",
+     "jimok": "밭",
+     "area_ha": 0.032,
+     "crop": "밭"
+    },
+    {
+     "name": " 0038",
+     "jimok": "시설",
+     "area_ha": 0.005,
+     "crop": "밭"
+    },
+    {
+     "name": " 0004",
+     "jimok": "밭",
+     "area_ha": 0.091,
+     "crop": "밭"
+    },
+    {
+     "name": " 0040",
+     "jimok": "밭",
+     "area_ha": 0.14,
+     "crop": "밭"
+    }
+   ]
+  },
+  "제주시 외도일동": {
+   "count": 1014,
+   "total_area_ha": 159.6,
+   "parcels": [
+    {
+     "name": " 1185",
+     "jimok": "밭",
+     "area_ha": 0.417,
+     "crop": "밭"
+    },
+    {
+     "name": " 1013",
+     "jimok": "밭",
+     "area_ha": 0.053,
+     "crop": "밭"
+    },
+    {
+     "name": " 1137",
+     "jimok": "밭",
+     "area_ha": 0.157,
+     "crop": "밭,밭"
+    },
+    {
+     "name": " 0536",
+     "jimok": "밭",
+     "area_ha": 0.061,
+     "crop": "밭"
+    },
+    {
+     "name": " 0192",
+     "jimok": "과수",
+     "area_ha": 0.103,
+     "crop": "밭"
+    }
+   ]
+  },
+  "제주시 용강동": {
+   "count": 956,
+   "total_area_ha": 198.3,
+   "parcels": [
+    {
+     "name": " 0987",
+     "jimok": "밭",
+     "area_ha": 0.17,
+     "crop": "밭"
+    },
+    {
+     "name": " 0313",
+     "jimok": "과수",
+     "area_ha": 0.225,
+     "crop": "과수"
+    },
+    {
+     "name": " 0521",
+     "jimok": "밭",
+     "area_ha": 0.96,
+     "crop": "밭"
+    },
+    {
+     "name": " 0310",
+     "jimok": "과수",
+     "area_ha": 0.103,
+     "crop": "과수"
+    },
+    {
+     "name": " 0189",
+     "jimok": "과수",
+     "area_ha": 0.427,
+     "crop": "과수"
+    }
+   ]
+  },
+  "제주시 용담삼동": {
+   "count": 156,
+   "total_area_ha": 19.1,
+   "parcels": [
+    {
+     "name": " 0029",
+     "jimok": "밭",
+     "area_ha": 0.221,
+     "crop": "밭"
+    },
+    {
+     "name": " 0197",
+     "jimok": "밭",
+     "area_ha": 0.357,
+     "crop": "밭"
+    },
+    {
+     "name": " 0193",
+     "jimok": "밭",
+     "area_ha": 0.125,
+     "crop": "밭,밭"
+    },
+    {
+     "name": " 0200",
+     "jimok": "밭",
+     "area_ha": 0.33,
+     "crop": "밭,밭,밭,밭"
+    },
+    {
+     "name": " 0031",
+     "jimok": "밭",
+     "area_ha": 0.245,
+     "crop": "밭"
+    }
+   ]
+  },
+  "제주시 용담이동": {
+   "count": 334,
+   "total_area_ha": 34.0,
+   "parcels": [
+    {
+     "name": " 0409",
+     "jimok": "밭",
+     "area_ha": 0.484,
+     "crop": "밭"
+    },
+    {
+     "name": " 0300",
+     "jimok": "밭",
+     "area_ha": 0.29,
+     "crop": "밭"
+    },
+    {
+     "name": " 0411",
+     "jimok": "밭",
+     "area_ha": 0.011,
+     "crop": "밭"
+    },
+    {
+     "name": " 0238",
+     "jimok": "밭",
+     "area_ha": 0.051,
+     "crop": "밭"
+    },
+    {
+     "name": " 0086",
+     "jimok": "밭",
+     "area_ha": 0.264,
+     "crop": "밭"
+    }
+   ]
+  },
+  "제주시 용담일동": {
+   "count": 32,
+   "total_area_ha": 2.3,
+   "parcels": [
+    {
+     "name": " 0007",
+     "jimok": "밭",
+     "area_ha": 0.354,
+     "crop": "밭,밭"
+    },
+    {
+     "name": " 0024",
+     "jimok": "밭",
+     "area_ha": 0.482,
+     "crop": "밭"
+    },
+    {
+     "name": " 0029",
+     "jimok": "밭",
+     "area_ha": 0.079,
+     "crop": "밭"
+    },
+    {
+     "name": " 0034",
+     "jimok": "밭",
+     "area_ha": 0.047,
+     "crop": "밭"
+    },
+    {
+     "name": " 0038",
+     "jimok": "밭",
+     "area_ha": 0.013,
+     "crop": "밭"
+    }
+   ]
+  },
+  "제주시 우도면": {
+   "count": 2491,
+   "total_area_ha": 343.7,
+   "parcels": [
+    {
+     "name": "연평리 2666",
+     "jimok": "밭",
+     "area_ha": 0.065,
+     "crop": "밭"
+    },
+    {
+     "name": "연평리 1446",
+     "jimok": "밭",
+     "area_ha": 0.242,
+     "crop": "밭"
+    },
+    {
+     "name": "연평리 2589",
+     "jimok": "밭",
+     "area_ha": 0.683,
+     "crop": "밭"
+    },
+    {
+     "name": "연평리 2493",
+     "jimok": "밭",
+     "area_ha": 0.307,
+     "crop": "밭"
+    },
+    {
+     "name": "연평리 2628",
+     "jimok": "밭",
+     "area_ha": 0.086,
+     "crop": "밭"
+    }
+   ]
+  },
+  "제주시 월평동": {
+   "count": 824,
+   "total_area_ha": 183.5,
+   "parcels": [
+    {
+     "name": " 0044",
+     "jimok": "밭",
+     "area_ha": 0.155,
+     "crop": "밭"
+    },
+    {
+     "name": " 0153",
+     "jimok": "밭",
+     "area_ha": 0.038,
+     "crop": "밭"
+    },
+    {
+     "name": " 0348",
+     "jimok": "밭",
+     "area_ha": 0.103,
+     "crop": "밭"
+    },
+    {
+     "name": " 0056",
+     "jimok": "과수",
+     "area_ha": 0.334,
+     "crop": "과수"
+    },
+    {
+     "name": " 0007",
+     "jimok": "과수",
+     "area_ha": 0.199,
+     "crop": "밭"
+    }
+   ]
+  },
+  "제주시 이도이동": {
+   "count": 112,
+   "total_area_ha": 10.9,
+   "parcels": [
+    {
+     "name": " 0100",
+     "jimok": "밭",
+     "area_ha": 0.042,
+     "crop": "밭"
+    },
+    {
+     "name": " 0004",
+     "jimok": "과수",
+     "area_ha": 0.189,
+     "crop": "과수"
+    },
+    {
+     "name": " 0111",
+     "jimok": "과수",
+     "area_ha": 0.056,
+     "crop": "밭"
+    },
+    {
+     "name": " 0125",
+     "jimok": "밭",
+     "area_ha": 0.135,
+     "crop": NaN
+    },
+    {
+     "name": " 0068",
+     "jimok": "밭",
+     "area_ha": 0.137,
+     "crop": "밭,밭"
+    }
+   ]
+  },
+  "제주시 이호이동": {
+   "count": 515,
+   "total_area_ha": 69.8,
+   "parcels": [
+    {
+     "name": " 0590",
+     "jimok": "밭",
+     "area_ha": 0.054,
+     "crop": "밭"
+    },
+    {
+     "name": " 0024",
+     "jimok": "밭",
+     "area_ha": 0.064,
+     "crop": "밭"
+    },
+    {
+     "name": " 0066",
+     "jimok": "밭",
+     "area_ha": 0.322,
+     "crop": "밭"
+    },
+    {
+     "name": " 0459",
+     "jimok": "밭",
+     "area_ha": 0.047,
+     "crop": "밭"
+    },
+    {
+     "name": " 0407",
+     "jimok": "밭",
+     "area_ha": 0.167,
+     "crop": "밭"
+    }
+   ]
+  },
+  "제주시 이호일동": {
+   "count": 279,
+   "total_area_ha": 33.3,
+   "parcels": [
+    {
+     "name": " 0340",
+     "jimok": "밭",
+     "area_ha": 0.074,
+     "crop": "밭"
+    },
+    {
+     "name": " 0009",
+     "jimok": "밭",
+     "area_ha": 0.086,
+     "crop": "밭"
+    },
+    {
+     "name": " 0336",
+     "jimok": "밭",
+     "area_ha": 0.388,
+     "crop": "밭"
+    },
+    {
+     "name": " 0217",
+     "jimok": "밭",
+     "area_ha": 0.094,
+     "crop": "밭"
+    },
+    {
+     "name": " 0058",
+     "jimok": "밭",
+     "area_ha": 0.058,
+     "crop": "밭"
+    }
+   ]
+  },
+  "제주시 일도이동": {
+   "count": 21,
+   "total_area_ha": 1.8,
+   "parcels": [
+    {
+     "name": " 0012",
+     "jimok": "밭",
+     "area_ha": 0.242,
+     "crop": "밭"
+    },
+    {
+     "name": " 0026",
+     "jimok": "밭",
+     "area_ha": 0.044,
+     "crop": "밭"
+    },
+    {
+     "name": " 0010",
+     "jimok": "과수",
+     "area_ha": 0.151,
+     "crop": "과수"
+    },
+    {
+     "name": " 0025",
+     "jimok": "밭",
+     "area_ha": 0.021,
+     "crop": "밭"
+    },
+    {
+     "name": " 0024",
+     "jimok": "밭",
+     "area_ha": 0.007,
+     "crop": NaN
+    }
+   ]
+  },
+  "제주시 일도일동": {
+   "count": 1,
+   "total_area_ha": 0.0,
+   "parcels": [
+    {
+     "name": " 0002",
+     "jimok": "밭",
+     "area_ha": 0.011,
+     "crop": NaN
+    }
+   ]
+  },
+  "제주시 조천읍": {
+   "count": 16170,
+   "total_area_ha": 4066.7,
+   "parcels": [
+    {
+     "name": "교래리 0451",
+     "jimok": "밭",
+     "area_ha": 0.722,
+     "crop": "밭"
+    },
+    {
+     "name": "와흘리 1485",
+     "jimok": "밭",
+     "area_ha": 0.261,
+     "crop": "밭"
+    },
+    {
+     "name": "교래리 0630",
+     "jimok": "밭",
+     "area_ha": 1.448,
+     "crop": "밭"
+    },
+    {
+     "name": "교래리 0087",
+     "jimok": "밭",
+     "area_ha": 0.531,
+     "crop": "밭"
+    },
+    {
+     "name": "교래리 0071",
+     "jimok": "밭",
+     "area_ha": 0.101,
+     "crop": "밭"
+    }
+   ]
+  },
+  "제주시 추자면": {
+   "count": 398,
+   "total_area_ha": 17.4,
+   "parcels": [
+    {
+     "name": "신양리 0151",
+     "jimok": "밭",
+     "area_ha": 0.413,
+     "crop": "밭"
+    },
+    {
+     "name": "영흥리 0050",
+     "jimok": "밭",
+     "area_ha": 0.008,
+     "crop": "밭"
+    },
+    {
+     "name": "묵리 0082",
+     "jimok": "밭",
+     "area_ha": 0.048,
+     "crop": "밭"
+    },
+    {
+     "name": "묵리 0062",
+     "jimok": "밭",
+     "area_ha": 0.125,
+     "crop": "밭"
+    },
+    {
+     "name": "신양리 0170",
+     "jimok": "밭",
+     "area_ha": 0.095,
+     "crop": "밭,밭"
+    }
+   ]
+  },
+  "제주시 한경면": {
+   "count": 22994,
+   "total_area_ha": 3803.2,
+   "parcels": [
+    {
+     "name": "조수리 3512",
+     "jimok": "밭",
+     "area_ha": 0.119,
+     "crop": "밭"
+    },
+    {
+     "name": "저지리 3040",
+     "jimok": "과수",
+     "area_ha": 0.078,
+     "crop": "밭"
+    },
+    {
+     "name": "낙천리 2223",
+     "jimok": "과수",
+     "area_ha": 0.283,
+     "crop": "과수"
+    },
+    {
+     "name": "저지리 2907",
+     "jimok": "과수",
+     "area_ha": 0.573,
+     "crop": "과수,과수"
+    },
+    {
+     "name": "저지리 2588",
+     "jimok": "밭",
+     "area_ha": 0.119,
+     "crop": "과수"
+    }
+   ]
+  },
+  "제주시 한림읍": {
+   "count": 20639,
+   "total_area_ha": 3354.5,
+   "parcels": [
+    {
+     "name": "금악리 2878",
+     "jimok": "밭",
+     "area_ha": 0.823,
+     "crop": "밭"
+    },
+    {
+     "name": "금악리 2877",
+     "jimok": "밭",
+     "area_ha": 0.665,
+     "crop": "밭"
+    },
+    {
+     "name": "금악리 3131",
+     "jimok": "밭",
+     "area_ha": 0.515,
+     "crop": "밭"
+    },
+    {
+     "name": "금악리 2873",
+     "jimok": "밭",
+     "area_ha": 0.973,
+     "crop": "밭,밭"
+    },
+    {
+     "name": "금악리 3164",
+     "jimok": "비경지",
+     "area_ha": 0.004,
+     "crop": "밭"
+    }
+   ]
+  },
+  "제주시 해안동": {
+   "count": 1948,
+   "total_area_ha": 432.5,
+   "parcels": [
+    {
+     "name": " 2407",
+     "jimok": "밭",
+     "area_ha": 0.117,
+     "crop": "밭"
+    },
+    {
+     "name": " 0896",
+     "jimok": "밭",
+     "area_ha": 0.094,
+     "crop": "밭"
+    },
+    {
+     "name": " 2414",
+     "jimok": "밭",
+     "area_ha": 0.457,
+     "crop": "밭"
+    },
+    {
+     "name": " 0621",
+     "jimok": "과수",
+     "area_ha": 0.36,
+     "crop": "과수,과수"
+    },
+    {
+     "name": " 0442",
+     "jimok": "과수",
+     "area_ha": 0.081,
+     "crop": "과수"
+    }
+   ]
+  },
+  "제주시 화북이동": {
+   "count": 1299,
+   "total_area_ha": 193.4,
+   "parcels": [
+    {
+     "name": " 0611",
+     "jimok": "밭",
+     "area_ha": 0.337,
+     "crop": "밭"
+    },
+    {
+     "name": " 0687",
+     "jimok": "밭",
+     "area_ha": 0.703,
+     "crop": "과수"
+    },
+    {
+     "name": " 1505",
+     "jimok": "과수",
+     "area_ha": 0.985,
+     "crop": "과수"
+    },
+    {
+     "name": " 0640",
+     "jimok": "밭",
+     "area_ha": 0.358,
+     "crop": "밭"
+    },
+    {
+     "name": " 1471",
+     "jimok": "시설",
+     "area_ha": 0.017,
+     "crop": "시설"
+    }
+   ]
+  },
+  "제주시 화북일동": {
+   "count": 348,
+   "total_area_ha": 32.7,
+   "parcels": [
+    {
+     "name": " 0034",
+     "jimok": "밭",
+     "area_ha": 0.112,
+     "crop": "밭"
+    },
+    {
+     "name": " 0431",
+     "jimok": "밭",
+     "area_ha": 0.253,
+     "crop": "밭"
+    },
+    {
+     "name": " 0064",
+     "jimok": "밭",
+     "area_ha": 0.239,
+     "crop": "밭"
+    },
+    {
+     "name": " 0298",
+     "jimok": "밭",
+     "area_ha": 0.42,
+     "crop": "밭,밭,밭,밭"
+    },
+    {
+     "name": " 0445",
+     "jimok": "밭",
+     "area_ha": 0.036,
+     "crop": "밭"
+    }
+   ]
+  },
+  "제주시 회천동": {
+   "count": 1874,
+   "total_area_ha": 554.3,
+   "parcels": [
+    {
+     "name": " 0709",
+     "jimok": "과수",
+     "area_ha": 0.298,
+     "crop": "과수"
+    },
+    {
+     "name": " 0829",
+     "jimok": "과수",
+     "area_ha": 0.035,
+     "crop": "과수"
+    },
+    {
+     "name": " 0794",
+     "jimok": "과수",
+     "area_ha": 0.079,
+     "crop": "과수"
+    },
+    {
+     "name": " 1078",
+     "jimok": "시설",
+     "area_ha": 0.128,
+     "crop": "시설"
+    },
+    {
+     "name": " 2022",
+     "jimok": "밭",
+     "area_ha": 0.046,
+     "crop": "밭"
+    }
+   ]
+  }
+ }
+}
