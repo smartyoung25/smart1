@@ -40,6 +40,12 @@
   <div class="mock-note" id="mockNote">기상은 KMA 실데이터, 작업가능시간은 강우·풍속 기반 추정입니다.</div>
   <div class="section-label">16일 장기예보 <span class="trust-badge trust-live">🟢 Open-Meteo</span> <span id="extSrc" style="font-weight:400;color:var(--muted);font-size:11px;"></span></div>
   <div id="extHazard"></div>
+  <div class="card" id="extChartCard" style="padding:12px 8px 6px;margin-bottom:8px;display:none;">
+    <div style="display:flex;gap:12px;font-size:10px;font-weight:700;padding:0 4px 4px;">
+      <span style="color:#dc2626;">— 최고℃</span><span style="color:#2563eb;">— 최저℃</span><span style="color:#60a5fa;">▮ 강수mm</span><span style="margin-left:auto;color:var(--muted);">16일</span>
+    </div>
+    <svg id="extChart" width="100%" height="150" viewBox="0 0 340 150" preserveAspectRatio="none"></svg>
+  </div>
   <div class="card" style="padding:12px;overflow-x:auto;"><div id="extStrip" style="display:flex;gap:6px;min-width:max-content;"></div></div>
   <div style="font-size:10px;color:var(--muted);margin:4px 2px 12px;">ET₀·일사·강수확률 기반 — 관수·작업 중기계획에 활용 (기상청 단기 3일·중기 10일 한계 보완)</div>
   <div class="section-label">작업 가능 시간대 (오늘)</div>
@@ -67,12 +73,39 @@ window.addEventListener('DOMContentLoaded',()=>{
   _ensureToken().then(t=>{_tokenG=t;KaasaData.init({farmId,token:t,onStatus:_ws});_loadWeather(t,farmId);_refreshRecent();_loadExtended(t,farmId);});
 });
 const _WICON={0:'☀️',1:'🌤️',2:'⛅',3:'☁️',45:'🌫️',51:'🌦️',61:'🌧️',63:'🌧️',65:'⛈️',71:'🌨️',80:'🌦️',95:'⛈️'};
+// 16일 기온 밴드 + 강수 바 차트
+function _drawExtChart(items){
+  const svg=document.getElementById('extChart'); if(!svg||!items.length) return;
+  const W=340,H=150,pad=18,padT=8,padB=16, n=items.length;
+  const xs=i=>pad+(W-2*pad)*(i/(n-1||1));
+  const tmax=items.map(x=>x.t_max), tmin=items.map(x=>x.t_min);
+  const lo=Math.floor(Math.min(...tmin)-2), hi=Math.ceil(Math.max(...tmax)+2);
+  const ys=t=>padT+(H-padB-padT)*(1-(t-lo)/((hi-lo)||1));
+  const rmax=Math.max(5,...items.map(x=>x.rain_mm||0));
+  let s='';
+  // 강수 바(하단)
+  items.forEach((x,i)=>{ const rh=(x.rain_mm||0)/rmax*38; if(rh>0.5){
+    s+=`<rect x="${(xs(i)-3).toFixed(1)}" y="${(H-padB-rh).toFixed(1)}" width="6" height="${rh.toFixed(1)}" fill="#60a5fa" opacity="0.7" rx="1"/>`; }});
+  // 기온 밴드(max-min 영역)
+  const top=items.map((x,i)=>`${xs(i).toFixed(1)},${ys(x.t_max).toFixed(1)}`);
+  const bot=items.map((x,i)=>`${xs(i).toFixed(1)},${ys(x.t_min).toFixed(1)}`).reverse();
+  s+=`<polygon points="${top.concat(bot).join(' ')}" fill="#f59e0b" opacity="0.12"/>`;
+  s+=`<polyline points="${items.map((x,i)=>`${xs(i).toFixed(1)},${ys(x.t_max).toFixed(1)}`).join(' ')}" fill="none" stroke="#dc2626" stroke-width="2"/>`;
+  s+=`<polyline points="${items.map((x,i)=>`${xs(i).toFixed(1)},${ys(x.t_min).toFixed(1)}`).join(' ')}" fill="none" stroke="#2563eb" stroke-width="2"/>`;
+  // y축 라벨
+  [lo,Math.round((lo+hi)/2),hi].forEach(t=>{ s+=`<text x="2" y="${(ys(t)+3).toFixed(1)}" font-size="8" fill="var(--muted)">${t}°</text>`; });
+  // x축 날짜(처음·중간·끝)
+  [0,Math.floor(n/2),n-1].forEach(i=>{ s+=`<text x="${xs(i).toFixed(1)}" y="${H-3}" font-size="8" fill="var(--muted)" text-anchor="middle">${items[i].date.slice(5)}</text>`; });
+  svg.innerHTML=s;
+  document.getElementById('extChartCard').style.display='block';
+}
 async function _loadExtended(token,farmId){
   try{
     const api=KaasaData.getApiBase();
     const d=await fetch(`${api}/api/farms/${farmId}/environment/weather/extended?days=16`,{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.json());
     if(!d||!d.items||!d.items.length){document.getElementById('extStrip').innerHTML='<span style="font-size:12px;color:var(--muted);">장기예보 조회 실패</span>';return;}
     document.getElementById('extSrc').textContent=`${d.region} · ET₀ ${d.summary.avg_et0} · 16일강수 ${d.summary.total_rain}mm`;
+    _drawExtChart(d.items);
     document.getElementById('extStrip').innerHTML=d.items.map((x,i)=>{
       const md=x.date.slice(5), wi=_WICON[x.wcode]||'🌡️';
       const rc=x.rain_mm>=10?'var(--blue)':'var(--muted)';
