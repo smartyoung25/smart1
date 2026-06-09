@@ -580,8 +580,43 @@ const KaasaData = (() => {
       }).join('');
     });
   }
+  // ── 전역 오프라인/연결 감지 배너 (현장 통신 불안정 대응) ──────────────────
+  function _ensureNetBanner() {
+    if (document.getElementById('kaasaNetBar')) return document.getElementById('kaasaNetBar');
+    const el = document.createElement('div'); el.id = 'kaasaNetBar';
+    el.setAttribute('role', 'status'); el.setAttribute('aria-live', 'polite');
+    el.style.cssText = 'position:fixed;left:0;right:0;top:0;z-index:9999;transform:translateY(-100%);'
+      + 'transition:transform .25s;padding:8px 14px;text-align:center;font-size:12.5px;font-weight:800;'
+      + 'padding-top:calc(8px + env(safe-area-inset-top,0px));';
+    document.body.appendChild(el); return el;
+  }
+  let _netHideTimer = null;
+  function _setNet(online) {
+    const el = _ensureNetBanner();
+    if (_netHideTimer) { clearTimeout(_netHideTimer); _netHideTimer = null; }
+    if (!online) {
+      el.style.background = '#dc2626'; el.style.color = '#fff';
+      el.textContent = '⚠ 오프라인 — 네트워크 연결이 끊겨 데이터가 갱신되지 않습니다';
+      el.style.transform = 'translateY(0)';
+    } else {
+      el.style.background = '#1f9d55'; el.style.color = '#fff';
+      el.textContent = '✓ 연결 복구됨';
+      el.style.transform = 'translateY(0)';
+      _netHideTimer = setTimeout(() => { el.style.transform = 'translateY(-100%)'; }, 1800);
+    }
+  }
+  if (typeof window !== 'undefined') {
+    window.addEventListener('offline', () => _setNet(false));
+    window.addEventListener('online',  () => _setNet(true));
+  }
+
   if (typeof document !== 'undefined') {
-    document.addEventListener('DOMContentLoaded', () => { try { _buildDrawer(); _bindMenuTab(); _renderStratBands(); } catch (e) {} });
+    document.addEventListener('DOMContentLoaded', () => {
+      try {
+        _buildDrawer(); _bindMenuTab(); _renderStratBands();
+        if (navigator && navigator.onLine === false) _setNet(false);  // 진입 시 오프라인이면 즉시 표시
+      } catch (e) {}
+    });
   }
 
   // ── 공개 API ───────────────────────────────────────────────────────────────
