@@ -13,6 +13,14 @@
 → `/field/soil`·`/field/parcels`·`/field/cluster`(F8)가 제주 농장에 실데이터 제공.
 재현: `python scripts/import_real_soil.py` / `python scripts/import_real_parcels.py`
 
+## 스키마 확인(추가 주입 가능)
+| 데이터셋 | 스키마 | 활용처 |
+|----------|--------|--------|
+| 감귤 병해충 예찰조사 (2020~2023) | 읍면동/연도별 더뎅이병·궤양병·검은점무늬병 발병률·진딧물·깍지벌레 조사 | G5 병해·F6 방제 실발병률 |
+| 감귤 생육조사 (2016~2025) | 착화율·화기탈락·화수·노엽수(type=fruit/qlty/grmnt) | G4 생육·M2 수확모델 |
+| 도매시장 경매·유통정보 | 품목·등급별 경락가 | KAMIS 시세 보완 |
+→ 동일 패턴(parquet→importer→api/data/real→엔드포인트 매칭)으로 주입 가능. ML 연계(M2)는 별도 학습 작업.
+
 ## 주입 불필요/불가
 | 항목 | 사유 |
 |------|------|
