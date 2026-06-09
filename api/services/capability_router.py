@@ -58,6 +58,7 @@ SERVICE_CATALOG = {
             {"title": "우수농가 벤치마킹", "target": "c9_benchmark.html", "why": "상위농가 대비 격차 개선"},
             {"title": "수익성·ERP 분석", "target": "c5_erp.html", "why": "이익률·원가 정밀 관리"},
             {"title": "데이터 환원·보상", "target": "c7_reward.html", "why": "학습 기여 → 보상 자산화"},
+            {"title": "클러스터 작황 모니터링", "target": "f8_cluster.html", "why": "다수필지·광역 무센서 작황·이상알림"},
         ],
     },
 }

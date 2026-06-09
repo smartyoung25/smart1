@@ -2198,6 +2198,40 @@ def get_field_parcels(farm_id: str):
             "note": "팜맵 미연동 (FARMMAP_API_URL 설정 시 자동 전환)"}
 
 
+@router.get("/field/cluster", summary="노지 클러스터 작황 모니터링 (무센서·위성/기상 + 위치특정 이상알림)")
+def get_field_cluster(farm_id: str):
+    """위성 식생지수(미연동 시 프록시) + 16일 기상 스트레스로 무센서 광역 작황진단.
+    클러스터(다수 필지) 평균·균일도·이상필지 + **위치특정 정량편차 이상알림(실행지시)** 반환."""
+    _require_farm(farm_id)
+    meta = _FARM_META.get(farm_id, {})
+    region = f"{meta.get('sido','') or ''} {meta.get('sigungu','') or ''}".strip() or "-"
+    # 필지 수집 (팜맵→Mock 폴백)
+    try:
+        pr = get_field_parcels(farm_id)
+        parcels = pr.get("parcels") or pr.get("data") or []
+        if not isinstance(parcels, list) or not parcels:
+            raise ValueError
+    except Exception:
+        parcels = [{"name": f"{i+1}번 필지", "crop": c, "area_ha": a}
+                   for i, (c, a) in enumerate([("배추", 0.5), ("무", 0.8), ("대파", 0.4), ("양파", 0.6)])]
+    # 16일 기상(무센서 스트레스)
+    region_wx = None
+    try:
+        from api.services.extended_weather import get_extended_forecast
+        region_wx = get_extended_forecast(meta.get("sido", "") or "", meta.get("sigungu", "") or "", 16)
+    except Exception:
+        region_wx = None
+    # 토양수분(흙토람) 보정 — 있으면
+    soil = None
+    try:
+        soil = get_field_soil(farm_id)
+    except Exception:
+        soil = None
+    from api.services.field_cluster import build_cluster
+    return build_cluster(cluster_id=farm_id, region=region, parcels=parcels,
+                         region_wx=region_wx, soil=soil, satellite_live=False)
+
+
 # ── 관수 분석 결과 조회 ────────────────────────────────────────────────────────
 
 @router.get("/irrigation/analysis", summary="관수 품질 분석 (함수율·배액률·EC 등)")

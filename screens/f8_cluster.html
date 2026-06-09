@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <title>F8 — 클러스터 작황 모니터링 | KAASA SmartOS</title>
+  <link rel="stylesheet" href="../components/base.css"/>
+  <style>
+    .cl-body{padding:14px;max-width:480px;margin:0 auto;padding-bottom:90px;}
+    .cl-hero{background:linear-gradient(135deg,#14532d,#16a34a);border-radius:var(--radius);padding:18px 20px;color:#fff;margin-bottom:12px;}
+    .cl-hero-grade{font-size:30px;font-weight:900;line-height:1;}
+    .cl-hero-sub{font-size:12px;opacity:.92;margin-top:6px;line-height:1.5;}
+    .cl-stat-row{display:flex;gap:8px;margin-bottom:12px;}
+    .cl-stat{flex:1;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:10px;text-align:center;}
+    .cl-stat-v{font-size:18px;font-weight:900;}.cl-stat-l{font-size:10px;color:var(--muted);margin-top:2px;}
+    .cl-src{font-size:10px;font-weight:700;padding:3px 9px;border-radius:10px;background:rgba(255,255,255,.2);display:inline-block;}
+    .cl-wx{background:var(--panel-soft);border-radius:10px;padding:11px 13px;font-size:12px;color:var(--muted);line-height:1.55;margin-bottom:12px;}
+    .cl-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px;}
+    .cl-cell{border-radius:10px;padding:11px 12px;color:#fff;position:relative;overflow:hidden;}
+    .cl-cell-n{font-size:13px;font-weight:800;}
+    .cl-cell-crop{font-size:10.5px;opacity:.9;}
+    .cl-cell-v{font-size:20px;font-weight:900;margin-top:5px;}
+    .cl-cell-dev{font-size:10.5px;font-weight:700;opacity:.95;}
+    .cl-cell-badge{position:absolute;top:8px;right:9px;font-size:9px;font-weight:800;padding:1px 6px;border-radius:6px;background:rgba(0,0,0,.25);}
+    .alert-card{background:var(--panel);border:1.5px solid var(--border);border-left:4px solid var(--orange);border-radius:12px;padding:12px 14px;margin-bottom:9px;}
+    .alert-card.danger{border-left-color:var(--red);}
+    .alert-head{display:flex;align-items:center;gap:8px;}
+    .alert-loc{font-size:13.5px;font-weight:800;flex:1;}
+    .alert-sev{font-size:10px;font-weight:800;padding:2px 8px;border-radius:7px;}
+    .alert-sev.danger{background:var(--red-soft);color:var(--red);}
+    .alert-sev.warn{background:var(--orange-soft);color:var(--orange);}
+    .alert-dev{font-size:11.5px;color:var(--muted);margin-top:4px;line-height:1.5;}
+    .alert-btns{display:flex;gap:8px;margin-top:9px;}
+    .alert-go{flex:1;padding:10px;background:var(--green);color:#fff;border:none;border-radius:9px;font-size:12.5px;font-weight:800;cursor:pointer;min-height:42px;}
+    .alert-log{flex:0 0 84px;padding:10px;background:var(--gray-soft);color:var(--text);border:none;border-radius:9px;font-size:12.5px;font-weight:800;cursor:pointer;min-height:42px;}
+  </style>
+</head>
+<body>
+<header class="sf-header">
+  <span style="font-size:13px;color:rgba(255,255,255,.85);cursor:pointer;" onclick="location.href='f1_field.html'">‹ 노지</span>
+  <span style="font-size:15px;font-weight:800;color:#fff;">클러스터 작황 모니터링</span>
+  <span style="width:40px;"></span>
+</header>
+<main class="cl-body">
+  <div class="cl-hero">
+    <span class="cl-src" id="clSrc">위성 프록시</span>
+    <div style="font-size:12px;opacity:.9;margin-top:8px;">클러스터 작황 종합</div>
+    <div class="cl-hero-grade" id="clGrade">—</div>
+    <div class="cl-hero-sub" id="clSub"></div>
+  </div>
+  <div class="cl-stat-row" id="clStats"></div>
+  <div class="cl-wx" id="clWx"></div>
+
+  <div class="section-label">필지별 식생활력 (NDVI) <span class="trust-badge trust-model">🛰️ 무센서</span></div>
+  <div class="cl-grid" id="clGridCells"></div>
+  <div style="font-size:10px;color:var(--muted);margin:2px 0 12px;">색상: 🟥 주의(&lt;0.55) · 🟧 보통(0.55~0.70) · 🟩 우수(≥0.70) · Δ는 클러스터 평균 대비 편차</div>
+
+  <div class="section-label">위치특정 이상 알림 <span class="trust-badge trust-live">🟢 진단→위치→실행</span></div>
+  <div id="clAlerts"></div>
+</main>
+<nav class="sf-bottom-nav">
+  <button class="bnav-tab" onclick="location.href='c3_home.html'"><span class="bnav-icon">🏠</span>홈</button>
+  <button class="bnav-tab" onclick="location.href='g1_home.html'"><span class="bnav-icon">🌱</span>온실</button>
+  <button class="bnav-tab active" onclick="location.href='f1_field.html'"><span class="bnav-icon">🌾</span>노지</button>
+  <button class="bnav-tab" onclick="location.href='c12_joint.html'"><span class="bnav-icon">🚚</span>출하</button>
+  <button class="bnav-tab" onclick="location.href='../index.html'"><span class="bnav-icon">≡</span>메뉴</button>
+</nav>
+<script src="../components/data.js"></script>
+<script src="../components/record_sheet.js"></script>
+<script>
+'use strict';
+let _farmG='farm_001', _tokG='', _ALERTS=[];
+const NCOL=v=>v>=0.70?'#16a34a':v>=0.55?'#f59e0b':'#dc2626';
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+window.addEventListener('DOMContentLoaded',()=>{
+  _farmG=new URLSearchParams(location.search).get('farm')||sessionStorage.getItem('sf_farm_id')||'farm_001';
+  _ensureToken().then(t=>{ _tokG=t; KaasaData.init&&KaasaData.init({farmId:_farmG,token:t,onStatus:()=>{}}); _load(t); });
+});
+async function _ensureToken(){const s=sessionStorage.getItem('sf_token');if(s)return s;try{const a=sessionStorage.getItem('sf_api')||location.origin;const r=await fetch(`${a}/api/v1/auth/token`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:'admin',password:'1250'})});if(r.ok){const d=await r.json();sessionStorage.setItem('sf_token',d.access_token);return d.access_token;}}catch{}return '';}
+function _logAlert(i){
+  const a=_ALERTS[i]; if(!a||!window.RecordSheet) return;
+  RecordSheet.open({ title:`현장 확인 지시 — ${a.location}`,
+    fields:[{id:'finding',label:'확인 결과',type:'select',options:['이상없음','관수 부족','시비 필요','병해 의심','생리장애']},
+            {id:'memo',label:'메모',type:'text',value:a.type,placeholder:'조치 내용'}],
+    submitLabel:'현장확인 기록',
+    onSubmit: async (v)=>{ await RecordSheet.logActivity(_farmG,_tokG,{kind:a.record||'disease_check',item:`${a.location} ${a.type}`,detail:`${v.finding} · ${v.memo||''} · Δ${a.deviation_pct}%`,value:a.ndvi}); }
+  });
+}
+async function _load(token){
+  const api=KaasaData.getApiBase?KaasaData.getApiBase():location.origin;
+  let d;
+  try{ d=await fetch(`${api}/api/farms/${_farmG}/field/cluster`,{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.json()); }
+  catch(e){ document.getElementById('clGrade').textContent='로드 실패'; return; }
+  const s=d.summary||{};
+  document.getElementById('clSrc').textContent = d.source==='sentinel-2'?'🛰️ Sentinel-2 실측':'🛰️ 위성 프록시(미연동)';
+  document.getElementById('clGrade').textContent=`작황 ${s.vigor_grade||'-'}`;
+  document.getElementById('clSub').textContent=`${esc(d.region)} · ${d.parcel_count}필지 · ${d.total_area_ha}ha · 평균 NDVI ${s.mean_ndvi}`;
+  document.getElementById('clStats').innerHTML=`
+    <div class="cl-stat"><div class="cl-stat-v">${s.uniformity_pct||0}%</div><div class="cl-stat-l">작황 균일도</div></div>
+    <div class="cl-stat"><div class="cl-stat-v" style="color:var(--red)">${s.anomaly_count||0}</div><div class="cl-stat-l">이상 필지</div></div>
+    <div class="cl-stat"><div class="cl-stat-v" style="color:var(--orange)">${s.warn_count||0}</div><div class="cl-stat-l">주의 필지</div></div>`;
+  const w=d.weather_stress||{};
+  document.getElementById('clWx').innerHTML=`🌦️ <b>무센서 기상 스트레스</b> — ${esc(w.note||'데이터 없음')}`
+    + (w.water_stress_pct>=25?` <span style="color:var(--orange);font-weight:700;">(관개 우선 검토)</span>`:'');
+  document.getElementById('clGridCells').innerHTML=(d.parcels||[]).map(r=>`
+    <div class="cl-cell" style="background:${NCOL(r.ndvi)}">
+      <span class="cl-cell-badge">${esc(r.status)}</span>
+      <div class="cl-cell-n">${esc(r.name)}</div>
+      <div class="cl-cell-crop">${esc(r.crop)}${r.area_ha?` · ${r.area_ha}ha`:''}</div>
+      <div class="cl-cell-v">${r.ndvi.toFixed(2)}</div>
+      <div class="cl-cell-dev">Δ ${r.deviation_pct>0?'+':''}${r.deviation_pct}% vs 평균</div>
+    </div>`).join('');
+  _ALERTS=d.alerts||[];
+  document.getElementById('clAlerts').innerHTML=_ALERTS.length?_ALERTS.map((a,i)=>`
+    <div class="alert-card ${a.severity}">
+      <div class="alert-head"><span class="alert-loc">📍 ${esc(a.location)} — ${esc(a.type)}</span>
+        <span class="alert-sev ${a.severity}">${a.severity==='danger'?'시급':'주의'}</span></div>
+      <div class="alert-dev">${esc(a.detail)}</div>
+      <div class="alert-btns">
+        <button class="alert-go" onclick="location.href='${esc(a.target||'f5_remote.html')}'">현장 확인: ${esc(a.action)} →</button>
+        <button class="alert-log" onclick="_logAlert(${i})">기록</button>
+      </div>
+    </div>`).join('')
+    :'<div style="text-align:center;padding:18px;color:var(--green);font-size:13px;">✅ 이상 필지 없음 — 클러스터 작황이 균일합니다.</div>';
+}
+</script>
+</body>
+</html>
