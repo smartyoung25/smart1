@@ -41,6 +41,11 @@
     <div class="ca-hero-s" id="caSub">집계 중…</div>
   </div>
   <div class="ca-stat-row" id="caStats"></div>
+  <div style="display:flex;gap:8px;margin-bottom:12px;">
+    <button onclick="_report()" style="flex:1;padding:12px;background:var(--panel);border:1.5px dashed var(--blue,#2563eb);color:var(--blue,#2563eb);border-radius:12px;font-size:12.5px;font-weight:800;cursor:pointer;min-height:46px;">📄 관제 보고서 PDF</button>
+    <button onclick="_notify()" style="flex:1;padding:12px;background:var(--panel);border:1.5px dashed var(--red);color:var(--red);border-radius:12px;font-size:12.5px;font-weight:800;cursor:pointer;min-height:46px;">🔔 이상농가 일괄 알림</button>
+  </div>
+  <div id="caMsg" style="font-size:12px;font-weight:700;text-align:center;min-height:16px;margin-bottom:8px;"></div>
   <div class="ca-filter">
     <select id="fRegion" onchange="_reload()"><option value="">전체 지역</option></select>
     <select id="fCrop" onchange="_reload()"><option value="">전체 작목</option></select>
@@ -65,7 +70,25 @@
 <script src="../components/data.js"></script>
 <script>
 'use strict';
-let _tokG='', _inited=false;
+let _tokG='', _inited=false, _DATA=null;
+function _report(){
+  const r=document.getElementById('fRegion').value, c=document.getElementById('fCrop').value;
+  location.href=`c20_report.html?region=${encodeURIComponent(r)}&crop=${encodeURIComponent(c)}`;
+}
+async function _notify(){
+  if(!_DATA||!(_DATA.alerts||[]).length){ _msg('이상 농가가 없습니다.','var(--muted)'); return; }
+  const ids=(_DATA.alerts||[]).map(a=>a.farm_id);
+  if(!confirm(`이상 농가 ${ids.length}곳에 현장점검 지시를 기록할까요?`)) return;
+  const api=(window.KaasaData&&KaasaData.getApiBase)?KaasaData.getApiBase():location.origin;
+  const region=document.getElementById('fRegion').value, crop=document.getElementById('fCrop').value;
+  try{
+    const d=await fetch(`${api}/api/admin/cluster/notify`,{method:'POST',
+      headers:{'Content-Type':'application/json',Authorization:`Bearer ${_tokG}`},
+      body:JSON.stringify({farm_ids:ids,region,crop,message:'위성·진단 기반 작황 이상 — 현장 점검 요망'})}).then(r=>r.json());
+    _msg(`✓ ${d.recorded}곳 지시 기록 · ${d.note}`, d.dispatched?'var(--green)':'var(--orange)');
+  }catch(e){ _msg('알림 기록 실패: '+e.message,'var(--red)'); }
+}
+function _msg(t,c){ const el=document.getElementById('caMsg'); if(el){ el.style.color=c||'var(--text)'; el.textContent=t; } }
 const VCOL=v=>v>=0.62?'#16a34a':v>=0.55?'#f59e0b':'#dc2626';
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 window.addEventListener('DOMContentLoaded',()=>{ _ensureToken().then(t=>{ _tokG=t; _reload(); }); });
@@ -77,6 +100,7 @@ async function _reload(){
   let d;
   try{ d=await fetch(`${api}/api/admin/cluster/overview?region=${encodeURIComponent(region)}&crop=${encodeURIComponent(crop)}`,{headers:{Authorization:`Bearer ${_tokG}`}}).then(r=>r.json()); }
   catch(e){ document.getElementById('caSub').textContent='로드 실패'; return; }
+  _DATA=d;
   const s=d.summary||{};
   document.getElementById('caTotal').textContent=`${d.total_farms.toLocaleString()} 농가`;
   document.getElementById('caSub').textContent=`평균 작황 NDVI ${s.avg_vigor} · 평균 진단 ${s.avg_diag}점`;

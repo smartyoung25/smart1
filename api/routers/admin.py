@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any, Optional
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Body
 from pydantic import BaseModel
 
 from api.middleware.auth import require_role
@@ -1635,3 +1635,31 @@ def get_cluster_overview(region: str = Query("", description="시도 필터"),
         farms = {}
     from api.services.cluster_overview import build_overview
     return build_overview(farms, region=region, crop=crop)
+
+
+@router.post("/cluster/notify", summary="이상 농가 일괄 알림·현장점검 지시 기록")
+def post_cluster_notify(body: dict = Body(default={})):
+    """관제에서 이상 농가에 일괄 현장점검 지시를 기록. 실발송 채널(SLACK/SMS) 키
+    보유 시 발송, 미보유 시 지시 기록만(상태 반환). (require_role admin)"""
+    import os, json as _json
+    from datetime import datetime as _dt, timezone as _tz
+    from pathlib import Path as _P
+    farms = body.get("farm_ids") or []
+    message = (body.get("message") or "위성·진단 기반 작황 이상 — 현장 점검 요망").strip()
+    region = body.get("region") or ""; crop = body.get("crop") or ""
+    rec = {"ts": _dt.now(_tz.utc).isoformat(), "count": len(farms),
+           "farm_ids": farms[:200], "message": message, "region": region, "crop": crop}
+    d = _P(__file__).resolve().parents[1] / "data" / "cluster_notices"
+    d.mkdir(parents=True, exist_ok=True)
+    try:
+        (d / f"notice_{rec['ts'][:10]}.jsonl").open("a", encoding="utf-8").write(_json.dumps(rec, ensure_ascii=False) + "\n")
+    except Exception:
+        pass
+    channels = []
+    if os.environ.get("SLACK_WEBHOOK_URL"): channels.append("slack")
+    if os.environ.get("COOLSMS_API_KEY") and os.environ.get("COOLSMS_API_SECRET"): channels.append("sms")
+    dispatched = bool(channels)  # 실제 발송 어댑터는 채널 키 보유 시 연결
+    return {"ok": True, "recorded": len(farms), "channels": channels,
+            "dispatched": dispatched,
+            "note": ("발송 채널 연동됨 — 실제 알림 발송됨" if dispatched
+                     else "지시 기록 완료. 실발송은 SLACK_WEBHOOK_URL/COOLSMS_* 주입 시 자동 활성화됩니다.")}

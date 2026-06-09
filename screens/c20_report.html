@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>광역 관제 결과보고서 (PDF) | KAASA SmartOS</title>
+  <link rel="stylesheet" href="../components/base.css"/>
+  <style>
+    :root{ --ink:#1a2332; --line:#d4d9e0; }
+    body{background:#5a6678;}
+    .rp-toolbar{position:sticky;top:0;z-index:10;background:var(--panel);display:flex;gap:8px;padding:10px 14px;max-width:794px;margin:0 auto;box-shadow:var(--shadow);}
+    .rp-toolbar button{flex:1;padding:11px;border:none;border-radius:9px;font-size:13px;font-weight:800;cursor:pointer;min-height:44px;}
+    .rp-print{background:var(--green);color:#fff;} .rp-back{background:var(--gray-soft);color:var(--text);flex:0 0 90px;}
+    .page{background:#fff;color:var(--ink);width:794px;max-width:100%;margin:16px auto;padding:48px 54px;box-shadow:0 4px 20px rgba(0,0,0,.3);box-sizing:border-box;font-size:13px;line-height:1.65;}
+    .rp-doc-title{text-align:center;font-size:23px;font-weight:900;margin:0 0 4px;}
+    .rp-doc-sub{text-align:center;font-size:13px;color:#5a6678;margin-bottom:6px;}
+    .rp-rule{height:3px;background:var(--ink);margin:10px 0 22px;}
+    .rp-meta{width:100%;border-collapse:collapse;margin-bottom:24px;font-size:12.5px;}
+    .rp-meta td{border:1px solid var(--line);padding:7px 11px;} .rp-meta td.k{background:#f1f4f8;font-weight:800;width:90px;white-space:nowrap;}
+    .rp-h{font-size:15px;font-weight:900;margin:24px 0 9px;padding-left:9px;border-left:4px solid var(--ink);}
+    .rp-hero{display:flex;gap:14px;border:2px solid var(--ink);border-radius:8px;padding:14px 18px;margin-bottom:6px;}
+    .rp-hero div{flex:1;text-align:center;} .rp-hero .v{font-size:26px;font-weight:900;line-height:1;} .rp-hero .l{font-size:11px;color:#5a6678;margin-top:4px;}
+    .rp-tbl{width:100%;border-collapse:collapse;font-size:12.5px;}
+    .rp-tbl th,.rp-tbl td{border:1px solid var(--line);padding:6px 9px;text-align:left;} .rp-tbl th{background:#f1f4f8;font-weight:800;} .rp-tbl td.r{text-align:right;}
+    .rp-summary{border:1px solid var(--line);background:#f7f9fb;border-radius:7px;padding:14px 16px;font-size:13px;line-height:1.8;}
+    .rp-foot{margin-top:30px;padding-top:12px;border-top:1px solid var(--line);font-size:11px;color:#7a8595;display:flex;justify-content:space-between;}
+    @media print{ body{background:#fff;} .rp-toolbar{display:none!important;} .page{box-shadow:none;margin:0;width:100%;padding:0;} @page{size:A4;margin:16mm 14mm;} }
+  </style>
+</head>
+<body>
+<div class="rp-toolbar">
+  <button class="rp-back" onclick="location.href='c20_cluster_admin.html'">‹ 관제</button>
+  <button class="rp-print" onclick="window.print()">🖨️ PDF로 저장 / 인쇄</button>
+</div>
+<div class="page" id="page"><div style="text-align:center;padding:40px;color:#5a6678;">보고서 생성 중…</div></div>
+<script src="../components/data.js"></script>
+<script>
+'use strict';
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+window.addEventListener('DOMContentLoaded',()=>{ _ensureToken().then(_build); });
+async function _ensureToken(){const s=sessionStorage.getItem('sf_token');if(s)return s;try{const a=sessionStorage.getItem('sf_api')||location.origin;const r=await fetch(`${a}/api/v1/auth/token`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:'admin',password:'1250'})});if(r.ok){const d=await r.json();sessionStorage.setItem('sf_token',d.access_token);return d.access_token;}}catch{}return '';}
+async function _build(token){
+  const api=(window.KaasaData&&KaasaData.getApiBase)?KaasaData.getApiBase():location.origin;
+  const qp=new URLSearchParams(location.search);
+  const region=qp.get('region')||'', crop=qp.get('crop')||'';
+  let d;
+  try{ d=await fetch(`${api}/api/admin/cluster/overview?region=${encodeURIComponent(region)}&crop=${encodeURIComponent(crop)}`,{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.json()); }
+  catch(e){ document.getElementById('page').innerHTML='<div style="padding:40px;text-align:center;color:#d23b3b;">데이터를 불러오지 못했습니다.</div>'; return; }
+  const s=d.summary||{};
+  const now=new Date(), ymd=`${now.getFullYear()}. ${now.getMonth()+1}. ${now.getDate()}.`;
+  const scope=[region||'전국', crop||'전작목'].join(' · ');
+  const worstReg=(d.by_region||[]).slice().sort((a,b)=>b.anomaly-a.anomaly)[0];
+  const worstCrop=(d.by_crop||[]).slice().sort((a,b)=>b.anomaly-a.anomaly)[0];
+  const summary=`${scope} 대상 ${d.total_farms.toLocaleString()}개 농가의 작황을 위성·기상 기반으로 광역 진단한 결과, `
+    + `평균 작황지수(NDVI) ${s.avg_vigor}·평균 진단 ${s.avg_diag}점으로 집계되었다. `
+    + `이상 농가는 <b>${s.anomaly}곳(${s.anomaly_pct}%)</b>, 주의 ${s.warn}곳으로 확인된다. `
+    + (worstReg?`지역별로는 <b>${esc(worstReg.name)}</b>(이상 ${worstReg.anomaly}곳), `:'')
+    + (worstCrop?`작목별로는 <b>${esc(worstCrop.name)}</b>(이상 ${worstCrop.anomaly}곳)의 관리 강화가 필요하다. `:'')
+    + `이상 농가는 아래 위치특정 명단을 기준으로 현장 점검·관개/방제 지도를 우선 배정할 것을 권고한다.`;
+  const html=`
+    <div class="rp-doc-title">스마트농업 광역 작황 관제 결과보고서</div>
+    <div class="rp-doc-sub">KAASA SmartOS · 다중농가 클러스터 관제 (위성·기상·진단 통합)</div>
+    <div class="rp-rule"></div>
+    <table class="rp-meta"><tbody>
+      <tr><td class="k">관제 범위</td><td>${esc(scope)}</td><td class="k">대상 농가</td><td>${d.total_farms.toLocaleString()} 곳</td></tr>
+      <tr><td class="k">작성일</td><td>${ymd}</td><td class="k">데이터원</td><td>위성 식생지수 + 16일 기상 + 종합진단</td></tr>
+    </tbody></table>
+
+    <div class="rp-h">Ⅰ. 종합 현황</div>
+    <div class="rp-hero">
+      <div><div class="v">${d.total_farms.toLocaleString()}</div><div class="l">대상 농가</div></div>
+      <div><div class="v" style="color:#d23b3b">${s.anomaly}</div><div class="l">이상 (${s.anomaly_pct}%)</div></div>
+      <div><div class="v" style="color:#d98324">${s.warn}</div><div class="l">주의</div></div>
+      <div><div class="v" style="color:#1f9d55">${s.normal}</div><div class="l">정상</div></div>
+      <div><div class="v">${s.avg_diag}</div><div class="l">평균 진단점</div></div>
+    </div>
+
+    <div class="rp-h">Ⅱ. 지역 클러스터</div>
+    <table class="rp-tbl"><thead><tr><th>지역</th><th class="r">농가</th><th class="r">평균작황</th><th class="r">평균진단</th><th class="r">이상</th><th class="r">주의</th></tr></thead>
+      <tbody>${(d.by_region||[]).map(r=>`<tr><td><b>${esc(r.name)}</b></td><td class="r">${r.count}</td><td class="r">${r.avg_vigor}</td><td class="r">${r.avg_diag}</td><td class="r" style="color:#d23b3b">${r.anomaly}</td><td class="r">${r.warn}</td></tr>`).join('')}</tbody></table>
+
+    <div class="rp-h">Ⅲ. 작목 클러스터</div>
+    <table class="rp-tbl"><thead><tr><th>작목</th><th class="r">농가</th><th class="r">평균작황</th><th class="r">이상</th></tr></thead>
+      <tbody>${(d.by_crop||[]).map(r=>`<tr><td><b>${esc(r.name)}</b></td><td class="r">${r.count}</td><td class="r">${r.avg_vigor}</td><td class="r" style="color:#d23b3b">${r.anomaly}</td></tr>`).join('')}</tbody></table>
+
+    <div class="rp-h">Ⅳ. 이상 농가 위치특정 명단 (작황 낮은 순)</div>
+    <table class="rp-tbl"><thead><tr><th>농가ID</th><th>위치</th><th>작목</th><th class="r">작황</th><th class="r">진단</th></tr></thead>
+      <tbody>${(d.alerts||[]).map(a=>`<tr><td>${esc(a.farm_id)}</td><td>${esc(a.location)}</td><td>${esc(a.crop)}</td><td class="r">${a.vigor.toFixed(2)}</td><td class="r">${a.diag}</td></tr>`).join('')||'<tr><td colspan="5">이상 농가 없음</td></tr>'}</tbody></table>
+
+    <div class="rp-h">Ⅴ. 총평 및 권고</div>
+    <div class="rp-summary">${summary}</div>
+
+    <div class="rp-foot"><span>KAASA SmartOS · 광역 작황 관제 결과보고서</span><span>무센서 위성·기상 기반 · 생성 ${ymd}</span></div>`;
+  document.getElementById('page').innerHTML=html;
+}
+</script>
+</body>
+</html>
