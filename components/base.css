@@ -12,7 +12,7 @@
   --green-dark:   #0f5132;
   --blue:         #2563eb;
   --blue-soft:    #eaf1ff;
-  --orange:       #d97706;
+  --orange:       #b45309;   /* WCAG AA: 흰배경 5.0:1 (구 #d97706=3.2 미달 → 어둡게) */
   --orange-soft:  #fff4df;
   --red:          #dc2626;
   --red-soft:     #ffeaea;
