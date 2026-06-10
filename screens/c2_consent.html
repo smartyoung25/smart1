@@ -111,6 +111,11 @@ function _save(){
         value:onCount, detail:`공개 ${onCount}/${ITEMS.length} · ${onItems}`})}); }catch(e){}
     r.style.color='var(--green)';
     r.innerHTML=`✓ 저장 완료 — ${modeName} · 공개 ${onCount}/${ITEMS.length}항목`;
+    // 온보딩 흐름: ?next= 가 있으면 다음 단계로 이어가기
+    try{ const nx=new URLSearchParams(location.search).get('next');
+      if(nx){ r.insertAdjacentHTML('afterend',
+        `<button onclick="location.href='${decodeURIComponent(nx).replace(/'/g,'')}'" style="margin-top:12px;width:100%;padding:14px;background:var(--green);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:800;cursor:pointer;min-height:48px;">계속 →</button>`); }
+    }catch(e){}
   })();
 }
 async function _ensureToken(){

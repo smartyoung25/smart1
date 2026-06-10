@@ -297,8 +297,15 @@ function _postSaveCTA(){
     msg:'다음으로 <b>시설 기자재</b>를 등록하면 보유 장비(제조사·프로토콜)를 표준 변수로 연동할 수 있습니다.',
     primary:`c16_equipment.html?farm=${fid}`, primaryLabel:'🔌 기자재 등록하기', home:'c3_home.html'
   };
+  const nextUrl = encodeURIComponent(cta.primary);
   box.insertAdjacentHTML('afterend', `
     <div id="ctaBox" style="margin-top:14px;">
+      <a href="c2_consent.html?next=${nextUrl}" style="display:flex;align-items:center;gap:10px;background:var(--blue-soft);border:1.5px solid var(--blue);border-radius:var(--radius-sm);padding:12px 14px;text-decoration:none;color:var(--blue);margin-bottom:12px;min-height:48px;box-sizing:border-box;">
+        <span style="font-size:20px;">🔐</span>
+        <div style="flex:1;"><div style="font-size:13px;font-weight:800;">데이터 활용 동의 설정 <span style="font-size:11px;font-weight:700;background:var(--blue);color:#fff;padding:1px 7px;border-radius:8px;">권장</span></div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px;">내 데이터로 AI가 학습 — 활용 범위를 직접 설정</div></div>
+        <span style="font-size:16px;">›</span>
+      </a>
       <div style="font-size:13px;color:var(--muted);text-align:center;margin-bottom:10px;line-height:1.5;">${cta.msg}</div>
       <div style="display:flex;gap:10px;">
         <button onclick="location.href='${cta.primary}'" style="flex:1;padding:14px;background:var(--green);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:800;cursor:pointer;min-height:48px;">${cta.primaryLabel}</button>
