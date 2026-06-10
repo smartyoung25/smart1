@@ -1,0 +1,54 @@
+{
+ "2026-06-05": {
+  "wc_mean": 66,
+  "wc_max": 74,
+  "wc_min": 54,
+  "dr_pct_mean": 26.0,
+  "ec_drain": 2.0,
+  "supply_total": 700.0,
+  "irr_count": 3.0,
+  "nl_pct": 6.0,
+  "dryback_night_pct": 13.0,
+  "recorded_at": "2026-06-05T08:30:00+00:00",
+  "_demo": true
+ },
+ "2026-06-07": {
+  "wc_mean": 67,
+  "wc_max": 75,
+  "wc_min": 55,
+  "dr_pct_mean": 24.0,
+  "ec_drain": 2.1,
+  "supply_total": 720.0,
+  "irr_count": 4.0,
+  "nl_pct": 7.5,
+  "dryback_night_pct": 14.0,
+  "recorded_at": "2026-06-07T08:30:00+00:00",
+  "_demo": true
+ },
+ "2026-06-09": {
+  "wc_mean": 65,
+  "wc_max": 73,
+  "wc_min": 53,
+  "dr_pct_mean": 28.0,
+  "ec_drain": 1.9,
+  "supply_total": 680.0,
+  "irr_count": 5.0,
+  "nl_pct": 9.0,
+  "dryback_night_pct": 12.0,
+  "recorded_at": "2026-06-09T08:30:00+00:00",
+  "_demo": true
+ },
+ "2026-06-10": {
+  "wc_mean": 66,
+  "wc_max": 74,
+  "wc_min": 54,
+  "dr_pct_mean": 25.0,
+  "ec_drain": 2.2,
+  "supply_total": 710.0,
+  "irr_count": 3.0,
+  "nl_pct": 10.5,
+  "dryback_night_pct": 15.0,
+  "recorded_at": "2026-06-10T08:30:00+00:00",
+  "_demo": true
+ }
+}
