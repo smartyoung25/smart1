@@ -23,6 +23,14 @@ const KaasaData = (() => {
   let _apiBase = sessionStorage.getItem('sf_api')     ||
     (location.protocol !== 'file:' ? location.origin : 'http://localhost:8000');
   let _farmId  = sessionStorage.getItem('sf_farm_id') || 'farm_001';
+  // 작물별 대표 온실 데모 농장 — 전환 시 해당 작물 M1/M2 모델로 재시뮬레이션
+  const _DEMO_FARMS = [
+    ['farm_001', '🥒 오이 · 경남 창녕'],
+    ['farm_002', '🍅 방울토마토 · 충북 충주'],
+    ['farm_003', '🍓 딸기 · 전북 군산'],
+    ['farm_004', '🍅 완숙토마토 · 경북 상주'],
+    ['강원_철원_파프리카_8_1', '🫑 파프리카 · 강원 철원'],
+  ];
   let _ws      = null;
   let _wsRetryDelay = 2000;
   let _wsTimer  = null;
@@ -510,11 +518,12 @@ const KaasaData = (() => {
           `<div class="drawer-group">${s.g}</div>` +
           s.items.map(([h,i,n]) => `<a href="${pfx}${h}" data-name="${n}"><span style="font-size:17px;">${i}</span> ${n}</a>`).join('')
         ).join('')}</nav>
-       <div class="drawer-group">농장 전환</div>
+       <div class="drawer-group">농장 전환 · 작물별 온실 데모</div>
        <div style="padding:0 16px;">
          <select id="kdFarmSel" style="width:100%;min-height:42px;border-radius:10px;padding:9px;background:rgba(255,255,255,.12);color:#fff;border:none;font-size:14px;">
-           ${['farm_001','farm_002','farm_003','farm_004','farm_005'].map(f=>`<option value="${f}" ${f===farm?'selected':''}>${f}</option>`).join('')}
+           ${_DEMO_FARMS.map(([id,label])=>`<option value="${id}" ${id===farm?'selected':''}>${label}</option>`).join('')}
          </select>
+         <div style="font-size:11px;color:rgba(255,255,255,.6);margin-top:6px;">전환하면 해당 작물 모델로 수확·수익·추천이 재시뮬레이션됩니다.</div>
        </div>
        <nav style="margin-top:6px;">
          <a href="${pfx}c1_setup.html"><span style="font-size:17px;">⚙️</span> 농장 세팅</a>
@@ -648,10 +657,28 @@ const KaasaData = (() => {
     } catch (e) {}
   }
 
+  // 화면 헤더의 #farmSel 을 작물별 데모 농장 목록으로 통일 (각 화면 하드코딩 보완)
+  function _syncFarmSelectors() {
+    const cur = sessionStorage.getItem('sf_farm_id') || _farmId || 'farm_001';
+    document.querySelectorAll('#farmSel, select[data-farm-sel]').forEach(sel => {
+      sel.innerHTML = _DEMO_FARMS.map(([id, label]) =>
+        `<option value="${id}" ${id === cur ? 'selected' : ''}>${label}</option>`).join('');
+      // 화면에 이미 인라인 onchange(onFarmChange)가 있으면 중복 바인딩하지 않음
+      const hasInline = sel.getAttribute('onchange');
+      if (!hasInline) {
+        sel.addEventListener('change', e => {
+          sessionStorage.setItem('sf_farm_id', e.target.value);
+          if (typeof window.onFarmChange === 'function') { window.onFarmChange(e.target.value); }
+          else { const u = new URL(location.href); u.searchParams.set('farm', e.target.value); location.href = u.toString(); }
+        });
+      }
+    });
+  }
+
   if (typeof document !== 'undefined') {
     document.addEventListener('DOMContentLoaded', () => {
       try {
-        _buildDrawer(); _bindMenuTab(); _renderStratBands(); _installPwa();
+        _buildDrawer(); _bindMenuTab(); _renderStratBands(); _installPwa(); _syncFarmSelectors();
         if (navigator && navigator.onLine === false) _setNet(false);  // 진입 시 오프라인이면 즉시 표시
       } catch (e) {}
     });
