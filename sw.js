@@ -1,8 +1,9 @@
 /* KAASA SmartOS — Service Worker (오프라인 캐시)
- * 정적(HTML/CSS/JS/아이콘): cache-first → 오프라인에서도 화면 표시
- * API(/api/): network-first → 항상 최신, 실패 시 마지막 캐시 폴백
+ * HTML 화면: network-first → 항상 최신, 오프라인 시 캐시 폴백 (묵은 화면 방지)
+ * 정적(CSS/JS/아이콘): stale-while-revalidate → 빠름 + 백그라운드 갱신
+ * API(/api/): network-first
  */
-const CACHE = 'kaasa-smartos-v1';
+const CACHE = 'kaasa-smartos-v3';   // ★ 버전 변경 시 구 캐시 자동 삭제
 const CORE = [
   '/intro', '/index.html',
   '/components/base.css', '/components/data.js',
@@ -39,7 +40,25 @@ self.addEventListener('fetch', (e) => {
     return;
   }
 
-  // 정적: cache-first (+ 백그라운드 갱신)
+  // HTML 화면(네비게이션·.html·라우트): network-first → 항상 최신 (오프라인만 캐시)
+  const isHTML = req.mode === 'navigate'
+    || (req.headers.get('accept') || '').includes('text/html')
+    || url.pathname.endsWith('.html')
+    || ['/smartos', '/intro', '/index.html'].includes(url.pathname);
+  if (isHTML) {
+    e.respondWith(
+      fetch(req).then(res => {
+        if (res && res.status === 200) {
+          const copy = res.clone();
+          caches.open(CACHE).then(c => c.put(req, copy)).catch(() => {});
+        }
+        return res;
+      }).catch(() => caches.match(req))
+    );
+    return;
+  }
+
+  // 정적 자산(CSS/JS/아이콘): stale-while-revalidate (빠름 + 백그라운드 갱신)
   e.respondWith(
     caches.match(req).then(cached => {
       const net = fetch(req).then(res => {
