@@ -21,7 +21,10 @@ _CROP_EN = {"딸기": "strawberry", "참외": "korean_melon",
             "배추": "napa_cabbage", "무": "radish", "대파": "welsh_onion",
             # 과수
             "사과": "apple", "배": "pear", "복숭아": "peach",
-            "감": "persimmon", "포도": "grape"}
+            "감": "persimmon", "포도": "grape",
+            # 핵심 주식·고소득 노지작물
+            "벼": "rice", "고추": "red_pepper", "콩": "soybean",
+            "감자": "potato", "고구마": "sweet_potato", "수박": "watermelon"}
 _cache: dict = {}
 
 
