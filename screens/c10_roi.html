@@ -70,6 +70,17 @@
     {ic:'💧',name:'관수 자동화',  cost:1200, gain: Math.round((annualRev*0.03+energyY*0.05)/10000), c:'var(--blue)', desc:'수확 +3%·인건비↓'},
     {ic:'⚡',name:'에너지 절감설비',cost:1500, gain: Math.round((energyY*0.25)/10000), c:'var(--orange)', desc:'에너지 -25%'},
   ];
+  // 추천 통찰: 회수기간 최단 투자안
+  const ranked=INV.map(v=>({...v, months: v.gain>0?Math.round(v.cost/(v.gain/12)):999, roi: v.gain>0?Math.round(v.gain/v.cost*100):0}))
+                  .sort((a,b)=>a.months-b.months);
+  const best=ranked[0];
+  if(best && best.months<999){
+    document.getElementById('invList').insertAdjacentHTML('beforebegin',
+      `<div class="card" style="padding:13px 14px;margin-bottom:12px;border-left:4px solid var(--green);background:var(--green-soft);">
+        <div style="font-size:12.5px;font-weight:800;color:var(--green-dark);margin-bottom:4px;">💡 추천 투자 우선순위</div>
+        <div style="font-size:12px;color:var(--text);line-height:1.55;"><b>${best.ic} ${best.name}</b>부터 권장 — 투자비 ${best.cost.toLocaleString()}만원, <b>회수 ${best.months}개월·ROI ${best.roi}%/년</b>으로 3개 안 중 가장 빠릅니다.${best.months<=18?' (18개월 내 회수 = 즉시 실행 권장)':''}</div>
+      </div>`);
+  }
   document.getElementById('invList').innerHTML=INV.map(v=>{
     const months = v.gain>0 ? Math.round(v.cost/(v.gain/12)) : 999;
     const mc = months<=18?'var(--green)':months<=30?'var(--blue)':'var(--orange)';

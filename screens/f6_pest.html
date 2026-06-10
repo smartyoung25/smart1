@@ -40,7 +40,8 @@
     <div style="font-size:12px;color:var(--muted);margin-top:4px;" id="alertDesc">—</div>
   </div>
   <div class="section-label">방제 가능 시간대</div>
-  <div class="card" style="padding:14px;margin-bottom:14px;" id="sprayWindow"></div>
+  <div class="card" style="padding:14px;margin-bottom:8px;" id="sprayWindow"></div>
+  <div class="card" id="sprayInsight" style="padding:12px 14px;margin-bottom:14px;display:none;"></div>
   <div class="section-label">주요 병해충 위험도</div>
   <div class="card" style="padding:14px;" id="pestList"></div>
   <button onclick="_openSprayRecord()" style="width:100%;margin-top:14px;padding:15px;background:var(--green);color:#fff;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:800;cursor:pointer;min-height:48px;">🐛 방제 시행 기록</button>
@@ -88,6 +89,7 @@ async function _loadDisease(token,farmId){
   const api=KaasaData.getApiBase();
   const d=await fetch(`${api}/api/farms/${farmId}/disease-risk`,{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.ok?r.json():null).catch(()=>null);
   const rl=d?.risk_level||'none';
+  window._diseaseRl=rl; _renderSpray();   // 병해 위험 반영해 방제 통찰 갱신
   const el=document.getElementById('kDisease');
   el.textContent=rl==='none'?'없음':rl;
   el.style.color=rl==='none'?'var(--green)':'var(--orange)';
@@ -99,6 +101,21 @@ function _renderSpray(){
   const W=[['05~08시','방제 적합','var(--green)','최적'],['08~11시','방제 적합','var(--green)','가능'],
     ['11~15시','고온·증발','var(--orange)','주의'],['15~18시','방제 적합','var(--green)','가능'],['18시~','바람·일몰','var(--muted)','종료']];
   document.getElementById('sprayWindow').innerHTML=W.map(([t,,c,l])=>`<div class="spray-row"><span class="spray-time">${t}</span><div class="spray-bar" style="background:${c};"></div><span class="spray-label" style="color:${c};">${l}</span></div>`).join('');
+  // 방제 적기 통찰 (현재 시각 + 병해 위험 종합)
+  const h=new Date().getHours();
+  let now, color, next='';
+  if(h>=5&&h<11){ now='지금이 방제 최적 시간대'; color='var(--green)'; }
+  else if(h>=11&&h<15){ now='정오 고온·증발 — 살포 비효율'; color='var(--orange)'; next=' 15~18시 재개 권장'; }
+  else if(h>=15&&h<18){ now='오후 방제 가능 시간대'; color='var(--green)'; }
+  else { now='야간·강풍 시간대 — 방제 종료'; color='var(--muted)'; next=' 익일 05~08시 최적'; }
+  const rl=window._diseaseRl||'none';
+  const riskTxt = (rl==='none'||rl==='low')?'병해 위험 낮음 — 예방 위주':`병해 위험 ${rl} — 약제·농도 확인 후 적기 살포`;
+  const el=document.getElementById('sprayInsight');
+  el.style.borderLeft=`4px solid ${color}`;
+  el.innerHTML=`<div style="font-size:12.5px;font-weight:800;margin-bottom:4px;">💡 방제 적기 통찰</div>`
+    +`<div style="font-size:12px;color:${color};font-weight:700;">${now}.${next}</div>`
+    +`<div style="font-size:11.5px;color:var(--muted);margin-top:4px;">${riskTxt}. 살포 후 ‘방제 시행 기록’으로 약제·농도를 남기면 재발·이력 관리가 됩니다.</div>`;
+  el.style.display='';
 }
 function _renderPests(){
   const P=[['진딧물','고온건조 시 급증','ok'],['응애','건조·고온 환경','ok'],['노린재','개화·결실기 유입','warn'],['담배가루이','시설 인접 시 유입','ok']];
