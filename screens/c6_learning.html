@@ -35,6 +35,7 @@
   <div class="card" style="padding:14px;margin-bottom:14px;">
     <div class="pipe-step"><div class="pipe-ico">📥</div><div class="pipe-t" style="flex:1;">데이터 수집<div class="pipe-s">센서·관수·생육·수확 실측</div></div><span class="pipe-badge">실시간</span></div>
     <div class="pipe-step"><div class="pipe-ico">🔧</div><div class="pipe-t" style="flex:1;">ETL 변환<div class="pipe-s">canonical 정규화 → parquet</div></div><span class="pipe-badge">야간</span></div>
+    <div class="pipe-step"><div class="pipe-ico">🛰️</div><div class="pipe-t" style="flex:1;">외부기상 보강<div class="pipe-s">ERA5 재분석(무키)으로 외부기온·일사 결측 보완 — 연도간 변동신호</div></div><span class="pipe-badge">ERA5</span></div>
     <div class="pipe-step"><div class="pipe-ico">🧠</div><div class="pipe-t" style="flex:1;">모델 학습<div class="pipe-s">M1 생육 · M2 수확 · M5 병해</div></div><span class="pipe-badge">주간</span></div>
     <div class="pipe-step"><div class="pipe-ico">✅</div><div class="pipe-t" style="flex:1;">게이트 검증<div class="pipe-s">MAPE·R² 기준 통과 시 배포</div></div><span class="pipe-badge">자동</span></div>
   </div>
@@ -97,8 +98,9 @@ async function _load(token,farmId){
         ? '<span style="font-size:11px;font-weight:800;background:var(--green-soft);color:var(--green-dark);padding:3px 8px;border-radius:8px;">✅ 통과</span>'
         : '<span style="font-size:11px;font-weight:800;background:var(--red-soft);color:var(--red);padding:3px 8px;border-radius:8px;">⛔ 탈락→폴백</span>';
       const mc=m.mape_pct<=35?'var(--green)':'var(--red)';
+      const era5=m.crop==='딸기'?'<span style="font-size:10px;font-weight:800;background:#e0f2fe;color:#0369a1;padding:2px 6px;border-radius:7px;margin-left:5px;">🛰️ ERA5↑</span>':'';
       return `<div class="model-row" style="align-items:center;">
-        <span class="mr-name" style="flex:1;">${m.crop||'?'} <span style="color:var(--muted);font-size:11px;">n=${(m.n_samples||0).toLocaleString()}</span></span>
+        <span class="mr-name" style="flex:1;">${m.crop||'?'}${era5} <span style="color:var(--muted);font-size:11px;">n=${(m.n_samples||0).toLocaleString()}</span></span>
         <span style="font-size:12px;color:${mc};font-weight:700;margin-right:8px;">MAPE ${mape}%</span>
         <span style="font-size:12px;color:var(--muted);margin-right:8px;">R²=${r2}</span>${badge}</div>`;
     }).join('');
