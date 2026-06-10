@@ -104,6 +104,25 @@ def _build_system_prompt(ctx: dict) -> str:
     cost   = ctx.get("cost_per_m2",  0)
     profit = round((yield_ * price - cost) * area / 10_000) if area else 0
 
+    # 진단·역량·작황·평년기상 (rule 의도와 동일 컨텍스트 — LLM도 활용)
+    dg = ctx.get("diagnosis", {}) or {}
+    cp = ctx.get("capability", {}) or {}
+    cl = ctx.get("cluster", {}) or {}
+    clim = ctx.get("climatology", {}) or {}
+    extra = []
+    if dg.get("overall") is not None:
+        extra.append(f"[종합진단] {dg['overall']}점({dg.get('grade','-')}) · 취약 {'·'.join(dg.get('weak',[])) or '-'}"
+                     + (f" · 최우선 처방 {dg['top_action']}" if dg.get('top_action') else ""))
+    if cp.get("stage_name"):
+        extra.append(f"[역량단계] {cp.get('stage')}단계 '{cp['stage_name']}'(진행 {cp.get('progress','-')}%)"
+                     + (f" · 핵심서비스 {', '.join(cp.get('services',[]))}" if cp.get('services') else ""))
+    if cl.get("grade"):
+        extra.append(f"[노지작황] {cl['grade']} · 균일도 {cl.get('uniformity','-')}% · 이상필지 {cl.get('anomaly',0)}개")
+    if clim.get("t_ext") is not None:
+        extra.append(f"[평년기상(ERA5,{clim.get('month')}월)] 기온 {clim['t_ext']}℃·일사 {clim.get('solar')}MJ·"
+                     f"강수 {clim.get('rain')}mm·GDD {clim.get('gdd')} ({'·'.join(clim.get('regions',[]))} 주산지)")
+    extra_section = ("\n" + "\n".join(extra)) if extra else ""
+
     return f"""당신은 한국 스마트팜 전문 AI 컨설턴트입니다.
 
 [농장 정보]
@@ -120,6 +139,10 @@ def _build_system_prompt(ctx: dict) -> str:
   예상 수확량: {yield_}kg/m²
   운영비: {cost:,.0f}원/m²
   예상 월 순이익: {profit:,}만원
+{extra_section}
+
+[데이터 입력 안내]
+농가가 데이터 입력 방법을 물으면: 각 화면 '기록' 버튼(관수G3·환경G2·생육G4·방제F6·관개F4·수확F7), 현장 점검은 C18, 장비 연동은 C16. 입력은 모델 재학습 폐루프에 반영됨.
 
 [지시사항]
 - 반드시 한국어로 답변하세요.
