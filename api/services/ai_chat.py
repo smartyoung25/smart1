@@ -499,6 +499,24 @@ def _rule_based_reply(message: str, context: dict) -> dict:
                  "벤치마킹으로 우수농가 대비 격차를 점검해 ROI 높은 투자부터 실행하세요.")
         sugg = ["이번 달 성과는?", "원가 절감 방법은?", "우수농가 대비 격차"]
 
+    # 6-3) 평년 기상·날씨 (ERA5)
+    elif any(k in m for k in ["평년", "날씨", "기상", "기후", "폭염", "가뭄", "이상기상", "예년"]):
+        cl = context.get("climatology", {}) or {}
+        if cl.get("t_ext") is not None:
+            reply = (f"🛰️ {crop} {cl.get('month')}월 평년 기상 (ERA5 5년)\n"
+                     f"평년 기온 {_fmt(cl.get('t_ext'),'℃')} · 일사 {_fmt(cl.get('solar'),' MJ')} · "
+                     f"강수 {_fmt(cl.get('rain'),' mm',0)} · GDD {_fmt(cl.get('gdd'),'',0)}\n\n"
+                     f"{'·'.join(cl.get('regions',[]))} 등 주산지 기준입니다. "
+                     f"향후 16일 예보가 이 평년값에서 ±3℃ 이상(또는 강수 ±50%) 벗어나면 '광역 이상기상'으로 보고, "
+                     f"노지는 F8 클러스터에서 이상 필지 경보를 자동 상향합니다. "
+                     f"온실은 G2, 노지는 F3 화면의 '평년 대비' 카드에서 현재 편차를 확인하세요.")
+            sugg = ["향후 16일 예보는?", "지금 평년보다 더워?", "이상기상 경보 보기"]
+        else:
+            reply = (f"🛰️ 평년 기상 안내\n현재 작물({crop})은 ERA5 평년 데이터 지원 대상이 아닙니다.\n\n"
+                     f"지원 작물(딸기·토마토·오이·파프리카·감귤·마늘·양파·사과·배·벼·고추 등 26종)은 "
+                     f"G2·F3·F8 화면에서 평년 대비 기상 카드를 제공합니다.")
+            sugg = ["내 작물 바꾸기", "16일 예보 보기", "작황 진단 보기"]
+
     # 7) 에너지
     elif any(k in m for k in ["에너지", "전기", "전력", "난방", "요금"]):
         reply = ("⚡ 에너지 절감\n한전 시간대별 요금 기준, 피크시간(10~17시)에 난방·LED를 20~50% 자동 감축하면 "
@@ -508,7 +526,7 @@ def _rule_based_reply(message: str, context: dict) -> dict:
     # 8) 기본 안내
     else:
         reply = (f"안녕하세요! {crop} 농장 AI 상담사입니다. 🌱 (면적 {area:.0f}m²)\n"
-                 "관수·환경·수확·수익·병해·알림·에너지에 대해 물어보세요. 농장 실데이터로 답변합니다.\n"
+                 "관수·환경·수확·수익·병해·알림·평년기상·에너지에 대해 물어보세요. 농장 실데이터로 답변합니다.\n"
                  "※ 더 정밀한 대화형 분석은 LLM 연동(ANTHROPIC_API_KEY) 시 제공됩니다.")
 
     return {
@@ -568,7 +586,25 @@ def build_farm_context(
         "diagnosis":  _safe_diagnosis(farm_id),
         "capability": _safe_capability(farm_id),
         "cluster":    _safe_cluster(farm_id, meta),
+        "climatology": _safe_climatology(crop),
     }
+
+
+def _safe_climatology(crop: str) -> dict:
+    """작물 현재월 평년 기상(ERA5) 요약 — 미지원 작물이면 {}."""
+    try:
+        from datetime import datetime as _dt, timezone as _tz
+        from api.services.climatology import get_climatology
+        d = get_climatology(crop, _dt.now(_tz.utc).month)
+        if not d.get("available"):
+            return {}
+        n = d.get("normal", {})
+        g = lambda k: (n.get(k) or {}).get("mean")
+        return {"month": d.get("month"), "t_ext": g("t_ext"), "solar": g("solar_mj"),
+                "rain": g("rain_mm"), "gdd": g("gdd"),
+                "regions": (d.get("regions") or [])[:3], "years": d.get("years")}
+    except Exception:
+        return {}
 
 
 def _safe_diagnosis(farm_id: str) -> dict:
