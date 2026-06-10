@@ -39,10 +39,33 @@ REGIONS = {
         (38.11, 127.71, "강원 화천"), (38.15, 127.31, "강원 철원"),
         (35.18, 128.11, "경남 진주"), (34.64, 126.77, "전남 강진"),
     ],
+    # ── 제주 주력 노지작물 ─────────────────────────────────────────
+    "감귤": [  # 제주 서귀포·제주시·한경
+        (33.25, 126.56, "제주 서귀포"), (33.50, 126.53, "제주시"), (33.34, 126.18, "제주 한경"),
+    ],
+    "월동무": [  # 제주 성산·대정·제주시
+        (33.39, 126.88, "제주 성산"), (33.22, 126.25, "제주 대정"), (33.50, 126.53, "제주시"),
+    ],
+    "당근": [  # 제주 구좌·성산
+        (33.55, 126.85, "제주 구좌"), (33.39, 126.88, "제주 성산"),
+    ],
+    "양배추": [  # 제주 한경·안덕
+        (33.34, 126.18, "제주 한경"), (33.25, 126.34, "제주 안덕"),
+    ],
+    "마늘": [  # 제주 대정, 경남 창녕, 전남 고흥
+        (33.22, 126.25, "제주 대정"), (35.54, 128.49, "경남 창녕"), (34.61, 127.28, "전남 고흥"),
+    ],
+    "양파": [  # 전남 무안·함평, 경남 창녕
+        (34.99, 126.48, "전남 무안"), (35.07, 126.52, "전남 함평"), (35.54, 128.49, "경남 창녕"),
+    ],
 }
 CROP_EN = {"딸기": "strawberry", "참외": "korean_melon", "방울토마토": "cherry_tomato",
-           "완숙토마토": "tomato", "오이": "cucumber", "파프리카": "paprika"}
-_GDD_BASE = 5.0   # 딸기 생육 기준온도(℃)
+           "완숙토마토": "tomato", "오이": "cucumber", "파프리카": "paprika",
+           "감귤": "citrus", "월동무": "winter_radish", "당근": "carrot",
+           "양배추": "cabbage", "마늘": "garlic", "양파": "onion"}
+# 작물별 GDD 생육 기준온도(℃) — crop_config 기반(미지정 5.0)
+_GDD_BASE_MAP = {"감귤": 13.0, "마늘": 4.0, "양파": 4.5}
+_GDD_BASE = 5.0
 
 
 def _fetch(lat, lon, start, end):
@@ -61,6 +84,7 @@ def main(argv=None):
     ap.add_argument("--end", type=int, default=2022)
     a = ap.parse_args(argv)
     pts = REGIONS[a.crop]
+    gdd_base = _GDD_BASE_MAP.get(a.crop, _GDD_BASE)   # 작물별 생육 기준온도
 
     # (year,month) → 리스트 누적 후 평균
     acc = {}
@@ -75,7 +99,7 @@ def main(argv=None):
             sv = dy["shortwave_radiation_sum"][i]
             rv = dy["precipitation_sum"][i]
             if tv is not None:
-                d["t"].append(tv); d["gdd"] += max(0.0, tv - _GDD_BASE)
+                d["t"].append(tv); d["gdd"] += max(0.0, tv - gdd_base)
             if sv is not None: d["s"].append(sv)
             if rv is not None: d["r"].append(rv)
         time.sleep(0.3)  # API 예의
