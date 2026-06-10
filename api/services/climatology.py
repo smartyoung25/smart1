@@ -13,7 +13,8 @@ from typing import Optional
 
 _REAL = Path(__file__).resolve().parents[1] / "data" / "real"
 _CROP_EN = {"딸기": "strawberry", "참외": "korean_melon",
-            "방울토마토": "cherry_tomato", "완숙토마토": "tomato"}
+            "방울토마토": "cherry_tomato", "완숙토마토": "tomato",
+            "오이": "cucumber", "파프리카": "paprika"}
 _cache: dict = {}
 
 
