@@ -95,11 +95,31 @@ function _logAlert(i){
     onSubmit: async (v)=>{ await RecordSheet.logActivity(_farmG,_tokG,{kind:a.record||'disease_check',item:`${a.location} ${a.type}`,detail:`${v.finding} · ${v.memo||''} · Δ${a.deviation_pct}%`,value:a.ndvi}); }
   });
 }
+function _renderAlerts(wx){
+  // wx: {abnormal, reasons[]} — 이상기상이면 심각도 상향·기상칩 표시
+  const el=document.getElementById('clAlerts');
+  if(!_ALERTS.length){ el.innerHTML='<div style="text-align:center;padding:18px;color:var(--green);font-size:13px;">✅ 이상 필지 없음 — 클러스터 작황이 균일합니다.</div>'; return; }
+  const banner = (wx&&wx.abnormal)
+    ? `<div style="background:var(--red-soft);border:1.5px solid var(--red);border-radius:10px;padding:11px 13px;margin-bottom:10px;font-size:12.5px;color:var(--red);font-weight:700;">
+         🌡️ 광역 이상기상 감지 — ${wx.reasons.join(' · ')}<div style="font-weight:400;color:var(--text);margin-top:4px;font-size:11.5px;">아래 작황 이상은 <b>개별 관리 문제가 아니라 광역 기상 영향</b> 가능성이 높습니다. 알림 심각도를 상향했습니다.</div></div>`
+    : '';
+  el.innerHTML = banner + _ALERTS.map((a,i)=>{
+    const sev = (wx&&wx.abnormal && a.severity!=='danger') ? 'danger' : a.severity;  // 상향
+    const wxChip = (wx&&wx.abnormal) ? ` <span style="font-size:9.5px;font-weight:800;background:var(--red);color:#fff;padding:1px 6px;border-radius:7px;">🌡️ 이상기상</span>` : '';
+    return `<div class="alert-card ${sev}">
+      <div class="alert-head"><span class="alert-loc">📍 ${esc(a.location)} — ${esc(a.type)}</span>
+        <span class="alert-sev ${sev}">${sev==='danger'?'시급':'주의'}</span></div>
+      <div class="alert-dev">${esc(a.detail)}${wxChip}</div>
+      <div class="alert-btns">
+        <button class="alert-go" onclick="location.href='${esc(a.target||'f5_remote.html')}'">현장 확인: ${esc(a.action)} →</button>
+        <button class="alert-log" onclick="_logAlert(${i})">기록</button>
+      </div>
+    </div>`; }).join('');
+}
 async function _loadClusterClim(d){
   try{
     const ps=d.parcels||[];
     if(!ps.length) return;
-    // 우세 작물(필지 수 최다)
     const cnt={}; ps.forEach(p=>{ if(p.crop) cnt[p.crop]=(cnt[p.crop]||0)+1; });
     const crop=Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a])[0];
     if(!crop) return;
@@ -109,10 +129,29 @@ async function _loadClusterClim(d){
     const c=await r.json();
     if(!c.available||!c.normal) return;
     const t=(c.normal.t_ext||{}).mean, rain=(c.normal.rain_mm||{}).mean;
+    // 16일 예보 vs 평년 편차 → 광역 이상기상 판정
+    let dT=null, rainDev=null; const wx={abnormal:false, reasons:[]};
+    try{ const er=await fetch(`${api}/api/farms/${_farmG}/environment/weather/extended`,{headers:{Authorization:`Bearer ${_tokG}`}});
+      if(er.ok){ const e=await er.json(); const its=e.items||[];
+        if(its.length && t!=null){
+          const avgT=its.reduce((a,x)=>a+((x.t_max+x.t_min)/2),0)/its.length;
+          dT=Math.round((avgT-t)*10)/10;
+          if(rain!=null){ const rain16=its.reduce((a,x)=>a+(x.rain_mm||0),0); const exp=rain*16/30;
+            if(exp>0) rainDev=Math.round((rain16-exp)/exp*100); }
+          if(dT>=3){ wx.abnormal=true; wx.reasons.push(`고온 +${dT}℃ (평년 ${t}℃)`); }
+          else if(dT<=-3){ wx.abnormal=true; wx.reasons.push(`저온 ${dT}℃ (평년 ${t}℃)`); }
+          if(rainDev!=null && rainDev<=-50){ wx.abnormal=true; wx.reasons.push(`가뭄 (강수 평년比 ${rainDev}%)`); }
+          else if(rainDev!=null && rainDev>=80){ wx.abnormal=true; wx.reasons.push(`다우 (강수 평년比 +${rainDev}%)`); }
+        }
+      }
+    }catch(e){}
     const el=document.getElementById('clClim');
     if(el && t!=null){
-      el.innerHTML=`🛰️ <b>평년 대비</b>(${crop}·${c.month}월) — 평년 기온 ${t}℃·강수 ${rain}mm · 현재 스트레스가 평년 수준인지 판단 기준 <span style="color:var(--muted);">(ERA5 ${c.years})</span>`;
+      const an = dT!=null ? ` · 향후16일 평년대비 <b style="color:${wx.abnormal?'var(--red)':'var(--text)'}">${dT>=0?'+':''}${dT}℃${rainDev!=null?`·강수 ${rainDev>=0?'+':''}${rainDev}%`:''}</b>` : '';
+      el.innerHTML=`🛰️ <b>평년 대비</b>(${crop}·${c.month}월) — 평년 기온 ${t}℃·강수 ${rain}mm${an} <span style="color:var(--muted);">(ERA5 ${c.years})</span>`;
     }
+    // 이상기상이면 알림 심각도 상향·재렌더
+    if(wx.abnormal) _renderAlerts(wx);
   }catch(e){}
 }
 async function _load(token){
@@ -157,17 +196,7 @@ async function _load(token){
       <div class="cl-cell-dev">Δ ${r.deviation_pct>0?'+':''}${r.deviation_pct}% vs 평균</div>
     </div>`).join('');
   _ALERTS=d.alerts||[];
-  document.getElementById('clAlerts').innerHTML=_ALERTS.length?_ALERTS.map((a,i)=>`
-    <div class="alert-card ${a.severity}">
-      <div class="alert-head"><span class="alert-loc">📍 ${esc(a.location)} — ${esc(a.type)}</span>
-        <span class="alert-sev ${a.severity}">${a.severity==='danger'?'시급':'주의'}</span></div>
-      <div class="alert-dev">${esc(a.detail)}</div>
-      <div class="alert-btns">
-        <button class="alert-go" onclick="location.href='${esc(a.target||'f5_remote.html')}'">현장 확인: ${esc(a.action)} →</button>
-        <button class="alert-log" onclick="_logAlert(${i})">기록</button>
-      </div>
-    </div>`).join('')
-    :'<div style="text-align:center;padding:18px;color:var(--green);font-size:13px;">✅ 이상 필지 없음 — 클러스터 작황이 균일합니다.</div>';
+  _renderAlerts(null);   // 기본 렌더 (이상기상 판정 후 _loadClusterClim이 재렌더)
 }
 </script>
 </body>
