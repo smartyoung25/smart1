@@ -20,7 +20,8 @@ _CROP_EN = {"딸기": "strawberry", "참외": "korean_melon",
             "양배추": "cabbage", "마늘": "garlic", "양파": "onion",
             "배추": "napa_cabbage", "무": "radish", "대파": "welsh_onion",
             # 과수
-            "사과": "apple", "배": "pear", "복숭아": "peach"}
+            "사과": "apple", "배": "pear", "복숭아": "peach",
+            "감": "persimmon", "포도": "grape"}
 _cache: dict = {}
 
 
