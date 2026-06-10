@@ -31,9 +31,17 @@
 - `_require_farm` 레지스트리 meta를 `_FARM_META` 미캐시 → 18개 사이트 빈meta → 캐싱 1줄 추가(전역)
 - `_real_parcels_lookup` 읍면명↔시군구키 불일치 폴백 추가 → 제주농장 soil naas_soil_real(7189필지)·parcels farmmap_real(4601필지) 노출
 
-### 미해결(데이터 게이트)
-- 딸기 M2 재학습: ERA5 실측 CSV 부재로 충실히 불가(같은 약한데이터 재학습=거짓향상). 데이터 확보 선행
-- 공개 데모: 무료 퀵터널(재시작 시 URL 변경), PUBLIC_DEMO 읽기전용 가동 중
+### ★ ERA5 외부기상 보강 — 딸기 M2 개선(측정 기반, 거짓향상 0)
+- **무키 경로**: Copernicus CDS(계정필요) 대신 **Open-Meteo 아카이브(ERA5 재분석, 무키)**로 확보. `scripts/fetch_era5_openmeteo.py`(5작물 주산지 좌표)+`inject_era5_into_cache.py`. backlog "ERA5 확보" 영구 해결
+- **딸기 채택**: temp_external 결측20%를 ERA5 월별기온 보강 → LOYO CV R² **0.192→0.295(+0.103)**·MAPE 20.8→17.8%·게이트 FAIL→PASS. 라이브 서빙(C6 게이트표 반영)
+- **측정 기반 기각(롤백)**: ①무ERA5 재학습=개선0(±0.003) ②타작물(참외·방울·완숙) temp보강=개선없음/악화 ③딸기 solar_rad 보강=악화(0.295→0.262). cache solar_rad=온실내부일사라 ERA5외부와 상관 R²0.13뿐
+- **결론**: ERA5 외부기온은 겨울딸기(외부기온 민감)에만 유효. 추가향상은 **학습farm 실좌표**(현재 익명) 필요=데이터 게이트
+- **원칙 확립**: 모든 재학습은 baseline 대비 LOYO CV 측정→개선시만 채택, 미달 즉시 롤백(model_gate 규율)
+
+### 배포 준비도 (2026-06-10 검수)
+- 전 41화면 콘솔에러0·4xx0·깨진링크0(전역 data.js 변경 후 회귀0)
+- 성능: TTFB~310ms·FCP<440ms·load<530ms — LCP<3s 충족
+- PUBLIC_DEMO 읽기전용(쓰기·관리자403) 유지. 무료 퀵터널(재시작 시 URL변경=계정필요한 고정도메인 미적용)
 
 ## 실데이터 주입 + 시각화·UX 강화 (2026-06-09 PM)
 ### 제주 실데이터 주입(PII 제외 집계, 지역매칭 자동전환)
