@@ -4,6 +4,37 @@
 
 ---
 
+## 데모 충실화·왜곡교정·노지 실데이터 노출 (2026-06-10)
+> 원칙: 샘플데이터는 **실제 시스템 산출과 일치**해야 함(허구 금지). 보안 게이트(PUBLIC_DEMO 읽기전용) 유지.
+
+### UI·네비게이션
+- 보고서(c14/c17/c20) 어두운 배경 #5a6678→#e7edf3 가독성 / F1 노지 현장컨설팅 배너(C17·C18·C19·C4)
+- 메뉴 진입점 감사: c13 막다른화면→헤더 ≡ / c11·c6·c8 맥락진입 추가 / `window.KaasaData` 전역노출. `docs/ENTRYPOINT_AUDIT.md`
+- 네비게이터 섹션 재정리: 잡탕 19카드→5그룹(진단·컨설팅/경영전략/출하/시스템/계정), 노지 상향. 38카드 보존
+
+### ★ C20 왜곡 교정 (자체검증으로 발견)
+- 손으로 지어낸 데모(제주 노지작물·이상6.5% 미화)가 실제와 불일치 → 실제 `build_overview`(725농가·이상31.3%·온실작목)로 교체. **데모=인증관리자뷰 일치**
+
+### 작물별 온실 데모 전환기 (단일농장 고정 해소)
+- `data.js _DEMO_FARMS`: 오이(001)·방울토마토(002)·딸기(003)·완숙토마토(004)·파프리카·제주. `_syncFarmSelectors()` 전화면 #farmSel 통일
+- 온실 관수 샘플 추가(farm_002/003/004/파프리카, 농학적 차별값): 전환 시 G3 관수까지 작물별 재시뮬레이션. G1~G6 빈상태0
+
+### 모델 임계점·최적모델 노출 (C6)
+- 배포게이트(MAPE≤35%·R²≥0)·챔피언/챌린저(M2 5%p↓·M1 R²+0.02) + M2 게이트표(딸기·오이·완숙토마토·파프리카 통과/방울토마토48.6%·참외63.9% 탈락→폴백)
+
+### 연합학습(federated-lite) 스캐폴드 + 전송계층
+- `pipeline/federated/{local_correction,aggregate,edge_runner}.py`: 농장 로컬 보정계수(raw_geo^shrink)만 산출·업로드(원본 미반출). 중앙값 재현 검증
+- `api/routers/federated.py`: POST /correction(인증·원본반출가드·데모403차단)·GET /corrections/{crop}. `docs/FEDERATED_ONPREM_LEARNING.md`
+- 한계: 모델 가중치 FedAvg는 Flower 도입 선행(미구현)
+
+### ★ 노지 실데이터 노출 버그 2건 수정
+- `_require_farm` 레지스트리 meta를 `_FARM_META` 미캐시 → 18개 사이트 빈meta → 캐싱 1줄 추가(전역)
+- `_real_parcels_lookup` 읍면명↔시군구키 불일치 폴백 추가 → 제주농장 soil naas_soil_real(7189필지)·parcels farmmap_real(4601필지) 노출
+
+### 미해결(데이터 게이트)
+- 딸기 M2 재학습: ERA5 실측 CSV 부재로 충실히 불가(같은 약한데이터 재학습=거짓향상). 데이터 확보 선행
+- 공개 데모: 무료 퀵터널(재시작 시 URL 변경), PUBLIC_DEMO 읽기전용 가동 중
+
 ## 실데이터 주입 + 시각화·UX 강화 (2026-06-09 PM)
 ### 제주 실데이터 주입(PII 제외 집계, 지역매칭 자동전환)
 - 흙토람 토양검정 13,842필지→`/field/soil` naas_soil_real / 팜맵 276,491필지→`/field/parcels`·F8 farmmap_real / 소득조사 102농가→`/benchmark` 실비교군
