@@ -16,7 +16,8 @@ from pathlib import Path
 import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[1]
-CROP_EN = {"딸기": "strawberry"}
+CROP_EN = {"딸기": "strawberry", "참외": "korean_melon", "방울토마토": "cherry_tomato",
+           "완숙토마토": "tomato", "오이": "cucumber"}
 
 
 def inject(crop_ko: str) -> dict:
