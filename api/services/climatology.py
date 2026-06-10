@@ -15,9 +15,10 @@ _REAL = Path(__file__).resolve().parents[1] / "data" / "real"
 _CROP_EN = {"딸기": "strawberry", "참외": "korean_melon",
             "방울토마토": "cherry_tomato", "완숙토마토": "tomato",
             "오이": "cucumber", "파프리카": "paprika",
-            # 제주 주력 노지작물
+            # 제주·노지작물
             "감귤": "citrus", "월동무": "winter_radish", "당근": "carrot",
-            "양배추": "cabbage", "마늘": "garlic", "양파": "onion"}
+            "양배추": "cabbage", "마늘": "garlic", "양파": "onion",
+            "배추": "napa_cabbage", "무": "radish", "대파": "welsh_onion"}
 _cache: dict = {}
 
 

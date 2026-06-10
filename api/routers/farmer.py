@@ -2642,11 +2642,13 @@ def get_extended_weather(farm_id: str, days: int = Query(16, ge=1, le=16)):
 
 
 @router.get("/environment/climatology", summary="평년 기상 기준값 (ERA5 5년 정규값 — 평년대비 판단)")
-def get_climatology_ep(farm_id: str, month: int = Query(0, ge=0, le=12)):
+def get_climatology_ep(farm_id: str, month: int = Query(0, ge=0, le=12),
+                       crop: str = Query("", description="작물 지정(클러스터 우세작물 등). 미지정 시 농장작물")):
     """작물 주산지 ERA5(2018~2022) 월별 평년값(기온·일사·강수·GDD). 월 미지정 시 현재월.
     노지 작황·온실 에너지 계획에서 '이번 달이 평년 대비 더운가/흐린가' 판단 기준."""
     meta = _require_farm(farm_id)
-    crop = (meta or {}).get("crop") or (meta or {}).get("crop_ko") or ""
+    if not crop:
+        crop = (meta or {}).get("crop") or (meta or {}).get("crop_ko") or ""
     if not month:
         from datetime import datetime as _dt, timezone as _tz
         month = _dt.now(_tz.utc).month

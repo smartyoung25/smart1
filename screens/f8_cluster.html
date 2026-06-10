@@ -95,6 +95,26 @@ function _logAlert(i){
     onSubmit: async (v)=>{ await RecordSheet.logActivity(_farmG,_tokG,{kind:a.record||'disease_check',item:`${a.location} ${a.type}`,detail:`${v.finding} · ${v.memo||''} · Δ${a.deviation_pct}%`,value:a.ndvi}); }
   });
 }
+async function _loadClusterClim(d){
+  try{
+    const ps=d.parcels||[];
+    if(!ps.length) return;
+    // 우세 작물(필지 수 최다)
+    const cnt={}; ps.forEach(p=>{ if(p.crop) cnt[p.crop]=(cnt[p.crop]||0)+1; });
+    const crop=Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a])[0];
+    if(!crop) return;
+    const api=KaasaData.getApiBase?KaasaData.getApiBase():location.origin;
+    const r=await fetch(`${api}/api/farms/${_farmG}/environment/climatology?crop=${encodeURIComponent(crop)}`,{headers:{Authorization:`Bearer ${_tokG}`}});
+    if(!r.ok) return;
+    const c=await r.json();
+    if(!c.available||!c.normal) return;
+    const t=(c.normal.t_ext||{}).mean, rain=(c.normal.rain_mm||{}).mean;
+    const el=document.getElementById('clClim');
+    if(el && t!=null){
+      el.innerHTML=`🛰️ <b>평년 대비</b>(${crop}·${c.month}월) — 평년 기온 ${t}℃·강수 ${rain}mm · 현재 스트레스가 평년 수준인지 판단 기준 <span style="color:var(--muted);">(ERA5 ${c.years})</span>`;
+    }
+  }catch(e){}
+}
 async function _load(token){
   const api=KaasaData.getApiBase?KaasaData.getApiBase():location.origin;
   let d;
@@ -110,7 +130,9 @@ async function _load(token){
     <div class="cl-stat"><div class="cl-stat-v" style="color:var(--orange)">${s.warn_count||0}</div><div class="cl-stat-l">주의 필지</div></div>`;
   const w=d.weather_stress||{};
   document.getElementById('clWx').innerHTML=`🌦️ <b>무센서 기상 스트레스</b> — ${esc(w.note||'데이터 없음')}`
-    + (w.water_stress_pct>=25?` <span style="color:var(--orange);font-weight:700;">(관개 우선 검토)</span>`:'');
+    + (w.water_stress_pct>=25?` <span style="color:var(--orange);font-weight:700;">(관개 우선 검토)</span>`:'')
+    + `<div id="clClim" style="margin-top:8px;font-size:12px;"></div>`;
+  _loadClusterClim(d);
   // 작황 히트맵 — 필지 NDVI 타일(연속 색상)
   const _heatColor=v=>{ const t=Math.max(0,Math.min(1,(v-0.40)/0.50)); // 0.40~0.90
     const r=t<0.5?220:Math.round(220-(t-0.5)*2*180), g=t<0.5?Math.round(38+t*2*120):158, b=38;
