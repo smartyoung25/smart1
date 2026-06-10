@@ -62,15 +62,17 @@ if _PUBLIC_DEMO:
     from starlette.responses import JSONResponse as _JSONResp
     _WRITE = {"POST", "PUT", "PATCH", "DELETE"}
     _WRITE_ALLOW = {"/api/v1/auth/token", "/api/telemetry/client"}   # 로그인·에러텔레메트리만 허용
+    _WRITE_ALLOW_SUFFIX = ("/chat",)   # 조회성 POST(AI 챗봇 응답) — 농장데이터 미변경(쿼터 카운터만)
 
     class PublicDemoMiddleware:
         def __init__(self, app): self.app = app
         async def __call__(self, scope, receive, send):
             if scope.get("type") == "http":
                 path = scope.get("path", ""); method = scope.get("method", "GET")
+                _allow_post = (path in _WRITE_ALLOW) or path.endswith(_WRITE_ALLOW_SUFFIX)
                 blocked = (
                     (path.startswith("/api/admin")) or
-                    (method in _WRITE and path.startswith("/api/") and path not in _WRITE_ALLOW)
+                    (method in _WRITE and path.startswith("/api/") and not _allow_post)
                 )
                 if blocked:
                     resp = _JSONResp(
