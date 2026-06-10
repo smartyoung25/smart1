@@ -87,7 +87,9 @@
           btn.textContent = '✓ 기록됨';
           if (it.target) setTimeout(() => { location.href = it.target; }, 700);
         } catch (e) {
-          btn.disabled = false; btn.textContent = '다시 시도';
+          const demo = /데모|읽기 전용|403/.test(e && e.message || '');
+          btn.disabled = !demo; btn.textContent = demo ? '🔒 데모: 기록 비활성' : '다시 시도';
+          if (demo) btn.style.opacity = '.7';
         }
       });
     });

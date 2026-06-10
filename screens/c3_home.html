@@ -680,13 +680,17 @@ async function _applyDecision(item) {
   // 폐루프: 결정 수용을 /activity 로 적재 (이행→학습)
   try {
     const apiBase = KaasaData.getApiBase ? KaasaData.getApiBase() : location.origin;
-    await fetch(`${apiBase}/api/farms/${_farmG}/activity`, {
+    const r = await fetch(`${apiBase}/api/farms/${_farmG}/activity`, {
       method:'POST', headers:{ 'Content-Type':'application/json', 'Authorization':`Bearer ${_tokenG}` },
       body: JSON.stringify({ kind:'decision_apply', item: item.title,
         value: item.confidence ?? null,
         detail: `${item.action||''} · 심각도 ${item.severity} · 출처 ${item.source}` })
     });
-  } catch (e) { /* 오프라인이어도 UI는 진행 */ }
+    if (r && r.status === 403) throw new Error('데모(읽기 전용) 모드 — 기록 저장은 비활성화되어 있습니다.');
+  } catch (e) {
+    if (/데모|읽기 전용|403/.test(e && e.message || '')) throw e;  // 데모 차단은 정직하게 알림
+    /* 그 외(오프라인 등)는 UI 진행 */
+  }
 }
 
 // ── AI 추천 ─────────────────────────────────────────────────────────────────
