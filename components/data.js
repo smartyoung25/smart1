@@ -495,6 +495,7 @@ const KaasaData = (() => {
       ['c13_chat.html', '🤖', 'AI 비서'],
       ['c15_education.html', '🎓', '교육'],
       ['c2_consent.html', '🔐', '데이터 활용 동의'],
+      ['help.html', '❓', '도움말·사용자 매뉴얼'],
     ]},
   ];
   function _drawerPrefix() {

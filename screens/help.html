@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>도움말 · 사용자 매뉴얼 | KAASA SmartOS</title>
+<link rel="stylesheet" href="../components/base.css"/>
+<style>
+  body{background:var(--bg);}
+  main{max-width:480px;margin:0 auto;padding:14px;}
+  .hcard{background:var(--panel);border:1.5px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px;margin-bottom:12px;}
+  .ask{display:flex;align-items:center;gap:11px;background:linear-gradient(135deg,var(--green-dark),var(--green));border-radius:var(--radius);padding:15px;color:#fff;text-decoration:none;box-shadow:var(--shadow);margin-bottom:14px;}
+  .ask-ico{font-size:30px;}
+  .ask b{font-size:15px;} .ask div{font-size:12px;opacity:.92;margin-top:2px;}
+  details{border-bottom:1px solid var(--border);padding:10px 2px;}
+  details:last-child{border-bottom:none;}
+  summary{font-size:14px;font-weight:700;cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;min-height:32px;}
+  summary::-webkit-details-marker{display:none;}
+  summary::after{content:'＋';color:var(--muted);font-weight:400;}
+  details[open] summary::after{content:'－';}
+  .ans{font-size:13px;color:var(--text);line-height:1.65;margin-top:8px;}
+  .ans b{color:var(--green-dark);}
+  .sec-t{font-size:13px;font-weight:900;color:var(--green-dark);margin:2px 0 8px;}
+  .htbl{width:100%;font-size:12.5px;border-collapse:collapse;}
+  .htbl td{padding:6px 4px;border-bottom:1px solid var(--border);vertical-align:top;}
+  .htbl td:first-child{font-weight:700;white-space:nowrap;color:var(--green-dark);width:42%;}
+  .chip{display:inline-block;font-size:11px;font-weight:700;background:var(--green-soft);color:var(--green-dark);padding:2px 8px;border-radius:8px;margin:2px 3px 0 0;}
+</style>
+</head>
+<body>
+<header class="sf-header">
+  <span style="font-size:13px;color:rgba(255,255,255,.85);cursor:pointer;" onclick="history.length>1?history.back():location.href='c3_home.html'">‹ 뒤로</span>
+  <span style="font-size:15px;font-weight:800;color:#fff;">❓ 도움말 · 매뉴얼</span>
+  <span style="width:40px;"></span>
+</header>
+
+<main>
+  <!-- 질문 채널 -->
+  <a class="ask" href="c13_chat.html">
+    <span class="ask-ico">🤖</span>
+    <div style="flex:1;"><b>궁금하면 AI 영농비서에게 물어보세요</b>
+      <div>관수·환경·평년기상·수확·병해·데이터 입력 등 — 내 농장 데이터로 답변</div></div>
+    <span style="font-size:18px;">›</span>
+  </a>
+
+  <div class="hcard">
+    <div class="sec-t">🚀 빠른 시작</div>
+    <table class="htbl">
+      <tr><td>로그인</td><td>admin / 1250 (대부분 자동)</td></tr>
+      <tr><td>작물(농장) 바꾸기</td><td>우상단 ≡ 메뉴 → 농장 전환</td></tr>
+      <tr><td>화면 이동</td><td>하단 5탭(홈·온실·노지·출하·메뉴)</td></tr>
+      <tr><td>전체 화면 목록</td><td>≡ 메뉴 또는 /smartos 네비게이터</td></tr>
+      <tr><td>질문하기</td><td>🤖 AI 영농비서(C13)</td></tr>
+    </table>
+  </div>
+
+  <div class="hcard">
+    <div class="sec-t">🧭 무엇을 어디서</div>
+    <table class="htbl">
+      <tr><td>오늘 관수 결정</td><td>G3 관수·양액 → 현재 Period → AI 추천 → 적용</td></tr>
+      <tr><td>오늘의 결정(AI)</td><td>홈(C3) '오늘의 결정' 원탭 실행</td></tr>
+      <tr><td>수확 예측</td><td>온실 G4 / 노지 F7</td></tr>
+      <tr><td>평년 대비 날씨</td><td>온실 G2 / 노지 F3 '평년 카드'</td></tr>
+      <tr><td>광역 이상기상</td><td>F8 클러스터 작황</td></tr>
+      <tr><td>종합 진단</td><td>C17 → (정밀화) C18 현장문진</td></tr>
+      <tr><td>월 성과 리포트</td><td>C14 → PDF</td></tr>
+      <tr><td>공동출하</td><td>C12 → ＋가입(C11)</td></tr>
+      <tr><td>데이터 입력</td><td>각 화면 '기록' 버튼 · 현장점검 C18 · 장비 C16</td></tr>
+    </table>
+  </div>
+
+  <div class="hcard">
+    <div class="sec-t">❓ 자주 묻는 질문 (FAQ)</div>
+    <details><summary>저장/적용 버튼이 안 돼요(데모)</summary>
+      <div class="ans">공개 데모는 <b>읽기 전용</b>이라 쓰기·관리자 기능이 비활성(403)입니다. 실서비스에서는 정상 동작합니다.</div></details>
+    <details><summary>토양·필지가 'Mock'으로 떠요</summary>
+      <div class="ans">흙토람·팜맵 <b>실데이터는 제주 지역</b>만 적재돼 있습니다. 제주 농장으로 전환하면 🟢 실데이터로 바뀝니다.</div></details>
+    <details><summary>화면이 옛날 내용이에요</summary>
+      <div class="ans">한 번 <b>새로고침</b>하면 최신 화면으로 갱신됩니다(앱 캐시 갱신).</div></details>
+    <details><summary>평년 기상은 어떤 작물 되나요?</summary>
+      <div class="ans">26작물: 딸기·토마토류·오이·파프리카·감귤·마늘·양파·배추·무·대파·사과·배·복숭아·감·포도·<b>벼·고추·콩·감자·고구마·수박</b> 등. 농장 작물이면 G2·F3·F8에서 자동 표시.</div></details>
+    <details><summary>딸기 수확 예측이 낮아요</summary>
+      <div class="ans">딸기 M2는 데이터 한계로 보수적입니다(신뢰도·품질등급 표기). ERA5 외부기상 보강으로 정확도를 개선했습니다.</div></details>
+  </div>
+
+  <div class="hcard">
+    <div class="sec-t">📖 용어</div>
+    <table class="htbl">
+      <tr><td>Period(P1~P6)</td><td>하루 관수 6단계 시간창(우선순위 아님)</td></tr>
+      <tr><td>배액률</td><td>급액 대비 배출 비율(목표 20~30%)</td></tr>
+      <tr><td>EC / VPD</td><td>양액 염류농도 / 수증기압 결손</td></tr>
+      <tr><td>NDVI / GDD</td><td>위성 식생지수 / 생육도일</td></tr>
+      <tr><td>DecisionDeck</td><td>이상감지+추천 원탭 실행 카드</td></tr>
+    </table>
+  </div>
+
+  <div class="hcard">
+    <div class="sec-t">🏷️ 데이터 출처 배지</div>
+    <div style="font-size:12.5px;line-height:1.9;">
+      <span class="chip" style="background:var(--green-soft);color:var(--green-dark);">🟢 실측/실데이터</span>
+      <span class="chip" style="background:var(--blue-soft);color:var(--blue);">🔵 모델</span>
+      <span class="chip" style="background:var(--gray-soft);color:var(--muted);">⚪ Mock(미연동)</span>
+      <span class="chip" style="background:var(--orange-soft);color:var(--orange);">🟠 추정</span>
+      <span class="chip" style="background:#e0f2fe;color:#0369a1;">🛰️ 위성/무센서</span>
+      <div style="color:var(--muted);margin-top:6px;font-size:11.5px;">각 화면 제목 옆 배지로 데이터 신뢰도를 확인하세요.</div>
+    </div>
+  </div>
+
+  <div style="text-align:center;font-size:11px;color:var(--muted);margin:6px 0 80px;">
+    상세 매뉴얼: docs/USER_MANUAL.md (17장) · 작물별 시연: docs/DEMO_GUIDE_BY_CROP.md
+  </div>
+</main>
+
+<nav class="sf-bottom-nav">
+  <button class="bnav-tab" onclick="location.href='c3_home.html'"><span class="bnav-icon">🏠</span>홈</button>
+  <button class="bnav-tab" onclick="location.href='g1_home.html'"><span class="bnav-icon">🌱</span>온실</button>
+  <button class="bnav-tab" onclick="location.href='f1_field.html'"><span class="bnav-icon">🌾</span>노지</button>
+  <button class="bnav-tab" onclick="location.href='c12_joint.html'"><span class="bnav-icon">🚚</span>출하</button>
+  <button class="bnav-tab active"><span class="bnav-icon">≡</span>메뉴</button>
+</nav>
+<script src="../components/data.js"></script>
+</body>
+</html>
