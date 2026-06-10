@@ -2641,6 +2641,19 @@ def get_extended_weather(farm_id: str, days: int = Query(16, ge=1, le=16)):
     return out
 
 
+@router.get("/environment/climatology", summary="평년 기상 기준값 (ERA5 5년 정규값 — 평년대비 판단)")
+def get_climatology_ep(farm_id: str, month: int = Query(0, ge=0, le=12)):
+    """작물 주산지 ERA5(2018~2022) 월별 평년값(기온·일사·강수·GDD). 월 미지정 시 현재월.
+    노지 작황·온실 에너지 계획에서 '이번 달이 평년 대비 더운가/흐린가' 판단 기준."""
+    meta = _require_farm(farm_id)
+    crop = (meta or {}).get("crop") or (meta or {}).get("crop_ko") or ""
+    if not month:
+        from datetime import datetime as _dt, timezone as _tz
+        month = _dt.now(_tz.utc).month
+    from api.services.climatology import get_climatology
+    return get_climatology(crop, month)
+
+
 @router.get("/environment/weather/forecast", response_model=WeatherForecastOut,
             summary="기상 예보 + ET₀ 예측 (KMA + Open-Meteo 폴백)")
 def get_weather_et0_forecast(

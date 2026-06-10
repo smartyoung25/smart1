@@ -287,6 +287,12 @@
     <div style="margin-top:10px;font-size:11px;color:var(--muted);" id="extUpdated">데이터 로드 중…</div>
   </div>
 
+  <!-- 평년 대비 외부기상 (ERA5 5년 정규값) -->
+  <div id="climSection" style="display:none;">
+    <div class="section-label" style="margin-top:16px;">평년 대비 외부기상 <span class="trust-badge trust-live">🛰️ ERA5 5년</span></div>
+    <div class="card" style="padding:14px;" id="climCard"></div>
+  </div>
+
   <!-- 습도 상세 -->
   <div class="section-label" style="margin-top:16px;">습도 · 토양온도</div>
   <div class="env-kpi-grid">
@@ -489,6 +495,32 @@ const CONTROL_RULES = [
 ];
 
 // ── 초기화 ──────────────────────────────────────────────────────────────────
+async function _loadClimatology(token, farmId){
+  try{
+    const api=KaasaData.getApiBase();
+    const r=await fetch(`${api}/api/farms/${farmId}/environment/climatology`,{headers:{Authorization:`Bearer ${token}`}});
+    if(!r.ok) return;
+    const d=await r.json();
+    if(!d.available || !d.normal) return;   // 미지원 작물 → 카드 숨김
+    const n=d.normal, mn=v=>v&&v.mean!=null?v.mean:null;
+    const t=mn(n.t_ext), s=mn(n.solar_mj), rain=mn(n.rain_mm), gdd=mn(n.gdd);
+    // 현재 외기온(이미 로드된 extTemp)과 평년 비교
+    let anomHtml='';
+    const cur=parseFloat((document.getElementById('extTemp')||{}).textContent);
+    if(t!=null && !isNaN(cur)){
+      const dv=Math.round((cur-t)*10)/10;
+      const warm=dv>=0;
+      anomHtml=`<div style="margin-top:11px;padding:9px 11px;border-radius:9px;background:${warm?'var(--orange-soft)':'var(--blue-soft)'};font-size:12px;font-weight:700;color:${warm?'var(--orange)':'var(--blue)'};">
+        현재 외기 ${cur}℃ — 평년(${t}℃) 대비 <b>${warm?'+':''}${dv}℃ ${warm?'높음 ☀️':'낮음 ❄️'}</b> · ${warm?'냉방·환기 부하↑ 대비':'난방 에너지↑ 대비'}</div>`;
+    }
+    const cell=(lab,val,unit)=>`<div style="flex:1;text-align:center;"><div style="font-size:11px;color:var(--muted);">${lab}</div><div style="font-size:16px;font-weight:800;">${val!=null?val:'—'}<span style="font-size:10px;font-weight:400;">${unit}</span></div></div>`;
+    document.getElementById('climCard').innerHTML=
+      `<div style="display:flex;gap:8px;">${cell('평년기온',t,'℃')}${cell('일사',s,'MJ')}${cell('강수',rain,'mm')}${cell('GDD',gdd,'')}</div>`
+      + anomHtml
+      + `<div style="margin-top:9px;font-size:10px;color:var(--muted);">${d.month}월 평년값 · ${(d.regions||[]).slice(0,3).join('·')} 등 ${d.crop_ko} 주산지 · ERA5 ${d.years}</div>`;
+    document.getElementById('climSection').style.display='';
+  }catch(e){}
+}
 window.addEventListener('DOMContentLoaded', () => {
   const farmId = new URLSearchParams(location.search).get('farm') ||
                  sessionStorage.getItem('sf_farm_id') || 'farm_001';
@@ -505,6 +537,7 @@ window.addEventListener('DOMContentLoaded', () => {
     KaasaData.loadEnvironment();
     _loadEnvFull(token, farmId);
     _loadEnergy(token, farmId);
+    _loadClimatology(token, farmId);
     _refreshRecent();
     _renderAgentCard();
     // 연동 장비 배지 + device_alert 연계
