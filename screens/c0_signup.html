@@ -95,6 +95,12 @@ async function _submit(){
       res.style.color='var(--green)';res.innerHTML='✓ 가입 완료! 농장 세팅으로 이동합니다…';
       localStorage.setItem('sf_signup_feats',JSON.stringify(_feats));
       setTimeout(()=>location.href='c1_setup.html',1500);
+    } else if(r.status===403){
+      // 공개 데모(읽기 전용) — 실제 가입은 비활성. 데모 계정으로 온보딩 체험 계속
+      res.style.color='var(--green)';
+      res.innerHTML='🔒 공개 데모에서는 실제 회원가입이 비활성화됩니다.<br>데모 계정으로 농장 세팅을 체험합니다…';
+      localStorage.setItem('sf_signup_feats',JSON.stringify(_feats));
+      setTimeout(()=>location.href='c1_setup.html',1800);
     } else {
       const t=await r.text();
       res.style.color='var(--orange)';res.textContent=`가입 응답 ${r.status}: ${t.slice(0,60)}`;
