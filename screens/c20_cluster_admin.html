@@ -70,7 +70,7 @@
 <script src="../components/data.js"></script>
 <script>
 'use strict';
-let _tokG='', _inited=false, _DATA=null;
+let _tokG='', _inited=false, _DATA=null, _isDemo=false;
 function _report(){
   const r=document.getElementById('fRegion').value, c=document.getElementById('fCrop').value;
   location.href=`c20_report.html?region=${encodeURIComponent(r)}&crop=${encodeURIComponent(c)}`;
@@ -78,6 +78,7 @@ function _report(){
 async function _notify(){
   if(!_DATA||!(_DATA.alerts||[]).length){ _msg('이상 농가가 없습니다.','var(--muted)'); return; }
   const ids=(_DATA.alerts||[]).map(a=>a.farm_id);
+  if(_isDemo){ _msg(`🧪 샘플 시뮬레이션 — 실제 환경에서는 이상 농가 ${ids.length}곳에 현장점검 지시가 일괄 기록됩니다.`,'var(--orange)'); return; }
   if(!confirm(`이상 농가 ${ids.length}곳에 현장점검 지시를 기록할까요?`)) return;
   const api=(window.KaasaData&&KaasaData.getApiBase)?KaasaData.getApiBase():location.origin;
   const region=document.getElementById('fRegion').value, crop=document.getElementById('fCrop').value;
@@ -89,6 +90,33 @@ async function _notify(){
   }catch(e){ _msg('알림 기록 실패: '+e.message,'var(--red)'); }
 }
 function _msg(t,c){ const el=document.getElementById('caMsg'); if(el){ el.style.color=c||'var(--text)'; el.textContent=t; } }
+// 공개 데모/네트워크 차단 시 사용하는 샘플 시뮬레이션 데이터셋 (PII 없음·합성)
+const _DEMO_OVERVIEW={
+  total_farms:723,
+  summary:{avg_vigor:0.71, avg_diag:68, anomaly:47, anomaly_pct:6.5, warn:118, normal:558},
+  regions:['제주','경남','전남','충남','경북'],
+  crops:['감귤','마늘','양파','월동무','당근','브로콜리','양배추'],
+  by_region:[
+    {name:'제주',count:210,avg_vigor:0.69,anomaly:14},
+    {name:'경남',count:168,avg_vigor:0.72,anomaly:9},
+    {name:'전남',count:142,avg_vigor:0.70,anomaly:11},
+    {name:'충남',count:108,avg_vigor:0.73,anomaly:6},
+    {name:'경북',count:95,avg_vigor:0.71,anomaly:7}],
+  by_crop:[
+    {name:'감귤',count:180,avg_vigor:0.70,anomaly:12},
+    {name:'마늘',count:120,avg_vigor:0.72,anomaly:6},
+    {name:'양파',count:110,avg_vigor:0.71,anomaly:8},
+    {name:'월동무',count:98,avg_vigor:0.68,anomaly:11},
+    {name:'당근',count:85,avg_vigor:0.73,anomaly:4},
+    {name:'브로콜리',count:72,avg_vigor:0.71,anomaly:3},
+    {name:'양배추',count:58,avg_vigor:0.70,anomaly:3}],
+  alerts:[
+    {location:'제주 서귀포',crop:'월동무',detail:'NDVI 0.49 · 클러스터 평균 대비 Δ-28% 생육저조 — 현장확인 요망',farm_id:'demo_jeju_018',vigor:0.49,diag:52},
+    {location:'전남 고흥',crop:'감귤',detail:'NDVI 0.52 · Δ-22% · 한파 스트레스 의심',farm_id:'demo_jn_042',vigor:0.52,diag:55},
+    {location:'제주 한경',crop:'양파',detail:'NDVI 0.51 · Δ-24% · 배수 불량 추정',farm_id:'demo_jeju_077',vigor:0.51,diag:54},
+    {location:'경남 창녕',crop:'마늘',detail:'NDVI 0.54 · Δ-19% · 질소 결핍 신호',farm_id:'demo_gn_105',vigor:0.54,diag:58},
+    {location:'충남 서산',crop:'양파',detail:'NDVI 0.53 · Δ-20% · 노균병 조기경보',farm_id:'demo_cn_061',vigor:0.53,diag:56}]
+};
 const VCOL=v=>v>=0.62?'#16a34a':v>=0.55?'#f59e0b':'#dc2626';
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 window.addEventListener('DOMContentLoaded',()=>{ _ensureToken().then(t=>{ _tokG=t; _reload(); }); });
@@ -97,22 +125,19 @@ function _drill(fid){ sessionStorage.setItem('sf_farm_id',fid); location.href='c
 async function _reload(){
   const api=(window.KaasaData&&KaasaData.getApiBase)?KaasaData.getApiBase():location.origin;
   const region=document.getElementById('fRegion').value, crop=document.getElementById('fCrop').value;
-  let d;
+  let d, isDemo=false;
   try{
     const r=await fetch(`${api}/api/admin/cluster/overview?region=${encodeURIComponent(region)}&crop=${encodeURIComponent(crop)}`,{headers:{Authorization:`Bearer ${_tokG}`}});
-    if(!r.ok){ // 403(데모/권한) 등 — graceful 안내
-      document.getElementById('caTotal').textContent='— 농가';
-      document.getElementById('caSub').textContent = r.status===403 ? '관제는 관리자 전용입니다 (공개 데모에서는 비활성)' : `로드 실패 (${r.status})`;
-      return;
-    }
-    d=await r.json();
+    if(r.ok){ d=await r.json(); }
+    else if(r.status===403){ d=_DEMO_OVERVIEW; isDemo=true; }   // 공개 데모 — 샘플 시뮬레이션으로 시연
+    else { document.getElementById('caSub').textContent=`로드 실패 (${r.status})`; return; }
   }
-  catch(e){ document.getElementById('caSub').textContent='로드 실패 — 네트워크 확인'; return; }
+  catch(e){ d=_DEMO_OVERVIEW; isDemo=true; }   // 네트워크 차단 시에도 샘플로 시연
   if(!d || d.total_farms==null){ document.getElementById('caSub').textContent='데이터 없음'; return; }
-  _DATA=d;
+  _DATA=d; _isDemo=isDemo;
   const s=d.summary||{};
   document.getElementById('caTotal').textContent=`${d.total_farms.toLocaleString()} 농가`;
-  document.getElementById('caSub').textContent=`평균 작황 NDVI ${s.avg_vigor} · 평균 진단 ${s.avg_diag}점`;
+  document.getElementById('caSub').textContent=`평균 작황 NDVI ${s.avg_vigor} · 평균 진단 ${s.avg_diag}점`+(_isDemo?' · 🧪 샘플 시뮬레이션(데모)':'');
   document.getElementById('caStats').innerHTML=`
     <div class="ca-stat"><div class="ca-stat-v" style="color:var(--red)">${s.anomaly}</div><div class="ca-stat-l">이상 (${s.anomaly_pct}%)</div></div>
     <div class="ca-stat"><div class="ca-stat-v" style="color:var(--orange)">${s.warn}</div><div class="ca-stat-l">주의</div></div>

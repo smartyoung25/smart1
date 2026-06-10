@@ -37,23 +37,30 @@
 <script>
 'use strict';
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+// 공개 데모/차단 시 샘플 시뮬레이션 (PII 없음·합성) — c20_cluster_admin과 동일 데이터셋
+const _DEMO_OVERVIEW={total_farms:723,summary:{avg_vigor:0.71,avg_diag:68,anomaly:47,anomaly_pct:6.5,warn:118,normal:558},
+  regions:['제주','경남','전남','충남','경북'],crops:['감귤','마늘','양파','월동무','당근','브로콜리','양배추'],
+  by_region:[{name:'제주',count:210,avg_vigor:0.69,anomaly:14},{name:'경남',count:168,avg_vigor:0.72,anomaly:9},{name:'전남',count:142,avg_vigor:0.70,anomaly:11},{name:'충남',count:108,avg_vigor:0.73,anomaly:6},{name:'경북',count:95,avg_vigor:0.71,anomaly:7}],
+  by_crop:[{name:'감귤',count:180,avg_vigor:0.70,anomaly:12},{name:'마늘',count:120,avg_vigor:0.72,anomaly:6},{name:'양파',count:110,avg_vigor:0.71,anomaly:8},{name:'월동무',count:98,avg_vigor:0.68,anomaly:11},{name:'당근',count:85,avg_vigor:0.73,anomaly:4},{name:'브로콜리',count:72,avg_vigor:0.71,anomaly:3},{name:'양배추',count:58,avg_vigor:0.70,anomaly:3}],
+  alerts:[{location:'제주 서귀포',crop:'월동무',detail:'NDVI 0.49 · Δ-28% 생육저조',farm_id:'demo_jeju_018',vigor:0.49,diag:52},
+    {location:'전남 고흥',crop:'감귤',detail:'NDVI 0.52 · Δ-22% 한파',farm_id:'demo_jn_042',vigor:0.52,diag:55},
+    {location:'제주 한경',crop:'양파',detail:'NDVI 0.51 · Δ-24%',farm_id:'demo_jeju_077',vigor:0.51,diag:54},
+    {location:'경남 창녕',crop:'마늘',detail:'NDVI 0.54 · Δ-19%',farm_id:'demo_gn_105',vigor:0.54,diag:58},
+    {location:'충남 서산',crop:'양파',detail:'NDVI 0.53 · Δ-20%',farm_id:'demo_cn_061',vigor:0.53,diag:56}]};
 window.addEventListener('DOMContentLoaded',()=>{ _ensureToken().then(_build); });
 async function _ensureToken(){const s=sessionStorage.getItem('sf_token');if(s)return s;try{const a=sessionStorage.getItem('sf_api')||location.origin;const r=await fetch(`${a}/api/v1/auth/token`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:'admin',password:'1250'})});if(r.ok){const d=await r.json();sessionStorage.setItem('sf_token',d.access_token);return d.access_token;}}catch{}return '';}
 async function _build(token){
   const api=(window.KaasaData&&KaasaData.getApiBase)?KaasaData.getApiBase():location.origin;
   const qp=new URLSearchParams(location.search);
   const region=qp.get('region')||'', crop=qp.get('crop')||'';
-  let d;
+  let d, isDemo=false;
   try{
     const r=await fetch(`${api}/api/admin/cluster/overview?region=${encodeURIComponent(region)}&crop=${encodeURIComponent(crop)}`,{headers:{Authorization:`Bearer ${token}`}});
-    if(!r.ok){
-      document.getElementById('page').innerHTML='<div style="padding:40px;text-align:center;color:#5a6678;">'
-        + (r.status===403 ? '관제 보고서는 관리자 전용입니다. (공개 데모에서는 비활성)' : `데이터를 불러오지 못했습니다 (${r.status}).`)
-        + '</div>'; return;
-    }
-    d=await r.json();
+    if(r.ok){ d=await r.json(); }
+    else if(r.status===403){ d=_DEMO_OVERVIEW; isDemo=true; }
+    else { document.getElementById('page').innerHTML=`<div style="padding:40px;text-align:center;color:#5a6678;">데이터를 불러오지 못했습니다 (${r.status}).</div>`; return; }
   }
-  catch(e){ document.getElementById('page').innerHTML='<div style="padding:40px;text-align:center;color:#d23b3b;">데이터를 불러오지 못했습니다 — 네트워크 확인.</div>'; return; }
+  catch(e){ d=_DEMO_OVERVIEW; isDemo=true; }
   if(!d || d.total_farms==null){ document.getElementById('page').innerHTML='<div style="padding:40px;text-align:center;color:#5a6678;">집계 데이터가 없습니다.</div>'; return; }
   const s=d.summary||{};
   const now=new Date(), ymd=`${now.getFullYear()}. ${now.getMonth()+1}. ${now.getDate()}.`;
@@ -68,7 +75,7 @@ async function _build(token){
     + `이상 농가는 아래 위치특정 명단을 기준으로 현장 점검·관개/방제 지도를 우선 배정할 것을 권고한다.`;
   const html=`
     <div class="rp-doc-title">스마트농업 광역 작황 관제 결과보고서</div>
-    <div class="rp-doc-sub">KAASA SmartOS · 다중농가 클러스터 관제 (위성·기상·진단 통합)</div>
+    <div class="rp-doc-sub">KAASA SmartOS · 다중농가 클러스터 관제 (위성·기상·진단 통합)${isDemo?' · 🧪 샘플 시뮬레이션(공개 데모)':''}</div>
     <div class="rp-rule"></div>
     <table class="rp-meta"><tbody>
       <tr><td class="k">관제 범위</td><td>${esc(scope)}</td><td class="k">대상 농가</td><td>${d.total_farms.toLocaleString()} 곳</td></tr>
