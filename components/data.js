@@ -482,8 +482,10 @@ const KaasaData = (() => {
       ['c5_erp.html', '💰', '수익성 ERP'],
       ['c14_report.html', '📋', '월간 리포트'],
       ['c4_diagnosis.html', '📊', 'AI 진단'],
+      ['c19_capability.html', '🎯', '역량·핵심서비스'],
       ['c13_chat.html', '🤖', 'AI 비서'],
       ['c15_education.html', '🎓', '교육'],
+      ['c2_consent.html', '🔐', '데이터 활용 동의'],
     ]},
   ];
   function _drawerPrefix() {
@@ -678,3 +680,5 @@ const KaasaData = (() => {
     _latestEnv: () => _latestEnv
   };
 })();
+// 전역 노출 (인라인 onclick·외부 스크립트에서 KaasaData 접근 보장)
+try { window.KaasaData = KaasaData; } catch (e) {}
