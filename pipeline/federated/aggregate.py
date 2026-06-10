@@ -45,6 +45,7 @@ def merge_corrections(crop_en: str, payloads: List[Dict[str, Any]],
 
     data["n_farms"] = len(corr)
     data["_source"] = "federated_upload"          # 출처 표기(중앙배치와 구분)
+    os.makedirs(os.path.dirname(path), exist_ok=True)   # 신규 작물 디렉터리 생성
     with open(path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False)
     return {"crop_en": crop_en, "updated": updated, "n_farms": len(corr), "path": path}

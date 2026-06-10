@@ -22,6 +22,7 @@ from api.routers.ws import router as ws_router, _setup_mqtt_bridge
 from api.routers.billing import farm_router as billing_farm_router, admin_router as billing_admin_router
 from api.routers.data_collection import router as data_collection_router
 from api.routers.telemetry import router as telemetry_router
+from api.routers.federated import router as federated_router
 from api.middleware.auth import JWTMiddleware
 
 # ── Rate limiter ──────────────────────────────────────────────────────────────
@@ -93,6 +94,7 @@ app.include_router(billing_admin_router, prefix="/api/admin")
 # 데이터 수집 라우터 (생육 측정값 / 수확량 실측값)
 app.include_router(data_collection_router)
 app.include_router(telemetry_router)
+app.include_router(federated_router)
 
 
 @app.on_event("startup")
