@@ -60,10 +60,11 @@
 const ROLES=[
   ['farmer','👨‍🌾','농가','온실·노지 직접 재배'],
   ['org','🏢','생산자 조직','공동출하·조합 운영'],
-  ['expert','🔬','전문가','컨설팅·기술 지원'],
+  ['distributor','🚚','유통전문가','산지 소싱·공동출하·시세 분석'],
+  ['expert','🔬','재배 전문가','컨설팅·기술 지원'],
   ['public','🏛️','공공기관','정책·통계 활용'],
 ];
-const FEATS=['환경제어','관수관리','생육예측','병해진단','수익분석','공동출하','벤치마킹','AI추천'];
+const FEATS=['환경제어','관수관리','생육예측','병해진단','수익분석','공동출하','시세분석','산지소싱','벤치마킹','AI추천'];
 let _role='', _feats=[];
 
 window.addEventListener('DOMContentLoaded', ()=>{
@@ -73,6 +74,12 @@ window.addEventListener('DOMContentLoaded', ()=>{
   document.getElementById('featChips').innerHTML=FEATS.map(f=>`<div class="feat-chip" onclick="_toggleFeat('${f}',this)">${f}</div>`).join('');
 });
 function _selRole(id,el){_role=id;document.querySelectorAll('.role-card').forEach(x=>x.classList.remove('sel'));el.classList.add('sel');}
+// 역할별 가입 후 첫 화면 (농가=농장세팅 / 유통=공동출하 / 전문가=AI진단 / 공공=클러스터관제)
+const _LAND={farmer:['c1_setup.html','농장 세팅'], org:['c1_setup.html','농장 세팅'],
+  distributor:['c12_joint.html','공동출하·산지소싱'], expert:['c4_diagnosis.html','AI 진단·컨설팅'],
+  public:['c20_cluster_admin.html','다중농가 관제']};
+function _landing(){ return (_LAND[_role]||_LAND.farmer)[0]; }
+function _landingLabel(){ return (_LAND[_role]||_LAND.farmer)[1]; }
 function _toggleFeat(f,el){const i=_feats.indexOf(f);if(i>=0){_feats.splice(i,1);el.classList.remove('sel');}else{_feats.push(f);el.classList.add('sel');}}
 
 async function _submit(){
@@ -92,15 +99,15 @@ async function _submit(){
     if(r.ok){
       const d=await r.json();
       if(d.access_token) sessionStorage.setItem('sf_token',d.access_token);
-      res.style.color='var(--green)';res.innerHTML='✓ 가입 완료! 농장 세팅으로 이동합니다…';
+      res.style.color='var(--green)';res.innerHTML=`✓ 가입 완료! ${_landingLabel()}(으)로 이동합니다…`;
       localStorage.setItem('sf_signup_feats',JSON.stringify(_feats));
-      setTimeout(()=>location.href='c1_setup.html',1500);
+      setTimeout(()=>location.href=_landing(),1500);
     } else if(r.status===403){
-      // 공개 데모(읽기 전용) — 실제 가입은 비활성. 데모 계정으로 온보딩 체험 계속
+      // 공개 데모(읽기 전용) — 실제 가입은 비활성. 데모 계정으로 역할별 체험 계속
       res.style.color='var(--green)';
-      res.innerHTML='🔒 공개 데모에서는 실제 회원가입이 비활성화됩니다.<br>데모 계정으로 농장 세팅을 체험합니다…';
+      res.innerHTML=`🔒 공개 데모에서는 실제 회원가입이 비활성화됩니다.<br>데모 계정으로 ${_landingLabel()} 체험합니다…`;
       localStorage.setItem('sf_signup_feats',JSON.stringify(_feats));
-      setTimeout(()=>location.href='c1_setup.html',1800);
+      setTimeout(()=>location.href=_landing(),1800);
     } else {
       const t=await r.text();
       res.style.color='var(--orange)';res.textContent=`가입 응답 ${r.status}: ${t.slice(0,60)}`;
