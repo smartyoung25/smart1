@@ -105,9 +105,11 @@
       <div class="ch-box-sub">도매시장 평균</div>
     </div>
   </div>
-  <div class="card" style="padding:12px 14px;margin-bottom:14px;border-left:4px solid var(--green);">
+  <div class="card" style="padding:12px 14px;margin-bottom:10px;border-left:4px solid var(--green);">
     <div style="font-size:12px;color:var(--muted);" id="adviceText">AI 출하 추천 분석 중…</div>
   </div>
+  <!-- 출하 타이밍 통찰 (30일 시세 해석) -->
+  <div class="card" id="timingCard" style="padding:12px 14px;margin-bottom:14px;display:none;"></div>
 
   <!-- 진행 중 Pool -->
   <div class="section-label" style="display:flex;justify-content:space-between;align-items:center;">
@@ -230,6 +232,32 @@ function _render(ws, revenue){
   setEl('adviceText', joint>=kamis
     ? `🤝 공동출하 시 <b>+${fmt(diff)}원/kg</b> → 내 물량 기준 총 <b>${diffRev.toLocaleString()}만원</b> 추가 수익 예상`
     : `현재 개별 출하가 유리. 공동출하 Pool 조건 확인 후 결정 권장`);
+
+  // ── 출하 타이밍 통찰 (30일 시세 추세·위치 해석) ──────────────
+  const st = ws?.wholesale_stats || {};
+  const ph = (ws?.price_history || []).map(p=>p.avg_price).filter(v=>v>0);
+  if (st.avg && st.latest && ph.length>=6) {
+    const latest=st.latest, avg=st.avg, max=st.max||latest, min=st.min||latest;
+    const posPct = max>min ? Math.round((latest-min)/(max-min)*100) : 50;   // 30일 밴드 내 위치
+    const vsAvg = Math.round((latest-avg)/avg*100);
+    const recent = ph.slice(-5), prev = ph.slice(-10,-5);
+    const rMean=recent.reduce((a,b)=>a+b,0)/recent.length, pMean=prev.length?prev.reduce((a,b)=>a+b,0)/prev.length:rMean;
+    const trendPct = pMean? Math.round((rMean-pMean)/pMean*100):0;
+    const up = trendPct>=2, down = trendPct<=-2;
+    const trendTxt = up?`📈 상승세(최근 5일 +${trendPct}%)`:down?`📉 하락세(${trendPct}%)`:'➡️ 보합';
+    // 권고 로직
+    let rec, color;
+    if (posPct>=75 || (up && posPct>=55)) { rec=`<b>지금이 출하 적기</b> — 30일 고점권(상위 ${posPct}%)${up?', 추가 상승 시 분할 출하':''}`; color='var(--green)'; }
+    else if (posPct<=30 && down) { rec=`<b>출하 대기 권장</b> — 30일 저점권·하락세. Pool 약정으로 가격 방어 검토`; color='var(--red)'; }
+    else { rec=`<b>중립 구간</b> — 평년 대비 ${vsAvg>=0?'+':''}${vsAvg}%. 공동출하 Pool로 변동 위험 분산 권장`; color='var(--orange)'; }
+    document.getElementById('timingCard').style.borderLeft=`4px solid ${color}`;
+    document.getElementById('timingCard').innerHTML =
+      `<div style="font-size:12.5px;font-weight:800;margin-bottom:6px;">📊 출하 타이밍 통찰 ${trendTxt}</div>`
+      + `<div style="font-size:11.5px;color:var(--muted);margin-bottom:7px;">현재 ${fmt(latest)}원 · 30일 평균 ${fmt(avg)}원(${vsAvg>=0?'+':''}${vsAvg}%) · 범위 ${fmt(min)}~${fmt(max)}원</div>`
+      + `<div style="height:6px;background:var(--gray-soft);border-radius:3px;position:relative;margin-bottom:8px;"><div style="position:absolute;left:${posPct}%;top:-3px;width:12px;height:12px;border-radius:50%;background:${color};transform:translateX(-50%);"></div></div>`
+      + `<div style="font-size:12px;color:${color};">${rec}</div>`;
+    document.getElementById('timingCard').style.display='';
+  }
 
   // Pool KPI (참여농가/물량은 조직 단위 — Mock, 단가는 실데이터)
   setEl('kpiFarms', `<span style="font-size:14px;">24<span style="font-size:10px;font-weight:400;">농가</span></span> <span style="font-size:9px;opacity:.6;">(Mock)</span>`);
