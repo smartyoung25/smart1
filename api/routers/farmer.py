@@ -407,6 +407,7 @@ def _require_farm(farm_id: str) -> dict[str, Any]:
                     "sido": reg_farm.get("sido"), "sigungu": reg_farm.get("sigungu"),
                     "address_detail": "",
                 }
+                _FARM_META[farm_id] = meta  # 레지스트리 meta 캐시 — 후속 _FARM_META.get() 사이트가 지역/작물 인지
         except Exception:
             pass
     if meta is None:
@@ -2258,6 +2259,10 @@ def _real_parcels_lookup(meta: dict):
         # 시군구 첫 읍면동 샘플
         for k, v in db.get("by_emd", {}).items():
             if sgg and k.startswith(sgg): rec = v; scope = k; break
+    if not rec:
+        # 제주 농장이나 세부지역 불일치(예: 읍면명 '한경') → 제주 첫 읍면동 샘플 폴백
+        for k, v in db.get("by_emd", {}).items():
+            rec = v; scope = f"{k} (제주 샘플)"; break
     if not rec:
         return None
     return {"farm_id": meta.get("_fid", ""), "source": "farmmap_real", "region": scope,
