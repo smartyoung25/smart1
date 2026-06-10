@@ -34,6 +34,7 @@
   <div class="mock-note">수확량·단가·매출은 ML/KAMIS 실연동, 필지별 분할은 면적 비례 추정입니다.</div>
   <div class="section-label">필지별 수확 예측</div>
   <div class="parcel-strip" id="parcelStrip"></div>
+  <div class="card" id="f7Insight" style="padding:12px 14px;margin:14px 0;display:none;"></div>
   <div class="section-label" style="margin-top:14px;">노지 수익성 요약 <span class="trust-badge trust-model">🔵 모델</span></div>
   <div class="card" style="padding:14px;">
     <table class="profit-table">
@@ -119,6 +120,26 @@ async function _load(token,farmId){
   document.getElementById('pPrice').textContent=`${fmt(price)} 원/kg`;
   document.getElementById('pRevenue').textContent=`${fmt(revenue/10000)} 만원`;
   document.getElementById('pProfit').textContent=`${fmt(profit/10000)} 만원`;
+
+  // ── 수확·출하 통찰 (D-day + 30일 시세 위치 → 판로·타이밍 권고) ──
+  const dd = harvest?.predicted_date ? Math.round((new Date(harvest.predicted_date)-new Date())/86400000) : null;
+  const st = ws?.wholesale_stats || {};
+  let pos=null, posTxt='';
+  if(st.avg && st.latest && st.max>st.min){ pos=Math.round((st.latest-st.min)/(st.max-st.min)*100);
+    posTxt = pos>=70?`시세 30일 고점권(상위 ${pos}%)`:pos<=30?`시세 30일 저점권(하위 ${pos}%)`:`시세 평년권(${pos}%)`; }
+  let ins, color='var(--green)';
+  if(dd!=null && dd<=7){
+    color = (pos!=null&&pos>=60)?'var(--green)':'var(--orange)';
+    ins = `수확 D-${dd} 임박 + ${posTxt||'단가 '+fmt(price)+'원'} — ${pos!=null&&pos>=60?'지금 공동출하 Pool 약정으로 고점 단가 확보 권장':'공동출하 단가가 개별보다 유리한지 비교 후 출하(C12)'}.`;
+  } else if(dd!=null){
+    ins = `수확까지 D-${dd}. ${posTxt||''} 지금 공동출하 Pool에 사전 약정하면 수확기 단가 변동 위험을 분산할 수 있습니다.`;
+  } else {
+    ins = `${posTxt||'현재 단가 '+fmt(price)+'원/kg'}. 필지별 수확 실적을 기록하면 다음 작기 예측이 정확해집니다.`;
+  }
+  const el=document.getElementById('f7Insight');
+  el.style.borderLeft=`4px solid ${color}`;
+  el.innerHTML=`<div style="font-size:12.5px;font-weight:800;margin-bottom:5px;">💡 수확·출하 통찰</div><div style="font-size:12px;color:var(--text);line-height:1.55;">${ins}</div>`;
+  el.style.display='';
 }
 </script>
 </body>

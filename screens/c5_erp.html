@@ -123,6 +123,7 @@
     <div class="cost-stack-wrap" id="costStack"></div>
     <div class="cost-legend" id="costLegend"></div>
     <div style="margin-top:12px;" id="costItems"></div>
+    <div id="costInsight" style="margin-top:10px;padding:10px 12px;border-radius:9px;background:var(--orange-soft);font-size:12px;color:var(--orange);font-weight:700;display:none;"></div>
   </div>
 
   <!-- 수익성 지표 -->
@@ -320,6 +321,18 @@ function _renderCosts(costs) {
       <div class="cost-amt">${fmt(item.amount_krw)}원</div>
     </div>`;
   }).join('');
+
+  // 절감 통찰: 최대 비용 항목 → 우선 절감 권고
+  const top = items.slice().sort((a,b)=>(b.amount_krw||0)-(a.amount_krw||0))[0];
+  if (top) {
+    const tp = Math.round((top.pct_of_total ?? 0)*100);
+    const isEnergy = ['electricity','heating'].includes(top.category);
+    const tip = isEnergy ? '피크시간(10~17시) 난방·LED 자동 감축으로 15~25% 절감 여력(G2 AI에이전트).'
+                         : '단가 비교·공동구매로 절감 여지를 점검하세요.';
+    const ci = document.getElementById('costInsight');
+    ci.innerHTML = `💡 최대 비용은 <b>${top.label_ko} ${tp}%</b> — 여기부터 절감하면 마진 개선 효과가 가장 큽니다. ${tip}`;
+    ci.style.display='';
+  }
 }
 
 // ── 수익성 지표 ─────────────────────────────────────────────────────────────
