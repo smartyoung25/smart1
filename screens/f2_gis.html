@@ -81,11 +81,13 @@ async function _loadParcels(farmId){
     const r=await fetch(`${api}/api/farms/${farmId}/field/parcels`,{headers:{Authorization:`Bearer ${token}`}});
     if(!r.ok) return;
     const d=await r.json();
-    const isLive = d.source==='farmmap';
+    const isLive = d.source==='farmmap' || d.source==='farmmap_real';
     // 신뢰도 뱃지 동적 갱신
     document.querySelectorAll('.trust-badge.trust-mock').forEach(b=>{
-      if(isLive){ b.className='trust-badge trust-live'; b.textContent='🟢 팜맵'; }
+      if(isLive){ b.className='trust-badge trust-live'; b.textContent='🟢 팜맵 실데이터'; }
     });
+    if(isLive){ const mt=document.getElementById('mapTag'); if(mt) mt.textContent='🟢 팜맵 실데이터';
+      const mn=document.querySelector('.mock-note'); if(mn) mn.innerHTML='🟢 <b>팜맵 농경지전자지도 실데이터</b> 연동됨'+(d.note?` — ${d.note}`:''); }
     const list = d.parcels || [];
     if(list.length){
       // 그리드 좌표 자동 배치 (2열)

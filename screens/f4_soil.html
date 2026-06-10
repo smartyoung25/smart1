@@ -133,10 +133,11 @@ async function _loadSoil(token, farmId){
     if(!r.ok) return;
     const d=await r.json();
     // source에 따라 신뢰도 뱃지 동적 갱신
-    const isLive = d.source==='naas_soil';
+    const isLive = d.source==='naas_soil' || d.source==='naas_soil_real';
     document.querySelectorAll('.trust-badge.trust-mock').forEach(b=>{
-      if(isLive){ b.className='trust-badge trust-live'; b.textContent='🟢 흙토람'; }
+      if(isLive){ b.className='trust-badge trust-live'; b.textContent='🟢 흙토람 실데이터'; }
     });
+    if(isLive){ const mn=document.querySelector('.mock-note'); if(mn) mn.innerHTML='🟢 <b>흙토람 토양검정 실데이터</b> 연동됨'+(d.note?` — ${d.note}`:''); }
     if(Array.isArray(d.parcels) && d.parcels.length){
       PARCELS = d.parcels.map(p=>({name:p.name, moisture:p.moisture??55, area:p.area_ha??0.5,
         soil_type:p.soil_type, drainage:p.drainage}));
