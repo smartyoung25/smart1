@@ -719,15 +719,26 @@ function _onRecommend(data) {
 
 // ── 가격 조회 ───────────────────────────────────────────────────────────────
 async function _loadPrices(token) {
+  const apiBase = KaasaData.getApiBase();
+  const H = { headers: { Authorization: `Bearer ${token}` } };
   try {
-    const apiBase = KaasaData.getApiBase();
-    const res = await fetch(`${apiBase}/api/admin/prices/latest`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (!res.ok) return;
-    const d = await res.json();
-    _prices = d.prices || [];
-    _renderPrices();
+    // 1차: 관리자 다작목 시세 (인증 관리자)
+    const res = await fetch(`${apiBase}/api/admin/prices/latest`, H);
+    if (res.ok) {
+      const d = await res.json();
+      _prices = d.prices || [];
+      if (_prices.length) { _renderPrices(); return; }
+    }
+    // 2차 폴백: 공개 데모 등 관리자 차단 시 — 농장 작목 도매시세(KAMIS, 비관리자)
+    const farmId = sessionStorage.getItem('sf_farm_id') || 'farm_001';
+    const wr = await fetch(`${apiBase}/api/farms/${farmId}/market/wholesale`, H);
+    if (wr.ok) {
+      const w = await wr.json();
+      if (w && w.price_krw_kg != null) {
+        _prices = [{ crop_ko: w.crop_ko, price_krw_kg: w.price_krw_kg, price_source: w.price_source }];
+        _renderPrices();
+      }
+    }
   } catch (e) { console.warn('[C3] 가격 조회 실패:', e.message); }
 }
 
@@ -737,7 +748,8 @@ function _renderPrices() {
   strip.innerHTML = _prices.map(p => {
     const price = p.price_krw_kg;
     const name  = p.crop_ko || '?';
-    const src   = p.source === 'kamis_cache' || p.source === 'kamis_live' ? 'KAMIS' : '기준가';
+    const ps    = p.price_source || p.source || '';
+    const src   = /kamis|arta|at_/i.test(ps) ? 'KAMIS' : '기준가';
     return `<div class="price-chip">
       <div class="price-chip-name">${name}</div>
       <div class="price-chip-value">${price != null ? Math.round(price).toLocaleString() : '—'}<span style="font-size:9px;">원</span></div>
