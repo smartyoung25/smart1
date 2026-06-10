@@ -38,6 +38,21 @@
     <div class="pipe-step"><div class="pipe-ico">🧠</div><div class="pipe-t" style="flex:1;">모델 학습<div class="pipe-s">M1 생육 · M2 수확 · M5 병해</div></div><span class="pipe-badge">주간</span></div>
     <div class="pipe-step"><div class="pipe-ico">✅</div><div class="pipe-t" style="flex:1;">게이트 검증<div class="pipe-s">MAPE·R² 기준 통과 시 배포</div></div><span class="pipe-badge">자동</span></div>
   </div>
+  <div class="section-label">배포 게이트 · 임계점</div>
+  <div class="card" style="padding:14px;margin-bottom:14px;">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+      <span style="font-size:12px;font-weight:800;background:var(--green-soft);color:var(--green-dark);padding:5px 10px;border-radius:9px;">통과 기준: MAPE ≤ 35% AND R² ≥ 0</span>
+    </div>
+    <div style="font-size:12px;color:var(--muted);line-height:1.6;">
+      <b>최적모델 자동선택(챔피언·챌린저)</b> — 재학습 후보가 기존 모델보다
+      <b>M2 MAPE 5%p 이상 감소</b> 또는 <b>M1 R² +0.02 이상</b>이면 자동 배포,
+      미달이면 <b>rollback</b>(기존 모델 유지·백업). 게이트 미통과 작물은 레거시/Ridge 폴백으로 안전 운영합니다.
+    </div>
+  </div>
+
+  <div class="section-label">M2 수확량 모델 게이트 (최적모델 현황) <span class="trust-badge trust-model">🔵 모델</span></div>
+  <div class="card" style="padding:14px;margin-bottom:14px;" id="m2List"><div style="text-align:center;color:var(--muted);font-size:12px;"><div class="spinner"></div></div></div>
+
   <div class="section-label">모델별 성능 (M1 생육) <span class="trust-badge trust-model">🔵 모델</span></div>
   <div class="card" style="padding:14px;" id="modelList"><div style="text-align:center;color:var(--muted);font-size:12px;"><div class="spinner"></div></div></div>
 </main>
@@ -70,6 +85,24 @@ async function _load(token,farmId){
     el.innerHTML=m1.slice(0,6).map(m=>{const r2=m.r2!=null?m.r2.toFixed(3):'—';const c=m.r2>0.6?'var(--green)':m.r2>0.3?'var(--orange)':'var(--red)';
       return `<div class="model-row"><span class="mr-name">${m.crop||'?'} · ${m.target||'?'}</span><span class="mr-r2" style="color:${c}">R²=${r2}</span></div>`;}).join('');
   } else el.innerHTML='<div style="color:var(--muted);font-size:12px;text-align:center;">데이터 없음</div>';
+
+  // M2 수확량 게이트 표 — 임계점 통과/탈락 + 최적모델 가시화
+  const m2el=document.getElementById('m2List');
+  if(m2.length){
+    m2el.innerHTML=m2.map(m=>{
+      const mape=m.mape_pct!=null?m.mape_pct.toFixed(1):'—';
+      const r2=m.cv_r2!=null?m.cv_r2.toFixed(2):'—';
+      const pass=m.gate_pass;
+      const badge=pass
+        ? '<span style="font-size:11px;font-weight:800;background:var(--green-soft);color:var(--green-dark);padding:3px 8px;border-radius:8px;">✅ 통과</span>'
+        : '<span style="font-size:11px;font-weight:800;background:var(--red-soft);color:var(--red);padding:3px 8px;border-radius:8px;">⛔ 탈락→폴백</span>';
+      const mc=m.mape_pct<=35?'var(--green)':'var(--red)';
+      return `<div class="model-row" style="align-items:center;">
+        <span class="mr-name" style="flex:1;">${m.crop||'?'} <span style="color:var(--muted);font-size:11px;">n=${(m.n_samples||0).toLocaleString()}</span></span>
+        <span style="font-size:12px;color:${mc};font-weight:700;margin-right:8px;">MAPE ${mape}%</span>
+        <span style="font-size:12px;color:var(--muted);margin-right:8px;">R²=${r2}</span>${badge}</div>`;
+    }).join('');
+  } else m2el.innerHTML='<div style="color:var(--muted);font-size:12px;text-align:center;">데이터 없음</div>';
 }
 </script>
 </body>
