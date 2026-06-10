@@ -18,7 +18,9 @@ _CROP_EN = {"딸기": "strawberry", "참외": "korean_melon",
             # 제주·노지작물
             "감귤": "citrus", "월동무": "winter_radish", "당근": "carrot",
             "양배추": "cabbage", "마늘": "garlic", "양파": "onion",
-            "배추": "napa_cabbage", "무": "radish", "대파": "welsh_onion"}
+            "배추": "napa_cabbage", "무": "radish", "대파": "welsh_onion",
+            # 과수
+            "사과": "apple", "배": "pear", "복숭아": "peach"}
 _cache: dict = {}
 
 
