@@ -61,7 +61,7 @@ _PUBLIC_DEMO = os.environ.get("PUBLIC_DEMO", "").lower() in ("1", "true", "yes")
 if _PUBLIC_DEMO:
     from starlette.responses import JSONResponse as _JSONResp
     _WRITE = {"POST", "PUT", "PATCH", "DELETE"}
-    _WRITE_ALLOW = {"/api/v1/auth/token", "/api/telemetry/client"}   # 로그인·에러텔레메트리만 허용
+    _WRITE_ALLOW = {"/api/v1/auth/token", "/api/v1/auth/register", "/api/telemetry/client"}   # 로그인·회원가입·에러텔레메트리만 허용
     _WRITE_ALLOW_SUFFIX = ("/chat",)   # 조회성 POST(AI 챗봇 응답) — 농장데이터 미변경(쿼터 카운터만)
 
     class PublicDemoMiddleware:
