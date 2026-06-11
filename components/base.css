@@ -171,9 +171,17 @@ main {
 }
 section { margin-bottom: 24px; }
 .section-label {
-  font-size: 12px; font-weight: 700; letter-spacing: .06em;
-  color: var(--muted); text-transform: uppercase; margin-bottom: 10px;
+  display: flex; align-items: center; gap: 8px;
+  font-size: 13px; font-weight: 800; letter-spacing: -.01em;
+  color: var(--text); margin: 4px 0 10px;
 }
+.section-label::before {
+  content: ""; flex: 0 0 auto; width: 4px; height: 15px;
+  border-radius: 3px; background: var(--green);
+}
+/* 노지 화면 등 섹션은 강조 바 색을 청록으로 (맥락 구분) */
+.sf-main.field-ctx .section-label::before,
+.field-ctx .section-label::before { background: var(--blue); }
 
 /* ── 카드 ── */
 .card {
