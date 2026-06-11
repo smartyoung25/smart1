@@ -32,6 +32,27 @@
 </header>
 
 <main class="signup-body">
+  <!-- 로그인 / 회원가입 전환 탭 -->
+  <div style="display:flex;gap:8px;margin-bottom:14px;background:var(--panel-soft,#f1f5f3);border-radius:12px;padding:4px;">
+    <button id="tabLogin"  onclick="_setMode('login')"  style="flex:1;min-height:42px;border:none;border-radius:9px;font-size:14px;font-weight:800;cursor:pointer;background:transparent;color:var(--muted);">로그인</button>
+    <button id="tabSignup" onclick="_setMode('signup')" style="flex:1;min-height:42px;border:none;border-radius:9px;font-size:14px;font-weight:800;cursor:pointer;background:var(--green);color:#fff;">회원가입</button>
+  </div>
+
+  <!-- 로그인 패널 -->
+  <div id="loginPane" style="display:none;">
+    <div class="section-label">로그인</div>
+    <label class="signup-label">아이디</label>
+    <input class="signup-input" id="lUser" placeholder="아이디" autocomplete="username"/>
+    <label class="signup-label">비밀번호</label>
+    <input class="signup-input" id="lPass" type="password" placeholder="비밀번호" autocomplete="current-password" onkeydown="if(event.key==='Enter')_login()"/>
+    <div id="loginResult" style="margin-top:12px;font-size:13px;text-align:center;font-weight:700;min-height:18px;"></div>
+    <div style="text-align:center;margin-top:14px;font-size:12px;color:var(--muted);">
+      처음이신가요? <a href="javascript:void(0)" onclick="_setMode('signup')" style="color:var(--green-dark,#15803d);font-weight:800;">회원가입</a>
+    </div>
+  </div>
+
+  <!-- 회원가입 패널 -->
+  <div id="signupPane">
   <div class="section-label">회원 유형</div>
   <div id="roleList"></div>
 
@@ -47,11 +68,13 @@
 
   <div class="section-label" style="margin-top:14px;">관심 기능 (복수 선택)</div>
   <div class="feat-chip-wrap" id="featChips"></div>
+  </div>
 </main>
 
 <div class="footer">
   <div id="signupResult" style="margin-bottom:10px;font-size:13px;text-align:center;font-weight:700;"></div>
-  <button class="btn-submit" onclick="_submit()">가입하고 시작하기</button>
+  <button class="btn-submit" id="btnSignup" onclick="_submit()">가입하고 시작하기</button>
+  <button class="btn-submit" id="btnLogin" style="display:none;" onclick="_login()">로그인</button>
 </div>
 
 <script src="../components/data.js"></script>
@@ -72,8 +95,51 @@ window.addEventListener('DOMContentLoaded', ()=>{
     <div class="role-card" onclick="_selRole('${id}',this)"><span class="role-ico">${ic}</span>
       <div><div class="role-name">${n}</div><div class="role-desc">${d}</div></div></div>`).join('');
   document.getElementById('featChips').innerHTML=FEATS.map(f=>`<div class="feat-chip" onclick="_toggleFeat('${f}',this)">${f}</div>`).join('');
+  // 재방문(이전 가입 흔적)·로그아웃·?mode=login 이면 로그인 모드 기본 표시
+  const qp=new URLSearchParams(location.search);
+  const returning = qp.get('mode')==='login' || localStorage.getItem('sf_signup_name') || localStorage.getItem('sf_signup_role');
+  _setMode(returning ? 'login' : 'signup');
 });
 function _selRole(id,el){_role=id;document.querySelectorAll('.role-card').forEach(x=>x.classList.remove('sel'));el.classList.add('sel');}
+
+// 로그인 / 회원가입 모드 전환
+function _setMode(m){
+  const login=m==='login';
+  document.getElementById('loginPane').style.display = login?'':'none';
+  document.getElementById('signupPane').style.display = login?'none':'';
+  document.getElementById('btnLogin').style.display = login?'':'none';
+  document.getElementById('btnSignup').style.display = login?'none':'';
+  document.getElementById('signupResult').textContent='';
+  const tl=document.getElementById('tabLogin'), ts=document.getElementById('tabSignup');
+  tl.style.background = login?'var(--green)':'transparent'; tl.style.color = login?'#fff':'var(--muted)';
+  ts.style.background = login?'transparent':'var(--green)'; ts.style.color = login?'var(--muted)':'#fff';
+}
+
+// 로그인 — 데모 공개모드에서도 /api/v1/auth/token 은 허용(실제 인증)
+async function _login(){
+  const user=document.getElementById('lUser').value.trim();
+  const pass=document.getElementById('lPass').value;
+  const res=document.getElementById('loginResult');
+  if(!user){res.style.color='var(--red)';res.textContent='아이디를 입력하세요';return;}
+  if(!pass){res.style.color='var(--red)';res.textContent='비밀번호를 입력하세요';return;}
+  res.style.color='var(--muted)';res.textContent='로그인 중…';
+  try{
+    const api=sessionStorage.getItem('sf_api')||location.origin;
+    const r=await fetch(`${api}/api/v1/auth/token`,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({username:user,password:pass})});
+    if(r.ok){
+      const d=await r.json();
+      if(d.access_token) sessionStorage.setItem('sf_token',d.access_token);
+      res.style.color='var(--green)';res.textContent='✓ 로그인 완료! 이동합니다…';
+      setTimeout(()=>location.href='c3_home.html',900);
+    } else if(r.status===401){
+      res.style.color='var(--red)';res.textContent='아이디 또는 비밀번호가 올바르지 않습니다';
+    } else {
+      const t=await r.text();
+      res.style.color='var(--orange)';res.textContent=`로그인 응답 ${r.status}: ${t.slice(0,50)}`;
+    }
+  }catch(e){ res.style.color='var(--red)';res.textContent='네트워크 오류: '+e.message; }
+}
 // 역할별 가입 후 첫 화면 (농가=농장세팅 / 유통=공동출하 / 전문가=AI진단 / 공공=클러스터관제)
 const _LAND={farmer:['c1_setup.html','농장 세팅'], org:['c1_setup.html','농장 세팅'],
   distributor:['c12_joint.html','공동출하·산지소싱'], expert:['c4_diagnosis.html','AI 진단·컨설팅'],

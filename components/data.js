@@ -563,7 +563,7 @@ const KaasaData = (() => {
   }
   function openMenu()  { _buildDrawer(); _loadTierChip(sessionStorage.getItem('sf_farm_id') || _farmId || 'farm_001'); document.getElementById('kaasaDrawerOv')?.classList.add('open'); document.getElementById('kaasaDrawer')?.classList.add('open'); }
   function closeMenu() { document.getElementById('kaasaDrawerOv')?.classList.remove('open'); document.getElementById('kaasaDrawer')?.classList.remove('open'); }
-  function logout() { try { sessionStorage.removeItem('sf_token'); } catch(e){} location.href = _drawerPrefix() + 'c0_signup.html'; }
+  function logout() { try { sessionStorage.removeItem('sf_token'); } catch(e){} location.href = _drawerPrefix() + 'c0_signup.html?mode=login'; }
   function _bindMenuTab() {
     // 하단 5탭의 ≡ 메뉴 버튼을 드로어로 연결 (기존 navigator 이동 대체)
     document.querySelectorAll('.sf-bottom-nav .bnav-tab, .bnav-tab').forEach(btn => {
@@ -668,6 +668,40 @@ const KaasaData = (() => {
     } catch (e) {}
   }
 
+  // ── 전역 플로팅 버튼(홈·도움말) — 전 화면 공통 빠른 진입 ────────────────────
+  function _installFab() {
+    if (document.getElementById('kaasaFab')) return;
+    const pfx = _drawerPrefix();
+    const here = (location.pathname.split('/').pop() || '').replace('.html', '');
+    const onHome = here === 'c3_home';
+    const onHelp = here === 'help';
+    // 도움말은 현재 화면을 컨텍스트로 전달 (페이지별 도움말)
+    const helpHref = pfx + 'help.html' + (here ? ('?from=' + encodeURIComponent(here)) : '');
+    const homeHref = pfx + 'c3_home.html';
+    const st = document.createElement('style');
+    st.textContent =
+      '#kaasaFab{position:fixed;right:14px;bottom:76px;z-index:1400;display:flex;flex-direction:column;gap:10px;}' +
+      '#kaasaFab button{width:46px;height:46px;border-radius:50%;border:none;background:var(--green);color:#fff;' +
+      'font-size:21px;box-shadow:0 4px 14px rgba(0,0,0,.28);cursor:pointer;display:flex;align-items:center;' +
+      'justify-content:center;transition:transform .12s;-webkit-tap-highlight-color:transparent;}' +
+      '#kaasaFab button:active{transform:scale(.9);}' +
+      '#kaasaFab .fab-help{background:var(--blue,#2563eb);}' +
+      '#kaasaFab .fab-lbl{position:absolute;right:54px;top:50%;transform:translateY(-50%);background:rgba(0,0,0,.78);' +
+      'color:#fff;font-size:11px;font-weight:700;padding:4px 8px;border-radius:8px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .15s;}' +
+      '#kaasaFab .fab-wrap{position:relative;}#kaasaFab .fab-wrap:hover .fab-lbl{opacity:1;}';
+    document.head.appendChild(st);
+    const box = document.createElement('div'); box.id = 'kaasaFab';
+    let html = '';
+    if (!onHelp) html +=
+      `<div class="fab-wrap"><span class="fab-lbl">도움말</span>` +
+      `<button class="fab-help" aria-label="도움말" title="이 화면 도움말" onclick="location.href='${helpHref}'">❓</button></div>`;
+    if (!onHome) html +=
+      `<div class="fab-wrap"><span class="fab-lbl">홈</span>` +
+      `<button class="fab-home" aria-label="홈으로" title="홈으로" onclick="location.href='${homeHref}'">🏠</button></div>`;
+    box.innerHTML = html;
+    if (html) document.body.appendChild(box);
+  }
+
   // 화면 헤더의 #farmSel 을 작물별 데모 농장 목록으로 통일 (각 화면 하드코딩 보완)
   function _syncFarmSelectors() {
     const cur = sessionStorage.getItem('sf_farm_id') || _farmId || 'farm_001';
@@ -689,7 +723,7 @@ const KaasaData = (() => {
   if (typeof document !== 'undefined') {
     document.addEventListener('DOMContentLoaded', () => {
       try {
-        _buildDrawer(); _bindMenuTab(); _renderStratBands(); _installPwa(); _syncFarmSelectors();
+        _buildDrawer(); _bindMenuTab(); _renderStratBands(); _installPwa(); _syncFarmSelectors(); _installFab();
         if (navigator && navigator.onLine === false) _setNet(false);  // 진입 시 오프라인이면 즉시 표시
       } catch (e) {}
     });
