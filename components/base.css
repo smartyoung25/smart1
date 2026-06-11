@@ -26,7 +26,7 @@
   --panel:        #ffffff;
   --panel-soft:   #f8fbf8;
   --border:       #dce6dc;
-  --text:         #1f2a24;
+  --text:         #25322c;   /* 순black 완화·가독성(흰배경 대비 ~10:1 AA) */
   --muted:        #4d5a52;  /* WCAG AA 대비 충족 (구 #607066 → 어둡게) */
 
   /* 그림자·반경 */
@@ -74,11 +74,16 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", sans-serif;
   background: var(--bg);
   color: var(--text);
-  line-height: 1.55;
+  font-size: 15px;              /* 가독성: 기본 폰트 확대(농가·고령 대응) */
+  line-height: 1.62;            /* 행간 확대로 읽기 편하게 */
+  letter-spacing: -.01em;
   -webkit-tap-highlight-color: transparent;
   padding-top: var(--header-h);
   padding-bottom: calc(var(--tab-h) + var(--safe-bottom));
 }
+/* 가독성: 너무 작은 글씨 하한 보정(레이아웃 영향 최소) */
+.kpi-label, .cost-sub, .drawer-head p, .sec-sub-label, .pest-cond { font-size: 11.5px !important; }
+.bnav-tab { font-size: 11px !important; }
 
 /* ── TOP HEADER ── */
 .sf-header {
