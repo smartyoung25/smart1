@@ -487,7 +487,8 @@ const KaasaData = (() => {
     { g: '경영·시스템', items: [
       ['c20_cluster_admin.html', '🗺️', '다중농가 클러스터 관제'],
       ['c17_diagnosis.html', '🩺', '시스템 종합진단'],
-      ['c16_equipment.html', '🔌', '시설 기자재'],
+      ['c16_equipment.html', '🔌', '시설 기자재 등록'],
+      ['c21_apply.html', '📝', '연동·서비스 신청'],
       ['c5_erp.html', '💰', '수익성 ERP'],
       ['c14_report.html', '📋', '월간 리포트'],
       ['c4_diagnosis.html', '📊', 'AI 진단'],

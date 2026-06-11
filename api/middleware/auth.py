@@ -37,6 +37,8 @@ _PUBLIC_PATHS: set[str] = {
     "/health",
     "/api/v1/auth/token",
     "/api/v1/auth/register",     # 신규 회원가입
+    "/api/v1/auth/password/forgot",  # 비밀번호 재설정 요청 (비인증)
+    "/api/v1/auth/password/reset",   # 새 비밀번호 설정 (토큰 자체 검증)
     "/api/v1/auth/onboarding",   # 온보딩 저장 (JWT 의존성으로 별도 검증)
     "/api/v1/auth/onboarding/status",
     "/api/telemetry/client",     # 클라이언트 에러 텔레메트리(비인증 수집)

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <title>비밀번호 재설정 | KAASA smartfarmingsight</title>
+  <link rel="stylesheet" href="../components/base.css"/>
+  <style>
+    .rs-body{padding:18px;max-width:420px;margin:0 auto;}
+    .rs-card{background:var(--panel);border:1.5px solid var(--border);border-radius:18px;box-shadow:var(--shadow);padding:22px 18px;}
+    .rs-ico{font-size:34px;text-align:center;}
+    .rs-h{font-size:18px;font-weight:900;text-align:center;margin:8px 0 4px;}
+    .rs-s{font-size:12.5px;color:var(--muted);text-align:center;line-height:1.5;margin-bottom:16px;}
+    .rs-label{font-size:13px;font-weight:700;display:block;margin:12px 0 6px;}
+    .rs-input{width:100%;min-height:48px;padding:12px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:15px;outline:none;}
+    .rs-input:focus{border-color:var(--green);}
+    .rs-btn{width:100%;min-height:50px;margin-top:16px;background:var(--green);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:800;cursor:pointer;}
+    .rs-result{margin-top:14px;font-size:13px;text-align:center;font-weight:700;min-height:18px;}
+  </style>
+</head>
+<body>
+<header class="sf-header">
+  <span style="font-size:13px;color:rgba(255,255,255,.85);cursor:pointer;" onclick="location.href='c0_signup.html?mode=login'">‹ 로그인</span>
+  <span style="font-size:15px;font-weight:800;color:#fff;">비밀번호 재설정</span>
+  <span style="width:40px;"></span>
+</header>
+<main class="rs-body">
+  <div class="rs-card">
+    <div class="rs-ico">🔑</div>
+    <div class="rs-h">새 비밀번호 설정</div>
+    <div class="rs-s">안전한 새 비밀번호를 입력하세요.<br>설정 후 새 비밀번호로 로그인됩니다.</div>
+    <div id="rsForm">
+      <label class="rs-label">새 비밀번호</label>
+      <input class="rs-input" id="np1" type="password" placeholder="4자 이상" autocomplete="new-password"/>
+      <label class="rs-label">새 비밀번호 확인</label>
+      <input class="rs-input" id="np2" type="password" placeholder="다시 입력" autocomplete="new-password" onkeydown="if(event.key==='Enter')_reset()"/>
+      <div id="rsResult" class="rs-result"></div>
+      <button class="rs-btn" onclick="_reset()">비밀번호 변경</button>
+    </div>
+  </div>
+</main>
+<script src="../components/data.js"></script>
+<script>
+'use strict';
+const _token=new URLSearchParams(location.search).get('token')||'';
+window.addEventListener('DOMContentLoaded',()=>{
+  if(!_token){
+    document.getElementById('rsForm').innerHTML=
+      '<div class="rs-result" style="color:var(--red)">유효하지 않은 접근입니다. 재설정 링크를 다시 요청하세요.</div>'+
+      '<button class="rs-btn" onclick="location.href=\'c0_signup.html?mode=login\'">로그인으로</button>';
+  }
+});
+async function _reset(){
+  const p1=document.getElementById('np1').value, p2=document.getElementById('np2').value;
+  const res=document.getElementById('rsResult');
+  if(p1.length<4){res.style.color='var(--red)';res.textContent='비밀번호는 4자 이상';return;}
+  if(p1!==p2){res.style.color='var(--red)';res.textContent='비밀번호가 일치하지 않습니다';return;}
+  res.style.color='var(--muted)';res.textContent='변경 중…';
+  try{
+    const api=sessionStorage.getItem('sf_api')||location.origin;
+    const r=await fetch(`${api}/api/v1/auth/password/reset`,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({token:_token,new_password:p1})});
+    const d=await r.json().catch(()=>({}));
+    if(r.ok){
+      res.style.color='var(--green)';res.textContent='✓ '+(d.detail||'변경 완료! 로그인으로 이동합니다…');
+      setTimeout(()=>location.href='c0_signup.html?mode=login',1600);
+    } else {
+      res.style.color='var(--red)';res.textContent=d.detail||`오류 ${r.status}`;
+    }
+  }catch(e){ res.style.color='var(--red)';res.textContent='네트워크 오류: '+e.message; }
+}
+</script>
+</body>
+</html>

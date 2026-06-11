@@ -1,6 +1,6 @@
 {
   "generated_at": "2026-05-10T10:48:35.173501",
-  "total_farms": 721,
+  "total_farms": 725,
   "area_stats_by_crop": {
     "가지": {
       "avg_m2": 1930.0,
@@ -9369,6 +9369,46 @@
       "sigungu": "논산",
       "area_m2": 1200.0,
       "name": "딸기 농장 (farm_growthtest75372)",
+      "iot_available": false,
+      "onboarding": true
+    },
+    "farm_link1": {
+      "crop": "감귤",
+      "crop_ko": "감귤",
+      "sido": "—",
+      "sigungu": "—",
+      "area_m2": 3000.0,
+      "name": "감귤 농장 (farm_link1)",
+      "iot_available": false,
+      "onboarding": true
+    },
+    "field_demo": {
+      "crop": "배추",
+      "crop_ko": "배추",
+      "sido": "전라남도",
+      "sigungu": "해남군",
+      "area_m2": 5000.0,
+      "name": "배추 농장 (field_demo)",
+      "iot_available": false,
+      "onboarding": true
+    },
+    "jeju_demo": {
+      "crop": "감귤",
+      "crop_ko": "감귤",
+      "sido": "제주특별자치도",
+      "sigungu": "서귀포시",
+      "area_m2": 3000.0,
+      "name": "감귤 농장 (jeju_demo)",
+      "iot_available": false,
+      "onboarding": true
+    },
+    "jeju_gam": {
+      "crop": "감귤",
+      "crop_ko": "감귤",
+      "sido": "제주특별자치도",
+      "sigungu": "서귀포시",
+      "area_m2": 3000.0,
+      "name": "감귤 농장 (jeju_gam)",
       "iot_available": false,
       "onboarding": true
     }

@@ -1,0 +1,62 @@
+[
+  {
+    "date": "2026-03-15",
+    "ts": "2026-03-15T02:00:00+00:00",
+    "overall": 52,
+    "grade": "개선필요",
+    "domains": {
+      "sensor": 50,
+      "actuator": 10,
+      "cultivation": 40,
+      "operation": 78,
+      "sales": 60,
+      "data": 40
+    },
+    "consultant": "김동민"
+  },
+  {
+    "date": "2026-04-20",
+    "ts": "2026-04-20T02:00:00+00:00",
+    "overall": 61,
+    "grade": "보통",
+    "domains": {
+      "sensor": 58,
+      "actuator": 20,
+      "cultivation": 55,
+      "operation": 90,
+      "sales": 70,
+      "data": 60
+    },
+    "consultant": "김동민"
+  },
+  {
+    "date": "2026-05-18",
+    "ts": "2026-05-18T02:00:00+00:00",
+    "overall": 68,
+    "grade": "보통",
+    "domains": {
+      "sensor": 67,
+      "actuator": 25,
+      "cultivation": 60,
+      "operation": 100,
+      "sales": 80,
+      "data": 80
+    },
+    "consultant": "구자정"
+  },
+  {
+    "date": "2026-06-09",
+    "ts": "2026-06-09T03:59:56+00:00",
+    "overall": 74,
+    "grade": "보통",
+    "domains": {
+      "sensor": 75,
+      "actuator": 28,
+      "cultivation": 38,
+      "operation": 100,
+      "sales": 100,
+      "data": 100
+    },
+    "consultant": "김동민"
+  }
+]

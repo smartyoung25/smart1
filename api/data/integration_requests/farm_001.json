@@ -1,0 +1,24 @@
+[
+  {
+    "kind": "equipment",
+    "title": "프리바 양액기",
+    "maker": "Priva",
+    "protocol": "Modbus",
+    "contact": "010-1234-5678",
+    "note": "",
+    "id": "req_1781150007",
+    "ts": "2026-06-11T03:53:27.936137+00:00",
+    "status": "접수"
+  },
+  {
+    "kind": "equipment",
+    "title": "테스트 연동",
+    "maker": "",
+    "protocol": "",
+    "contact": "010-1111-2222",
+    "note": "",
+    "id": "req_1781150308",
+    "ts": "2026-06-11T03:58:28.921196+00:00",
+    "status": "접수"
+  }
+]

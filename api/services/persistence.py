@@ -23,6 +23,7 @@ import logging
 import os
 import re
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
@@ -245,6 +246,51 @@ def get_user_by_username(username: str) -> Optional[dict]:
         return _dev_users.get(username)
 
 
+def get_user_by_email(email: str) -> Optional[dict]:
+    """이메일로 사용자 조회. 없으면 None. (비밀번호 찾기용)"""
+    if not email:
+        return None
+    engine = _get_engine()
+    if engine is None:
+        for u in _mem_users.values():
+            if u.get("email", "").lower() == email.lower():
+                return u
+        return None
+    try:
+        from sqlalchemy import text
+        with engine.connect() as conn:
+            row = conn.execute(
+                text("SELECT id, username, role, email, farm_id FROM users WHERE email = :e"),
+                {"e": email},
+            ).fetchone()
+        return dict(row._mapping) if row else None
+    except Exception as e:
+        logger.error("[persistence] get_user_by_email 오류: %s", e)
+        return None
+
+
+def set_user_password(username: str, hashed_password: str) -> bool:
+    """사용자 비밀번호 변경. 성공 시 True. (비밀번호 재설정용)"""
+    engine = _get_engine()
+    if engine is None:
+        u = _mem_users.get(username)
+        if not u:
+            return False
+        u["hashed_password"] = hashed_password
+        return True
+    try:
+        from sqlalchemy import text
+        with engine.begin() as conn:
+            res = conn.execute(
+                text("UPDATE users SET hashed_password = :hp WHERE username = :u"),
+                {"hp": hashed_password, "u": username},
+            )
+        return (res.rowcount or 0) > 0
+    except Exception as e:
+        logger.error("[persistence] set_user_password 오류: %s", e)
+        return False
+
+
 # ── 회원가입 ─────────────────────────────────────────────────────────────────
 
 def create_user(
@@ -252,6 +298,7 @@ def create_user(
     hashed_password: str,
     name: str = "",
     email: str = "",
+    phone: str = "",
     role: str = "farmer",
 ) -> dict:
     """신규 사용자 생성. 생성된 사용자 dict 반환. 중복 시 ValueError."""
@@ -267,7 +314,7 @@ def create_user(
         user = {
             "id": new_id, "username": username,
             "hashed_password": hashed_password,
-            "name": name, "email": email,
+            "name": name, "email": email, "phone": phone,
             "role": role, "farm_id": farm_id,
             "onboarding_completed": False,
         }
@@ -275,6 +322,27 @@ def create_user(
         return user
 
     # ── DB 경로 ────────────────────────────────────────────────────────────────
+    # phone 컬럼 존재 여부 사전 확인 (별도 트랜잭션 — ALTER 권한 없어도 가입 실패 방지).
+    # 컬럼이 없고 권한이 있으면 best-effort 보강, 없으면 컬럼 없이 INSERT하고
+    # 전화번호는 사이드 파일에 보존한다.
+    _has_phone_col = False
+    try:
+        from sqlalchemy import text as _t
+        with engine.connect() as _c:
+            _has_phone_col = bool(_c.execute(_t(
+                "SELECT 1 FROM information_schema.columns "
+                "WHERE table_name='users' AND column_name='phone'")).fetchone())
+        if not _has_phone_col:
+            try:
+                with engine.begin() as _c2:
+                    _c2.execute(_t("ALTER TABLE users ADD COLUMN phone VARCHAR(32)"))
+                _has_phone_col = True
+            except Exception as _e:
+                logger.info("[persistence] phone 컬럼 보강 권한 없음 — 사이드 파일 사용: %s",
+                            str(_e)[:80])
+    except Exception as _e:
+        logger.warning("[persistence] phone 컬럼 확인 실패: %s", str(_e)[:80])
+
     try:
         from sqlalchemy import text
         with engine.begin() as conn:
@@ -283,14 +351,34 @@ def create_user(
             if email and conn.execute(text("SELECT id FROM users WHERE email = :e"), {"e": email}).fetchone():
                 raise ValueError("이미 사용 중인 이메일입니다.")
 
-            row = conn.execute(
-                text("""
-                    INSERT INTO users (username, hashed_password, name, email, role, onboarding_completed)
-                    VALUES (:u, :hp, :n, :e, :r, FALSE)
-                    RETURNING id
-                """),
-                {"u": username, "hp": hashed_password, "n": name, "e": email or None, "r": role},
-            ).fetchone()
+            if _has_phone_col:
+                row = conn.execute(
+                    text("""
+                        INSERT INTO users (username, hashed_password, name, email, phone, role, onboarding_completed)
+                        VALUES (:u, :hp, :n, :e, :ph, :r, FALSE)
+                        RETURNING id
+                    """),
+                    {"u": username, "hp": hashed_password, "n": name, "e": email or None,
+                     "ph": phone or None, "r": role},
+                ).fetchone()
+            else:
+                row = conn.execute(
+                    text("""
+                        INSERT INTO users (username, hashed_password, name, email, role, onboarding_completed)
+                        VALUES (:u, :hp, :n, :e, :r, FALSE)
+                        RETURNING id
+                    """),
+                    {"u": username, "hp": hashed_password, "n": name, "e": email or None, "r": role},
+                ).fetchone()
+            # 전화번호 사이드 파일 보존 (컬럼 유무와 무관하게 항상 기록)
+            if phone:
+                try:
+                    _cp = Path(__file__).resolve().parents[1] / "data" / "user_contacts.json"
+                    _store = json.loads(_cp.read_text(encoding="utf-8")) if _cp.exists() else {}
+                    _store[username] = {"phone": phone, "email": email}
+                    _cp.write_text(json.dumps(_store, ensure_ascii=False, indent=2), encoding="utf-8")
+                except Exception as _e:
+                    logger.warning("[persistence] 연락처 사이드 저장 실패: %s", str(_e)[:80])
             user_id = row[0]
             farm_id = f"farm_{safe}"
 

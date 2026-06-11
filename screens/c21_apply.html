@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <title>C21 연동·서비스 신청 | KAASA smartfarmingsight</title>
+  <link rel="stylesheet" href="../components/base.css"/>
+  <style>
+    .ap-body{padding:14px;max-width:480px;margin:0 auto;}
+    .ap-cat{background:var(--panel);border:1.5px solid var(--border);border-radius:14px;box-shadow:var(--shadow);
+      padding:14px;margin-bottom:10px;display:flex;gap:13px;align-items:flex-start;cursor:pointer;transition:transform .12s;}
+    .ap-cat:active{transform:scale(.99);}
+    .ap-cat .ic{font-size:22px;width:44px;height:44px;display:flex;align-items:center;justify-content:center;background:var(--green-soft);border-radius:12px;flex:0 0 auto;}
+    .ap-cat .t{flex:1;}
+    .ap-cat .tt{font-size:14px;font-weight:800;}
+    .ap-cat .ds{font-size:11.5px;color:var(--muted);margin-top:3px;line-height:1.45;}
+    .ap-cat .go{font-size:11px;font-weight:800;color:var(--green-dark);align-self:center;}
+    /* 신청 폼 시트 */
+    .sheet-ov{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;display:none;}
+    .sheet-ov.open{display:block;}
+    .sheet{position:fixed;left:0;right:0;bottom:0;z-index:201;background:var(--panel);border-radius:18px 18px 0 0;
+      padding:18px 16px calc(18px + env(safe-area-inset-bottom));max-width:480px;margin:0 auto;transform:translateY(100%);transition:transform .25s;}
+    .sheet.open{transform:none;}
+    .ap-label{font-size:12.5px;font-weight:700;display:block;margin:10px 0 5px;}
+    .ap-input{width:100%;min-height:46px;padding:11px 13px;border:1.5px solid var(--border);border-radius:10px;font-size:14.5px;outline:none;}
+    .ap-input:focus{border-color:var(--green);}
+    .ap-btn{width:100%;min-height:48px;margin-top:14px;background:var(--green);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:800;cursor:pointer;}
+    .req-row{display:flex;gap:10px;align-items:center;padding:11px 13px;background:var(--panel);border:1px solid var(--border);border-radius:12px;margin-bottom:8px;}
+    .req-st{font-size:10px;font-weight:800;padding:3px 8px;border-radius:8px;background:var(--blue-soft);color:var(--blue);white-space:nowrap;}
+  </style>
+</head>
+<body>
+<header class="sf-header">
+  <span style="font-size:13px;color:rgba(255,255,255,.85);cursor:pointer;" onclick="location.href='../index.html'">‹ 메뉴</span>
+  <span style="font-size:15px;font-weight:800;color:#fff;">연동·서비스 신청</span>
+  <span style="width:40px;"></span>
+</header>
+<main class="ap-body">
+  <div class="section-label">신청 가능한 항목</div>
+  <div id="catList"><div style="text-align:center;padding:14px;color:var(--muted);font-size:13px;">로드 중…</div></div>
+
+  <div class="section-label" style="margin-top:18px;">내 신청 내역</div>
+  <div id="reqList"><div style="text-align:center;padding:12px;color:var(--muted);font-size:12.5px;">신청 내역이 없습니다.</div></div>
+</main>
+
+<!-- 신청 폼 시트 -->
+<div class="sheet-ov" id="ov" onclick="_close()"></div>
+<div class="sheet" id="sheet">
+  <div style="width:38px;height:4px;background:var(--border);border-radius:3px;margin:0 auto 12px;"></div>
+  <div id="shTitle" style="font-size:16px;font-weight:900;">신청</div>
+  <div id="shDesc" style="font-size:12px;color:var(--muted);margin-top:3px;"></div>
+  <label class="ap-label">장비/서비스명 <span style="color:var(--red)">*</span></label>
+  <input class="ap-input" id="apTitle" placeholder="예: 프리바 양액기 / 흙토람 토양검정"/>
+  <div id="eqFields">
+    <label class="ap-label">제조사</label>
+    <input class="ap-input" id="apMaker" placeholder="예: Priva, Hortimax"/>
+    <label class="ap-label">통신 프로토콜</label>
+    <input class="ap-input" id="apProto" placeholder="예: Modbus TCP, BACnet, MQTT"/>
+  </div>
+  <label class="ap-label">연락처 <span style="color:var(--red)">*</span></label>
+  <input class="ap-input" id="apContact" placeholder="010-1234-5678 또는 이메일"/>
+  <label class="ap-label">요청 내용</label>
+  <input class="ap-input" id="apNote" placeholder="추가로 전달할 내용(선택)"/>
+  <div id="apResult" style="margin-top:10px;font-size:12.5px;font-weight:700;text-align:center;min-height:16px;"></div>
+  <button class="ap-btn" onclick="_submitReq()">신청 접수</button>
+</div>
+
+<nav class="sf-bottom-nav">
+  <button class="bnav-tab" onclick="location.href='c3_home.html'"><span class="bnav-icon">🏠</span>홈</button>
+  <button class="bnav-tab" onclick="location.href='g1_home.html'"><span class="bnav-icon">🌱</span>온실</button>
+  <button class="bnav-tab" onclick="location.href='f1_field.html'"><span class="bnav-icon">🌾</span>노지</button>
+  <button class="bnav-tab" onclick="location.href='c12_joint.html'"><span class="bnav-icon">🚚</span>출하</button>
+  <button class="bnav-tab active"><span class="bnav-icon">≡</span>메뉴</button>
+</nav>
+<script src="../components/data.js"></script>
+<script>
+'use strict';
+let _api, _token, _farm, _cur=null;
+async function _ensure(){
+  _api=sessionStorage.getItem('sf_api')||location.origin;
+  _token=sessionStorage.getItem('sf_token');
+  if(!_token){const r=await fetch(`${_api}/api/v1/auth/token`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:'admin',password:'1250'})});if(r.ok){_token=(await r.json()).access_token;sessionStorage.setItem('sf_token',_token);}}
+  _farm=sessionStorage.getItem('sf_farm_id')||'farm_001';
+}
+function _H(){return {Authorization:`Bearer ${_token}`,'Content-Type':'application/json'};}
+
+async function _load(){
+  await _ensure();
+  // 카탈로그
+  try{
+    const c=await fetch(`${_api}/api/farms/${_farm}/integration-catalog`,{headers:_H()}).then(r=>r.json());
+    document.getElementById('catList').innerHTML=(c.items||[]).map(it=>`
+      <div class="ap-cat" onclick='_open(${JSON.stringify(it).replace(/'/g,"&#39;")})'>
+        <span class="ic">${it.icon}</span>
+        <div class="t"><div class="tt">${it.title}</div><div class="ds">${it.desc}</div></div>
+        <span class="go">신청 ›</span>
+      </div>`).join('');
+  }catch(e){ document.getElementById('catList').innerHTML='<div style="color:var(--red);font-size:12px;padding:10px;">목록 로드 실패</div>'; }
+  _loadReqs();
+}
+async function _loadReqs(){
+  try{
+    const d=await fetch(`${_api}/api/farms/${_farm}/integration-request`,{headers:_H()}).then(r=>r.json());
+    const rl=document.getElementById('reqList');
+    if(!d.requests||!d.requests.length){rl.innerHTML='<div style="text-align:center;padding:12px;color:var(--muted);font-size:12.5px;">신청 내역이 없습니다.</div>';return;}
+    rl.innerHTML=d.requests.slice().reverse().map(r=>`
+      <div class="req-row"><span style="font-size:18px;">${({equipment:'🔌',external_data:'🛰️',expert:'👨‍🌾',upgrade:'⭐'})[r.kind]||'📄'}</span>
+        <div style="flex:1;"><div style="font-size:13px;font-weight:700;">${r.title}</div>
+          <div style="font-size:11px;color:var(--muted);">${(r.ts||'').slice(0,10)} · ${r.maker||r.contact||''}</div></div>
+        <span class="req-st">${r.status||'접수'}</span></div>`).join('');
+  }catch(e){}
+}
+function _open(it){
+  _cur=it;
+  document.getElementById('shTitle').textContent=it.title;
+  document.getElementById('shDesc').textContent=it.desc;
+  document.getElementById('eqFields').style.display = (it.kind==='equipment')?'block':'none';
+  ['apTitle','apMaker','apProto','apContact','apNote'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('apResult').textContent='';
+  document.getElementById('ov').classList.add('open');
+  document.getElementById('sheet').classList.add('open');
+}
+function _close(){document.getElementById('ov').classList.remove('open');document.getElementById('sheet').classList.remove('open');}
+async function _submitReq(){
+  const res=document.getElementById('apResult');
+  const title=document.getElementById('apTitle').value.trim();
+  const contact=document.getElementById('apContact').value.trim();
+  if(!title){res.style.color='var(--red)';res.textContent='장비/서비스명을 입력하세요';return;}
+  if(!contact){res.style.color='var(--red)';res.textContent='연락처를 입력하세요';return;}
+  res.style.color='var(--muted)';res.textContent='접수 중…';
+  try{
+    const body={kind:_cur.kind,title:title,maker:document.getElementById('apMaker').value.trim(),
+      protocol:document.getElementById('apProto').value.trim(),contact:contact,note:document.getElementById('apNote').value.trim()};
+    const r=await fetch(`${_api}/api/farms/${_farm}/integration-request`,{method:'POST',headers:_H(),body:JSON.stringify(body)});
+    const d=await r.json().catch(()=>({}));
+    if(r.ok){
+      res.style.color='var(--green)';res.textContent='✓ '+(d.note||'신청이 접수되었습니다.');
+      setTimeout(()=>{_close();_loadReqs();},1400);
+    } else if(r.status===403){
+      res.style.color='var(--green)';res.textContent='✓ 신청 접수(데모 모드)';
+      setTimeout(()=>_close(),1400);
+    } else { res.style.color='var(--red)';res.textContent=d.detail||`오류 ${r.status}`; }
+  }catch(e){ res.style.color='var(--red)';res.textContent='네트워크 오류: '+e.message; }
+}
+window.addEventListener('DOMContentLoaded',_load);
+</script>
+</body>
+</html>

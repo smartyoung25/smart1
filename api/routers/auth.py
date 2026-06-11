@@ -13,8 +13,14 @@ import os
 from pathlib import Path
 from typing import List, Optional
 
+import re as _re
+
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+_EMAIL_RE = _re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+# 국내 휴대폰/일반전화: 숫자·하이픈 허용, 숫자 9~11자리
+_PHONE_RE = _re.compile(r"^0\d{1,2}-?\d{3,4}-?\d{4}$")
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
@@ -43,7 +49,35 @@ class RegisterRequest(BaseModel):
     username: str = Field(..., min_length=3, max_length=32)
     password: str = Field(..., min_length=4, max_length=64)
     name: str = Field("", max_length=64)
+    email: str = Field(..., min_length=5, max_length=128)   # 필수
+    phone: str = Field(..., min_length=9, max_length=20)    # 필수 (연락처)
+
+    @field_validator("email")
+    @classmethod
+    def _chk_email(cls, v: str) -> str:
+        v = (v or "").strip()
+        if not _EMAIL_RE.match(v):
+            raise ValueError("올바른 이메일 형식이 아닙니다.")
+        return v
+
+    @field_validator("phone")
+    @classmethod
+    def _chk_phone(cls, v: str) -> str:
+        v = (v or "").strip()
+        if not _PHONE_RE.match(v):
+            raise ValueError("올바른 전화번호 형식이 아닙니다. (예: 010-1234-5678)")
+        return v
+
+
+class PasswordForgotRequest(BaseModel):
+    # 아이디 또는 이메일 중 하나로 식별
+    username: str = Field("", max_length=64)
     email: str = Field("", max_length=128)
+
+
+class PasswordResetRequest(BaseModel):
+    token: str = Field(..., min_length=10, max_length=128)
+    new_password: str = Field(..., min_length=4, max_length=64)
 
 
 class OnboardingRequest(BaseModel):
@@ -233,6 +267,7 @@ async def register(req: RegisterRequest):
             hashed_password=_hash_password(req.password),
             name=req.name,
             email=req.email,
+            phone=req.phone,
             role="farmer",
         )
     except ValueError as e:
@@ -242,6 +277,90 @@ async def register(req: RegisterRequest):
         raise HTTPException(status_code=500, detail="회원가입 처리 중 오류가 발생했습니다.")
 
     return _build_token_response(user, onboarding_required=True)
+
+
+# ── 비밀번호 찾기 / 재설정 (이메일 연동) ──────────────────────────────────────────
+
+import secrets as _secrets
+import time as _time
+
+_RESET_PATH = Path(__file__).parent.parent / "data" / "password_resets.json"
+_RESET_TTL = 1800   # 30분
+
+
+def _load_resets() -> dict:
+    try:
+        if _RESET_PATH.exists():
+            return json.loads(_RESET_PATH.read_text(encoding="utf-8"))
+    except Exception:
+        pass
+    return {}
+
+
+def _save_resets(d: dict) -> None:
+    try:
+        _RESET_PATH.write_text(json.dumps(d, ensure_ascii=False, indent=2), encoding="utf-8")
+    except Exception as e:
+        logger.error("[auth] 재설정 토큰 저장 실패: %s", e)
+
+
+@router.post("/password/forgot", summary="비밀번호 재설정 요청 (이메일 발송)")
+async def password_forgot(req: PasswordForgotRequest):
+    """아이디 또는 이메일로 사용자를 찾아 재설정 링크를 이메일로 발송.
+    사용자 열거 방지를 위해 응답 메시지는 항상 동일하다."""
+    from api.services.persistence import get_user_by_username, get_user_by_email
+    from api.services import mailer
+
+    user = None
+    if req.username:
+        user = get_user_by_username(req.username)
+    if not user and req.email:
+        user = get_user_by_email(req.email)
+
+    generic = {"detail": "가입된 계정이라면 등록된 이메일로 재설정 안내를 보냈습니다."}
+    if not user:
+        return generic
+
+    token = _secrets.token_urlsafe(24)
+    store = _load_resets()
+    # 만료 토큰 청소
+    now = int(_time.time())
+    store = {k: v for k, v in store.items() if v.get("exp", 0) > now}
+    store[token] = {"username": user["username"], "exp": now + _RESET_TTL}
+    _save_resets(store)
+
+    email = user.get("email") or req.email
+    base = os.environ.get("PUBLIC_BASE_URL", "").rstrip("/")
+    link = f"{base}/screens/c0_reset.html?token={token}"
+    ok, _msg = mailer.send_email(
+        email, "[KAASA smartfarmingsight] 비밀번호 재설정",
+        f"안녕하세요.\n\n아래 링크에서 새 비밀번호를 설정하세요. (30분간 유효)\n{link}\n\n"
+        f"본인이 요청하지 않았다면 이 메일을 무시하세요.",
+    )
+
+    resp = dict(generic)
+    if not ok:
+        # 이메일 서버 미설정(데모) — 정직하게 재설정 링크를 직접 반환
+        resp["demo_reset_link"] = link
+        resp["note"] = "이메일 서버 미설정(데모): 위 링크로 직접 재설정하세요. (운영 시 SMTP_* 환경변수 주입하면 자동 메일 발송)"
+    return resp
+
+
+@router.post("/password/reset", summary="새 비밀번호 설정 (토큰 검증)")
+async def password_reset(req: PasswordResetRequest):
+    from api.services.persistence import set_user_password
+
+    store = _load_resets()
+    entry = store.get(req.token)
+    if not entry or entry.get("exp", 0) < int(_time.time()):
+        raise HTTPException(status_code=400, detail="유효하지 않거나 만료된 링크입니다. 다시 요청하세요.")
+
+    if not set_user_password(entry["username"], _hash_password(req.new_password)):
+        raise HTTPException(status_code=500, detail="비밀번호 변경에 실패했습니다.")
+
+    store.pop(req.token, None)
+    _save_resets(store)
+    return {"detail": "비밀번호가 변경되었습니다. 새 비밀번호로 로그인하세요."}
 
 
 # ── 온보딩 저장 ───────────────────────────────────────────────────────────────

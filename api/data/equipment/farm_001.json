@@ -1,0 +1,173 @@
+[
+  {
+    "device_id": "ENV-TH-01",
+    "category": "sensor",
+    "device_type": "온습도 센서",
+    "location": "1동 1구역",
+    "maker": "프리바",
+    "model": "",
+    "protocol": "Modbus-TCP",
+    "host": "",
+    "port": null,
+    "unit_id": null,
+    "datapoints": [
+      {
+        "tag": "reg_40001",
+        "canonical_name": "temp_internal",
+        "unit": "°C",
+        "scale": 0.1,
+        "poll_interval": 60
+      },
+      {
+        "tag": "reg_40002",
+        "canonical_name": "humidity_int",
+        "unit": "%",
+        "scale": 0.1,
+        "poll_interval": 60
+      }
+    ],
+    "install_date": "",
+    "ts": "2026-06-08T09:53:11.369150+00:00"
+  },
+  {
+    "device_id": "ENV-CO2-01",
+    "category": "sensor",
+    "device_type": "CO₂ 센서",
+    "location": "1동 1구역",
+    "maker": "씨드로닉스",
+    "model": "",
+    "protocol": "Modbus-RTU(RS485)",
+    "host": "",
+    "port": null,
+    "unit_id": null,
+    "datapoints": [
+      {
+        "tag": "reg_30010",
+        "canonical_name": "co2_ppm",
+        "unit": "ppm",
+        "poll_interval": 60
+      }
+    ],
+    "install_date": "",
+    "ts": "2026-06-08T09:53:13.415692+00:00"
+  },
+  {
+    "device_id": "IRR-EC-01",
+    "category": "irrigation",
+    "device_type": "양액기(EC/pH)",
+    "location": "양액실",
+    "maker": "그린씨에스",
+    "model": "",
+    "protocol": "MQTT",
+    "host": "",
+    "port": null,
+    "unit_id": null,
+    "datapoints": [
+      {
+        "tag": "nutri/ec",
+        "canonical_name": "ec_dsm",
+        "unit": "dS/m",
+        "poll_interval": 30
+      },
+      {
+        "tag": "nutri/ph",
+        "canonical_name": "ph",
+        "unit": "-",
+        "poll_interval": 30
+      },
+      {
+        "tag": "nutri/drain",
+        "canonical_name": "drain_pct",
+        "unit": "%",
+        "poll_interval": 60
+      }
+    ],
+    "install_date": "",
+    "ts": "2026-06-08T09:53:15.452991+00:00"
+  },
+  {
+    "device_id": "ACT-VENT-01",
+    "category": "env_actuator",
+    "device_type": "천창 개폐기",
+    "location": "1동",
+    "maker": "우성하이텍",
+    "model": "",
+    "protocol": "Modbus-TCP",
+    "host": "",
+    "port": null,
+    "unit_id": null,
+    "datapoints": [
+      {
+        "tag": "coil_01",
+        "canonical_name": "vent_open_pct",
+        "unit": "%",
+        "rw": "read/write",
+        "actuator_response_s": 45,
+        "cmd_feedback_offset": 2.0
+      }
+    ],
+    "install_date": "",
+    "ts": "2026-06-08T09:53:17.526890+00:00"
+  },
+  {
+    "device_id": "ACT-HEAT-01",
+    "category": "env_actuator",
+    "device_type": "난방기",
+    "location": "기계실",
+    "maker": "신한에이텍",
+    "model": "",
+    "protocol": "디지털접점(DI/DO)",
+    "host": "",
+    "port": null,
+    "unit_id": null,
+    "datapoints": [
+      {
+        "tag": "do_03",
+        "canonical_name": "heating_temp_set",
+        "unit": "°C",
+        "rw": "write",
+        "actuator_response_s": 120,
+        "cmd_feedback_offset": 1.5
+      }
+    ],
+    "install_date": "",
+    "ts": "2026-06-08T09:53:19.559754+00:00"
+  },
+  {
+    "device_id": "PWR-01",
+    "category": "energy",
+    "device_type": "전력량계",
+    "location": "수전반",
+    "maker": "LS일렉트릭",
+    "model": "",
+    "protocol": "Modbus-TCP",
+    "host": "",
+    "port": null,
+    "unit_id": null,
+    "datapoints": [
+      {
+        "tag": "reg_50001",
+        "canonical_name": "power_kwh",
+        "unit": "kWh",
+        "poll_interval": 300
+      }
+    ],
+    "install_date": "",
+    "ts": "2026-06-08T09:53:21.616891+00:00"
+  },
+  {
+    "device_id": "dev204",
+    "category": "양액기",
+    "device_type": "",
+    "location": "",
+    "maker": "Priva",
+    "model": "",
+    "protocol": "Modbus",
+    "host": "",
+    "port": null,
+    "unit_id": null,
+    "datapoints": [],
+    "install_date": "",
+    "ts": "2026-06-11T03:58:26.887387+00:00"
+  }
+]

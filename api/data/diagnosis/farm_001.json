@@ -1,0 +1,21 @@
+{
+  "responses": {
+    "nutrient_mix": {
+      "status": "bad",
+      "memo": "필터 막힘·AB농도 편차"
+    },
+    "raw_water": {
+      "status": "warn",
+      "memo": "저수량 낮음"
+    },
+    "pest_disease": {
+      "status": "bad",
+      "memo": "흰가루병 확산"
+    },
+    "sensor_calib": {
+      "status": "good"
+    }
+  },
+  "consultant": "김동민",
+  "updated_at": "2026-06-09T02:53:10.684010+00:00"
+}

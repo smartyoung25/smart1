@@ -1,0 +1,11 @@
+{
+  "2026-06": {
+    "income_rate": 98.0,
+    "cost_per_kg": 251.0,
+    "energy_per_kg": 50.2,
+    "yield": 12.38,
+    "price": 12500,
+    "alerts": 2,
+    "avg_ach": 123
+  }
+}

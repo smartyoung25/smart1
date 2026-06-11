@@ -3270,6 +3270,74 @@ def post_equipment(farm_id: str, body: EquipmentItem):
             "note": "표준변수로 매핑된 포인트는 제조사·프로토콜 무관하게 화면·모델이 사용합니다."}
 
 
+class IntegrationRequest(BaseModel):
+    """연동·서비스 신청 1건 (이기종 장비 연동·외부데이터·전문가 컨설팅 등)."""
+    kind:        str = Field(..., max_length=40)   # equipment | external_data | expert | upgrade | other
+    title:       str = Field(..., max_length=120)
+    maker:       str = Field("", max_length=64)
+    protocol:    str = Field("", max_length=40)
+    contact:     str = Field("", max_length=64)    # 연락처(전화/이메일)
+    note:        str = Field("", max_length=500)
+
+
+# 신청 가능한 항목 카탈로그 (메뉴·화면에서 노출)
+_INTEGRATION_CATALOG = [
+    {"kind": "equipment",     "icon": "🔌", "title": "이기종 장비 연동 신청",
+     "desc": "제조사·프로토콜(Modbus·BACnet·MQTT 등) 무관 장비를 표준변수로 연동", "target": "c16_equipment.html"},
+    {"kind": "external_data", "icon": "🛰️", "title": "외부 데이터 연동 신청",
+     "desc": "흙토람 토양검정·팜맵 필지·위성 NDVI·기상/시세 외부 데이터 연계", "target": "c16_equipment.html"},
+    {"kind": "expert",        "icon": "👨‍🌾", "title": "전문가 컨설팅 신청",
+     "desc": "현장 진단 결과 기반 재배·경영 전문가 매칭 컨설팅", "target": "c4_diagnosis.html"},
+    {"kind": "upgrade",       "icon": "⭐", "title": "서비스 등급 업그레이드 신청",
+     "desc": "정밀제어·AI 출하예측 등 상위 기능 활성화", "target": "c8_billing.html"},
+]
+
+
+def _integration_path(farm_id: str):
+    from pathlib import Path as _P
+    d = _P(__file__).resolve().parents[1] / "data" / "integration_requests"
+    d.mkdir(parents=True, exist_ok=True)
+    return d / f"{farm_id}.json"
+
+
+@router.get("/integration-catalog", summary="신청 가능한 연동·서비스 항목 목록")
+def get_integration_catalog(farm_id: str):
+    return {"farm_id": farm_id, "items": _INTEGRATION_CATALOG}
+
+
+@router.get("/integration-request", summary="제출한 연동·서비스 신청 내역")
+def list_integration_requests(farm_id: str):
+    import json as _json
+    fp = _integration_path(farm_id)
+    items = []
+    if fp.exists():
+        try: items = _json.loads(fp.read_text(encoding="utf-8"))
+        except Exception: items = []
+    return {"farm_id": farm_id, "requests": items, "total": len(items)}
+
+
+@router.post("/integration-request", summary="연동·서비스 신청 접수")
+def post_integration_request(farm_id: str, body: IntegrationRequest):
+    import json as _json
+    from datetime import datetime as _dt, timezone as _tz
+    _require_farm(farm_id)
+    fp = _integration_path(farm_id)
+    items = []
+    if fp.exists():
+        try: items = _json.loads(fp.read_text(encoding="utf-8"))
+        except Exception: items = []
+    rec = body.model_dump()
+    rec["id"] = f"req_{int(_dt.now(_tz.utc).timestamp())}"
+    rec["ts"] = _dt.now(_tz.utc).isoformat()
+    rec["status"] = "접수"   # 접수 → 검토 → 연동완료
+    items.append(rec)
+    try: fp.write_text(_json.dumps(items, ensure_ascii=False, indent=2), encoding="utf-8")
+    except Exception: pass
+    return {"farm_id": farm_id, "accepted": True, "request_id": rec["id"],
+            "status": rec["status"], "total": len(items),
+            "note": "신청이 접수되었습니다. 담당자가 검토 후 연동을 진행합니다."}
+
+
 @router.delete("/equipment/{device_id}", summary="기자재 삭제")
 def delete_equipment(farm_id: str, device_id: str):
     import json as _json

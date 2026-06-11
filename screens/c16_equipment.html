@@ -51,6 +51,14 @@
   <div id="eqList"><div class="eq-empty">불러오는 중…</div></div>
   <button class="addbtn" style="margin-top:12px;" onclick="_openAdd()">＋ 장비 추가</button>
 
+  <!-- 직접 등록이 어려운 장비는 연동 신청 -->
+  <a href="c21_apply.html" style="display:flex;align-items:center;gap:11px;margin-top:10px;padding:13px 14px;background:var(--blue-soft);border:1.5px solid var(--blue);border-radius:12px;text-decoration:none;color:var(--text);">
+    <span style="font-size:20px;">📝</span>
+    <div style="flex:1;"><div style="font-size:13px;font-weight:800;color:var(--blue);">이기종 장비 연동 신청</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:2px;">직접 등록이 어려운 장비·외부 데이터는 연동 신청하면 담당자가 처리합니다</div></div>
+    <span style="font-size:16px;color:var(--blue);">›</span>
+  </a>
+
   <div id="nextStep" style="display:none;margin-top:16px;">
     <div style="font-size:13px;color:var(--muted);text-align:center;margin-bottom:10px;line-height:1.5;">장비 연동을 마쳤습니다. 다음으로 <b>시스템 종합진단</b>으로 현재 역량과 개선 처방을 확인하세요.</div>
     <button onclick="location.href='c17_diagnosis.html'" style="width:100%;padding:14px;background:var(--green);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:800;cursor:pointer;min-height:48px;">🩺 종합진단 받기 →</button>

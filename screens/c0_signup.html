@@ -47,7 +47,16 @@
     <input class="signup-input" id="lPass" type="password" placeholder="비밀번호" autocomplete="current-password" onkeydown="if(event.key==='Enter')_login()"/>
     <div id="loginResult" style="margin-top:12px;font-size:13px;text-align:center;font-weight:700;min-height:18px;"></div>
     <div style="text-align:center;margin-top:14px;font-size:12px;color:var(--muted);">
+      <a href="javascript:void(0)" onclick="_forgot()" style="color:var(--blue);font-weight:800;">비밀번호 찾기</a>
+      <span style="margin:0 8px;opacity:.4;">|</span>
       처음이신가요? <a href="javascript:void(0)" onclick="_setMode('signup')" style="color:var(--green-dark,#15803d);font-weight:800;">회원가입</a>
+    </div>
+    <div id="forgotBox" style="display:none;margin-top:14px;padding:14px;background:var(--blue-soft);border-radius:12px;">
+      <div style="font-size:13px;font-weight:800;margin-bottom:8px;">🔑 비밀번호 재설정</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">가입한 이메일을 입력하면 재설정 링크를 보내드립니다.</div>
+      <input class="signup-input" id="fgEmail" type="email" inputmode="email" placeholder="가입 이메일"/>
+      <div id="forgotResult" style="margin-top:8px;font-size:12px;font-weight:700;"></div>
+      <button class="btn-submit" style="margin-top:10px;min-height:44px;" onclick="_sendForgot()">재설정 링크 받기</button>
     </div>
   </div>
 
@@ -63,8 +72,10 @@
   <input class="signup-input" id="fPass" type="password" placeholder="4자 이상"/>
   <label class="signup-label">이름</label>
   <input class="signup-input" id="fName" placeholder="성명"/>
-  <label class="signup-label">이메일 (선택)</label>
-  <input class="signup-input" id="fEmail" type="email" placeholder="example@farm.kr"/>
+  <label class="signup-label">이메일 <span style="color:var(--red)">*</span></label>
+  <input class="signup-input" id="fEmail" type="email" inputmode="email" placeholder="example@farm.kr"/>
+  <label class="signup-label">전화번호 <span style="color:var(--red)">*</span></label>
+  <input class="signup-input" id="fPhone" type="tel" inputmode="tel" placeholder="010-1234-5678" maxlength="13"/>
 
   <div class="section-label" style="margin-top:14px;">관심 기능 (복수 선택)</div>
   <div class="feat-chip-wrap" id="featChips"></div>
@@ -140,6 +151,37 @@ async function _login(){
     }
   }catch(e){ res.style.color='var(--red)';res.textContent='네트워크 오류: '+e.message; }
 }
+// 비밀번호 찾기 — 박스 토글
+function _forgot(){
+  const b=document.getElementById('forgotBox');
+  b.style.display = b.style.display==='none' ? 'block' : 'none';
+  if(b.style.display==='block'){
+    const lv=document.getElementById('lUser').value.trim();
+    // 로그인칸이 이메일 형태면 미리 채움
+    if(/@/.test(lv)) document.getElementById('fgEmail').value=lv;
+    document.getElementById('fgEmail').focus();
+  }
+}
+async function _sendForgot(){
+  const email=document.getElementById('fgEmail').value.trim();
+  const res=document.getElementById('forgotResult');
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){res.style.color='var(--red)';res.textContent='올바른 이메일을 입력하세요';return;}
+  res.style.color='var(--muted)';res.textContent='요청 중…';
+  try{
+    const api=sessionStorage.getItem('sf_api')||location.origin;
+    const r=await fetch(`${api}/api/v1/auth/password/forgot`,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({email:email})});
+    const d=await r.json().catch(()=>({}));
+    if(d.demo_reset_link){
+      // 이메일 미설정(데모): 링크 직접 안내
+      res.style.color='var(--blue)';
+      res.innerHTML=`✓ ${d.detail||'요청 접수'}<br><a href="${d.demo_reset_link}" style="color:var(--blue);font-weight:800;text-decoration:underline;">▶ 비밀번호 재설정하기</a><br><span style="font-size:10px;color:var(--muted);">(이메일 서버 미설정 데모 — 운영 시 메일 자동 발송)</span>`;
+    } else {
+      res.style.color='var(--green)';res.textContent='✓ '+(d.detail||'등록된 이메일로 재설정 안내를 보냈습니다.');
+    }
+  }catch(e){ res.style.color='var(--red)';res.textContent='네트워크 오류: '+e.message; }
+}
+
 // 역할별 가입 후 첫 화면 (농가=농장세팅 / 유통=공동출하 / 전문가=AI진단 / 공공=클러스터관제)
 const _LAND={farmer:['c1_setup.html','농장 세팅'], org:['c1_setup.html','농장 세팅'],
   distributor:['c12_joint.html','공동출하·산지소싱'], expert:['c4_diagnosis.html','AI 진단·컨설팅'],
@@ -148,20 +190,37 @@ function _landing(){ return (_LAND[_role]||_LAND.farmer)[0]; }
 function _landingLabel(){ return (_LAND[_role]||_LAND.farmer)[1]; }
 function _toggleFeat(f,el){const i=_feats.indexOf(f);if(i>=0){_feats.splice(i,1);el.classList.remove('sel');}else{_feats.push(f);el.classList.add('sel');}}
 
+const _EMAIL_RE=/^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+const _PHONE_RE=/^0\d{1,2}-?\d{3,4}-?\d{4}$/;
+// 전화번호 입력 시 자동 하이픈
+window.addEventListener('DOMContentLoaded',()=>{
+  const ph=document.getElementById('fPhone');
+  if(ph) ph.addEventListener('input',e=>{
+    let v=e.target.value.replace(/[^0-9]/g,'').slice(0,11);
+    if(v.length>=11) v=v.replace(/(\d{3})(\d{4})(\d{4})/,'$1-$2-$3');
+    else if(v.length>=7) v=v.replace(/(\d{3})(\d{3,4})(\d{0,4})/,'$1-$2-$3').replace(/-$/,'');
+    else if(v.length>=4) v=v.replace(/(\d{3})(\d{0,4})/,'$1-$2').replace(/-$/,'');
+    e.target.value=v;
+  });
+});
+
 async function _submit(){
   const user=document.getElementById('fUser').value.trim();
   const pass=document.getElementById('fPass').value;
   const name=document.getElementById('fName').value.trim();
   const email=document.getElementById('fEmail').value.trim();
+  const phone=document.getElementById('fPhone').value.trim();
   const res=document.getElementById('signupResult');
   if(!_role){res.style.color='var(--red)';res.textContent='회원 유형을 선택하세요';return;}
   if(user.length<3){res.style.color='var(--red)';res.textContent='아이디는 3자 이상';return;}
   if(pass.length<4){res.style.color='var(--red)';res.textContent='비밀번호는 4자 이상';return;}
+  if(!_EMAIL_RE.test(email)){res.style.color='var(--red)';res.textContent='올바른 이메일을 입력하세요 (필수)';return;}
+  if(!_PHONE_RE.test(phone)){res.style.color='var(--red)';res.textContent='올바른 전화번호를 입력하세요 (예: 010-1234-5678)';return;}
   res.style.color='var(--muted)';res.textContent='가입 처리 중…';
   try{
     const api=sessionStorage.getItem('sf_api')||location.origin;
     const r=await fetch(`${api}/api/v1/auth/register`,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({username:user,password:pass,name:name,email:email})});
+      body:JSON.stringify({username:user,password:pass,name:name,email:email,phone:phone})});
     if(r.ok){
       const d=await r.json();
       if(d.access_token) sessionStorage.setItem('sf_token',d.access_token);
