@@ -835,27 +835,44 @@ function _renderPrices() {
 // ── 수확 예측 조회 ──────────────────────────────────────────────────────────
 async function _loadYieldForecast(token, farmId) {
   try {
-    const apiBase = KaasaData.getApiBase();
-    const res = await fetch(`${apiBase}/api/farms/${farmId}/summary`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (!res.ok) return;
-    const d = await res.json();
-    const yield_kg = d.predicted_yield_kg ?? d.yield_forecast_kg ?? null;
-    const yEl = document.getElementById('kpiYield');
-    if (yEl && yield_kg != null) {
-      yEl.innerHTML = `${Number(yield_kg).toFixed(1)}<span style="font-size:13px;font-weight:400"> kg</span>`;
+    const api = KaasaData.getApiBase(), H = { Authorization: `Bearer ${token}` };
+    const [harvest, revenue, irr, env] = await Promise.all([
+      fetch(`${api}/api/farms/${farmId}/harvest`,{headers:H}).then(r=>r.ok?r.json():null).catch(()=>null),
+      fetch(`${api}/api/farms/${farmId}/revenue`,{headers:H}).then(r=>r.ok?r.json():null).catch(()=>null),
+      fetch(`${api}/api/farms/${farmId}/irrigation/analysis?days=7`,{headers:H}).then(r=>r.ok?r.json():null).catch(()=>null),
+      fetch(`${api}/api/farms/${farmId}/environment`,{headers:H}).then(r=>r.ok?r.json():null).catch(()=>null),
+    ]);
+    const set=(id,v)=>{const el=document.getElementById(id); if(el&&v!=null) el.innerHTML=v;};
+    const setT=(id,v)=>{const el=document.getElementById(id); if(el&&v!=null) el.textContent=v;};
+
+    // 수확예측 (kg) + 매출
+    const yKg = harvest?.yield_kg_forecast ?? null;
+    if (yKg!=null) set('kpiYield', `${Math.round(yKg).toLocaleString()}<span style="font-size:13px;font-weight:400"> kg</span>`);
+    if (harvest?.predicted_yield_kg_m2!=null) setT('kpiYieldDelta', `${harvest.predicted_yield_kg_m2.toFixed(1)} kg/m² · D-${harvest.days_to_harvest ?? '—'}`);
+    const rev = revenue?.predicted_revenue_krw ?? revenue?.revenue_krw ?? null;
+    if (rev!=null) {
+      set('kpiRevenue', `${Math.round(rev/10000).toLocaleString()}<span style="font-size:12px;font-weight:400"> 만원</span>`);
+      const price = revenue?.kamis_price_krw_kg ?? revenue?.price_krw_kg;
+      if (price && yKg) setT('kpiRevenueDelta', `${Math.round(price).toLocaleString()}원/kg × ${Math.round(yKg).toLocaleString()}kg`);
     }
-    // 가격 × 수확량 = 매출 계산
-    const crop = d.crop_ko || '오이';
-    const priceItem = _prices.find(p => p.crop_ko === crop);
-    if (priceItem && yield_kg != null) {
-      const revenue = Math.round(yield_kg * priceItem.price_krw_kg);
-      const rEl = document.getElementById('kpiRevenue');
-      if (rEl) rEl.innerHTML = `${(revenue/10000).toFixed(0)}<span style="font-size:12px;font-weight:400"> 만원</span>`;
-      const rdEl = document.getElementById('kpiRevenueDelta');
-      if (rdEl) rdEl.textContent = `${Math.round(priceItem.price_krw_kg).toLocaleString()}원/kg × ${Number(yield_kg).toFixed(1)}kg`;
+
+    // 배액률 (irrigation)
+    const dr = irr?.summary?.dr_pct_mean?.latest ?? irr?.summary?.dr_pct_mean ?? null;
+    if (dr!=null) { const el=document.getElementById('kpiDrain');
+      if(el){ el.innerHTML=`${Math.round(dr)}<span style="font-size:13px;font-weight:400">%</span>`;
+        el.style.color = (dr<15||dr>35)?'var(--red)':(dr<20)?'var(--orange)':'var(--green)'; } }
+
+    // VPD (환경값; null이면 온습도로 계산)
+    let vpd = env?.vpd;
+    const t = env?.temp_internal, rh = env?.humidity_int;
+    if (vpd==null && t!=null && rh!=null) {
+      const svp = 0.6108*Math.exp(17.27*t/(t+237.3));
+      vpd = +(svp*(1-rh/100)).toFixed(2);
     }
+    if (vpd!=null) { const el=document.getElementById('kpiVpd');
+      if(el){ el.innerHTML=`${vpd.toFixed(2)}<span style="font-size:12px;font-weight:400"> kPa</span>`;
+        el.style.color = (vpd>=0.6&&vpd<=1.2)?'var(--green)':(vpd<0.4||vpd>1.8)?'var(--red)':'var(--orange)'; }
+      setT('kpiVpdStatus', (vpd>=0.6&&vpd<=1.2)?'✅ 적정 (0.6~1.2)':(vpd<0.6)?'과습 — 환기 강화':'건조 — 급액 보완'); }
   } catch (e) { /* silent */ }
 }
 
