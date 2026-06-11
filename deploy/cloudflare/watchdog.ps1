@@ -6,6 +6,14 @@
 #  중지: 이 프로세스 종료(작업관리자) 또는 스케줄 작업 해제.
 # ============================================================
 $ErrorActionPreference = "SilentlyContinue"
+
+# ── 단일 인스턴스 가드 (중복 watchdog → cloudflared 중복기동·터널충돌 방지) ──
+$global:__wdMutex = New-Object System.Threading.Mutex($false, "Global\KAASA_Watchdog_Singleton")
+if (-not $global:__wdMutex.WaitOne(0)) {
+    # 이미 다른 watchdog 가 돌고 있음 → 즉시 종료
+    exit 0
+}
+
 $SMART = "C:\smart_farm"
 $PY    = "C:\tools\python311\python.exe"
 $CF    = "$SMART\deploy\cloudflare\bin\cloudflared.exe"
