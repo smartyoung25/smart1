@@ -93,8 +93,10 @@ deploy/cloudflare/bin/
 deploy/cloudflare/current_url.txt
 deploy/cloudflare/_tunnel.log
 
-# ── 대용량 모델 버전 스냅샷·런타임 산출·스크래치 (커밋 제외) ──
+# ── 모델 버전 스냅샷: 로컬 전용(재생성·롤백용, 재학습마다 증가) — git 미추적 ──
+#   (.gitattributes 의 *.pkl→LFS 설정은 향후 의도적 바이너리 대비로 유지)
 models/artifacts/.versions/
+# ── 런타임 산출·스크래치 (커밋 제외) ──
 outputs/
 _docx_extract/
 tmp_*.py
