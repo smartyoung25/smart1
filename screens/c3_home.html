@@ -282,14 +282,39 @@
   </div>
 
   <div class="sum-panel" id="sumField">
-    <div class="card" style="text-align:center;padding:24px;color:var(--muted);">
-      🌿 노지 화면은 준비 중입니다
-      <br><small style="font-size:12px;">F1 노지 홈에서 토양수분·기상을 확인하세요</small>
+    <div class="card">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div><div style="font-size:11px;color:var(--muted);">클러스터 작황</div>
+          <div style="font-size:18px;font-weight:800;" id="sumFGrade">—</div></div>
+        <div><div style="font-size:11px;color:var(--muted);">평균 NDVI</div>
+          <div style="font-size:18px;font-weight:800;" id="sumFNdvi">—</div></div>
+        <div><div style="font-size:11px;color:var(--muted);">이상 필지</div>
+          <div style="font-size:18px;font-weight:800;" id="sumFAnomaly">—</div></div>
+        <div><div style="font-size:11px;color:var(--muted);">ET₀ 증발산</div>
+          <div style="font-size:18px;font-weight:800;" id="sumFEt0">—</div></div>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:8px;" id="sumFNote">무센서 위성·기상 기반 광역 진단</div>
+      <button class="btn full secondary" style="margin-top:12px;" onclick="location.href='f1_field.html'">
+        노지 홈 상세 →
+      </button>
     </div>
   </div>
 
   <div class="sum-panel" id="sumMarket">
-    <div class="section-label" style="margin-top:0;margin-bottom:8px;">오늘 도매 시세</div>
+    <div class="card">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div><div style="font-size:11px;color:var(--muted);">공동출하 단가</div>
+          <div style="font-size:18px;font-weight:800;color:var(--green);" id="sumMJoint">—</div></div>
+        <div><div style="font-size:11px;color:var(--muted);">개별 시세(KAMIS)</div>
+          <div style="font-size:18px;font-weight:800;" id="sumMIndiv">—</div></div>
+        <div><div style="font-size:11px;color:var(--muted);">공동 출하 시</div>
+          <div style="font-size:18px;font-weight:800;color:var(--green);" id="sumMDiff">—</div></div>
+        <div><div style="font-size:11px;color:var(--muted);">진행 Pool</div>
+          <div style="font-size:18px;font-weight:800;" id="sumMPool">—</div></div>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:8px;" id="sumMNote">단가: KAMIS 실시세</div>
+    </div>
+    <div class="section-label" style="margin-top:12px;margin-bottom:8px;">오늘 도매 시세</div>
     <div class="price-strip" id="priceStrip">
       <div style="color:var(--muted);font-size:12px;padding:8px;">시세 로드 중…</div>
     </div>
@@ -360,8 +385,53 @@ window.addEventListener('DOMContentLoaded', () => {
     _loadCapability(token, farmId);
     _loadBenchmark(token, farmId);
     _loadDataConn(token, farmId);
+    _loadFieldSummary(token, farmId);
+    _loadMarketSummary(token, farmId);
   });
 });
+
+// 노지 요약 (클러스터 작황 + 기상)
+async function _loadFieldSummary(token, farmId){
+  try{
+    const api=KaasaData.getApiBase(), H={Authorization:`Bearer ${token}`};
+    const [cl, ext] = await Promise.all([
+      fetch(`${api}/api/farms/${farmId}/field/cluster`,{headers:H}).then(r=>r.ok?r.json():null).catch(()=>null),
+      fetch(`${api}/api/farms/${farmId}/environment/weather/extended`,{headers:H}).then(r=>r.ok?r.json():null).catch(()=>null),
+    ]);
+    const set=(id,v)=>{const el=document.getElementById(id); if(el&&v!=null) el.textContent=v;};
+    if(cl){ const s=cl.summary||{};
+      set('sumFGrade', s.vigor_grade || s.grade || '보통');
+      set('sumFNdvi', (s.mean_ndvi!=null ? s.mean_ndvi.toFixed(2) : '—'));
+      set('sumFAnomaly', `${s.anomaly_count ?? 0}필지`);
+      const uni = s.uniformity_pct!=null ? ` · 균일도 ${s.uniformity_pct}%` : '';
+      if(cl.region) set('sumFNote', `${cl.region}${uni} · 무센서 위성·기상`);
+    }
+    if(ext){ const it=(ext.items||[])[0];
+      if(it && it.et0!=null) set('sumFEt0', `${it.et0.toFixed(1)}mm`);
+    }
+  }catch(e){}
+}
+
+// 출하 요약 (공동 vs 개별 단가 + Pool)
+async function _loadMarketSummary(token, farmId){
+  try{
+    const api=KaasaData.getApiBase(), H={Authorization:`Bearer ${token}`};
+    const [ws, rev] = await Promise.all([
+      fetch(`${api}/api/farms/${farmId}/market/wholesale`,{headers:H}).then(r=>r.ok?r.json():null).catch(()=>null),
+      fetch(`${api}/api/farms/${farmId}/revenue`,{headers:H}).then(r=>r.ok?r.json():null).catch(()=>null),
+    ]);
+    const fmt=v=>Math.round(v).toLocaleString();
+    const set=(id,v)=>{const el=document.getElementById(id); if(el) el.innerHTML=v;};
+    const kamis = rev?.kamis_price_krw_kg ?? rev?.price_krw_kg ?? 0;
+    const joint = ws?.price_krw_kg ?? (kamis*1.08);
+    if(joint) set('sumMJoint', `${fmt(joint)}<span style="font-size:11px;font-weight:400">원</span>`);
+    if(kamis) set('sumMIndiv', `${fmt(kamis)}<span style="font-size:11px;font-weight:400">원</span>`);
+    const diff = joint - kamis;
+    set('sumMDiff', diff>=0 ? `+${fmt(diff)}<span style="font-size:11px;font-weight:400">원/kg</span>` : `${fmt(diff)}원`);
+    set('sumMPool', '모집중');
+    if(ws?.price_source) set('sumMNote', `단가: ${ws.price_source} 실시세 · 공동출하 시 +${fmt(Math.max(diff,0))}원/kg`);
+  }catch(e){}
+}
 
 // 우수농가 대비 미니 벤치마크 (실 소득조사 비교군)
 async function _loadBenchmark(token, farmId){
