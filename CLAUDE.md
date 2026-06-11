@@ -4,6 +4,57 @@
 
 ---
 
+## ★ 리브랜딩·인증·전략표·대시보드 일원화 세션 (2026-06-11)
+> 제품명 **KAASA SmartOS → KAASA smartfarmingsight** 전면 변경. 고정도메인 **https://farmingsight.org**(Cloudflare Named Tunnel). PUBLIC_DEMO 읽기전용 유지.
+
+### 리브랜딩·첫화면·테마
+- 브랜드명 전 화면 122곳 치환(기능식별자 `/smartos`·`kaasa-smartos` 터널·SW키는 보존)
+- 첫화면(`/intro`) 리디자인 + 전역 `.section-label` 강조바(41화면 일괄)
+- **다크/라이트 테마 토글**: `base.css html[data-theme="dark"]` 변수 + `data.js` `toggleTheme()`(localStorage `sf_theme`) + 전역 플로팅 🌙/☀️. (intro는 data.js 미로드 → 토글 없음)
+- 전역 플로팅 버튼(🏠 홈·❓ 페이지별 도움말) data.js `_installFab()`
+
+### 인증 강화 (api/routers/auth.py, persistence.py)
+- 회원가입 **이메일·전화번호 필수+형식검증**(정규식). phone은 DB컬럼 권한없으면 `data/user_contacts.json` 폴백
+- **비밀번호 찾기/재설정**: `/password/forgot`·`/reset` + 토큰(`data/password_resets.json`, 30분) + `api/services/mailer.py`(SMTP). 신규 `screens/c0_reset.html`. C0에 로그인 탭·비번찾기 추가
+- 공개 데모에서 **실가입 허용**(사용자 선택). 데모 쓰기 허용목록 확대(아래)
+
+### PUBLIC_DEMO 쓰기 허용목록 (api/main.py) — 사용자 요청 기능만 선별 개방
+- `_WRITE_ALLOW`: auth token·register·password/forgot·reset·telemetry·`/api/data/{growth,harvest}`
+- `_WRITE_ALLOW_SUFFIX`: `/chat`·`/integration-request`·`/equipment`·`/climate-plan`·`/consent`·`/daily-temp`·`/whatif`
+- 운영데이터(activity 등)·`/api/admin/*` 쓰기는 **여전히 403**
+
+### C1 정정 + 신규 화면
+- **재배방식 분류 정정**: 잘못된 '양액' 독립항목 제거(수경·배지경 모두 양액재배). 안내문 추가
+- **목표 수확량 → 면적당(kg/10a)**, 총량 자동환산
+- **데이터동의 저장**: 전용 `GET/POST /consent`(farmer.py) — 기존 /activity 경유 403 해소
+- 신규 **C21 `c21_apply.html`**(연동·서비스 신청) + `/integration-catalog`·`/integration-request`. C16에 연동신청 CTA, 메뉴·네비게이터 등록
+
+### ★ G2 환경관리 전략표 (api/services/climate_plan.py 신규)
+- 2축: 행=생육시기(정식기준, 생육단계/주별/월별) × 열=하루4구간(야간·일출·주간·일몰전), 셀=온도/습도/CO₂(VPD자동)
+- `GET/POST /environment/climate-plan`·`/active`·`/evaluate`. 작물별 기본템플릿(딸기 겨울값+_default, 부분일치)
+- **선진 벤치마크**: Priva 광연동승온(일사 ref200 초과 100W당+0.6℃·상한+3) · HNT 24h평균/DIF · Plant Empowerment VPD밴드 · 농진청
+- **AI제어 연동**(고정임계값 폐기): `evaluate()`가 전략표 목표 대비 실측편차로 처방생성 → G2 `_updateAiControls` 전략표 우선·정식일없으면 규칙폴백
+- **②일출·일몰 동적경계**: `sun_times()` Open-Meteo 무키. **③온도적산(HNT)**: `record_daily_temp`/`integration_state` 최근5일 누적부족→오늘목표±2℃ 보정. `POST /environment/climate-plan/daily-temp`
+
+### ★ PC 대시보드(dashboard/, 다크) ↔ 모바일(screens/) 통합
+- **값 불일치 통일(PC→모바일 표준)**: DLI에 PAR계수 4.57(누락시 ~4.6배 과소) / VPD밴드 0.4·0.6 / 배액률 norm[20,35]·crit[15,45]
+- 나머지 KPI(원가·마진·소득률·수확량)는 **동일 엔드포인트→값 일치**
+- **PC강점 6종 모바일 이식**: C6 드리프트모니터링+M1~M5 매트릭스(비관리자 model-performance MAPE 산출) / G4 What-if·SFROP 4시나리오(/whatif)·수확실측입력(/api/data/harvest, M2학습) / G2 권고빈도(/journal/advisory)
+- **진입 일원화**: 루트 `/`·`/dashboard/*` 전부 `/intro` 307 리다이렉트. dashboard/ 파일은 보존(롤백 안전, 마운트 제거만)
+
+### 운영(ops) — Error 1033 재발방지
+- `deploy/cloudflare/watchdog.ps1`: uvicorn+cloudflared 죽으면 30초주기 자동재기동. **단일 인스턴스 가드(Mutex)** — 중복 watchdog→cloudflared 이중기동→터널충돌(1033) 원인 해결. 시작프로그램 폴더 등록(로그온 자동)
+- 서버 구동: `PYTHONPATH=C:\smart_farm PUBLIC_DEMO=1 python -m uvicorn api.main:app --port 8000`. 터널: `cloudflared tunnel --config deploy/cloudflare/config.yml run kaasa-smartos`
+- SW 캐시 v3→**v16**(변경마다 bump). GitHub: `smartyoung25/smart1` push 완료
+
+### ⚠️ 남은 사용자 조치(비밀/권한 필요 — 내가 못함)
+- **SMTP 자격증명**: `.env`의 `SMTP_USER`·`SMTP_PASSWORD` 비어있음(Gmail 주소+앱비번 16자). 채우면 비번재설정 메일 자동발송(현재 데모링크 방식). `PUBLIC_BASE_URL=https://farmingsight.org`·`SMTP_HOST=smtp.gmail.com`·`SMTP_PORT=587`은 설정됨. mailer는 `SMTP_PASSWORD`/`SMTP_PASS` 둘다 인식
+- **LLM 키**: `ANTHROPIC_API_KEY` 비어있음 → 챗봇·AI총평이 규칙기반 폴백. pro/enterprise 티어시 `claude-haiku-4-5`/`claude-sonnet-4-5`. **보고서 생성은 LLM 아님**(결정론적 집계)
+- **터널 부팅영속**(선택): 관리자 권한 `cloudflared service install`(A안). 현재는 로그온시 watchdog 자동기동(B안)
+- **잔여파일 정리**(선택, 미삭제): `dashboard/index.html.tmp1`, 루트 `tmp_*.py/png` 등 — 내가 안 만든 파일이라 보류
+
+---
+
 ## 데모 충실화·왜곡교정·노지 실데이터 노출 (2026-06-10)
 > 원칙: 샘플데이터는 **실제 시스템 산출과 일치**해야 함(허구 금지). 보안 게이트(PUBLIC_DEMO 읽기전용) 유지.
 
