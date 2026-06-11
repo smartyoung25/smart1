@@ -3338,6 +3338,42 @@ def post_integration_request(farm_id: str, body: IntegrationRequest):
             "note": "신청이 접수되었습니다. 담당자가 검토 후 연동을 진행합니다."}
 
 
+@router.get("/environment/climate-plan", summary="환경관리 전략표(생육시기×하루구간 설정값) 조회")
+def get_climate_plan(farm_id: str, mode: str = "", crop: str = ""):
+    from api.services import climate_plan as _cp
+    _require_farm(farm_id)
+    _crop = crop or (_FARM_META.get(farm_id, {}) or {}).get("crop") or "딸기"
+    if mode:   # 모드 지정 시 해당 모드 기본 템플릿(미저장이어도 즉시 표 제공)
+        fp = _cp._plan_path(farm_id)
+        if fp.exists():
+            try:
+                import json as _j
+                saved = _j.loads(fp.read_text(encoding="utf-8"))
+                if saved.get("mode") == mode:
+                    saved["periods_def"] = _cp.PERIODS
+                    return saved
+            except Exception:
+                pass
+        return _cp.build_template(_crop, mode,
+                                  (_cp.load_plan(farm_id, _crop) or {}).get("transplant_date", ""))
+    return _cp.load_plan(farm_id, _crop)
+
+
+@router.post("/environment/climate-plan", summary="환경관리 전략표 저장")
+def post_climate_plan(farm_id: str, body: dict):
+    from api.services import climate_plan as _cp
+    _require_farm(farm_id)
+    return _cp.save_plan(farm_id, body)
+
+
+@router.get("/environment/climate-plan/active", summary="정식일+현재시각 기준 지금 적용 목표값")
+def get_climate_active(farm_id: str, crop: str = "", hour: int = -1):
+    from api.services import climate_plan as _cp
+    _require_farm(farm_id)
+    _crop = crop or (_FARM_META.get(farm_id, {}) or {}).get("crop") or "딸기"
+    return _cp.active_setpoint(farm_id, _crop, hour if hour >= 0 else None)
+
+
 @router.delete("/equipment/{device_id}", summary="기자재 삭제")
 def delete_equipment(farm_id: str, device_id: str):
     import json as _json

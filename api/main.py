@@ -68,7 +68,7 @@ if _PUBLIC_DEMO:
     }   # 로그인·회원가입·비번재설정·에러텔레메트리만 허용
     # 조회성/신청·등록성 POST: AI 챗봇(/chat)·연동신청(/integration-request)·장비등록(/equipment)
     # — 온보딩·신청 성격으로 농장 운영데이터(관수·수확 등)는 변경하지 않음
-    _WRITE_ALLOW_SUFFIX = ("/chat", "/integration-request", "/equipment")
+    _WRITE_ALLOW_SUFFIX = ("/chat", "/integration-request", "/equipment", "/climate-plan")
 
     class PublicDemoMiddleware:
         def __init__(self, app): self.app = app

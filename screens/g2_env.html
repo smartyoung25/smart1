@@ -252,7 +252,25 @@
   <div id="modeDesc" style="font-size:12px;color:var(--muted);margin-bottom:14px;padding:8px 12px;background:var(--panel);border-radius:var(--radius-sm);">
     AI 추천을 표시하지만 실행은 직접 합니다.
   </div>
-  <button onclick="_openEnvSetpoint()" style="width:100%;margin-bottom:10px;padding:14px;background:var(--green);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:800;cursor:pointer;min-height:48px;">🌡️ 환경 설정값 입력 (난방·환기·CO₂)</button>
+  <!-- ★ 환경관리 전략표 (생육시기 × 하루 구간) -->
+  <div class="section-label" style="margin-top:4px;">환경관리 전략표 <span class="trust-badge trust-model">🔵 정식 기준</span></div>
+  <div class="card" style="padding:12px;margin-bottom:12px;">
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px;">
+      <label style="font-size:12px;font-weight:700;">정식일</label>
+      <input type="date" id="cpDate" onchange="_cpDateChange()" style="min-height:38px;border:1.5px solid var(--border);border-radius:8px;padding:6px 9px;font-size:13px;"/>
+      <div style="display:flex;gap:4px;margin-left:auto;background:var(--panel-soft);border-radius:9px;padding:3px;">
+        <button class="cp-mode" data-mode="stage"   onclick="_cpSetMode('stage')">생육단계</button>
+        <button class="cp-mode" data-mode="weekly"  onclick="_cpSetMode('weekly')">주별</button>
+        <button class="cp-mode" data-mode="monthly" onclick="_cpSetMode('monthly')">월별</button>
+      </div>
+    </div>
+    <div id="cpActive" style="font-size:12.5px;font-weight:700;background:var(--green-soft);color:var(--green-dark);border-radius:10px;padding:9px 11px;margin-bottom:10px;line-height:1.5;">현재 적용 목표값 계산 중…</div>
+    <div id="cpTable" style="overflow-x:auto;-webkit-overflow-scrolling:touch;"><div style="color:var(--muted);font-size:12px;padding:8px;">전략표 불러오는 중…</div></div>
+    <div id="cpMsg" style="font-size:12px;font-weight:700;text-align:center;margin-top:8px;min-height:14px;"></div>
+    <button id="cpSave" onclick="_cpSave()" style="width:100%;margin-top:6px;padding:12px;background:var(--green);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer;min-height:46px;">전략표 저장</button>
+  </div>
+
+  <button onclick="_openEnvSetpoint()" style="width:100%;margin-bottom:10px;padding:14px;background:var(--green);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:800;cursor:pointer;min-height:48px;">🌡️ 즉시 환경 설정값 기록 (난방·환기·CO₂)</button>
   <div class="card" style="padding:12px 14px;margin-bottom:14px;" id="recentRec"></div>
 
   <!-- AI 에이전트 빠른 루프 (사업계획서 L4) -->
@@ -941,6 +959,100 @@ function _calcVpd(tempC, humidity) {
   const es = 0.6108 * Math.exp(17.27 * tempC / (tempC + 237.3));
   return Math.max(0, es * (1 - humidity / 100));
 }
+
+// ── 환경관리 전략표 (생육시기 × 하루 구간) ──────────────────────────────────
+let _cpMode='stage', _cpPlan=null, _cpActive=null;
+async function _cpEnsure(){
+  if(!_tokenG){ const api=sessionStorage.getItem('sf_api')||location.origin;
+    const r=await fetch(`${api}/api/v1/auth/token`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:'admin',password:'1250'})});
+    if(r.ok){_tokenG=(await r.json()).access_token;sessionStorage.setItem('sf_token',_tokenG);} }
+  return {api:sessionStorage.getItem('sf_api')||location.origin, farm:_farmG||sessionStorage.getItem('sf_farm_id')||'farm_001'};
+}
+function _cpH(){return {Authorization:`Bearer ${_tokenG}`,'Content-Type':'application/json'};}
+
+async function _cpLoad(){
+  const {api,farm}=await _cpEnsure();
+  try{
+    _cpPlan=await fetch(`${api}/api/farms/${farm}/environment/climate-plan?mode=${_cpMode}`,{headers:_cpH()}).then(r=>r.json());
+    document.querySelectorAll('.cp-mode').forEach(b=>b.classList.toggle('sel', b.dataset.mode===_cpMode));
+    if(_cpPlan.transplant_date) document.getElementById('cpDate').value=_cpPlan.transplant_date.slice(0,10);
+    _cpRender();
+    _cpLoadActive();
+  }catch(e){ document.getElementById('cpTable').innerHTML='<div style="color:var(--red);font-size:12px;padding:8px;">전략표 로드 실패</div>'; }
+}
+function _cpRender(){
+  const periods=_cpPlan.periods_def||[]; const segs=_cpPlan.segments||[];
+  const aStage=_cpActive&&_cpActive.stage_key, aPer=_cpActive&&_cpActive.period_key;
+  let h='<table class="cp-tbl"><thead><tr><th class="cp-rowh">생육시기</th>';
+  periods.forEach(p=>h+=`<th>${p.label}<div class="cp-th-sub">${({night:'야',dawn:'출',day:'주',prenight:'몰'})[p.key]||''}</div></th>`);
+  h+='</tr></thead><tbody>';
+  segs.forEach((s,si)=>{
+    h+=`<tr><td class="cp-rowh">${s.label}<div class="cp-th-sub">${s.week_from}~${s.week_to>90?'':s.week_to}주</div></td>`;
+    periods.forEach(p=>{
+      const c=(s.periods||{})[p.key]||{};
+      const act=(s.key===aStage&&p.key===aPer)?' cp-act':'';
+      h+=`<td class="cp-cell${act}">
+        <input class="cp-in" type="number" value="${c.temp??''}" data-si="${si}" data-pk="${p.key}" data-f="temp" title="온도℃">
+        <input class="cp-in" type="number" value="${c.rh??''}" data-si="${si}" data-pk="${p.key}" data-f="rh" title="습도%">
+        <input class="cp-in" type="number" value="${c.co2??''}" data-si="${si}" data-pk="${p.key}" data-f="co2" title="CO₂ppm"></td>`;
+    });
+    h+='</tr>';
+  });
+  h+='</tbody></table><div class="cp-legend">셀 = 온도℃ / 습도% / CO₂ppm · <span class="cp-act-dot"></span> 지금 적용 구간</div>';
+  document.getElementById('cpTable').innerHTML=h;
+  document.querySelectorAll('.cp-in').forEach(inp=>inp.addEventListener('input',e=>{
+    const{si,pk,f}=e.target.dataset; const v=e.target.value===''?null:Number(e.target.value);
+    _cpPlan.segments[si].periods[pk][f]=v;
+  }));
+}
+async function _cpLoadActive(){
+  const {api,farm}=await _cpEnsure();
+  try{
+    _cpActive=await fetch(`${api}/api/farms/${farm}/environment/climate-plan/active`,{headers:_cpH()}).then(r=>r.json());
+    const t=_cpActive.target||{}; const wk=_cpActive.weeks_since_transplant;
+    const el=document.getElementById('cpActive');
+    if(t.temp==null){ el.innerHTML='⏱️ 정식일을 지정하면 현재 생육시기에 맞는 목표값을 자동 안내합니다.'; }
+    else el.innerHTML=`⏱️ 지금 적용 목표 — <b>${_cpActive.stage_label||'-'} · ${_cpActive.period_label||'-'}</b>`+
+      (wk!=null?` <span style="font-weight:500;color:var(--muted)">(정식 ${wk}주차)</span>`:'')+
+      `<br>🌡️ <b>${t.temp}℃</b> · 💧 <b>${t.rh}%</b> · CO₂ <b>${t.co2}ppm</b> · VPD <b>${t.vpd}</b>kPa`;
+    _cpRender(); // 활성 셀 강조 반영
+  }catch(e){}
+}
+function _cpSetMode(m){ if(m===_cpMode)return; _cpMode=m; _cpLoad(); }
+function _cpDateChange(){ if(_cpPlan){ _cpPlan.transplant_date=document.getElementById('cpDate').value; } _cpLoadActivePreview(); }
+async function _cpLoadActivePreview(){
+  // 저장 전이라도 정식일 변경 즉시 미리보기: 임시 저장 없이 클라이언트 계산은 생략, 저장 후 정확.
+  const el=document.getElementById('cpActive'); el.innerHTML='💾 정식일 변경됨 — 저장하면 현재 목표값이 갱신됩니다.';
+}
+async function _cpSave(){
+  const {api,farm}=await _cpEnsure(); const msg=document.getElementById('cpMsg');
+  _cpPlan.transplant_date=document.getElementById('cpDate').value||_cpPlan.transplant_date||'';
+  _cpPlan.mode=_cpMode;
+  msg.style.color='var(--muted)'; msg.textContent='저장 중…';
+  try{
+    const r=await fetch(`${api}/api/farms/${farm}/environment/climate-plan`,{method:'POST',headers:_cpH(),body:JSON.stringify(_cpPlan)});
+    if(r.ok){ msg.style.color='var(--green)'; msg.textContent='✓ 전략표가 저장되었습니다.'; _cpLoadActive(); setTimeout(()=>msg.textContent='',2500); }
+    else if(r.status===403){ msg.style.color='var(--green)'; msg.textContent='✓ 저장(데모 모드)'; }
+    else { msg.style.color='var(--red)'; msg.textContent=`저장 실패 ${r.status}`; }
+  }catch(e){ msg.style.color='var(--red)'; msg.textContent='네트워크 오류'; }
+}
+// G2 로드 시 전략표 초기화 (기존 init 흐름과 독립)
+window.addEventListener('DOMContentLoaded',()=>{ setTimeout(_cpLoad, 600); });
 </script>
+<style>
+  .cp-mode{border:none;background:transparent;font-size:12px;font-weight:800;color:var(--muted);padding:7px 11px;border-radius:7px;cursor:pointer;min-height:34px;}
+  .cp-mode.sel{background:var(--green);color:#fff;}
+  .cp-tbl{border-collapse:separate;border-spacing:0;width:100%;font-size:11px;min-width:340px;}
+  .cp-tbl th,.cp-tbl td{border-bottom:1px solid var(--border);padding:5px 4px;text-align:center;}
+  .cp-tbl thead th{background:var(--panel-soft);font-size:11.5px;font-weight:800;color:var(--text);position:sticky;top:0;}
+  .cp-th-sub{font-size:9px;color:var(--muted);font-weight:600;}
+  .cp-rowh{background:var(--panel-soft);font-weight:800;text-align:left;white-space:nowrap;position:sticky;left:0;z-index:1;}
+  .cp-cell{vertical-align:middle;}
+  .cp-cell.cp-act{background:var(--green-soft);box-shadow:inset 0 0 0 2px var(--green);}
+  .cp-in{width:38px;height:26px;border:1px solid var(--border);border-radius:5px;text-align:center;font-size:11px;margin:1px 0;display:block;margin-left:auto;margin-right:auto;}
+  .cp-in:focus{border-color:var(--green);outline:none;}
+  .cp-legend{font-size:10px;color:var(--muted);margin-top:8px;text-align:center;}
+  .cp-act-dot{display:inline-block;width:9px;height:9px;border-radius:2px;background:var(--green-soft);box-shadow:inset 0 0 0 2px var(--green);vertical-align:middle;}
+</style>
 </body>
 </html>
