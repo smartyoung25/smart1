@@ -67,6 +67,42 @@
   --chart-rain:   #60a5fa;  /* 강수 */
 }
 
+/* ── 다크 모드 (html[data-theme="dark"]) ─────────────────────────────
+   변수만 재정의 → 전 화면 자동 적용. 브랜드 그린은 대비 위해 약간 밝게. */
+:root[data-theme="dark"] {
+  --green:        #35c082;
+  --green-2:      #2f9a62;
+  --green-soft:   #15291f;
+  --green-dark:   #8fe6b8;   /* 다크 배경 위 강조 텍스트 → 밝게 */
+  --blue:         #5b9bff;
+  --blue-soft:    #16243d;
+  --orange:       #f0a64e;
+  --orange-soft:  #2e2310;
+  --red:          #f87171;
+  --red-soft:     #351b1b;
+  --purple:       #a78bfa;
+  --purple-soft:  #241a3a;
+  --gray:         #9fb0a6;
+  --gray-soft:    #1c241f;
+
+  --bg:           #0f1613;
+  --panel:        #18211d;
+  --panel-soft:   #131b17;
+  --border:       #2a352e;
+  --text:         #e7ece9;
+  --muted:        #a3b3a9;
+
+  --shadow:       0 4px 16px rgba(0,0,0,.45);
+
+  /* Period soft 배경 — 다크 톤 */
+  --p1-soft: #1b1f3a; --p2-soft: #0f2a20; --p3-soft: #0e2436;
+  --p4-soft: #2e2410; --p5-soft: #221a3a; --p6-soft: #16202e;
+}
+/* 테마 전환 부드럽게 (모션 민감 사용자는 제외) */
+@media (prefers-reduced-motion: no-preference) {
+  body { transition: background-color .25s ease, color .25s ease; }
+}
+
 /* ── 리셋 & 기본 ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }

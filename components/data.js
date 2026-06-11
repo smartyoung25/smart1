@@ -18,6 +18,30 @@
 const KaasaData = (() => {
   'use strict';
 
+  // ── 테마(다크/라이트) — 스크립트 로드 즉시 적용(깜빡임 최소) ──────────────────
+  function _initTheme() {
+    try {
+      let t = localStorage.getItem('sf_theme');
+      if (!t) {  // 저장값 없으면 시스템 선호 따름
+        t = (window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+      }
+      document.documentElement.setAttribute('data-theme', t === 'dark' ? 'dark' : 'light');
+    } catch (e) {}
+  }
+  _initTheme();
+  function toggleTheme() {
+    const cur = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+    const nxt = cur === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', nxt);
+    try { localStorage.setItem('sf_theme', nxt); } catch (e) {}
+    const b = document.getElementById('kaasaThemeBtn');
+    if (b) b.textContent = nxt === 'dark' ? '☀️' : '🌙';
+    // 테마색 메타 갱신(주소창 색)
+    const m = document.querySelector('meta[name="theme-color"]');
+    if (m) m.content = nxt === 'dark' ? '#0f1613' : '#0f5132';
+  }
+  function currentTheme() { return document.documentElement.getAttribute('data-theme') || 'light'; }
+
   // ── 내부 상태 ──────────────────────────────────────────────────────────────
   let _token   = sessionStorage.getItem('sf_token')   || '';
   let _apiBase = sessionStorage.getItem('sf_api')     ||
@@ -687,12 +711,18 @@ const KaasaData = (() => {
       'justify-content:center;transition:transform .12s;-webkit-tap-highlight-color:transparent;}' +
       '#kaasaFab button:active{transform:scale(.9);}' +
       '#kaasaFab .fab-help{background:var(--blue,#2563eb);}' +
+      '#kaasaFab .fab-theme{background:var(--panel);color:var(--text);border:1.5px solid var(--border);font-size:19px;}' +
       '#kaasaFab .fab-lbl{position:absolute;right:54px;top:50%;transform:translateY(-50%);background:rgba(0,0,0,.78);' +
       'color:#fff;font-size:11px;font-weight:700;padding:4px 8px;border-radius:8px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .15s;}' +
       '#kaasaFab .fab-wrap{position:relative;}#kaasaFab .fab-wrap:hover .fab-lbl{opacity:1;}';
     document.head.appendChild(st);
     const box = document.createElement('div'); box.id = 'kaasaFab';
     let html = '';
+    // 다크/라이트 토글 (전 화면 공통)
+    const dark = currentTheme() === 'dark';
+    html +=
+      `<div class="fab-wrap"><span class="fab-lbl">${dark ? '밝은 모드' : '다크 모드'}</span>` +
+      `<button class="fab-theme" id="kaasaThemeBtn" aria-label="테마 전환" title="다크/라이트 전환" onclick="KaasaData.toggleTheme()">${dark ? '☀️' : '🌙'}</button></div>`;
     if (!onHelp) html +=
       `<div class="fab-wrap"><span class="fab-lbl">도움말</span>` +
       `<button class="fab-help" aria-label="도움말" title="이 화면 도움말" onclick="location.href='${helpHref}'">❓</button></div>`;
@@ -742,6 +772,8 @@ const KaasaData = (() => {
     IRRIGATION_START, getStartConditions, IRRIGATION_STRUCTURE,
     // 전역 메뉴 드로어
     openMenu, closeMenu, logout,
+    // 테마(다크/라이트)
+    toggleTheme, currentTheme,
     // 데이터 로드
     loadPrivaSchedule, loadRecommend, loadEnvironment,
     submitIrrigation, loadIrrigationAnalysis,
