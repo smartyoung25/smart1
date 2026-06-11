@@ -133,7 +133,7 @@ function renderIrrigationAnomalies(metrics) {
   if (!el) return;
   const alerts = [];
   const checks = [
-    { key:'dr_pct_mean',  label:'배액률',    unit:'%',    norm:[20,40], crit:[10,55] },
+    { key:'dr_pct_mean',  label:'배액률',    unit:'%',    norm:[20,35], crit:[15,45] },  // ★ 모바일 기준 통일(목표 20~30·허용~35)
     { key:'nl_pct',       label:'야간소실률', unit:'%',    norm:[3,7],   crit:[1,10]  },
     { key:'uptake_efficiency_ml_j', label:'흡수효율', unit:'ml/J', norm:[1.0,2.5], crit:[0.7,3.0] },
   ];
