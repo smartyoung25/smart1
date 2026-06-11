@@ -7,40 +7,99 @@
   <link rel="stylesheet" href="../components/base.css"/>
   <style>
     body{background:var(--bg);}
-    .hero{background:linear-gradient(150deg,#0f2e1f 0%,#16a34a 60%,#2563eb 130%);color:#fff;
-      padding:46px 22px 34px;text-align:center;border-radius:0 0 26px 26px;}
-    .hero .logo{font-size:13px;font-weight:800;letter-spacing:2px;opacity:.85;}
-    .hero h1{font-size:27px;font-weight:900;line-height:1.3;margin:10px 0 8px;}
-    .hero .tag{font-size:14px;opacity:.92;line-height:1.55;}
-    .hero .pills{display:flex;justify-content:center;gap:6px;flex-wrap:wrap;margin-top:16px;}
-    .pill{font-size:11px;font-weight:700;background:rgba(255,255,255,.16);padding:5px 11px;border-radius:14px;}
-    .wrap{max-width:480px;margin:0 auto;padding:18px 16px 40px;}
-    .sec-t{font-size:13px;font-weight:800;color:var(--text);margin:22px 4px 10px;}
-    .card{background:var(--panel);border:1.5px solid var(--border);border-radius:16px;box-shadow:var(--shadow);}
-    .prob{display:flex;align-items:center;gap:11px;padding:12px 14px;border-bottom:1px solid var(--border);}
+    .wrap{max-width:480px;margin:0 auto;padding:0 16px 40px;}
+
+    /* ── Hero ───────────────────────────────────────────── */
+    .hero{position:relative;overflow:hidden;color:#fff;text-align:center;
+      padding:52px 22px 64px;border-radius:0 0 30px 30px;
+      background:linear-gradient(155deg,#0c2a1c 0%,#15803d 58%,#1d6fd6 135%);}
+    .hero::before{content:"";position:absolute;inset:0;
+      background:radial-gradient(120% 80% at 80% -10%,rgba(255,255,255,.22),transparent 55%),
+                 radial-gradient(90% 60% at -10% 110%,rgba(37,99,235,.35),transparent 60%);}
+    .hero::after{content:"🌱";position:absolute;right:-14px;top:-10px;font-size:120px;opacity:.08;transform:rotate(-12deg);}
+    .hero>*{position:relative;z-index:1;}
+    .hero .logo{display:inline-block;font-size:11px;font-weight:800;letter-spacing:2px;
+      background:rgba(255,255,255,.14);padding:5px 13px;border-radius:20px;backdrop-filter:blur(4px);}
+    .hero h1{font-size:30px;font-weight:900;line-height:1.28;margin:16px 0 10px;letter-spacing:-.5px;}
+    .hero h1 .accent{background:linear-gradient(90deg,#bbf7d0,#86efac);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+    .hero .tag{font-size:14.5px;opacity:.95;line-height:1.6;font-weight:500;}
+    .hero .tag b{font-weight:800;}
+    .hero .pills{display:flex;justify-content:center;gap:7px;flex-wrap:wrap;margin-top:20px;}
+    .pill{font-size:11.5px;font-weight:700;background:rgba(255,255,255,.18);
+      padding:6px 12px;border-radius:16px;border:1px solid rgba(255,255,255,.14);}
+
+    /* ── 성과 통계 (히어로 위로 살짝 올라온 카드) ────────────── */
+    .stat-row{display:flex;gap:9px;margin-top:-40px;position:relative;z-index:3;}
+    .stat{flex:1;background:var(--panel);border:1px solid var(--border);border-radius:16px;
+      padding:14px 8px;text-align:center;box-shadow:var(--shadow);}
+    .stat .v{font-size:19px;font-weight:900;color:var(--green-dark);letter-spacing:-.5px;}
+    .stat .l{font-size:10.5px;color:var(--muted);margin-top:4px;line-height:1.3;font-weight:600;}
+
+    /* ── 섹션 타이틀 (강조 바) ──────────────────────────────── */
+    .sec-t{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:900;
+      color:var(--text);margin:28px 2px 12px;letter-spacing:-.3px;}
+    .sec-t::before{content:"";width:4px;height:16px;border-radius:3px;background:var(--green);}
+
+    .card{background:var(--panel);border:1.5px solid var(--border);border-radius:18px;
+      box-shadow:var(--shadow);overflow:hidden;}
+
+    /* ── 고민 해결 리스트 ───────────────────────────────────── */
+    .prob{display:flex;align-items:center;gap:13px;padding:14px 15px;border-bottom:1px solid var(--border);transition:background .15s;}
     .prob:last-child{border-bottom:none;}
-    .prob .ic{font-size:21px;}.prob .t{flex:1;font-size:13px;font-weight:700;}.prob .s{font-size:11px;color:var(--muted);margin-top:1px;}
-    .prob .b{font-size:10px;font-weight:800;padding:3px 8px;border-radius:8px;background:var(--green-soft);color:var(--green-dark);white-space:nowrap;}
-    .feat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-    .feat{background:var(--panel);border:1.5px solid var(--border);border-radius:14px;padding:14px;box-shadow:var(--shadow);}
-    .feat .ic{font-size:24px;}.feat .ft{font-size:14px;font-weight:800;margin-top:6px;}.feat .fs{font-size:11px;color:var(--muted);margin-top:3px;line-height:1.45;}
-    .arch{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px dashed var(--border);}
+    .prob:active{background:var(--panel-soft);}
+    .prob .ic{font-size:20px;width:42px;height:42px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;
+      background:var(--green-soft);border-radius:12px;}
+    .prob .t{flex:1;font-size:13.5px;font-weight:800;color:var(--text);}
+    .prob .s{font-size:11.5px;color:var(--muted);margin-top:2px;font-weight:500;line-height:1.4;}
+    .prob .b{font-size:10.5px;font-weight:800;padding:4px 9px;border-radius:9px;
+      background:var(--green-soft);color:var(--green-dark);white-space:nowrap;}
+
+    /* ── 핵심 기능 그리드 ───────────────────────────────────── */
+    .feat-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px;}
+    .feat{background:var(--panel);border:1.5px solid var(--border);border-radius:16px;
+      padding:15px 14px;box-shadow:var(--shadow);transition:transform .12s,box-shadow .12s;}
+    .feat:active{transform:translateY(2px) scale(.99);}
+    .feat .ic{font-size:21px;width:44px;height:44px;display:flex;align-items:center;justify-content:center;
+      border-radius:13px;}
+    .feat .ft{font-size:14px;font-weight:900;margin-top:10px;color:var(--text);letter-spacing:-.3px;}
+    .feat .fs{font-size:11.5px;color:var(--muted);margin-top:4px;line-height:1.5;font-weight:500;}
+    .ic-g{background:var(--green-soft);} .ic-b{background:var(--blue-soft);} .ic-o{background:var(--orange-soft);}
+
+    /* ── 아키텍처 ───────────────────────────────────────────── */
+    .arch{display:flex;align-items:center;gap:11px;padding:11px 15px;border-bottom:1px dashed var(--border);}
     .arch:last-child{border-bottom:none;}
-    .arch .lv{font-size:10px;font-weight:900;color:#fff;background:var(--green);border-radius:7px;padding:3px 7px;flex:0 0 auto;}
-    .arch .at{font-size:12.5px;font-weight:700;flex:1;}.arch .as{font-size:11px;color:var(--muted);}
-    .cta{position:sticky;bottom:0;background:linear-gradient(0deg,var(--bg) 70%,transparent);padding:14px 16px calc(16px + env(safe-area-inset-bottom));max-width:480px;margin:0 auto;display:flex;gap:10px;}
-    .btn-cta{flex:1;min-height:52px;border:none;border-radius:14px;font-size:15px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;text-decoration:none;}
-    .btn-primary{background:var(--green);color:#fff;}
-    .btn-ghost{background:var(--panel);color:var(--green-dark);border:1.5px solid var(--green);flex:0 0 38%;}
-    .stat-row{display:flex;gap:8px;margin-top:14px;}
-    .stat{flex:1;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:11px;text-align:center;}
-    .stat .v{font-size:18px;font-weight:900;color:var(--green-dark);}.stat .l{font-size:10px;color:var(--muted);margin-top:2px;}
+    .arch .lv{font-size:10px;font-weight:900;color:#fff;border-radius:8px;padding:4px 8px;flex:0 0 auto;
+      background:linear-gradient(135deg,var(--green-dark),var(--green-2));min-width:30px;text-align:center;}
+    .arch .at{font-size:13px;font-weight:800;flex:1;color:var(--text);}
+    .arch .as{font-size:11px;color:var(--muted);font-weight:500;}
+
+    .model-box{padding:14px 16px;font-size:13px;line-height:1.75;color:var(--text);}
+    .model-box b{color:var(--green-dark);}
+    .model-flow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-weight:700;}
+    .model-flow .step{background:var(--green-soft);color:var(--green-dark);padding:4px 10px;border-radius:10px;font-size:12px;}
+    .model-flow .arr{color:var(--muted);font-weight:900;}
+
+    /* ── CTA ────────────────────────────────────────────────── */
+    .cta{position:sticky;bottom:0;z-index:10;
+      background:linear-gradient(0deg,var(--bg) 72%,transparent);
+      padding:14px 16px calc(16px + env(safe-area-inset-bottom));max-width:480px;margin:0 auto;display:flex;gap:10px;}
+    .btn-cta{flex:1;min-height:54px;border:none;border-radius:15px;font-size:15.5px;font-weight:800;
+      cursor:pointer;display:flex;align-items:center;justify-content:center;text-decoration:none;transition:transform .12s;}
+    .btn-cta:active{transform:scale(.97);}
+    .btn-primary{background:var(--green);color:#fff;box-shadow:0 6px 18px rgba(31,122,77,.32);}
+    .btn-ghost{background:var(--panel);color:var(--green-dark);border:1.5px solid var(--green);flex:0 0 36%;}
+
+    /* 진입 애니메이션 */
+    @keyframes rise{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:none;}}
+    .anim{animation:rise .5s cubic-bezier(.2,.7,.3,1) both;}
+    .d1{animation-delay:.05s;}.d2{animation-delay:.12s;}.d3{animation-delay:.19s;}.d4{animation-delay:.26s;}
+    @media (prefers-reduced-motion:reduce){.anim{animation:none;}}
   </style>
 </head>
 <body>
   <div class="hero">
     <div class="logo">KAASA smartfarmingsight · SFROP v2.0</div>
-    <h1>데이터를 넘어<br>의사결정하는 농장</h1>
+    <h1>데이터를 넘어<br><span class="accent">의사결정</span>하는 농장</h1>
     <div class="tag">환경·관수·생육·병해·수익을 하나로 잇는<br><b>AI 스마트농업 통합 운영 OS</b></div>
     <div class="pills">
       <span class="pill">🌱 온실</span><span class="pill">🌾 노지</span>
@@ -49,14 +108,14 @@
   </div>
 
   <div class="wrap">
-    <div class="stat-row">
-      <div class="stat"><div class="v">−350~400만</div><div class="l">연 에너지비 절감</div></div>
-      <div class="stat"><div class="v">+25~30%</div><div class="l">수율 향상</div></div>
-      <div class="stat"><div class="v">72h</div><div class="l">병해 사전경고</div></div>
+    <div class="stat-row anim d1">
+      <div class="stat"><div class="v">−350~400<span style="font-size:11px">만</span></div><div class="l">연 에너지비 절감</div></div>
+      <div class="stat"><div class="v">+25~30<span style="font-size:11px">%</span></div><div class="l">수율 향상</div></div>
+      <div class="stat"><div class="v">72<span style="font-size:11px">h</span></div><div class="l">병해 사전경고</div></div>
     </div>
 
-    <div class="sec-t">이런 고민, 해결합니다</div>
-    <div class="card">
+    <div class="sec-t anim d2">이런 고민, 해결합니다</div>
+    <div class="card anim d2">
       <div class="prob"><span class="ic">⚡</span><div class="t">에너지 비용 과다<div class="s">시간대별 요금 자동 절감(10~17시)</div></div><span class="b">−350~400만/년</span></div>
       <div class="prob"><span class="ic">📊</span><div class="t">수확량·품질 편차<div class="s">LED 파장 자동·병해 72h 전 경고</div></div><span class="b">수율+25~30%</span></div>
       <div class="prob"><span class="ic">💰</span><div class="t">수익을 월말에야 앎<div class="s">파종~수확 비용 실시간 소득률</div></div><span class="b">즉시 판단</span></div>
@@ -64,18 +123,18 @@
       <div class="prob"><span class="ic">🔌</span><div class="t">이기종 설비 편차<div class="s">표준화 + 물리 성능 캘리브레이션</div></div><span class="b">기종 무관</span></div>
     </div>
 
-    <div class="sec-t">핵심 기능</div>
-    <div class="feat-grid">
-      <div class="feat"><div class="ic">💧</div><div class="ft">관수 P1~P6</div><div class="fs">일사적산·dry-back 기반 일일 6단계 양액관수(프리바 방식)</div></div>
-      <div class="feat"><div class="ic">🤖</div><div class="ft">오늘의 결정</div><div class="fs">이상감지+처방+신뢰도를 한 카드에·원탭 실행</div></div>
-      <div class="feat"><div class="ic">🩺</div><div class="ft">시스템 종합진단</div><div class="fs">성숙도 점수+ROI 개선 우선순위</div></div>
-      <div class="feat"><div class="ic">🔌</div><div class="ft">이기종 통합</div><div class="fs">제조사·프로토콜 무관 표준변수 매핑</div></div>
-      <div class="feat"><div class="ic">💬</div><div class="ft">AI 비서(RAG)</div><div class="fs">농진청·병해DB 검색 기반 맞춤 조언</div></div>
-      <div class="feat"><div class="ic">📋</div><div class="ft">경영성과 리포트</div><div class="fs">6대영역·9대지표·이행 폐루프 학습</div></div>
+    <div class="sec-t anim d3">핵심 기능</div>
+    <div class="feat-grid anim d3">
+      <div class="feat"><div class="ic ic-b">💧</div><div class="ft">관수 P1~P6</div><div class="fs">일사적산·dry-back 기반 일일 6단계 양액관수(프리바 방식)</div></div>
+      <div class="feat"><div class="ic ic-g">🤖</div><div class="ft">오늘의 결정</div><div class="fs">이상감지+처방+신뢰도를 한 카드에·원탭 실행</div></div>
+      <div class="feat"><div class="ic ic-o">🩺</div><div class="ft">시스템 종합진단</div><div class="fs">성숙도 점수+ROI 개선 우선순위</div></div>
+      <div class="feat"><div class="ic ic-b">🔌</div><div class="ft">이기종 통합</div><div class="fs">제조사·프로토콜 무관 표준변수 매핑</div></div>
+      <div class="feat"><div class="ic ic-g">💬</div><div class="ft">AI 비서(RAG)</div><div class="fs">농진청·병해DB 검색 기반 맞춤 조언</div></div>
+      <div class="feat"><div class="ic ic-o">📋</div><div class="ft">경영성과 리포트</div><div class="fs">6대영역·9대지표·이행 폐루프 학습</div></div>
     </div>
 
-    <div class="sec-t">6층 통합 아키텍처</div>
-    <div class="card" style="padding:4px 0;">
+    <div class="sec-t anim d4">6층 통합 아키텍처</div>
+    <div class="card anim d4">
       <div class="arch"><span class="lv">L1</span><span class="at">현장 수집</span><span class="as">센서 1분 주기</span></div>
       <div class="arch"><span class="lv">L2</span><span class="at">Edge 이기종 통합</span><span class="as">표준 스키마 정규화</span></div>
       <div class="arch"><span class="lv">L3</span><span class="at">플랫폼 분석</span><span class="as">기상·시세·요금 결합</span></div>
@@ -84,11 +143,17 @@
       <div class="arch"><span class="lv">L6</span><span class="at">제어·알림</span><span class="as">복합제어기·스마트폰</span></div>
     </div>
 
-    <div class="sec-t">3계층 AI 모델</div>
-    <div class="card" style="padding:10px 14px;">
-      <div style="font-size:12.5px;line-height:1.7;">
-        <b>0.</b> 농진청 표준모델(폴백) → <b>1.</b> KAASA 현장학습모델(M1·M2·M5) → <b>2.</b> 내 농장 맞춤모델<br>
-        <span style="color:var(--muted);font-size:11px;">실데이터가 쌓일수록 내 농장에 맞게 정확도가 자동 향상됩니다.</span>
+    <div class="sec-t anim d4">3계층 AI 모델</div>
+    <div class="card anim d4">
+      <div class="model-box">
+        <div class="model-flow">
+          <span class="step">0. 농진청 표준</span><span class="arr">→</span>
+          <span class="step">1. KAASA 학습</span><span class="arr">→</span>
+          <span class="step">2. 내 농장 맞춤</span>
+        </div>
+        <div style="color:var(--muted);font-size:11.5px;margin-top:10px;line-height:1.55;font-weight:500;">
+          실데이터가 쌓일수록 내 농장에 맞게 정확도가 자동 향상됩니다. (M1 생육·M2 수확·M5 병해)
+        </div>
       </div>
     </div>
   </div>
