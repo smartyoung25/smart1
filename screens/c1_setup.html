@@ -98,6 +98,9 @@
     <input class="wiz-input" id="fArea" type="number" inputmode="decimal" placeholder="예: 1200"/>
     <label class="wiz-label">재배 방식</label>
     <div class="opt-grid" id="methodGrid"></div>
+    <div style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.5;background:var(--panel-soft);border-radius:8px;padding:9px 11px;">
+      ℹ️ <b>수경·배지경은 모두 양액재배</b>입니다 — <b>수경</b>=배지 없이 양액에 뿌리(담액·NFT·DFT), <b>배지경</b>=고형배지(암면·코코피트·펄라이트)에 양액 공급.
+    </div>
   </div>
 
   <!-- Step 5: 작기 -->
@@ -117,8 +120,9 @@
     <div class="wiz-title">개선 목표</div>
     <div class="wiz-desc">가장 개선하고 싶은 항목을 선택하세요 (복수 가능).</div>
     <div class="chip-wrap" id="painChips"></div>
-    <label class="wiz-label">목표 수확량 (kg)</label>
-    <input class="wiz-input" id="fKpiYield" type="number" inputmode="decimal" placeholder="선택 입력"/>
+    <label class="wiz-label">목표 수확량 (kg/10a · 면적당)</label>
+    <input class="wiz-input" id="fKpiYield" type="number" inputmode="decimal" placeholder="예: 4500 (10a=1,000㎡ 당)"/>
+    <div id="yieldTotalHint" style="font-size:11px;color:var(--muted);margin-top:6px;"></div>
   </div>
 
   <!-- Step 7: 확인 -->
@@ -144,7 +148,7 @@ let _step=1;
 const STEP_NAMES=['기본 정보','재배 작물','시설 유형','재배 규모','작기','개선 목표','확인'];
 const form={ farm_id:'farm_001', region:'', crop_ko:'', facility_type:'', area_m2:null,
   cultivation_method:'토경', irrigation_method:'', season_start:'', season_end:'', growing_year:1,
-  pain_points:[], kpi_yield_kg:null };
+  pain_points:[], kpi_yield_kg:null, kpi_yield_per_10a:null };
 
 const CROPS=[['딸기','🍓'],['오이','🥒'],['완숙토마토','🍅'],['방울토마토','🍅'],['파프리카','🫑'],['참외','🍈'],['감귤','🍊'],['월동무','🥬'],['당근','🥕'],['양배추','🥬'],['브로콜리','🥦'],['마늘','🧄'],['양파','🧅']];
 const FIELD_CROPS=['감귤','월동무','당근','양배추','브로콜리','마늘','양파'];
@@ -155,7 +159,7 @@ const FACILITIES=[
 ];
 const FIELD_FAC=new Set(FACILITIES.filter(f=>f[2]==='field').map(f=>f[0]));
 const IRRIGS=[['점적관개','💧'],['스프링클러','🚿'],['지표관개','🌊'],['무관개(천수답)','🌧️']];
-const METHODS=[['토경','🌱'],['수경','💧'],['배지경','🪴'],['양액','🧪'],['노지토경','🌾'],['노지재배','🚜']];
+const METHODS=[['토경','🌱'],['수경','💧'],['배지경','🪴'],['노지토경','🌾'],['노지재배','🚜']];
 const PAINS=['수확량 증대','품질 향상','에너지 절감','병해 예방','관수 효율','인건비 절감','출하가 향상'];
 
 window.addEventListener('DOMContentLoaded', ()=>{
@@ -214,8 +218,21 @@ function _collectStep(){
   if(_step===1){ form.farm_id=document.getElementById('fFarmId').value.trim()||'farm_001'; form.region=document.getElementById('fRegion').value.trim(); }
   if(_step===4){ form.area_m2=parseFloat(document.getElementById('fArea').value)||null; }
   if(_step===5){ form.season_start=document.getElementById('fStart').value; form.season_end=document.getElementById('fEnd').value; form.growing_year=parseInt(document.getElementById('fYear').value)||1; }
-  if(_step===6){ form.kpi_yield_kg=parseFloat(document.getElementById('fKpiYield').value)||null; }
+  if(_step===6){
+    form.kpi_yield_per_10a=parseFloat(document.getElementById('fKpiYield').value)||null;
+    // 총 목표수확량 = 면적당 × (면적/1000㎡) — 백엔드 kpi_yield_kg 는 총량
+    form.kpi_yield_kg = (form.kpi_yield_per_10a && form.area_m2)
+      ? Math.round(form.kpi_yield_per_10a * form.area_m2/1000) : null;
+  }
 }
+// 면적당 입력 시 총량 미리보기
+document.addEventListener('input',e=>{
+  if(e.target && e.target.id==='fKpiYield'){
+    const per=parseFloat(e.target.value)||0; const hint=document.getElementById('yieldTotalHint');
+    if(hint){ hint.textContent = (per && form.area_m2)
+      ? `≈ 총 ${Math.round(per*form.area_m2/1000).toLocaleString()} kg (면적 ${form.area_m2}㎡ 기준)` : ''; }
+  }
+});
 
 function _validate(){
   if(_step===2 && !form.crop_ko){ alert('작물을 선택하세요'); return false; }
@@ -240,7 +257,7 @@ function _renderSummary(){
     ['면적',form.area_m2?form.area_m2+'m²':'—'],
     ['재배방식',form.cultivation_method],['작기',`${form.season_start||'—'} ~ ${form.season_end||'—'}`],
     ['재배연차',form.growing_year+'년차'],['개선목표',form.pain_points.join(', ')||'—'],
-    ['목표수확량',form.kpi_yield_kg?form.kpi_yield_kg+'kg':'—'],
+    ['목표수확량',form.kpi_yield_per_10a?`${form.kpi_yield_per_10a} kg/10a${form.kpi_yield_kg?` (총 ${form.kpi_yield_kg.toLocaleString()}kg)`:''}`:'—'],
   ];
   document.getElementById('summaryCard').innerHTML=rows.map(([k,v])=>`<div class="summary-row"><span class="k">${k}</span><span class="v">${v}</span></div>`).join('');
 }

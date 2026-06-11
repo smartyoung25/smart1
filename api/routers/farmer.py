@@ -3300,6 +3300,46 @@ def _integration_path(farm_id: str):
     return d / f"{farm_id}.json"
 
 
+class ConsentBody(BaseModel):
+    mode: str = Field("", max_length=40)            # private|learning|benchmark|network
+    items: dict = Field(default_factory=dict)        # {env:true, irr:true, ...}
+    note: str = Field("", max_length=200)
+
+
+def _consent_path(farm_id: str):
+    from pathlib import Path as _P
+    d = _P(__file__).resolve().parents[1] / "data" / "consent"
+    d.mkdir(parents=True, exist_ok=True)
+    return d / f"{farm_id}.json"
+
+
+@router.get("/consent", summary="데이터 활용 동의 설정 조회")
+def get_consent(farm_id: str):
+    import json as _json
+    fp = _consent_path(farm_id)
+    if fp.exists():
+        try: return _json.loads(fp.read_text(encoding="utf-8"))
+        except Exception: pass
+    return {"farm_id": farm_id, "mode": "", "items": {}, "saved": False}
+
+
+@router.post("/consent", summary="데이터 활용 동의 설정 저장")
+def post_consent(farm_id: str, body: ConsentBody):
+    import json as _json
+    from datetime import datetime as _dt, timezone as _tz
+    _require_farm(farm_id)
+    rec = body.model_dump()
+    rec["farm_id"] = farm_id
+    rec["saved"] = True
+    rec["updated_at"] = _dt.now(_tz.utc).isoformat()
+    on = sum(1 for v in (rec.get("items") or {}).values() if v)
+    rec["shared_count"] = on
+    try: _consent_path(farm_id).write_text(_json.dumps(rec, ensure_ascii=False, indent=2), encoding="utf-8")
+    except Exception: pass
+    return {"farm_id": farm_id, "saved": True, "mode": rec["mode"],
+            "shared_count": on, "note": "데이터 활용 동의가 저장되었습니다."}
+
+
 @router.get("/integration-catalog", summary="신청 가능한 연동·서비스 항목 목록")
 def get_integration_catalog(farm_id: str):
     return {"farm_id": farm_id, "items": _INTEGRATION_CATALOG}

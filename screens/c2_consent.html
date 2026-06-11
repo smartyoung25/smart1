@@ -103,14 +103,18 @@ function _save(){
   const modeName=MODES.find(m=>m[0]===_mode)[1];
   const onItems=ITEMS.filter(([i])=>_toggles[i]).map(([,n])=>n).join(', ')||'없음';
   r.style.color='var(--muted)'; r.textContent='저장 중…';
-  // 서버 적재 (동의 이력 — 폐루프·정책 근거)
-  (async()=>{ try{ const api=(window.KaasaData&&KaasaData.getApiBase)?KaasaData.getApiBase():location.origin;
-    await fetch(`${api}/api/farms/${_farmG}/activity`,{method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':'Bearer '+_tokenG},
-      body:JSON.stringify({kind:'consent', item:`데이터 활용 동의: ${modeName}`,
-        value:onCount, detail:`공개 ${onCount}/${ITEMS.length} · ${onItems}`})}); }catch(e){}
+  // 서버 저장 (전용 동의 엔드포인트 — 데모에서도 허용)
+  (async()=>{ let ok=false; try{
+      if(!_tokenG) _tokenG=await _ensureToken();
+      const api=(window.KaasaData&&KaasaData.getApiBase)?KaasaData.getApiBase():location.origin;
+      const resp=await fetch(`${api}/api/farms/${_farmG}/consent`,{method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+_tokenG},
+        body:JSON.stringify({mode:_mode, items:_toggles, note:`${onItems}`})});
+      ok=resp.ok;
+    }catch(e){}
     r.style.color='var(--green)';
-    r.innerHTML=`✓ 저장 완료 — ${modeName} · 공개 ${onCount}/${ITEMS.length}항목`;
+    r.innerHTML=`✓ 저장 완료 — ${modeName} · 공개 ${onCount}/${ITEMS.length}항목`+
+      (ok?'':' <span style="font-size:10px;color:var(--muted)">(로컬 저장됨)</span>');
     // 온보딩 흐름: ?next= 가 있으면 다음 단계로 이어가기
     try{ const nx=new URLSearchParams(location.search).get('next');
       if(nx){ r.insertAdjacentHTML('afterend',
