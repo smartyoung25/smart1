@@ -3,7 +3,7 @@
  * 정적(CSS/JS/아이콘): stale-while-revalidate → 빠름 + 백그라운드 갱신
  * API(/api/): network-first
  */
-const CACHE = 'kaasa-smartos-v11';  // ★ 버전 변경 시 구 캐시 자동 삭제 (v11: 재배방식·면적당수확량·동의저장·장비추가)
+const CACHE = 'kaasa-smartos-v12';  // ★ 버전 변경 시 구 캐시 자동 삭제 (v12: 전략표 기준선 AI제어 연동)
 const CORE = [
   '/intro', '/index.html',
   '/components/base.css', '/components/data.js',

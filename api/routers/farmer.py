@@ -3415,6 +3415,21 @@ def get_climate_active(farm_id: str, crop: str = "", hour: int = -1, solar: floa
                                solar if solar >= 0 else None)
 
 
+@router.get("/environment/climate-plan/evaluate",
+            summary="전략표 목표 대비 실측 편차 → 제어 처방(AI 제어·이상감지 기준선)")
+def get_climate_evaluate(farm_id: str, crop: str = "", temp: float = -999,
+                         rh: float = -1, co2: float = -1, solar: float = -1, hour: int = -1):
+    from api.services import climate_plan as _cp
+    _require_farm(farm_id)
+    _crop = crop or (_FARM_META.get(farm_id, {}) or {}).get("crop") or "딸기"
+    measured = {}
+    if temp > -900: measured["temp"] = temp
+    if rh >= 0:     measured["rh"] = rh
+    if co2 >= 0:    measured["co2"] = co2
+    return _cp.evaluate(farm_id, _crop, measured,
+                        hour if hour >= 0 else None, solar if solar >= 0 else None)
+
+
 @router.delete("/equipment/{device_id}", summary="기자재 삭제")
 def delete_equipment(farm_id: str, device_id: str):
     import json as _json

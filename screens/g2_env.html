@@ -752,23 +752,43 @@ function _updateOutdoor(env, updatedAt) {
 }
 
 // ── AI 제어 추천 (규칙 기반) ────────────────────────────────────────────────
-function _updateAiControls(env) {
-  const results = CONTROL_RULES.map(rule => ({ rule, result: rule.check(env) }))
-                               .filter(x => x.result !== null);
-
+// ★ 전략표(생육시기×구간 목표) 기준선 연동 — 계획 대비 실측 편차로 처방 생성
+async function _updateAiControls(env) {
   const container = document.getElementById('aiControls');
   if (!container) return;
+  let results = null, planBased = false;
+  try {
+    const {api, farm} = await _cpEnsure();
+    const q = new URLSearchParams();
+    if (env.temp_internal != null) q.set('temp', env.temp_internal);
+    if (env.humidity_int != null) q.set('rh', env.humidity_int);
+    if (env.co2_ppm != null) q.set('co2', env.co2_ppm);
+    if (env.solar_rad != null) q.set('solar', Math.round(env.solar_rad));
+    const ev = await fetch(`${api}/api/farms/${farm}/environment/climate-plan/evaluate?${q}`,{headers:_cpH()}).then(r=>r.json());
+    if (ev && ev.target_available) {
+      planBased = true;
+      results = (ev.prescriptions||[]).map(p => ({ rule:{id:p.id,icon:p.icon,title:p.title}, result:p }));
+    }
+  } catch(e) {}
+  // 폴백: 전략표 미설정(정식일 없음) → 기존 고정 규칙
+  if (results === null) {
+    results = CONTROL_RULES.map(rule => ({ rule, result: rule.check(env) })).filter(x => x.result !== null);
+  }
+  _renderControls(container, results, planBased);
+}
 
+function _renderControls(container, results, planBased) {
+  const tag = planBased
+    ? `<div style="font-size:11px;color:var(--green-dark);font-weight:700;margin-bottom:8px;">📋 전략표 목표 기준 — 계획 대비 실측 편차로 처방</div>` : '';
   if (results.length === 0) {
-    container.innerHTML = `<div class="card" style="text-align:center;padding:20px;color:var(--muted);">
+    container.innerHTML = tag + `<div class="card" style="text-align:center;padding:20px;color:var(--muted);">
       <div style="font-size:24px;margin-bottom:6px;">✅</div>
-      <div style="font-size:14px;font-weight:700;">현재 환경 양호</div>
-      <div style="font-size:12px;margin-top:4px;">AI 제어 추천 없음</div>
+      <div style="font-size:14px;font-weight:700;">${planBased?'전략표 목표에 부합':'현재 환경 양호'}</div>
+      <div style="font-size:12px;margin-top:4px;">제어 추천 없음</div>
     </div>`;
     return;
   }
-
-  container.innerHTML = results.map(({ rule, result }) => {
+  container.innerHTML = tag + results.map(({ rule, result }) => {
     const levelBadge = result.level === 'danger' ? 'urgent' : result.level === 'warn' ? 'suggest' : 'info';
     const levelText  = result.level === 'danger' ? '즉시 조치' : result.level === 'warn' ? '권고' : '제안';
     const conf = Math.round(result.conf * 100);

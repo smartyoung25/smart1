@@ -184,6 +184,74 @@ def save_plan(farm_id: str, plan: dict) -> dict:
     return plan
 
 
+def _presc(pid, icon, title, level, action, reason, conf):
+    return {"id": pid, "icon": icon, "title": title, "level": level,
+            "action": action, "reason": reason, "conf": conf, "source": "plan"}
+
+
+def evaluate(farm_id: str, crop: str = "딸기", measured: dict | None = None,
+             hour: int | None = None, solar: float | None = None) -> dict:
+    """전략표 목표값을 기준선으로 실측 편차를 계산해 제어 처방을 생성.
+    (고정 임계값이 아니라 '지금 생육시기·구간의 목표' 대비 편차로 판단)"""
+    measured = measured or {}
+    act = active_setpoint(farm_id, crop, hour, solar)
+    tgt = act.get("target", {})
+    metrics = act.get("metrics", {})
+    t_target = tgt.get("temp_adj") if tgt.get("temp_adj") is not None else tgt.get("temp")
+    co2_target = tgt.get("co2")
+    vpd_band = metrics.get("vpd_band")
+
+    mt, mrh, mco2 = measured.get("temp"), measured.get("rh"), measured.get("co2")
+    presc, dev = [], {}
+
+    # ① 온도 — 목표(광연동 보정 포함) 대비 편차
+    if mt is not None and t_target is not None:
+        d = round(mt - t_target, 1); dev["temp"] = d
+        if d <= -3:
+            presc.append(_presc("heating", "🔥", "난방 제어", "danger",
+                                 f"난방 긴급 가동 (목표 {t_target}℃)",
+                                 f"실측 {mt}℃ — 목표 대비 {d}℃ (임계 저온)", 0.95))
+        elif d <= -1.5:
+            presc.append(_presc("heating", "🔥", "난방 제어", "warn",
+                                 f"난방 ON (목표 {t_target}℃)",
+                                 f"실측 {mt}℃ — 목표 대비 {d}℃ 낮음", 0.88))
+        elif d >= 3:
+            presc.append(_presc("cooling", "🌬️", "환기·냉방", "danger",
+                                 f"환기 최대 + 차광 (목표 {t_target}℃)",
+                                 f"실측 {mt}℃ — 목표 대비 +{d}℃ (고온)", 0.90))
+        elif d >= 1.5:
+            presc.append(_presc("cooling", "🌬️", "환기 제어", "warn",
+                                 f"환기 강화 (목표 {t_target}℃)",
+                                 f"실측 {mt}℃ — 목표 대비 +{d}℃", 0.82))
+
+    # ② 습도/VPD — 권장 밴드 대비
+    if mt is not None and mrh is not None:
+        mvpd = vpd(mt, mrh); dev["vpd"] = mvpd
+        if vpd_band:
+            if mvpd < vpd_band[0] - 0.2:
+                presc.append(_presc("humid", "💧", "제습·환기", "warn",
+                                     f"제습/환기 (VPD 목표 {vpd_band[0]}~{vpd_band[1]})",
+                                     f"실측 VPD {mvpd}kPa — 과습(결로·병 위험)", 0.80))
+            elif mvpd > vpd_band[1] + 0.3:
+                presc.append(_presc("humid", "💧", "가습·관수", "warn",
+                                     f"가습/관수 (VPD 목표 {vpd_band[0]}~{vpd_band[1]})",
+                                     f"실측 VPD {mvpd}kPa — 증산 과다", 0.80))
+
+    # ③ CO₂ — 목표 대비 부족 / 과농도 안전
+    if mco2 is not None:
+        dev["co2"] = (round(mco2 - co2_target) if co2_target is not None else None)
+        if mco2 > 1500:
+            presc.append(_presc("co2", "🌿", "CO₂ 안전", "danger", "환기 즉시 강화",
+                                 f"CO₂ {int(mco2)}ppm — 과농도", 0.92))
+        elif co2_target is not None and mco2 < co2_target - 200:
+            presc.append(_presc("co2", "🌿", "CO₂ 시비", "suggest",
+                                 f"CO₂ 시비 (목표 {co2_target}ppm)",
+                                 f"실측 {int(mco2)}ppm — 목표 대비 {int(mco2-co2_target)}ppm 부족", 0.75))
+
+    return {"active": act, "prescriptions": presc, "deviation": dev,
+            "target_available": t_target is not None}
+
+
 def _weeks_since(transplant_date: str) -> int | None:
     if not transplant_date:
         return None
