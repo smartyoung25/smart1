@@ -218,8 +218,9 @@ function calcVpd(tempC, humidityPct) {
 // ── VPD 상태 등급 반환 ─────────────────────────────────────────────────────
 function vpdStatus(vpd) {
   if (vpd === null) return 'none';
-  if (vpd < 0.3 || vpd > 2.0) return 'critical';
-  if (vpd < 0.5 || vpd > 1.5) return 'warning';
+  // ★ 모바일 기준 통일: 저역 임계 0.4/0.6 (구 0.3/0.5)
+  if (vpd < 0.4 || vpd > 2.0) return 'critical';
+  if (vpd < 0.6 || vpd > 1.5) return 'warning';
   return 'optimal';
 }
 

@@ -54,6 +54,15 @@
   <div class="section-label">M2 수확량 모델 게이트 (최적모델 현황) <span class="trust-badge trust-model">🔵 모델</span></div>
   <div class="card" style="padding:14px;margin-bottom:14px;" id="m2List"><div style="text-align:center;color:var(--muted);font-size:12px;"><div class="spinner"></div></div></div>
 
+  <!-- ★ M2 드리프트 모니터링 (PC 대시보드 기능 이식) -->
+  <div class="section-label">M2 드리프트 모니터링 <span class="trust-badge trust-model">🔵 모델</span></div>
+  <div class="card" style="padding:14px;margin-bottom:6px;" id="driftList"><div style="text-align:center;color:var(--muted);font-size:12px;"><div class="spinner"></div></div></div>
+  <div style="font-size:10.5px;color:var(--muted);margin:0 4px 14px;line-height:1.5;">🟢 양호(MAPE≤20%) · 🟡 주의(20~35%, 재학습 권고) · 🔴 위험(&gt;35%, 폴백·재학습). 재학습 실행은 관리자 권한에서 수행됩니다.</div>
+
+  <!-- M1~M5 통합 성능 매트릭스 -->
+  <div class="section-label">모델 성능 매트릭스 (M1~M5) <span class="trust-badge trust-model">🔵 모델</span></div>
+  <div class="card" style="padding:12px;margin-bottom:14px;" id="matrix"><div style="text-align:center;color:var(--muted);font-size:12px;"><div class="spinner"></div></div></div>
+
   <div class="section-label">모델별 성능 (M1 생육) <span class="trust-badge trust-model">🔵 모델</span></div>
   <div class="card" style="padding:14px;" id="modelList"><div style="text-align:center;color:var(--muted);font-size:12px;"><div class="spinner"></div></div></div>
 </main>
@@ -105,6 +114,41 @@ async function _load(token,farmId){
         <span style="font-size:12px;color:var(--muted);margin-right:8px;">R²=${r2}</span>${badge}</div>`;
     }).join('');
   } else m2el.innerHTML='<div style="color:var(--muted);font-size:12px;text-align:center;">데이터 없음</div>';
+
+  // ★ M2 드리프트 모니터링 — MAPE 기준 상태(🟢≤20/🟡20~35/🔴>35)
+  const drel=document.getElementById('driftList');
+  if(m2.length){
+    drel.innerHTML=m2.map(m=>{
+      const mape=m.mape_pct!=null?m.mape_pct:999;
+      const st=mape<=20?{d:'🟢',l:'양호',c:'var(--green-dark)',bg:'var(--green-soft)'}
+              :mape<=35?{d:'🟡',l:'주의·재학습 권고',c:'var(--orange)',bg:'var(--orange-soft)'}
+              :{d:'🔴',l:'위험·폴백',c:'var(--red)',bg:'var(--red-soft)'};
+      const w=Math.min(100,Math.round(mape/50*100));
+      return `<div style="padding:9px 0;border-bottom:1px solid var(--border);">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:14px;">${st.d}</span>
+          <span style="flex:1;font-size:13px;font-weight:700;">${m.crop||'?'}</span>
+          <span style="font-size:11px;font-weight:800;color:${st.c};background:${st.bg};padding:3px 8px;border-radius:8px;">MAPE ${mape}%</span>
+        </div>
+        <div style="height:6px;background:var(--gray-soft);border-radius:3px;margin-top:6px;overflow:hidden;"><div style="height:100%;width:${w}%;background:${st.c};border-radius:3px;"></div></div>
+        <div style="font-size:11px;color:${st.c};font-weight:700;margin-top:4px;">${st.l}</div>
+      </div>`;
+    }).join('');
+  } else drel.innerHTML='<div style="color:var(--muted);font-size:12px;text-align:center;">데이터 없음</div>';
+
+  // ★ M1~M5 통합 성능 매트릭스
+  const mx=document.getElementById('matrix');
+  const m3=perf?.m3_revenue||[];
+  const rows=[];
+  rows.push(['M1 생육', m1.length?`${m1.length}작물 · 평균 R² ${avgR2.toFixed(3)}`:'—', m1.some(x=>x.gate_pass)?'✅':'⚠️']);
+  rows.push(['M2 수확량', m2.length?`${m2.filter(x=>x.gate_pass).length}/${m2.length} 게이트 통과`:'—', m2.some(x=>x.gate_pass)?'✅':'⚠️']);
+  rows.push(['M3 매출', m3.length?`${m3.length}작물 · 평균 MAPE ${(m3.reduce((s,x)=>s+(x.mape_pct||0),0)/m3.length).toFixed(1)}%`:'—', m3.length?'✅':'—']);
+  rows.push(['M4 원가', (perf?.m4_cost?.status==='parameter_based')?'파라미터 기반':'—', perf?.m4_cost?.grade||'—']);
+  rows.push(['M5 병해', '규칙기반 v2 · 8병해', perf?.m5_disease?.grade||'⚠️']);
+  rows.push(['관수(Priva)', perf?.priva_irrigation?.status==='active'?'활성':'—', perf?.priva_irrigation?.grade||'—']);
+  mx.innerHTML=rows.map(([n,v,g])=>`<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);font-size:12.5px;">
+    <span style="font-weight:800;width:90px;flex:0 0 auto;">${n}</span>
+    <span style="flex:1;color:var(--muted);">${v}</span><span style="font-weight:800;">${g}</span></div>`).join('');
 }
 </script>
 </body>

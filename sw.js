@@ -3,7 +3,7 @@
  * 정적(CSS/JS/아이콘): stale-while-revalidate → 빠름 + 백그라운드 갱신
  * API(/api/): network-first
  */
-const CACHE = 'kaasa-smartos-v14';  // ★ 버전 변경 시 구 캐시 자동 삭제 (v14: 다크/라이트 테마 토글)
+const CACHE = 'kaasa-smartos-v15';  // ★ 버전 변경 시 구 캐시 자동 삭제 (v15: PC기능 이식 — 드리프트·매트릭스·What-if + DLI/VPD 통일)
 const CORE = [
   '/intro', '/index.html',
   '/components/base.css', '/components/data.js',

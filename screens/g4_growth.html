@@ -185,6 +185,20 @@
     </div>
   </div>
 
+  <!-- ★ What-if 시뮬레이터 (PC 대시보드 기능 이식) -->
+  <div class="section-label" style="margin-top:16px;">What-if 시뮬레이터 <span class="trust-badge trust-model">🔵 모델</span></div>
+  <div class="card" style="padding:14px;margin-bottom:14px;">
+    <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.5;">환경값을 가정해 <b>예상 매출 변화</b>를 즉시 예측합니다. (실제 제어 없음)</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div><label class="wi-l">내부온도 ℃</label><input class="wi-i" id="wiTemp" type="number" step="0.5" placeholder="예: 24"/></div>
+      <div><label class="wi-l">내부습도 %</label><input class="wi-i" id="wiRh" type="number" step="1" placeholder="예: 70"/></div>
+      <div><label class="wi-l">CO₂ ppm</label><input class="wi-i" id="wiCo2" type="number" step="50" placeholder="예: 1000"/></div>
+      <div><label class="wi-l">EC dS/m</label><input class="wi-i" id="wiEc" type="number" step="0.1" placeholder="예: 2.8"/></div>
+    </div>
+    <button id="wiBtn" onclick="_runWhatif()" style="width:100%;margin-top:12px;padding:12px;background:var(--blue);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer;min-height:46px;">시뮬레이션 실행</button>
+    <div id="wiResult" style="margin-top:12px;"></div>
+  </div>
+
   <!-- 생육 조언 -->
   <div class="section-label">생육 관리 조언</div>
   <div id="growthAdvices">
@@ -491,6 +505,45 @@ function _renderModelPerf(perf) {
     updEl.textContent = dt.toLocaleDateString('ko-KR') + ' ' + dt.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
   }
 }
+
+// ★ What-if 시뮬레이터 — 가상 환경값 → 예상 매출 변화 예측
+async function _runWhatif(){
+  const res=document.getElementById('wiResult'); const btn=document.getElementById('wiBtn');
+  const body={};
+  const t=parseFloat(document.getElementById('wiTemp').value); if(!isNaN(t)) body.temp_internal=t;
+  const rh=parseFloat(document.getElementById('wiRh').value); if(!isNaN(rh)) body.humidity_int=rh;
+  const co2=parseFloat(document.getElementById('wiCo2').value); if(!isNaN(co2)) body.co2_ppm=co2;
+  const ec=parseFloat(document.getElementById('wiEc').value); if(!isNaN(ec)) body.ec_dsm=ec;
+  if(!Object.keys(body).length){ res.innerHTML='<div style="color:var(--red);font-size:12px;">최소 한 개 값을 입력하세요</div>'; return; }
+  btn.disabled=true; btn.textContent='예측 중…';
+  try{
+    if(!_tokenG) _tokenG=sessionStorage.getItem('sf_token')||'';
+    const api=KaasaData.getApiBase();
+    const r=await fetch(`${api}/api/farms/${_farmG}/whatif`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${_tokenG}`},body:JSON.stringify(body)});
+    const d=await r.json();
+    if(!r.ok){ res.innerHTML=`<div style="color:var(--red);font-size:12px;">${d.detail||('오류 '+r.status)}</div>`; }
+    else {
+      const up=d.delta_krw>=0; const col=up?'var(--green-dark)':'var(--red)';
+      const man=v=>v==null?'—':(v/10000).toLocaleString(undefined,{maximumFractionDigits:0})+'만원';
+      res.innerHTML=`
+        <div style="display:flex;gap:8px;text-align:center;">
+          <div style="flex:1;background:var(--panel-soft);border-radius:10px;padding:10px;"><div style="font-size:10px;color:var(--muted);">현재 기준</div><div style="font-size:15px;font-weight:800;">${man(d.baseline_revenue_krw)}</div></div>
+          <div style="flex:0 0 auto;align-self:center;font-size:18px;color:${col};">→</div>
+          <div style="flex:1;background:var(--green-soft);border-radius:10px;padding:10px;"><div style="font-size:10px;color:var(--muted);">가상 환경</div><div style="font-size:15px;font-weight:800;color:${col}">${man(d.whatif_revenue_krw)}</div></div>
+        </div>
+        <div style="text-align:center;margin-top:10px;font-size:14px;font-weight:800;color:${col};">
+          ${up?'▲':'▼'} ${man(Math.abs(d.delta_krw))} (${d.delta_pct>=0?'+':''}${(d.delta_pct||0).toFixed(1)}%)</div>
+        <div style="text-align:center;font-size:11px;color:var(--muted);margin-top:4px;">
+          ${d.yield_kg_forecast!=null?`예상수확 ${d.yield_kg_forecast.toLocaleString()}kg · `:''}신뢰도 ${Math.round((d.confidence||0)*100)}% · ${d.model_used==='ml_model'?'ML 모델':'통계 폴백'}</div>`;
+    }
+  }catch(e){ res.innerHTML='<div style="color:var(--red);font-size:12px;">네트워크 오류: '+e.message+'</div>'; }
+  btn.disabled=false; btn.textContent='시뮬레이션 실행';
+}
 </script>
+<style>
+  .wi-l{font-size:11px;font-weight:700;color:var(--muted);display:block;margin-bottom:4px;}
+  .wi-i{width:100%;min-height:42px;padding:9px 11px;border:1.5px solid var(--border);border-radius:9px;font-size:14px;outline:none;background:var(--panel);color:var(--text);}
+  .wi-i:focus{border-color:var(--blue);}
+</style>
 </body>
 </html>

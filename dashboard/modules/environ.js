@@ -136,7 +136,8 @@ async function loadCurrentEnv() {
     const solarVal = d.solar_rad ?? d.solar_radiation ?? d.solar_rad_est ?? null;
     // 위도 37°N 기준 월별 일조시간 추정 (4~9월: 장일, 10~3월: 단일)
     const _dliHours = [9,10,11,12,13,14,14,13,12,11,10,9][new Date().getMonth()];
-    setText('env-kpi-dli', solarVal != null ? (solarVal * 3600 / 1e6 * _dliHours).toFixed(1) : '—');
+    // ★ 모바일 기준 통일: PAR 변환계수 4.57 적용(mol PAR/m²/d). 누락 시 ~4.6배 과소표시.
+    setText('env-kpi-dli', solarVal != null ? (solarVal * 4.57 * 3600 / 1e6 * _dliHours).toFixed(1) : '—');
     apiFetch(`/api/farms/${farmId}/erp/realtime`).then(erp => {
       const energyW = erp?.cost_breakdown?.energy_per_m2;
       setText('env-kpi-energy', energyW != null ? Math.round(energyW) + 'W/m²' : '—');
