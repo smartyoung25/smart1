@@ -103,10 +103,12 @@ async function _submit(){
       localStorage.setItem('sf_signup_feats',JSON.stringify(_feats));
       setTimeout(()=>location.href=_landing(),1500);
     } else if(r.status===403){
-      // 공개 데모(읽기 전용) — 실제 가입은 비활성. 데모 계정으로 역할별 체험 계속
-      res.style.color='var(--green)';
-      res.innerHTML=`🔒 공개 데모에서는 실제 회원가입이 비활성화됩니다.<br>데모 계정으로 ${_landingLabel()} 체험합니다…`;
+      // 공개 데모(읽기 전용): 실제 계정 생성은 막혀있으나 체험은 끊김없이 진행
+      if(name) localStorage.setItem('sf_signup_name', name);
+      localStorage.setItem('sf_signup_role', _role);
       localStorage.setItem('sf_signup_feats',JSON.stringify(_feats));
+      res.style.color='var(--green)';
+      res.innerHTML=`✓ ${name||'농가'}님, 환영합니다! 데모 체험 모드로 <b>${_landingLabel()}</b> 시작합니다…<br><span style="font-size:11px;color:var(--muted);">(공개 데모라 실제 계정 생성은 생략 — 모든 기능은 체험 가능)</span>`;
       setTimeout(()=>location.href=_landing(),1800);
     } else {
       const t=await r.text();
