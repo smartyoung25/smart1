@@ -3406,13 +3406,39 @@ def post_climate_plan(farm_id: str, body: dict):
     return _cp.save_plan(farm_id, body)
 
 
-@router.get("/environment/climate-plan/active", summary="정식일+현재시각 기준 지금 적용 목표값(광연동 승온 포함)")
-def get_climate_active(farm_id: str, crop: str = "", hour: int = -1, solar: float = -1):
+def _farm_sun_times(farm_id: str):
+    """농장 좌표 → 오늘 일출·일몰(시). 실패 시 (None,None)."""
+    try:
+        from api.services import climate_plan as _cp
+        from api.services.extended_weather import _coords
+        m = _FARM_META.get(farm_id, {}) or {}
+        lat, lon = _coords(m.get("sido") or "", m.get("sigungu") or "")
+        return _cp.sun_times(lat, lon)
+    except Exception:
+        return None, None
+
+
+@router.get("/environment/climate-plan/active", summary="정식일+현재시각 기준 지금 적용 목표값(광연동·일출경계·온도적산)")
+def get_climate_active(farm_id: str, crop: str = "", hour: int = -1, solar: float = -1, sun: int = 1):
     from api.services import climate_plan as _cp
     _require_farm(farm_id)
     _crop = crop or (_FARM_META.get(farm_id, {}) or {}).get("crop") or "딸기"
+    sr, ss = _farm_sun_times(farm_id) if sun else (None, None)
     return _cp.active_setpoint(farm_id, _crop, hour if hour >= 0 else None,
-                               solar if solar >= 0 else None)
+                               solar if solar >= 0 else None, sr, ss)
+
+
+@router.post("/environment/climate-plan/daily-temp", summary="실측 기온 샘플 기록(온도적산 입력)")
+def post_daily_temp(farm_id: str, body: dict):
+    from api.services import climate_plan as _cp
+    _require_farm(farm_id)
+    t = body.get("temp")
+    if t is None:
+        raise HTTPException(status_code=400, detail="temp 필요")
+    # 현재 목표 24h 평균을 함께 기록(부족분 계산 기준)
+    act = _cp.active_setpoint(farm_id, (_FARM_META.get(farm_id, {}) or {}).get("crop") or "딸기")
+    tgt_avg = (act.get("metrics") or {}).get("avg24")
+    return _cp.record_daily_temp(farm_id, float(t), tgt_avg, body.get("date"))
 
 
 @router.get("/environment/climate-plan/evaluate",
@@ -3426,6 +3452,8 @@ def get_climate_evaluate(farm_id: str, crop: str = "", temp: float = -999,
     if temp > -900: measured["temp"] = temp
     if rh >= 0:     measured["rh"] = rh
     if co2 >= 0:    measured["co2"] = co2
+    sr, ss = _farm_sun_times(farm_id)
+    if sr is not None: measured["sunrise"], measured["sunset"] = sr, ss
     return _cp.evaluate(farm_id, _crop, measured,
                         hour if hour >= 0 else None, solar if solar >= 0 else None)
 

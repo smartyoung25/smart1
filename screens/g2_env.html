@@ -1038,15 +1038,26 @@ async function _cpLoadActive(){
     const el=document.getElementById('cpActive');
     if(t.temp==null){ el.innerHTML='⏱️ 정식일을 지정하면 현재 생육시기에 맞는 목표값을 자동 안내합니다.'; }
     else {
-      const boosted=(t.light_boost>0);
-      const tempStr=boosted?`<b>${t.temp_adj}℃</b> <span style="font-size:10px;color:var(--orange,#b45309)">(광연동 +${t.light_boost}, 기준 ${t.temp})</span>`:`<b>${t.temp}℃</b>`;
+      // 목표온도 구성: 기준(셀) → 광연동 → 적산보정 → 최종
+      const adj=[]; if(t.light_boost>0) adj.push(`광연동 +${t.light_boost}`);
+      if(t.integration_corr) adj.push(`적산 ${t.integration_corr>0?'+':''}${t.integration_corr}`);
+      const tempStr=adj.length?`<b>${t.temp_adj}℃</b> <span style="font-size:10px;color:var(--orange,#b45309)">(${adj.join(', ')} · 기준 ${t.temp})</span>`:`<b>${t.temp}℃</b>`;
       const avgBand=m.avg24_band?` <span style="font-size:10px;color:var(--muted)">(권장 ${m.avg24_band[0]}~${m.avg24_band[1]})</span>`:'';
       const vpdBand=m.vpd_band?`${m.vpd_band[0]}~${m.vpd_band[1]}`:'-';
+      const sun=_cpActive.sun;
+      const sunStr=sun?` · 🌅 일출 ${Math.round(sun.sunrise)}시·일몰 ${Math.round(sun.sunset)}시 기준`:'';
+      const ti=_cpActive.integration||{};
+      const tiStr=(ti.window_days>0)?`<br><span style="font-size:11px;color:var(--muted)">🌡️ 온도적산 ${ti.window_days}일: 누적 ${ti.cumulative_deficit>0?'부족 +':''}${ti.cumulative_deficit}℃ → 오늘 ${ti.correction>0?'+':''}${ti.correction}℃ 보정(적산 회복)</span>`:'';
       el.innerHTML=`⏱️ 지금 적용 목표 — <b>${_cpActive.stage_label||'-'} · ${_cpActive.period_label||'-'}</b>`+
-        (wk!=null?` <span style="font-weight:500;color:var(--muted)">(정식 ${wk}주차)</span>`:'')+
+        (wk!=null?` <span style="font-weight:500;color:var(--muted)">(정식 ${wk}주차)</span>`:'')+sunStr+
         `<br>🌡️ ${tempStr} · 💧 <b>${t.rh}%</b> · CO₂ <b>${t.co2}ppm</b> · VPD <b>${t.vpd}</b>`+
-        `<br><span style="font-size:11px;color:var(--green-dark)">📊 24h 평균 <b>${m.avg24??'-'}℃</b>${avgBand} · DIF(주야차) <b>${m.dif??'-'}℃</b> · VPD 권장 ${vpdBand}kPa</span>`;
+        `<br><span style="font-size:11px;color:var(--green-dark)">📊 24h 평균 <b>${m.avg24??'-'}℃</b>${avgBand} · DIF(주야차) <b>${m.dif??'-'}℃</b> · VPD 권장 ${vpdBand}kPa</span>`+tiStr;
     }
+    // 실측 기온을 온도적산에 기록(스로틀: 10분) — 익일 보정 누적
+    try{ const e=(window.KaasaData&&KaasaData._latestEnv&&KaasaData._latestEnv())||null;
+      if(e&&e.temp_internal!=null){ const now=Date.now();
+        if(!window._lastTempPost || now-window._lastTempPost>600000){ window._lastTempPost=now;
+          fetch(`${api}/api/farms/${farm}/environment/climate-plan/daily-temp`,{method:'POST',headers:_cpH(),body:JSON.stringify({temp:e.temp_internal})}).catch(()=>{}); } } }catch(_){}
     _cpRender(); // 활성 셀 강조 반영
   }catch(e){}
 }

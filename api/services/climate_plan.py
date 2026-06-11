@@ -12,6 +12,8 @@ from __future__ import annotations
 
 import json
 import math
+import urllib.parse
+import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -66,8 +68,8 @@ def _recommend_for(crop: str) -> dict:
     return _RECOMMEND["_default"]
 
 
-def current_period_key(hour: int) -> str:
-    for p in PERIODS:
+def current_period_key(hour: int, periods: list | None = None) -> str:
+    for p in (periods or PERIODS):
         f, t = p["from"], p["to"]
         if f < t:
             if f <= hour < t:
@@ -76,6 +78,54 @@ def current_period_key(hour: int) -> str:
             if hour >= f or hour < t:
                 return p["key"]
     return "day"
+
+
+# ── ② 일출·일몰 기준 동적 구간 경계 (기상 API) ────────────────────────────────
+def _sun_path(lat: float, lon: float) -> Path:
+    d = Path(__file__).resolve().parents[1] / "data" / "sun_times"
+    d.mkdir(parents=True, exist_ok=True)
+    return d / f"{lat:.2f}_{lon:.2f}.json"
+
+
+def sun_times(lat: float, lon: float, today: str | None = None) -> tuple[float, float]:
+    """오늘 일출·일몰 시각(시 단위 실수). Open-Meteo(무키)·일 1회 캐시. 실패 시 (6.0,19.0)."""
+    today = today or datetime.now().strftime("%Y-%m-%d")
+    cp = _sun_path(lat, lon)
+    if cp.exists():
+        try:
+            c = json.loads(cp.read_text(encoding="utf-8"))
+            if c.get("date") == today:
+                return c["sunrise"], c["sunset"]
+        except Exception:
+            pass
+    sr, ss = 6.0, 19.0
+    try:
+        qs = urllib.parse.urlencode({"latitude": lat, "longitude": lon,
+                                     "daily": "sunrise,sunset", "timezone": "Asia/Seoul",
+                                     "forecast_days": 1})
+        raw = json.loads(urllib.request.urlopen(
+            f"https://api.open-meteo.com/v1/forecast?{qs}", timeout=8).read())
+        dy = raw.get("daily", {})
+        def _hh(s):  # "2026-06-12T05:12" → 5.2
+            t = s.split("T")[1]; h, m = t.split(":")[:2]; return int(h) + int(m) / 60.0
+        sr = round(_hh(dy["sunrise"][0]), 2); ss = round(_hh(dy["sunset"][0]), 2)
+        cp.write_text(json.dumps({"date": today, "sunrise": sr, "sunset": ss}), encoding="utf-8")
+    except Exception:
+        pass
+    return sr, ss
+
+
+def periods_for_sun(sunrise: float, sunset: float) -> list:
+    """일출·일몰로 4구간 경계 동적 산출. 일출 후 3h=완만승온, 일몰 전 3h=예비강하."""
+    sr, ss = int(round(sunrise)), int(round(sunset))
+    day_start = min(sr + 3, ss)
+    pren_start = max(ss - 3, day_start)
+    return [
+        {"key": "night",    "label": "야간",   "from": ss, "to": sr, "desc": "일몰~일출"},
+        {"key": "dawn",     "label": "일출",   "from": sr, "to": day_start, "desc": f"일출({sr}시) 후 완만 승온"},
+        {"key": "day",      "label": "주간",   "from": day_start, "to": pren_start, "desc": "고일사·광합성 최대"},
+        {"key": "prenight", "label": "일몰전", "from": pren_start, "to": ss, "desc": f"일몰({ss}시) 전 예비 강하"},
+    ]
 
 
 # ── 작물별 생육단계 × 구간 기본 템플릿 ────────────────────────────────────────
@@ -184,6 +234,64 @@ def save_plan(farm_id: str, plan: dict) -> dict:
     return plan
 
 
+# ── ③ 온도적산(HNT temperature integration) ──────────────────────────────────
+_TI_WINDOW = 5      # 적산 윈도우(일)
+_TI_BAND = 2.0      # 누적 보정 상한(±℃)
+
+
+def _ti_path(farm_id: str) -> Path:
+    d = Path(__file__).resolve().parents[1] / "data" / "temp_integration"
+    d.mkdir(parents=True, exist_ok=True)
+    return d / f"{farm_id}.json"
+
+
+def _ti_load(farm_id: str) -> dict:
+    fp = _ti_path(farm_id)
+    if fp.exists():
+        try: return json.loads(fp.read_text(encoding="utf-8"))
+        except Exception: pass
+    return {"days": {}}
+
+
+def record_daily_temp(farm_id: str, sample_temp: float, target_avg24: float | None = None,
+                      date: str | None = None) -> dict:
+    """오늘 실측 기온 샘플 누적 → 일 평균(running mean) 갱신. 적산 관리 입력."""
+    date = date or datetime.now().strftime("%Y-%m-%d")
+    st = _ti_load(farm_id)
+    days = st.setdefault("days", {})
+    d = days.setdefault(date, {"sum": 0.0, "n": 0, "target": target_avg24})
+    d["sum"] += float(sample_temp); d["n"] += 1
+    if target_avg24 is not None:
+        d["target"] = target_avg24
+    d["realized"] = round(d["sum"] / d["n"], 2)
+    # 최근 _TI_WINDOW+2 일만 보존
+    for k in sorted(days.keys())[:-(_TI_WINDOW + 2)]:
+        days.pop(k, None)
+    _ti_path(farm_id).write_text(json.dumps(st, ensure_ascii=False, indent=2), encoding="utf-8")
+    return {"date": date, "realized": d["realized"], "n": d["n"]}
+
+
+def integration_state(farm_id: str, target_avg24: float | None, today: str | None = None) -> dict:
+    """최근 윈도우의 (목표-실측) 누적 부족분 → 오늘 목표 보정량(±band) 산출.
+    HNT: 누적이 추웠으면(+) 오늘 목표를 올려 적산을 회복(catch-up)."""
+    today = today or datetime.now().strftime("%Y-%m-%d")
+    st = _ti_load(farm_id)
+    days = st.get("days", {})
+    # 오늘 이전 완료일들로 누적 부족분 계산
+    past = sorted(k for k in days.keys() if k < today)[-_TI_WINDOW:]
+    deficit = 0.0; used = []
+    for k in past:
+        d = days[k]
+        tgt = d.get("target") if d.get("target") is not None else target_avg24
+        rz = d.get("realized")
+        if tgt is not None and rz is not None:
+            deficit += (tgt - rz)
+            used.append({"date": k, "target": tgt, "realized": rz, "delta": round(tgt - rz, 1)})
+    corr = max(-_TI_BAND, min(_TI_BAND, round(deficit, 1)))
+    return {"correction": corr, "cumulative_deficit": round(deficit, 1),
+            "window_days": len(used), "detail": used}
+
+
 def _presc(pid, icon, title, level, action, reason, conf):
     return {"id": pid, "icon": icon, "title": title, "level": level,
             "action": action, "reason": reason, "conf": conf, "source": "plan"}
@@ -194,7 +302,8 @@ def evaluate(farm_id: str, crop: str = "딸기", measured: dict | None = None,
     """전략표 목표값을 기준선으로 실측 편차를 계산해 제어 처방을 생성.
     (고정 임계값이 아니라 '지금 생육시기·구간의 목표' 대비 편차로 판단)"""
     measured = measured or {}
-    act = active_setpoint(farm_id, crop, hour, solar)
+    act = active_setpoint(farm_id, crop, hour, solar,
+                          measured.get("sunrise"), measured.get("sunset"))
     tgt = act.get("target", {})
     metrics = act.get("metrics", {})
     t_target = tgt.get("temp_adj") if tgt.get("temp_adj") is not None else tgt.get("temp")
@@ -264,13 +373,20 @@ def _weeks_since(transplant_date: str) -> int | None:
 
 
 def active_setpoint(farm_id: str, crop: str = "딸기", hour: int | None = None,
-                    solar: float | None = None) -> dict:
+                    solar: float | None = None,
+                    sunrise: float | None = None, sunset: float | None = None) -> dict:
     """정식일 경과 + 현재시각 → 지금 적용할 목표 셀.
-    선진 기법 적용: 광연동 승온(주간 일사 보정) · 24h 평균기온/DIF · VPD 권장밴드."""
+    선진 기법 적용: 광연동 승온 · 24h 평균기온/DIF · VPD 밴드
+    · ② 일출·일몰 동적 구간 · ③ 온도적산 익일 보정."""
     plan = load_plan(farm_id, crop)
     if hour is None:
         hour = datetime.now().hour
-    pkey = current_period_key(hour)
+    # ② 일출·일몰 동적 경계 (제공 시) — 없으면 고정 PERIODS
+    if sunrise is not None and sunset is not None:
+        periods_used = periods_for_sun(sunrise, sunset)
+    else:
+        periods_used = PERIODS
+    pkey = current_period_key(hour, periods_used)
     wk = _weeks_since(plan.get("transplant_date", ""))
 
     seg = None
@@ -303,17 +419,26 @@ def active_setpoint(farm_id: str, crop: str = "딸기", hour: int | None = None,
     avg24_band = (rec.get("avg24", {}) or {}).get(skey)
     vpd_band = (rec.get("vpd", {}) or {}).get(skey)
 
+    # ③ 온도적산 익일 보정 — 누적 부족분만큼 오늘 목표 온도 보정
+    ti = integration_state(farm_id, metrics.get("avg24"))
+    ti_corr = ti["correction"]
+    temp_integrated = round(adj_temp + ti_corr, 1) if (adj_temp is not None and ti_corr) else adj_temp
+
     return {
         "farm_id": farm_id, "crop": crop,
         "weeks_since_transplant": wk,
         "stage_key": skey, "stage_label": (seg or {}).get("label"),
         "period_key": pkey,
-        "period_label": next((p["label"] for p in PERIODS if p["key"] == pkey), pkey),
+        "period_label": next((p["label"] for p in periods_used if p["key"] == pkey), pkey),
         "target": {"temp": temp, "rh": rh, "co2": co2,
-                   "temp_adj": adj_temp, "light_boost": boost,
+                   "temp_adj": temp_integrated, "light_boost": boost,
+                   "temp_base": adj_temp, "integration_corr": ti_corr,
                    "vpd": vpd(temp, rh) if (temp is not None and rh is not None) else None},
         "metrics": {"avg24": metrics["avg24"], "dif": metrics["dif"],
                     "avg24_band": avg24_band, "vpd_band": vpd_band},
+        "integration": ti,
+        "sun": ({"sunrise": sunrise, "sunset": sunset,
+                 "periods": periods_used} if sunrise is not None else None),
         "benchmark_method": bench.get("method", _BENCH_METHOD),
         "transplant_date": plan.get("transplant_date", ""),
         "mode": plan.get("mode", "stage"),
