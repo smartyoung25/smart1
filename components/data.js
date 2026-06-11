@@ -654,7 +654,16 @@ const KaasaData = (() => {
         const ai = document.createElement('link'); ai.rel = 'apple-touch-icon'; ai.href = '/icon.svg'; head.appendChild(ai);
       }
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(() => {});
+        navigator.serviceWorker.register('/sw.js', { scope: '/' }).then(reg => {
+          try { reg.update(); } catch (e) {}                 // 즉시 최신 SW 확인
+        }).catch(() => {});
+        // 새 SW가 제어권을 잡으면 1회 자동 새로고침 → 묵은 화면/버튼 방지
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (!sessionStorage.getItem('_swReloaded')) {
+            sessionStorage.setItem('_swReloaded', '1');
+            location.reload();
+          }
+        });
       }
     } catch (e) {}
   }
