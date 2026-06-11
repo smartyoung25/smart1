@@ -1,9 +1,9 @@
-/* KAASA SmartOS — Service Worker (오프라인 캐시)
+/* KAASA smartfarmingsight — Service Worker (오프라인 캐시)
  * HTML 화면: network-first → 항상 최신, 오프라인 시 캐시 폴백 (묵은 화면 방지)
  * 정적(CSS/JS/아이콘): stale-while-revalidate → 빠름 + 백그라운드 갱신
  * API(/api/): network-first
  */
-const CACHE = 'kaasa-smartos-v3';   // ★ 버전 변경 시 구 캐시 자동 삭제
+const CACHE = 'kaasa-smartos-v4';   // ★ 버전 변경 시 구 캐시 자동 삭제 (v4: smartfarmingsight 리브랜딩)
 const CORE = [
   '/intro', '/index.html',
   '/components/base.css', '/components/data.js',

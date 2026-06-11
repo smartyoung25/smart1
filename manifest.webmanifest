@@ -1,6 +1,6 @@
 {
-  "name": "KAASA SmartOS — 스마트팜 의사결정 OS",
-  "short_name": "SmartOS",
+  "name": "KAASA smartfarmingsight — 스마트팜 의사결정 OS",
+  "short_name": "smartfarmingsight",
   "description": "온실·노지 통합 스마트팜 운영·진단·경영 의사결정 모바일 OS",
   "start_url": "/intro",
   "scope": "/",

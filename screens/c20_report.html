@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>광역 관제 결과보고서 (PDF) | KAASA SmartOS</title>
+  <title>광역 관제 결과보고서 (PDF) | KAASA smartfarmingsight</title>
   <link rel="stylesheet" href="../components/base.css"/>
   <style>
     :root{ --ink:#1a2332; --line:#d4d9e0; }
@@ -67,7 +67,7 @@ async function _build(token){
     + `이상 농가는 아래 위치특정 명단을 기준으로 현장 점검·관개/방제 지도를 우선 배정할 것을 권고한다.`;
   const html=`
     <div class="rp-doc-title">스마트농업 광역 작황 관제 결과보고서</div>
-    <div class="rp-doc-sub">KAASA SmartOS · 다중농가 클러스터 관제 (위성·기상·진단 통합)${isDemo?' · 🧪 샘플 시뮬레이션(공개 데모)':''}</div>
+    <div class="rp-doc-sub">KAASA smartfarmingsight · 다중농가 클러스터 관제 (위성·기상·진단 통합)${isDemo?' · 🧪 샘플 시뮬레이션(공개 데모)':''}</div>
     <div class="rp-rule"></div>
     <table class="rp-meta"><tbody>
       <tr><td class="k">관제 범위</td><td>${esc(scope)}</td><td class="k">대상 농가</td><td>${d.total_farms.toLocaleString()} 곳</td></tr>
@@ -98,7 +98,7 @@ async function _build(token){
     <div class="rp-h">Ⅴ. 총평 및 권고</div>
     <div class="rp-summary">${summary}</div>
 
-    <div class="rp-foot"><span>KAASA SmartOS · 광역 작황 관제 결과보고서</span><span>무센서 위성·기상 기반 · 생성 ${ymd}</span></div>`;
+    <div class="rp-foot"><span>KAASA smartfarmingsight · 광역 작황 관제 결과보고서</span><span>무센서 위성·기상 기반 · 생성 ${ymd}</span></div>`;
   document.getElementById('page').innerHTML=html;
 }
 </script>

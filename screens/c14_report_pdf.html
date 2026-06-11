@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>월간 경영성과 리포트 (PDF) | KAASA SmartOS</title>
+  <title>월간 경영성과 리포트 (PDF) | KAASA smartfarmingsight</title>
   <link rel="stylesheet" href="../components/base.css"/>
   <style>
     :root{ --ink:#1a2332; --line:#d4d9e0; }
@@ -79,7 +79,7 @@ async function _build(token){
 
   const html=`
     <div class="rp-doc-title">월간 경영성과 리포트</div>
-    <div class="rp-doc-sub">KAASA SmartOS · 스마트농업 육성법 제5·6·9조 대응</div>
+    <div class="rp-doc-sub">KAASA smartfarmingsight · 스마트농업 육성법 제5·6·9조 대응</div>
     <div class="rp-rule"></div>
     <table class="rp-meta"><tbody>
       <tr><td class="k">농장</td><td>${esc(d.farm_id)}</td><td class="k">작목</td><td>${esc(d.crop||'-')}</td></tr>
@@ -125,7 +125,7 @@ async function _build(token){
     <div class="rp-summary">${summary}</div>
 
     <div class="rp-foot">
-      <span>KAASA SmartOS · 자동 생성 월간 경영성과 리포트</span>
+      <span>KAASA smartfarmingsight · 자동 생성 월간 경영성과 리포트</span>
       <span>스마트농업 육성법 제5·6·9조 · 생성 ${ymd}</span>
     </div>`;
   document.getElementById('page').innerHTML=html;

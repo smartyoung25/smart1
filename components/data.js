@@ -1,5 +1,5 @@
 /**
- * KAASA SmartOS Mobile — data.js
+ * KAASA smartfarmingsight Mobile — data.js
  * 데이터 연동 레이어
  *
  * 역할:
@@ -509,7 +509,7 @@ const KaasaData = (() => {
     const dr = document.createElement('aside'); dr.className = 'drawer'; dr.id = 'kaasaDrawer';
     dr.innerHTML =
       `<div class="drawer-head">
-         <h2>KAASA SmartOS</h2>
+         <h2>KAASA smartfarmingsight</h2>
          <p>농장 <b id="kdFarm">${farm}</b> · <span id="kdTier" style="padding:1px 7px;border-radius:6px;background:rgba(255,255,255,.18);font-weight:800;">등급 확인 중</span></p>
          <button class="drawer-close" onclick="KaasaData.closeMenu()" aria-label="닫기">✕</button>
        </div>
@@ -532,7 +532,7 @@ const KaasaData = (() => {
          <a href="${location.pathname.includes('/screens/')?'../index.html':'index.html'}"><span style="font-size:17px;">≡</span> 전체 메뉴</a>
          <a href="javascript:void(0)" onclick="KaasaData.logout()"><span style="font-size:17px;">🚪</span> 로그아웃</a>
        </nav>
-       <div style="padding:14px 18px;font-size:10px;opacity:.5;">KAASA SmartOS · SFROP v2.0</div>`;
+       <div style="padding:14px 18px;font-size:10px;opacity:.5;">KAASA smartfarmingsight · SFROP v2.0</div>`;
     document.body.appendChild(ov); document.body.appendChild(dr);
     ov.addEventListener('click', closeMenu);
     // 검색 필터

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>현장컨설팅 진단 결과보고서 | KAASA SmartOS</title>
+  <title>현장컨설팅 진단 결과보고서 | KAASA smartfarmingsight</title>
   <link rel="stylesheet" href="../components/base.css"/>
   <style>
     :root{ --ink:#1a2332; --line:#d4d9e0; }
@@ -104,11 +104,11 @@ async function _build(token){
     + (strong.length?`<b>${strong.join('·')}</b> 영역은 비교적 양호하나, `:'')
     + `<b>${weak.join('·')}</b> 영역의 개선 여지가 가장 크다. `
     + (chkRows.length?`현장 점검 ${chkRows.length}개 항목 중 불량 ${nBad}건·주의 ${nWarn}건이 확인되었다. `:'')
-    + `아래 우선순위 처방을 ROI가 높은 순서로 이행할 것을 권고하며, 이행 결과는 KAASA SmartOS에 기록하여 다음 진단의 기준선으로 활용한다.`;
+    + `아래 우선순위 처방을 ROI가 높은 순서로 이행할 것을 권고하며, 이행 결과는 KAASA smartfarmingsight에 기록하여 다음 진단의 기준선으로 활용한다.`;
 
   const html=`
     <div class="rp-doc-title">스마트농업 현장컨설팅 진단 결과보고서</div>
-    <div class="rp-doc-sub">KAASA SmartOS · 시스템 종합진단(C17) + 현장 문진(C18) 기반</div>
+    <div class="rp-doc-sub">KAASA smartfarmingsight · 시스템 종합진단(C17) + 현장 문진(C18) 기반</div>
     <div class="rp-rule"></div>
 
     <table class="rp-meta"><tbody>
@@ -160,7 +160,7 @@ async function _build(token){
     <div class="rp-summary">${summary}</div>
 
     <div class="rp-foot">
-      <span>KAASA SmartOS · 자동 생성 진단 결과보고서</span>
+      <span>KAASA smartfarmingsight · 자동 생성 진단 결과보고서</span>
       <span>출처: RDA 스마트농업 현장컨설팅 체크리스트 · 생성 ${ymd}</span>
     </div>`;
   document.getElementById('page').innerHTML=html;
