@@ -1,0 +1,198 @@
+{
+  "crop": "딸기(설향)",
+  "basis": "transplant",
+  "transplant_date": "2026-04-01",
+  "mode": "stage",
+  "periods_def": [
+    {
+      "key": "night",
+      "label": "야간",
+      "from": 20,
+      "to": 5,
+      "desc": "일몰~일출 · 호흡·생식 조절"
+    },
+    {
+      "key": "dawn",
+      "label": "일출",
+      "from": 5,
+      "to": 9,
+      "desc": "일출 후 2~3h · 완만 승온"
+    },
+    {
+      "key": "day",
+      "label": "주간",
+      "from": 9,
+      "to": 16,
+      "desc": "고일사 · 광합성 최대"
+    },
+    {
+      "key": "prenight",
+      "label": "일몰전",
+      "from": 16,
+      "to": 20,
+      "desc": "일몰 2~3h 전 · 예비 강하(DROP)"
+    }
+  ],
+  "segments": [
+    {
+      "key": "establish",
+      "label": "활착기",
+      "week_from": 0,
+      "week_to": 2,
+      "periods": {
+        "night": {
+          "temp": 10,
+          "rh": 85,
+          "co2": 450
+        },
+        "dawn": {
+          "temp": 14,
+          "rh": 80,
+          "co2": 700
+        },
+        "day": {
+          "temp": 20,
+          "rh": 70,
+          "co2": 900
+        },
+        "prenight": {
+          "temp": 13,
+          "rh": 80,
+          "co2": 600
+        }
+      }
+    },
+    {
+      "key": "veg",
+      "label": "영양생장기",
+      "week_from": 2,
+      "week_to": 6,
+      "periods": {
+        "night": {
+          "temp": 8,
+          "rh": 80,
+          "co2": 450
+        },
+        "dawn": {
+          "temp": 13,
+          "rh": 75,
+          "co2": 800
+        },
+        "day": {
+          "temp": 23,
+          "rh": 65,
+          "co2": 1000
+        },
+        "prenight": {
+          "temp": 12,
+          "rh": 78,
+          "co2": 600
+        }
+      }
+    },
+    {
+      "key": "flower",
+      "label": "개화·착과기",
+      "week_from": 6,
+      "week_to": 12,
+      "periods": {
+        "night": {
+          "temp": 6,
+          "rh": 78,
+          "co2": 450
+        },
+        "dawn": {
+          "temp": 12,
+          "rh": 72,
+          "co2": 800
+        },
+        "day": {
+          "temp": 24,
+          "rh": 62,
+          "co2": 1000
+        },
+        "prenight": {
+          "temp": 10,
+          "rh": 75,
+          "co2": 600
+        }
+      }
+    },
+    {
+      "key": "harvest",
+      "label": "수확기",
+      "week_from": 12,
+      "week_to": 99,
+      "periods": {
+        "night": {
+          "temp": 7,
+          "rh": 78,
+          "co2": 450
+        },
+        "dawn": {
+          "temp": 12,
+          "rh": 72,
+          "co2": 800
+        },
+        "day": {
+          "temp": 23,
+          "rh": 63,
+          "co2": 900
+        },
+        "prenight": {
+          "temp": 10,
+          "rh": 76,
+          "co2": 600
+        }
+      }
+    }
+  ],
+  "benchmark": {
+    "method": "Het Nieuwe Telen(차세대 재배)·Plant Empowerment · Priva 광연동 승온 · 농진청 시설표준",
+    "light_boost": {
+      "ref_wm2": 200,
+      "slope_per_100wm2": 0.6,
+      "cap_c": 3.0
+    },
+    "recommend": {
+      "avg24": {
+        "establish": [
+          13,
+          15
+        ],
+        "veg": [
+          12,
+          15
+        ],
+        "flower": [
+          11,
+          14
+        ],
+        "harvest": [
+          12,
+          14
+        ]
+      },
+      "vpd": {
+        "establish": [
+          0.4,
+          0.7
+        ],
+        "veg": [
+          0.6,
+          0.9
+        ],
+        "flower": [
+          0.7,
+          1.0
+        ],
+        "harvest": [
+          0.6,
+          0.9
+        ]
+      }
+    }
+  },
+  "source": "user",
+  "updated_at": "2026-06-11T06:37:10.172410+00:00"
+}

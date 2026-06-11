@@ -1,0 +1,412 @@
+{
+  "strawberry": {
+    "active_version": 7,
+    "versions": [
+      {
+        "version": 1,
+        "timestamp": "2026-05-29T02:09:12.025352+00:00",
+        "triggered_by": "retrain_trigger",
+        "mape_stage2": 19.8,
+        "mape_stage3": 17.9,
+        "cv_r2": 0.25,
+        "gate_passed": false,
+        "is_active": false,
+        "snapshot_version": 1
+      },
+      {
+        "version": 2,
+        "timestamp": "2026-05-29T04:16:14.073116+00:00",
+        "triggered_by": "retrain_trigger",
+        "mape_stage2": 19.8,
+        "mape_stage3": 17.9,
+        "cv_r2": 0.25,
+        "gate_passed": false,
+        "is_active": false,
+        "snapshot_version": 2
+      },
+      {
+        "version": 3,
+        "timestamp": "2026-05-29T04:22:37.129473+00:00",
+        "triggered_by": "retrain_trigger",
+        "mape_stage2": 19.8,
+        "mape_stage3": 17.9,
+        "cv_r2": 0.25,
+        "gate_passed": false,
+        "is_active": false,
+        "snapshot_version": null
+      },
+      {
+        "version": 4,
+        "timestamp": "2026-05-29T04:27:25.080420+00:00",
+        "triggered_by": "retrain_trigger",
+        "mape_stage2": 19.8,
+        "mape_stage3": 17.9,
+        "cv_r2": 0.25,
+        "gate_passed": false,
+        "is_active": false,
+        "snapshot_version": 4
+      },
+      {
+        "version": 5,
+        "timestamp": "2026-05-29T04:39:50.031075+00:00",
+        "triggered_by": "retrain_trigger",
+        "mape_stage2": 19.8,
+        "mape_stage3": 17.9,
+        "cv_r2": 0.25,
+        "gate_passed": false,
+        "is_active": false,
+        "snapshot_version": 5
+      },
+      {
+        "version": 6,
+        "timestamp": "2026-05-29T04:56:26.361276+00:00",
+        "triggered_by": "retrain_trigger",
+        "mape_stage2": 19.8,
+        "mape_stage3": 17.9,
+        "cv_r2": 0.25,
+        "gate_passed": false,
+        "is_active": false,
+        "snapshot_version": 6
+      },
+      {
+        "version": 7,
+        "timestamp": "2026-05-29T05:01:10.899984+00:00",
+        "triggered_by": "retrain_trigger",
+        "mape_stage2": 19.8,
+        "mape_stage3": 17.9,
+        "cv_r2": 0.25,
+        "gate_passed": false,
+        "is_active": true,
+        "snapshot_version": 7
+      }
+    ]
+  },
+  "cherry_tomato": {
+    "active_version": 7,
+    "versions": [
+      {
+        "version": 1,
+        "timestamp": "2026-05-29T02:14:30.686825+00:00",
+        "triggered_by": "retrain_trigger",
+        "mape_stage2": 8.8,
+        "mape_stage3": 18.2,
+        "cv_r2": 0.167,
+        "gate_passed": false,
+        "is_active": false,
+        "snapshot_version": 1
+      },
+      {
+        "version": 2,
+        "timestamp": "2026-05-29T04:16:18.638803+00:00",
+        "triggered_by": "retrain_trigger",
+        "mape_stage2": 8.8,
+        "mape_stage3": 18.2,
+        "cv_r2": 0.167,
+        "gate_passed": false,
+        "is_active": false,
+        "snapshot_version": 2
+      },
+      {
+        "version": 3,
+        "timestamp": "2026-05-29T04:23:15.195433+00:00",
+        "triggered_by": "retrain_trigger",
+        "mape_stage2": 8.8,
+        "mape_stage3": 18.2,
+        "cv_r2": 0.167,
+        "gate_passed": false,
+        "is_active": false,
+        "snapshot_version": 3
+      },
+      {
+        "version": 4,
+        "timestamp": "2026-05-29T04:27:30.035373+00:00",
+        "triggered_by": "retrain_trigger",
+        "mape_stage2": 8.8,
+        "mape_stage3": 18.2,
+        "cv_r2": 0.167,
+        "gate_passed": false,
+        "is_active": false,
+        "snapshot_version": 4
+      },
+      {
+        "version": 5,
+        "timestamp": "2026-05-29T04:39:56.469038+00:00",
+        "triggered_by": "retrain_trigger",
+        "mape_stage2": 8.8,
+        "mape_stage3": 18.2,
+        "cv_r2": 0.167,
+        "gate_passed": false,
+        "is_active": false,
+        "snapshot_version": 5
+      },
+      {
+        "version": 6,
+        "timestamp": "2026-05-29T04:56:31.524330+00:00",
+        "triggered_by": "retrain_trigger",
+        "mape_stage2": 8.8,
+        "mape_stage3": 18.2,
+        "cv_r2": 0.167,
+        "gate_passed": false,
+        "is_active": false,
+        "snapshot_version": 6
+      },
+      {
+        "version": 7,
+        "timestamp": "2026-05-29T05:01:15.860607+00:00",
+        "triggered_by": "retrain_trigger",
+        "mape_stage2": 8.8,
+        "mape_stage3": 18.2,
+        "cv_r2": 0.167,
+        "gate_passed": false,
+        "is_active": true,
+        "snapshot_version": 7
+      }
+    ]
+  },
+  "tomato": {
+    "active_version": 7,
+    "versions": [
+      {
+        "version": 1,
+        "timestamp": "2026-05-29T02:19:04.537522+00:00",
+        "triggered_by": "retrain_trigger",
+        "mape_stage2": 17.1,
+        "mape_stage3": 26.0,
+        "cv_r2": 0.366,
+        "gate_passed": false,
+        "is_active": false,
+        "snapshot_version": 1
+      },
+      {
+        "version": 2,
+        "timestamp": "2026-05-29T04:16:23.142580+00:00",
+        "triggered_by": "retrain_trigger",
+        "mape_stage2": 17.1,
+        "mape_stage3": 26.0,
+        "cv_r2": 0.366,
+        "gate_passed": false,
+        "is_active": false,
+        "snapshot_version": 2
+      },
+      {
+        "version": 3,
+        "timestamp": "2026-05-29T04:23:20.378744+00:00",
+        "triggered_by": "retrain_trigger",
+        "mape_stage2": 17.1,
+        "mape_stage3": 26.0,
+        "cv_r2": 0.366,
+        "gate_passed": false,
+        "is_active": false,
+        "snapshot_version": 3
+      },
+      {
+        "version": 4,
+        "timestamp": "2026-05-29T04:27:34.657462+00:00",
+        "triggered_by": "retrain_trigger",
+        "mape_stage2": 17.1,
+        "mape_stage3": 26.0,
+        "cv_r2": 0.366,
+        "gate_passed": false,
+        "is_active": false,
+        "snapshot_version": 4
+      },
+      {
+        "version": 5,
+        "timestamp": "2026-05-29T04:40:01.123391+00:00",
+        "triggered_by": "retrain_trigger",
+        "mape_stage2": 17.1,
+        "mape_stage3": 26.0,
+        "cv_r2": 0.366,
+        "gate_passed": false,
+        "is_active": false,
+        "snapshot_version": 5
+      },
+      {
+        "version": 6,
+        "timestamp": "2026-05-29T04:56:36.318310+00:00",
+        "triggered_by": "retrain_trigger",
+        "mape_stage2": 17.1,
+        "mape_stage3": 26.0,
+        "cv_r2": 0.366,
+        "gate_passed": false,
+        "is_active": false,
+        "snapshot_version": 6
+      },
+      {
+        "version": 7,
+        "timestamp": "2026-05-29T05:01:20.820139+00:00",
+        "triggered_by": "retrain_trigger",
+        "mape_stage2": 17.1,
+        "mape_stage3": 26.0,
+        "cv_r2": 0.366,
+        "gate_passed": false,
+        "is_active": true,
+        "snapshot_version": 7
+      }
+    ]
+  },
+  "melon": {
+    "active_version": 7,
+    "versions": [
+      {
+        "version": 1,
+        "timestamp": "2026-05-29T02:24:15.309685+00:00",
+        "triggered_by": "retrain_trigger",
+        "mape_stage2": 8.7,
+        "mape_stage3": 12.8,
+        "cv_r2": 0.225,
+        "gate_passed": false,
+        "is_active": false,
+        "snapshot_version": 1
+      },
+      {
+        "version": 2,
+        "timestamp": "2026-05-29T04:16:27.751635+00:00",
+        "triggered_by": "retrain_trigger",
+        "mape_stage2": 8.7,
+        "mape_stage3": 12.8,
+        "cv_r2": 0.225,
+        "gate_passed": false,
+        "is_active": false,
+        "snapshot_version": 2
+      },
+      {
+        "version": 3,
+        "timestamp": "2026-05-29T04:23:25.007106+00:00",
+        "triggered_by": "retrain_trigger",
+        "mape_stage2": 8.7,
+        "mape_stage3": 12.8,
+        "cv_r2": 0.225,
+        "gate_passed": false,
+        "is_active": false,
+        "snapshot_version": 3
+      },
+      {
+        "version": 4,
+        "timestamp": "2026-05-29T04:27:39.274778+00:00",
+        "triggered_by": "retrain_trigger",
+        "mape_stage2": 8.7,
+        "mape_stage3": 12.8,
+        "cv_r2": 0.225,
+        "gate_passed": false,
+        "is_active": false,
+        "snapshot_version": 4
+      },
+      {
+        "version": 5,
+        "timestamp": "2026-05-29T04:40:05.762644+00:00",
+        "triggered_by": "retrain_trigger",
+        "mape_stage2": 8.7,
+        "mape_stage3": 12.8,
+        "cv_r2": 0.225,
+        "gate_passed": false,
+        "is_active": false,
+        "snapshot_version": 5
+      },
+      {
+        "version": 6,
+        "timestamp": "2026-05-29T04:56:41.600363+00:00",
+        "triggered_by": "retrain_trigger",
+        "mape_stage2": 8.7,
+        "mape_stage3": 12.8,
+        "cv_r2": 0.225,
+        "gate_passed": false,
+        "is_active": false,
+        "snapshot_version": 6
+      },
+      {
+        "version": 7,
+        "timestamp": "2026-05-29T05:01:25.614090+00:00",
+        "triggered_by": "retrain_trigger",
+        "mape_stage2": 8.7,
+        "mape_stage3": 12.8,
+        "cv_r2": 0.225,
+        "gate_passed": false,
+        "is_active": true,
+        "snapshot_version": 7
+      }
+    ]
+  },
+  "paprika": {
+    "active_version": 7,
+    "versions": [
+      {
+        "version": 1,
+        "timestamp": "2026-05-29T02:29:30.657703+00:00",
+        "triggered_by": "retrain_trigger",
+        "mape_stage2": 11.8,
+        "mape_stage3": 16.0,
+        "cv_r2": 0.204,
+        "gate_passed": false,
+        "is_active": false,
+        "snapshot_version": 1
+      },
+      {
+        "version": 2,
+        "timestamp": "2026-05-29T04:16:32.336305+00:00",
+        "triggered_by": "retrain_trigger",
+        "mape_stage2": 11.8,
+        "mape_stage3": 16.0,
+        "cv_r2": 0.204,
+        "gate_passed": false,
+        "is_active": false,
+        "snapshot_version": 2
+      },
+      {
+        "version": 3,
+        "timestamp": "2026-05-29T04:23:29.634329+00:00",
+        "triggered_by": "retrain_trigger",
+        "mape_stage2": 11.8,
+        "mape_stage3": 16.0,
+        "cv_r2": 0.204,
+        "gate_passed": false,
+        "is_active": false,
+        "snapshot_version": 3
+      },
+      {
+        "version": 4,
+        "timestamp": "2026-05-29T04:27:43.914798+00:00",
+        "triggered_by": "retrain_trigger",
+        "mape_stage2": 11.8,
+        "mape_stage3": 16.0,
+        "cv_r2": 0.204,
+        "gate_passed": false,
+        "is_active": false,
+        "snapshot_version": 4
+      },
+      {
+        "version": 5,
+        "timestamp": "2026-05-29T04:40:10.370480+00:00",
+        "triggered_by": "retrain_trigger",
+        "mape_stage2": 11.8,
+        "mape_stage3": 16.0,
+        "cv_r2": 0.204,
+        "gate_passed": false,
+        "is_active": false,
+        "snapshot_version": 5
+      },
+      {
+        "version": 6,
+        "timestamp": "2026-05-29T04:56:46.399544+00:00",
+        "triggered_by": "retrain_trigger",
+        "mape_stage2": 11.8,
+        "mape_stage3": 16.0,
+        "cv_r2": 0.204,
+        "gate_passed": false,
+        "is_active": false,
+        "snapshot_version": 6
+      },
+      {
+        "version": 7,
+        "timestamp": "2026-05-29T05:01:30.305796+00:00",
+        "triggered_by": "retrain_trigger",
+        "mape_stage2": 11.8,
+        "mape_stage3": 16.0,
+        "cv_r2": 0.204,
+        "gate_passed": false,
+        "is_active": true,
+        "snapshot_version": 7
+      }
+    ]
+  }
+}

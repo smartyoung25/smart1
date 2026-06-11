@@ -146,5 +146,592 @@
         "rollback": "ok"
       }
     }
+  },
+  {
+    "timestamp": "2026-05-29T13:16:32.534742",
+    "triggered_by": "force",
+    "crops": [
+      "딸기",
+      "방울토마토",
+      "완숙토마토",
+      "참외",
+      "파프리카"
+    ],
+    "results": {
+      "딸기": {
+        "prep_m1": {
+          "status": "failed",
+          "returncode": 1,
+          "stderr_tail": "\n  File \"C:\\tools\\python311\\Lib\\site-packages\\pandas\\core\\reshape\\concat.py\", line 808, in _clean_keys_and_objs\n    raise ValueError(\"No objects to concatenate\")\nValueError: No objects to concatenate\n"
+        },
+        "train_m1": {
+          "status": "skipped",
+          "reason": "prep_m1 failed"
+        },
+        "train_m2": {
+          "status": "failed",
+          "returncode": 1,
+          "stderr_tail": "pipeline\\train\\train_m2.py\", line 16, in <module>\n    N_TRIALS = int(sys.argv[2]) if len(sys.argv) > 2 else 60\n               ^^^^^^^^^^^^^^^^\nValueError: invalid literal for int() with base 10: '딸기'\n"
+        },
+        "rollback": "ok"
+      },
+      "방울토마토": {
+        "prep_m1": {
+          "status": "failed",
+          "returncode": 1,
+          "stderr_tail": "\n  File \"C:\\tools\\python311\\Lib\\site-packages\\pandas\\core\\reshape\\concat.py\", line 808, in _clean_keys_and_objs\n    raise ValueError(\"No objects to concatenate\")\nValueError: No objects to concatenate\n"
+        },
+        "train_m1": {
+          "status": "skipped",
+          "reason": "prep_m1 failed"
+        },
+        "train_m2": {
+          "status": "failed",
+          "returncode": 1,
+          "stderr_tail": "eline\\train\\train_m2.py\", line 16, in <module>\n    N_TRIALS = int(sys.argv[2]) if len(sys.argv) > 2 else 60\n               ^^^^^^^^^^^^^^^^\nValueError: invalid literal for int() with base 10: '방울토마토'\n"
+        },
+        "rollback": "ok"
+      },
+      "완숙토마토": {
+        "prep_m1": {
+          "status": "failed",
+          "returncode": 1,
+          "stderr_tail": "\n  File \"C:\\tools\\python311\\Lib\\site-packages\\pandas\\core\\reshape\\concat.py\", line 808, in _clean_keys_and_objs\n    raise ValueError(\"No objects to concatenate\")\nValueError: No objects to concatenate\n"
+        },
+        "train_m1": {
+          "status": "skipped",
+          "reason": "prep_m1 failed"
+        },
+        "train_m2": {
+          "status": "failed",
+          "returncode": 1,
+          "stderr_tail": "eline\\train\\train_m2.py\", line 16, in <module>\n    N_TRIALS = int(sys.argv[2]) if len(sys.argv) > 2 else 60\n               ^^^^^^^^^^^^^^^^\nValueError: invalid literal for int() with base 10: '완숙토마토'\n"
+        },
+        "rollback": "ok"
+      },
+      "참외": {
+        "prep_m1": {
+          "status": "failed",
+          "returncode": 1,
+          "stderr_tail": "\n  File \"C:\\tools\\python311\\Lib\\site-packages\\pandas\\core\\reshape\\concat.py\", line 808, in _clean_keys_and_objs\n    raise ValueError(\"No objects to concatenate\")\nValueError: No objects to concatenate\n"
+        },
+        "train_m1": {
+          "status": "skipped",
+          "reason": "prep_m1 failed"
+        },
+        "train_m2": {
+          "status": "failed",
+          "returncode": 1,
+          "stderr_tail": "pipeline\\train\\train_m2.py\", line 16, in <module>\n    N_TRIALS = int(sys.argv[2]) if len(sys.argv) > 2 else 60\n               ^^^^^^^^^^^^^^^^\nValueError: invalid literal for int() with base 10: '참외'\n"
+        },
+        "rollback": "ok"
+      },
+      "파프리카": {
+        "prep_m1": {
+          "status": "failed",
+          "returncode": 1,
+          "stderr_tail": "\n  File \"C:\\tools\\python311\\Lib\\site-packages\\pandas\\core\\reshape\\concat.py\", line 808, in _clean_keys_and_objs\n    raise ValueError(\"No objects to concatenate\")\nValueError: No objects to concatenate\n"
+        },
+        "train_m1": {
+          "status": "skipped",
+          "reason": "prep_m1 failed"
+        },
+        "train_m2": {
+          "status": "failed",
+          "returncode": 1,
+          "stderr_tail": "peline\\train\\train_m2.py\", line 16, in <module>\n    N_TRIALS = int(sys.argv[2]) if len(sys.argv) > 2 else 60\n               ^^^^^^^^^^^^^^^^\nValueError: invalid literal for int() with base 10: '파프리카'\n"
+        },
+        "rollback": "ok"
+      }
+    }
+  },
+  {
+    "timestamp": "2026-05-29T13:23:29.788686",
+    "triggered_by": "force",
+    "crops": [
+      "딸기",
+      "방울토마토",
+      "완숙토마토",
+      "참외",
+      "파프리카"
+    ],
+    "results": {
+      "딸기": {
+        "prep_m1": {
+          "status": "failed",
+          "returncode": 3221225773,
+          "stderr_tail": ""
+        },
+        "train_m1": {
+          "status": "skipped",
+          "reason": "prep_m1 failed"
+        },
+        "train_m2": {
+          "status": "failed",
+          "returncode": 1,
+          "stderr_tail": "pipeline\\train\\train_m2.py\", line 16, in <module>\n    N_TRIALS = int(sys.argv[2]) if len(sys.argv) > 2 else 60\n               ^^^^^^^^^^^^^^^^\nValueError: invalid literal for int() with base 10: '딸기'\n"
+        }
+      },
+      "방울토마토": {
+        "prep_m1": {
+          "status": "failed",
+          "returncode": 1,
+          "stderr_tail": "\n  File \"C:\\tools\\python311\\Lib\\site-packages\\pandas\\core\\reshape\\concat.py\", line 808, in _clean_keys_and_objs\n    raise ValueError(\"No objects to concatenate\")\nValueError: No objects to concatenate\n"
+        },
+        "train_m1": {
+          "status": "skipped",
+          "reason": "prep_m1 failed"
+        },
+        "train_m2": {
+          "status": "failed",
+          "returncode": 1,
+          "stderr_tail": "eline\\train\\train_m2.py\", line 16, in <module>\n    N_TRIALS = int(sys.argv[2]) if len(sys.argv) > 2 else 60\n               ^^^^^^^^^^^^^^^^\nValueError: invalid literal for int() with base 10: '방울토마토'\n"
+        },
+        "rollback": "ok"
+      },
+      "완숙토마토": {
+        "prep_m1": {
+          "status": "failed",
+          "returncode": 1,
+          "stderr_tail": "\n  File \"C:\\tools\\python311\\Lib\\site-packages\\pandas\\core\\reshape\\concat.py\", line 808, in _clean_keys_and_objs\n    raise ValueError(\"No objects to concatenate\")\nValueError: No objects to concatenate\n"
+        },
+        "train_m1": {
+          "status": "skipped",
+          "reason": "prep_m1 failed"
+        },
+        "train_m2": {
+          "status": "failed",
+          "returncode": 1,
+          "stderr_tail": "eline\\train\\train_m2.py\", line 16, in <module>\n    N_TRIALS = int(sys.argv[2]) if len(sys.argv) > 2 else 60\n               ^^^^^^^^^^^^^^^^\nValueError: invalid literal for int() with base 10: '완숙토마토'\n"
+        },
+        "rollback": "ok"
+      },
+      "참외": {
+        "prep_m1": {
+          "status": "failed",
+          "returncode": 1,
+          "stderr_tail": "\n  File \"C:\\tools\\python311\\Lib\\site-packages\\pandas\\core\\reshape\\concat.py\", line 808, in _clean_keys_and_objs\n    raise ValueError(\"No objects to concatenate\")\nValueError: No objects to concatenate\n"
+        },
+        "train_m1": {
+          "status": "skipped",
+          "reason": "prep_m1 failed"
+        },
+        "train_m2": {
+          "status": "failed",
+          "returncode": 1,
+          "stderr_tail": "pipeline\\train\\train_m2.py\", line 16, in <module>\n    N_TRIALS = int(sys.argv[2]) if len(sys.argv) > 2 else 60\n               ^^^^^^^^^^^^^^^^\nValueError: invalid literal for int() with base 10: '참외'\n"
+        },
+        "rollback": "ok"
+      },
+      "파프리카": {
+        "prep_m1": {
+          "status": "failed",
+          "returncode": 1,
+          "stderr_tail": "\n  File \"C:\\tools\\python311\\Lib\\site-packages\\pandas\\core\\reshape\\concat.py\", line 808, in _clean_keys_and_objs\n    raise ValueError(\"No objects to concatenate\")\nValueError: No objects to concatenate\n"
+        },
+        "train_m1": {
+          "status": "skipped",
+          "reason": "prep_m1 failed"
+        },
+        "train_m2": {
+          "status": "failed",
+          "returncode": 1,
+          "stderr_tail": "peline\\train\\train_m2.py\", line 16, in <module>\n    N_TRIALS = int(sys.argv[2]) if len(sys.argv) > 2 else 60\n               ^^^^^^^^^^^^^^^^\nValueError: invalid literal for int() with base 10: '파프리카'\n"
+        },
+        "rollback": "ok"
+      }
+    }
+  },
+  {
+    "timestamp": "2026-05-29T13:27:44.050892",
+    "triggered_by": "force",
+    "crops": [
+      "딸기",
+      "방울토마토",
+      "완숙토마토",
+      "참외",
+      "파프리카"
+    ],
+    "results": {
+      "딸기": {
+        "prep_m1": {
+          "status": "failed",
+          "returncode": 1,
+          "stderr_tail": "\n  File \"C:\\tools\\python311\\Lib\\site-packages\\pandas\\core\\reshape\\concat.py\", line 808, in _clean_keys_and_objs\n    raise ValueError(\"No objects to concatenate\")\nValueError: No objects to concatenate\n"
+        },
+        "train_m1": {
+          "status": "skipped",
+          "reason": "prep_m1 failed"
+        },
+        "train_m2": {
+          "status": "failed",
+          "returncode": 1,
+          "stderr_tail": "pipeline\\train\\train_m2.py\", line 16, in <module>\n    N_TRIALS = int(sys.argv[2]) if len(sys.argv) > 2 else 60\n               ^^^^^^^^^^^^^^^^\nValueError: invalid literal for int() with base 10: '딸기'\n"
+        },
+        "rollback": "ok"
+      },
+      "방울토마토": {
+        "prep_m1": {
+          "status": "failed",
+          "returncode": 1,
+          "stderr_tail": "\n  File \"C:\\tools\\python311\\Lib\\site-packages\\pandas\\core\\reshape\\concat.py\", line 808, in _clean_keys_and_objs\n    raise ValueError(\"No objects to concatenate\")\nValueError: No objects to concatenate\n"
+        },
+        "train_m1": {
+          "status": "skipped",
+          "reason": "prep_m1 failed"
+        },
+        "train_m2": {
+          "status": "failed",
+          "returncode": 1,
+          "stderr_tail": "eline\\train\\train_m2.py\", line 16, in <module>\n    N_TRIALS = int(sys.argv[2]) if len(sys.argv) > 2 else 60\n               ^^^^^^^^^^^^^^^^\nValueError: invalid literal for int() with base 10: '방울토마토'\n"
+        },
+        "rollback": "ok"
+      },
+      "완숙토마토": {
+        "prep_m1": {
+          "status": "failed",
+          "returncode": 1,
+          "stderr_tail": "\n  File \"C:\\tools\\python311\\Lib\\site-packages\\pandas\\core\\reshape\\concat.py\", line 808, in _clean_keys_and_objs\n    raise ValueError(\"No objects to concatenate\")\nValueError: No objects to concatenate\n"
+        },
+        "train_m1": {
+          "status": "skipped",
+          "reason": "prep_m1 failed"
+        },
+        "train_m2": {
+          "status": "failed",
+          "returncode": 1,
+          "stderr_tail": "eline\\train\\train_m2.py\", line 16, in <module>\n    N_TRIALS = int(sys.argv[2]) if len(sys.argv) > 2 else 60\n               ^^^^^^^^^^^^^^^^\nValueError: invalid literal for int() with base 10: '완숙토마토'\n"
+        },
+        "rollback": "ok"
+      },
+      "참외": {
+        "prep_m1": {
+          "status": "failed",
+          "returncode": 1,
+          "stderr_tail": "\n  File \"C:\\tools\\python311\\Lib\\site-packages\\pandas\\core\\reshape\\concat.py\", line 808, in _clean_keys_and_objs\n    raise ValueError(\"No objects to concatenate\")\nValueError: No objects to concatenate\n"
+        },
+        "train_m1": {
+          "status": "skipped",
+          "reason": "prep_m1 failed"
+        },
+        "train_m2": {
+          "status": "failed",
+          "returncode": 1,
+          "stderr_tail": "pipeline\\train\\train_m2.py\", line 16, in <module>\n    N_TRIALS = int(sys.argv[2]) if len(sys.argv) > 2 else 60\n               ^^^^^^^^^^^^^^^^\nValueError: invalid literal for int() with base 10: '참외'\n"
+        },
+        "rollback": "ok"
+      },
+      "파프리카": {
+        "prep_m1": {
+          "status": "failed",
+          "returncode": 1,
+          "stderr_tail": "\n  File \"C:\\tools\\python311\\Lib\\site-packages\\pandas\\core\\reshape\\concat.py\", line 808, in _clean_keys_and_objs\n    raise ValueError(\"No objects to concatenate\")\nValueError: No objects to concatenate\n"
+        },
+        "train_m1": {
+          "status": "skipped",
+          "reason": "prep_m1 failed"
+        },
+        "train_m2": {
+          "status": "failed",
+          "returncode": 1,
+          "stderr_tail": "peline\\train\\train_m2.py\", line 16, in <module>\n    N_TRIALS = int(sys.argv[2]) if len(sys.argv) > 2 else 60\n               ^^^^^^^^^^^^^^^^\nValueError: invalid literal for int() with base 10: '파프리카'\n"
+        },
+        "rollback": "ok"
+      }
+    }
+  },
+  {
+    "timestamp": "2026-05-29T13:40:10.527761",
+    "triggered_by": "force",
+    "crops": [
+      "딸기",
+      "방울토마토",
+      "완숙토마토",
+      "참외",
+      "파프리카"
+    ],
+    "results": {
+      "딸기": {
+        "prep_m1": {
+          "status": "failed",
+          "returncode": 1,
+          "stderr_tail": "\n  File \"C:\\tools\\python311\\Lib\\site-packages\\pandas\\core\\reshape\\concat.py\", line 808, in _clean_keys_and_objs\n    raise ValueError(\"No objects to concatenate\")\nValueError: No objects to concatenate\n"
+        },
+        "train_m1": {
+          "status": "skipped",
+          "reason": "prep_m1 failed"
+        },
+        "train_m2": {
+          "status": "failed",
+          "returncode": 1,
+          "stderr_tail": "pipeline\\train\\train_m2.py\", line 16, in <module>\n    N_TRIALS = int(sys.argv[2]) if len(sys.argv) > 2 else 60\n               ^^^^^^^^^^^^^^^^\nValueError: invalid literal for int() with base 10: '딸기'\n"
+        },
+        "rollback": "ok"
+      },
+      "방울토마토": {
+        "prep_m1": {
+          "status": "failed",
+          "returncode": 1,
+          "stderr_tail": "\n  File \"C:\\tools\\python311\\Lib\\site-packages\\pandas\\core\\reshape\\concat.py\", line 808, in _clean_keys_and_objs\n    raise ValueError(\"No objects to concatenate\")\nValueError: No objects to concatenate\n"
+        },
+        "train_m1": {
+          "status": "skipped",
+          "reason": "prep_m1 failed"
+        },
+        "train_m2": {
+          "status": "failed",
+          "returncode": 1,
+          "stderr_tail": "eline\\train\\train_m2.py\", line 16, in <module>\n    N_TRIALS = int(sys.argv[2]) if len(sys.argv) > 2 else 60\n               ^^^^^^^^^^^^^^^^\nValueError: invalid literal for int() with base 10: '방울토마토'\n"
+        },
+        "rollback": "ok"
+      },
+      "완숙토마토": {
+        "prep_m1": {
+          "status": "failed",
+          "returncode": 1,
+          "stderr_tail": "\n  File \"C:\\tools\\python311\\Lib\\site-packages\\pandas\\core\\reshape\\concat.py\", line 808, in _clean_keys_and_objs\n    raise ValueError(\"No objects to concatenate\")\nValueError: No objects to concatenate\n"
+        },
+        "train_m1": {
+          "status": "skipped",
+          "reason": "prep_m1 failed"
+        },
+        "train_m2": {
+          "status": "failed",
+          "returncode": 1,
+          "stderr_tail": "eline\\train\\train_m2.py\", line 16, in <module>\n    N_TRIALS = int(sys.argv[2]) if len(sys.argv) > 2 else 60\n               ^^^^^^^^^^^^^^^^\nValueError: invalid literal for int() with base 10: '완숙토마토'\n"
+        },
+        "rollback": "ok"
+      },
+      "참외": {
+        "prep_m1": {
+          "status": "failed",
+          "returncode": 1,
+          "stderr_tail": "\n  File \"C:\\tools\\python311\\Lib\\site-packages\\pandas\\core\\reshape\\concat.py\", line 808, in _clean_keys_and_objs\n    raise ValueError(\"No objects to concatenate\")\nValueError: No objects to concatenate\n"
+        },
+        "train_m1": {
+          "status": "skipped",
+          "reason": "prep_m1 failed"
+        },
+        "train_m2": {
+          "status": "failed",
+          "returncode": 1,
+          "stderr_tail": "pipeline\\train\\train_m2.py\", line 16, in <module>\n    N_TRIALS = int(sys.argv[2]) if len(sys.argv) > 2 else 60\n               ^^^^^^^^^^^^^^^^\nValueError: invalid literal for int() with base 10: '참외'\n"
+        },
+        "rollback": "ok"
+      },
+      "파프리카": {
+        "prep_m1": {
+          "status": "failed",
+          "returncode": 1,
+          "stderr_tail": "\n  File \"C:\\tools\\python311\\Lib\\site-packages\\pandas\\core\\reshape\\concat.py\", line 808, in _clean_keys_and_objs\n    raise ValueError(\"No objects to concatenate\")\nValueError: No objects to concatenate\n"
+        },
+        "train_m1": {
+          "status": "skipped",
+          "reason": "prep_m1 failed"
+        },
+        "train_m2": {
+          "status": "failed",
+          "returncode": 1,
+          "stderr_tail": "peline\\train\\train_m2.py\", line 16, in <module>\n    N_TRIALS = int(sys.argv[2]) if len(sys.argv) > 2 else 60\n               ^^^^^^^^^^^^^^^^\nValueError: invalid literal for int() with base 10: '파프리카'\n"
+        },
+        "rollback": "ok"
+      }
+    }
+  },
+  {
+    "timestamp": "2026-05-29T13:56:46.542163",
+    "triggered_by": "force",
+    "crops": [
+      "딸기",
+      "방울토마토",
+      "완숙토마토",
+      "참외",
+      "파프리카"
+    ],
+    "results": {
+      "딸기": {
+        "prep_m1": {
+          "status": "failed",
+          "returncode": 1,
+          "stderr_tail": "OpenBLAS error: Memory allocation still failed after 10 retries, giving up.\n"
+        },
+        "train_m1": {
+          "status": "skipped",
+          "reason": "prep_m1 failed"
+        },
+        "train_m2": {
+          "status": "failed",
+          "returncode": 1,
+          "stderr_tail": "pipeline\\train\\train_m2.py\", line 16, in <module>\n    N_TRIALS = int(sys.argv[2]) if len(sys.argv) > 2 else 60\n               ^^^^^^^^^^^^^^^^\nValueError: invalid literal for int() with base 10: '딸기'\n"
+        },
+        "rollback": "ok"
+      },
+      "방울토마토": {
+        "prep_m1": {
+          "status": "failed",
+          "returncode": 1,
+          "stderr_tail": "\n  File \"C:\\tools\\python311\\Lib\\site-packages\\pandas\\core\\reshape\\concat.py\", line 808, in _clean_keys_and_objs\n    raise ValueError(\"No objects to concatenate\")\nValueError: No objects to concatenate\n"
+        },
+        "train_m1": {
+          "status": "skipped",
+          "reason": "prep_m1 failed"
+        },
+        "train_m2": {
+          "status": "failed",
+          "returncode": 1,
+          "stderr_tail": "eline\\train\\train_m2.py\", line 16, in <module>\n    N_TRIALS = int(sys.argv[2]) if len(sys.argv) > 2 else 60\n               ^^^^^^^^^^^^^^^^\nValueError: invalid literal for int() with base 10: '방울토마토'\n"
+        },
+        "rollback": "ok"
+      },
+      "완숙토마토": {
+        "prep_m1": {
+          "status": "failed",
+          "returncode": 1,
+          "stderr_tail": "\n  File \"C:\\tools\\python311\\Lib\\site-packages\\pandas\\core\\reshape\\concat.py\", line 808, in _clean_keys_and_objs\n    raise ValueError(\"No objects to concatenate\")\nValueError: No objects to concatenate\n"
+        },
+        "train_m1": {
+          "status": "skipped",
+          "reason": "prep_m1 failed"
+        },
+        "train_m2": {
+          "status": "failed",
+          "returncode": 1,
+          "stderr_tail": "eline\\train\\train_m2.py\", line 16, in <module>\n    N_TRIALS = int(sys.argv[2]) if len(sys.argv) > 2 else 60\n               ^^^^^^^^^^^^^^^^\nValueError: invalid literal for int() with base 10: '완숙토마토'\n"
+        },
+        "rollback": "ok"
+      },
+      "참외": {
+        "prep_m1": {
+          "status": "failed",
+          "returncode": 1,
+          "stderr_tail": "\n  File \"C:\\tools\\python311\\Lib\\site-packages\\pandas\\core\\reshape\\concat.py\", line 808, in _clean_keys_and_objs\n    raise ValueError(\"No objects to concatenate\")\nValueError: No objects to concatenate\n"
+        },
+        "train_m1": {
+          "status": "skipped",
+          "reason": "prep_m1 failed"
+        },
+        "train_m2": {
+          "status": "failed",
+          "returncode": 1,
+          "stderr_tail": "pipeline\\train\\train_m2.py\", line 16, in <module>\n    N_TRIALS = int(sys.argv[2]) if len(sys.argv) > 2 else 60\n               ^^^^^^^^^^^^^^^^\nValueError: invalid literal for int() with base 10: '참외'\n"
+        },
+        "rollback": "ok"
+      },
+      "파프리카": {
+        "prep_m1": {
+          "status": "failed",
+          "returncode": 1,
+          "stderr_tail": "\n  File \"C:\\tools\\python311\\Lib\\site-packages\\pandas\\core\\reshape\\concat.py\", line 808, in _clean_keys_and_objs\n    raise ValueError(\"No objects to concatenate\")\nValueError: No objects to concatenate\n"
+        },
+        "train_m1": {
+          "status": "skipped",
+          "reason": "prep_m1 failed"
+        },
+        "train_m2": {
+          "status": "failed",
+          "returncode": 1,
+          "stderr_tail": "peline\\train\\train_m2.py\", line 16, in <module>\n    N_TRIALS = int(sys.argv[2]) if len(sys.argv) > 2 else 60\n               ^^^^^^^^^^^^^^^^\nValueError: invalid literal for int() with base 10: '파프리카'\n"
+        },
+        "rollback": "ok"
+      }
+    }
+  },
+  {
+    "timestamp": "2026-05-29T14:01:30.452894",
+    "triggered_by": "force",
+    "crops": [
+      "딸기",
+      "방울토마토",
+      "완숙토마토",
+      "참외",
+      "파프리카"
+    ],
+    "results": {
+      "딸기": {
+        "prep_m1": {
+          "status": "failed",
+          "returncode": 1,
+          "stderr_tail": "\n  File \"C:\\tools\\python311\\Lib\\site-packages\\pandas\\core\\reshape\\concat.py\", line 808, in _clean_keys_and_objs\n    raise ValueError(\"No objects to concatenate\")\nValueError: No objects to concatenate\n"
+        },
+        "train_m1": {
+          "status": "skipped",
+          "reason": "prep_m1 failed"
+        },
+        "train_m2": {
+          "status": "failed",
+          "returncode": 1,
+          "stderr_tail": "pipeline\\train\\train_m2.py\", line 16, in <module>\n    N_TRIALS = int(sys.argv[2]) if len(sys.argv) > 2 else 60\n               ^^^^^^^^^^^^^^^^\nValueError: invalid literal for int() with base 10: '딸기'\n"
+        },
+        "rollback": "ok"
+      },
+      "방울토마토": {
+        "prep_m1": {
+          "status": "failed",
+          "returncode": 1,
+          "stderr_tail": "\n  File \"C:\\tools\\python311\\Lib\\site-packages\\pandas\\core\\reshape\\concat.py\", line 808, in _clean_keys_and_objs\n    raise ValueError(\"No objects to concatenate\")\nValueError: No objects to concatenate\n"
+        },
+        "train_m1": {
+          "status": "skipped",
+          "reason": "prep_m1 failed"
+        },
+        "train_m2": {
+          "status": "failed",
+          "returncode": 1,
+          "stderr_tail": "eline\\train\\train_m2.py\", line 16, in <module>\n    N_TRIALS = int(sys.argv[2]) if len(sys.argv) > 2 else 60\n               ^^^^^^^^^^^^^^^^\nValueError: invalid literal for int() with base 10: '방울토마토'\n"
+        },
+        "rollback": "ok"
+      },
+      "완숙토마토": {
+        "prep_m1": {
+          "status": "failed",
+          "returncode": 1,
+          "stderr_tail": "\n  File \"C:\\tools\\python311\\Lib\\site-packages\\pandas\\core\\reshape\\concat.py\", line 808, in _clean_keys_and_objs\n    raise ValueError(\"No objects to concatenate\")\nValueError: No objects to concatenate\n"
+        },
+        "train_m1": {
+          "status": "skipped",
+          "reason": "prep_m1 failed"
+        },
+        "train_m2": {
+          "status": "failed",
+          "returncode": 1,
+          "stderr_tail": "eline\\train\\train_m2.py\", line 16, in <module>\n    N_TRIALS = int(sys.argv[2]) if len(sys.argv) > 2 else 60\n               ^^^^^^^^^^^^^^^^\nValueError: invalid literal for int() with base 10: '완숙토마토'\n"
+        },
+        "rollback": "ok"
+      },
+      "참외": {
+        "prep_m1": {
+          "status": "failed",
+          "returncode": 1,
+          "stderr_tail": "\n  File \"C:\\tools\\python311\\Lib\\site-packages\\pandas\\core\\reshape\\concat.py\", line 808, in _clean_keys_and_objs\n    raise ValueError(\"No objects to concatenate\")\nValueError: No objects to concatenate\n"
+        },
+        "train_m1": {
+          "status": "skipped",
+          "reason": "prep_m1 failed"
+        },
+        "train_m2": {
+          "status": "failed",
+          "returncode": 1,
+          "stderr_tail": "pipeline\\train\\train_m2.py\", line 16, in <module>\n    N_TRIALS = int(sys.argv[2]) if len(sys.argv) > 2 else 60\n               ^^^^^^^^^^^^^^^^\nValueError: invalid literal for int() with base 10: '참외'\n"
+        },
+        "rollback": "ok"
+      },
+      "파프리카": {
+        "prep_m1": {
+          "status": "failed",
+          "returncode": 1,
+          "stderr_tail": "\n  File \"C:\\tools\\python311\\Lib\\site-packages\\pandas\\core\\reshape\\concat.py\", line 808, in _clean_keys_and_objs\n    raise ValueError(\"No objects to concatenate\")\nValueError: No objects to concatenate\n"
+        },
+        "train_m1": {
+          "status": "skipped",
+          "reason": "prep_m1 failed"
+        },
+        "train_m2": {
+          "status": "failed",
+          "returncode": 1,
+          "stderr_tail": "peline\\train\\train_m2.py\", line 16, in <module>\n    N_TRIALS = int(sys.argv[2]) if len(sys.argv) > 2 else 60\n               ^^^^^^^^^^^^^^^^\nValueError: invalid literal for int() with base 10: '파프리카'\n"
+        },
+        "rollback": "ok"
+      }
+    }
   }
 ]

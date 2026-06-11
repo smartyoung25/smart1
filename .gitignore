@@ -92,3 +92,13 @@ data_real/
 deploy/cloudflare/bin/
 deploy/cloudflare/current_url.txt
 deploy/cloudflare/_tunnel.log
+
+# ── 대용량 모델 버전 스냅샷·런타임 산출·스크래치 (커밋 제외) ──
+models/artifacts/.versions/
+outputs/
+_docx_extract/
+tmp_*.py
+tmp_*.png
+tmp_i.py
+tmp_tr.py
+check_ids.py

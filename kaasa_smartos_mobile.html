@@ -1,0 +1,1516 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <title>KAASA SmartOS — 모바일 최적화</title>
+  <style>
+    :root {
+      --bg:#f4f7f4; --panel:#fff; --panel-soft:#f8fbf8; --line:#dce6dc;
+      --text:#1f2a24; --muted:#607066;
+      --green:#1f7a4d; --green-2:#2f9a62; --green-soft:#e7f4ed; --green-dark:#0f5132;
+      --blue:#2563eb; --blue-soft:#eaf1ff;
+      --orange:#d97706; --orange-soft:#fff4df;
+      --red:#dc2626; --red-soft:#ffeaea;
+      --purple:#7c3aed; --purple-soft:#f1eaff;
+      --gray-soft:#eef2ef;
+      --shadow:0 4px 16px rgba(31,42,36,.10);
+      --radius:16px;
+      --tab-h:60px;
+      --header-h:52px;
+    }
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+    html{scroll-behavior:smooth;}
+    body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR",Arial,sans-serif;
+      background:var(--bg);color:var(--text);line-height:1.55;
+      padding-top:var(--header-h);padding-bottom:calc(var(--tab-h) + env(safe-area-inset-bottom));}
+
+    /* ── TOP HEADER ── */
+    .top-header{
+      position:fixed;top:0;left:0;right:0;z-index:200;
+      height:var(--header-h);
+      background:var(--green-dark);
+      display:flex;align-items:center;justify-content:space-between;
+      padding:0 16px;
+      padding-top:env(safe-area-inset-top);
+    }
+    .top-header .brand{color:#fff;font-size:17px;font-weight:800;letter-spacing:-.03em;}
+    .top-header .brand span{font-size:11px;opacity:.7;display:block;font-weight:400;}
+    .top-header .hdr-icons{display:flex;gap:8px;align-items:center;}
+    .icon-btn{
+      width:40px;height:40px;border:none;background:rgba(255,255,255,.12);
+      border-radius:10px;color:#fff;font-size:18px;cursor:pointer;
+      display:flex;align-items:center;justify-content:center;
+    }
+
+    /* ── BOTTOM NAV ── */
+    .bottom-nav{
+      position:fixed;bottom:0;left:0;right:0;z-index:200;
+      height:var(--tab-h);
+      padding-bottom:env(safe-area-inset-bottom);
+      background:var(--green-dark);
+      display:flex;
+      border-top:1px solid rgba(255,255,255,.12);
+    }
+    .bnav-tab{
+      flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+      color:rgba(255,255,255,.6);font-size:10px;gap:3px;
+      border:none;background:none;cursor:pointer;padding:6px 0;
+      transition:color .2s;
+    }
+    .bnav-tab.active{color:#fff;}
+    .bnav-tab svg{width:22px;height:22px;fill:currentColor;}
+
+    /* ── DRAWER OVERLAY ── */
+    .drawer-overlay{
+      position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.45);
+      display:none;opacity:0;transition:opacity .25s;
+    }
+    .drawer-overlay.open{display:block;opacity:1;}
+    .drawer{
+      position:fixed;top:0;left:0;bottom:0;z-index:301;
+      width:min(320px,88vw);
+      background:var(--green-dark);color:#fff;
+      overflow-y:auto;
+      transform:translateX(-100%);transition:transform .28s cubic-bezier(.4,0,.2,1);
+      padding-top:env(safe-area-inset-top);
+    }
+    .drawer.open{transform:translateX(0);}
+    .drawer-head{padding:20px 18px 14px;border-bottom:1px solid rgba(255,255,255,.14);}
+    .drawer-head h2{margin:0;font-size:18px;letter-spacing:-.03em;}
+    .drawer-head p{margin:6px 0 0;font-size:11px;opacity:.65;}
+    .drawer-close{
+      position:absolute;top:calc(env(safe-area-inset-top)+12px);right:14px;
+      background:rgba(255,255,255,.12);border:none;color:#fff;
+      width:36px;height:36px;border-radius:8px;font-size:18px;cursor:pointer;
+      display:flex;align-items:center;justify-content:center;
+    }
+    .drawer nav .nav-group{margin:8px 12px 4px;font-size:10px;letter-spacing:.08em;color:rgba(255,255,255,.45);text-transform:uppercase;}
+    .drawer nav a{
+      display:block;color:rgba(255,255,255,.88);text-decoration:none;
+      padding:12px 16px;border-radius:10px;font-size:14px;margin:2px 8px;
+      min-height:44px;display:flex;align-items:center;
+    }
+    .drawer nav a:active{background:rgba(255,255,255,.15);}
+
+    /* ── MAIN CONTENT ── */
+    main{padding:16px;max-width:600px;margin:0 auto;}
+
+    /* ── HERO ── */
+    .hero{
+      background:linear-gradient(135deg,#0f5132,#1f7a4d 55%,#79b36a);
+      color:#fff;border-radius:20px;padding:20px 18px;
+      box-shadow:var(--shadow);margin-bottom:20px;
+    }
+    .hero h2{margin:0;font-size:22px;letter-spacing:-.04em;line-height:1.3;}
+    .hero p{max-width:100%;margin:10px 0 0;opacity:.92;font-size:14px;}
+    .hero-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px;}
+    .hero-card{
+      background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.22);
+      border-radius:12px;padding:12px;
+    }
+    .hero-card b{display:block;font-size:13px;margin-bottom:4px;}
+    .hero-card span{display:block;font-size:11px;opacity:.85;}
+
+    /* ── SECTION ── */
+    section{margin:0 0 28px;}
+    .section-title{margin-bottom:12px;}
+    .section-title h3{margin:0;font-size:20px;letter-spacing:-.035em;}
+    .section-title p{margin:4px 0 0;color:var(--muted);font-size:13px;}
+
+    /* ── SCREEN CARD ── */
+    .screen{
+      background:var(--panel);border:1px solid var(--line);
+      border-radius:20px;padding:14px;box-shadow:var(--shadow);margin-bottom:16px;
+    }
+    .screen-header{
+      display:flex;align-items:flex-start;justify-content:space-between;gap:8px;
+      padding-bottom:12px;border-bottom:1px solid var(--line);margin-bottom:14px;
+    }
+    .screen-header h4{margin:0;font-size:17px;letter-spacing:-.03em;}
+    .screen-header .meta{color:var(--muted);font-size:11px;white-space:nowrap;}
+
+    /* ── TOOLBAR / PILLS ── */
+    .toolbar{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;overflow-x:auto;padding-bottom:4px;}
+    .toolbar::-webkit-scrollbar{display:none;}
+    .pill{
+      display:inline-flex;align-items:center;gap:5px;
+      background:var(--gray-soft);color:#2d3d33;border:1px solid var(--line);
+      border-radius:999px;padding:7px 12px;font-size:12px;font-weight:600;
+      white-space:nowrap;min-height:34px;flex-shrink:0;
+    }
+    .pill.green{background:var(--green-soft);color:var(--green);border-color:#cbe7d5;}
+    .pill.blue{background:var(--blue-soft);color:var(--blue);border-color:#c9d8ff;}
+    .pill.orange{background:var(--orange-soft);color:var(--orange);border-color:#ffe1a8;}
+    .pill.red{background:var(--red-soft);color:var(--red);border-color:#ffc7c7;}
+    .pill.purple{background:var(--purple-soft);color:var(--purple);border-color:#dfccff;}
+
+    /* ── GRIDS ── */
+    .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+    .grid-1{display:grid;grid-template-columns:1fr;gap:10px;}
+
+    /* ── CARD ── */
+    .card{
+      background:var(--panel-soft);border:1px solid var(--line);
+      border-radius:var(--radius);padding:13px;
+    }
+    .card h5{margin:0 0 8px;font-size:14px;letter-spacing:-.02em;}
+    .card p{margin:0;color:var(--muted);font-size:13px;}
+
+    /* ── KPI ── */
+    .kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+    .kpi{background:var(--panel-soft);border:1px solid var(--line);border-radius:var(--radius);padding:12px;}
+    .kpi .label{color:var(--muted);font-size:12px;display:block;}
+    .kpi .value{font-size:22px;font-weight:800;letter-spacing:-.04em;margin-top:3px;display:block;}
+    .kpi .hint{font-size:11px;color:var(--muted);margin-top:4px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+    /* ── TO-DO ── */
+    .todo-list{display:grid;gap:8px;}
+    .todo{
+      border-radius:14px;border:1px solid var(--line);background:#fff;padding:11px 12px;
+    }
+    .todo-row1{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+    .todo-row2{display:flex;align-items:center;justify-content:space-between;gap:8px;padding-left:38px;}
+    .num{
+      width:28px;height:28px;border-radius:50%;flex-shrink:0;
+      display:flex;align-items:center;justify-content:center;
+      font-size:12px;font-weight:800;background:var(--green-soft);color:var(--green);
+    }
+    .todo b{font-size:14px;font-weight:700;line-height:1.3;}
+    .todo-detail{color:var(--muted);font-size:12px;}
+
+    /* ── BUTTONS ── */
+    .btn{
+      display:inline-flex;align-items:center;justify-content:center;
+      border:0;border-radius:10px;padding:0 14px;
+      font-size:13px;font-weight:700;cursor:pointer;color:#fff;
+      background:var(--green);white-space:nowrap;min-height:44px;
+    }
+    .btn.full{width:100%;border-radius:12px;font-size:15px;min-height:48px;}
+    .btn.secondary{background:#64748b;}
+    .btn.orange{background:var(--orange);}
+    .btn.blue{background:var(--blue);}
+    .btn.red{background:var(--red);}
+    .btn.outline{background:none;border:1.5px solid var(--green);color:var(--green);}
+
+    /* ── TABLE ── */
+    .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:12px;}
+    .table{width:100%;border-collapse:collapse;font-size:13px;min-width:320px;}
+    .table th,.table td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top;}
+    .table th{background:#eef5ef;color:#23362b;font-size:12px;}
+    .table tr:last-child td{border-bottom:0;}
+
+    /* ── MAP / CHART PLACEHOLDER ── */
+    .map-placeholder,.chart-placeholder{
+      border-radius:14px;
+      background:linear-gradient(90deg,rgba(31,122,77,.07) 1px,transparent 1px),
+                 linear-gradient(rgba(31,122,77,.07) 1px,transparent 1px),#fff;
+      background-size:24px 24px;
+      border:1px solid var(--line);min-height:260px;padding:14px;
+      position:relative;overflow:hidden;width:100%;margin-bottom:10px;
+    }
+    .map-placeholder b,.chart-placeholder b{font-size:13px;color:var(--green-dark);}
+    .map-placeholder p,.chart-placeholder p{font-size:12px;color:var(--muted);margin:4px 0 0;}
+    .map-zone{
+      position:absolute;border-radius:16px;border:2px solid rgba(31,122,77,.35);
+      background:rgba(47,154,98,.16);display:flex;align-items:center;justify-content:center;
+      font-size:12px;color:var(--green);font-weight:800;min-width:80px;min-height:44px;
+    }
+    .zone-1{left:7%;top:18%;width:34%;height:28%;}
+    .zone-2{right:9%;top:12%;width:34%;height:33%;background:rgba(37,99,235,.12);color:var(--blue);border-color:rgba(37,99,235,.28);}
+    .zone-3{left:18%;bottom:14%;width:48%;height:27%;background:rgba(217,119,6,.14);color:var(--orange);border-color:rgba(217,119,6,.28);}
+
+    /* ── BARS ── */
+    .bars{display:grid;gap:10px;margin-top:8px;}
+    .bar-row{display:grid;grid-template-columns:72px 1fr 36px;gap:8px;align-items:center;font-size:12px;color:var(--muted);}
+    .bar{height:10px;background:#e9efe9;border-radius:999px;overflow:hidden;}
+    .bar>i{display:block;height:100%;background:var(--green-2);border-radius:999px;}
+    .bar.blue>i{background:var(--blue);}
+    .bar.orange>i{background:var(--orange);}
+    .bar.red>i{background:var(--red);}
+
+    /* ── FLOW ── */
+    .flow{display:flex;overflow-x:auto;gap:8px;padding-bottom:6px;align-items:center;scroll-snap-type:x mandatory;}
+    .flow::-webkit-scrollbar{display:none;}
+    .flow span{
+      background:#fff;border:1px solid var(--line);border-radius:12px;
+      padding:10px 12px;font-size:13px;font-weight:700;white-space:nowrap;
+      flex-shrink:0;scroll-snap-align:start;
+    }
+    .flow em{font-style:normal;color:var(--muted);flex-shrink:0;}
+
+    /* ── EXPLAIN BOX ── */
+    .explain{
+      background:#fff;border-left:4px solid var(--green);border-radius:12px;
+      padding:12px 14px;margin-top:10px;color:#34433a;font-size:13px;
+    }
+    .explain b{color:var(--green);}
+
+    /* ── BOTTOM SHEET ── */
+    .sheet-overlay{
+      position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.45);
+      display:none;
+    }
+    .sheet-overlay.open{display:block;}
+    .sheet{
+      position:fixed;left:0;right:0;bottom:0;z-index:401;
+      background:#fff;border-radius:20px 20px 0 0;
+      padding:20px 18px;padding-bottom:calc(20px + env(safe-area-inset-bottom));
+      transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);
+      max-height:80vh;overflow-y:auto;
+    }
+    .sheet.open{transform:translateY(0);}
+    .sheet-handle{width:40px;height:4px;background:#dce6dc;border-radius:99px;margin:0 auto 16px;}
+    .sheet h4{margin:0 0 14px;font-size:17px;font-weight:800;}
+    .sheet-btns{display:grid;gap:8px;margin-top:16px;}
+
+    /* ── STATUS BADGE ── */
+    .badge{
+      display:inline-flex;align-items:center;gap:5px;
+      border-radius:8px;padding:4px 9px;font-size:12px;font-weight:700;
+    }
+    .badge.green{background:var(--green-soft);color:var(--green);}
+    .badge.orange{background:var(--orange-soft);color:var(--orange);}
+    .badge.red{background:var(--red-soft);color:var(--red);}
+    .badge.blue{background:var(--blue-soft);color:var(--blue);}
+
+    /* ── WIRE BOX ── */
+    .wire-box{background:#fff;border:2px dashed #cbd8cd;border-radius:16px;padding:14px;min-height:120px;}
+
+    /* ── ACCORDION ── */
+    .accordion{border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-top:10px;}
+    .accordion-head{
+      width:100%;background:var(--panel-soft);border:none;padding:13px 14px;
+      text-align:left;font-size:14px;font-weight:700;color:var(--text);
+      display:flex;justify-content:space-between;align-items:center;cursor:pointer;
+      min-height:48px;
+    }
+    .accordion-body{padding:12px 14px;font-size:13px;color:var(--muted);border-top:1px solid var(--line);}
+
+    /* ── PROGRESS STEP ── */
+    .step-bar{display:flex;align-items:center;gap:4px;margin-bottom:16px;}
+    .step-dot{
+      width:28px;height:28px;border-radius:50%;border:2px solid var(--line);
+      background:#fff;display:flex;align-items:center;justify-content:center;
+      font-size:11px;font-weight:800;color:var(--muted);flex-shrink:0;
+    }
+    .step-dot.done{background:var(--green);border-color:var(--green);color:#fff;}
+    .step-dot.active{border-color:var(--green);color:var(--green);}
+    .step-line{flex:1;height:2px;background:var(--line);}
+    .step-line.done{background:var(--green);}
+
+    /* ── MODULE INDEX ── */
+    .module-index{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+
+    /* ── STICKY FOOTER ── */
+    .sticky-footer{
+      position:sticky;bottom:calc(var(--tab-h) + env(safe-area-inset-bottom));
+      background:linear-gradient(transparent,var(--bg) 30%);
+      padding:12px 0 4px;margin-top:12px;
+    }
+
+    /* ── FOOTER NOTE ── */
+    .footer-note{margin:20px 0;background:var(--green-dark);color:#fff;border-radius:18px;padding:20px;}
+    .footer-note h3{margin-top:0;font-size:17px;}
+    .footer-note p{font-size:13px;opacity:.9;margin:0;}
+
+    /* ── SEGMENT CONTROL ── */
+    .seg{display:flex;background:var(--gray-soft);border-radius:10px;padding:3px;gap:2px;margin-bottom:12px;}
+    .seg-btn{
+      flex:1;padding:8px 4px;border:none;background:none;border-radius:8px;
+      font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;min-height:36px;
+    }
+    .seg-btn.active{background:#fff;color:var(--green);box-shadow:0 1px 4px rgba(0,0,0,.1);}
+
+    /* ── TABLET / DESKTOP BREAKPOINTS ── */
+    @media(min-width:768px){
+      main{padding:24px;max-width:800px;}
+      .kpi-grid{grid-template-columns:repeat(4,1fr);}
+      .hero-grid{grid-template-columns:repeat(4,1fr);}
+      .grid-2{grid-template-columns:1fr 1fr;}
+      .module-index{grid-template-columns:repeat(4,1fr);}
+    }
+    @media(min-width:1100px){
+      body{padding-bottom:0;}
+      .bottom-nav{display:none;}
+      .app{display:grid;grid-template-columns:280px 1fr;}
+      .desktop-aside{
+        display:block!important;position:sticky;top:var(--header-h);
+        height:calc(100vh - var(--header-h));overflow-y:auto;
+        background:var(--green-dark);color:#fff;padding:20px 16px;
+      }
+      main{max-width:1400px;padding:28px;}
+      .hero h2{font-size:32px;}
+      .kpi-grid{grid-template-columns:repeat(4,1fr);}
+    }
+    .desktop-aside{display:none;}
+    .desktop-aside .brand{padding:0 8px 16px;border-bottom:1px solid rgba(255,255,255,.14);margin-bottom:14px;}
+    .desktop-aside .brand h1{margin:0;font-size:19px;letter-spacing:-.04em;color:#fff;}
+    .desktop-aside .brand p{margin:6px 0 0;font-size:11px;opacity:.7;color:#fff;}
+    .desktop-aside nav .nav-title{margin:16px 8px 6px;font-size:10px;letter-spacing:.08em;color:rgba(255,255,255,.5);text-transform:uppercase;}
+    .desktop-aside nav a{display:block;color:rgba(255,255,255,.88);text-decoration:none;padding:8px 10px;border-radius:10px;font-size:13px;margin-bottom:2px;}
+    .desktop-aside nav a:hover{background:rgba(255,255,255,.1);}
+  </style>
+</head>
+<body>
+
+<!-- TOP HEADER -->
+<header class="top-header">
+  <div class="brand">KAASA SmartOS <span>스마트농업 AI 통합 플랫폼</span></div>
+  <div class="hdr-icons">
+    <button class="icon-btn" aria-label="알림">🔔</button>
+    <button class="icon-btn" aria-label="메뉴 열기" onclick="openDrawer()">☰</button>
+  </div>
+</header>
+
+<!-- DRAWER OVERLAY -->
+<div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-head">
+    <h2>KAASA SmartOS</h2>
+    <p>스마트농업 AI 의사결정·수익최적화·공동출하</p>
+    <button class="drawer-close" onclick="closeDrawer()">✕</button>
+  </div>
+  <nav>
+    <div class="nav-group">Overview</div>
+    <a href="#overview">전체 구조</a>
+    <a href="#flow">최종 사용자 흐름</a>
+    <div class="nav-group">Common Platform</div>
+    <a href="#c0">C0. 회원가입·권한관리</a>
+    <a href="#c1">C1. 내 농장 기본세팅</a>
+    <a href="#c2">C2. 데이터 공개·활용</a>
+    <a href="#c3">C3. 통합 홈</a>
+    <a href="#c4">C4. AI 진단·전문가</a>
+    <a href="#c5">C5. 수익성·ERP</a>
+    <a href="#c6">C6. AI 학습·모델관리</a>
+    <a href="#c7">C7. 학습기여 보상</a>
+    <a href="#c8">C8. 이기종 연동</a>
+    <a href="#c9">C9. 벤치마킹·보고서</a>
+    <a href="#c10">C10. 투자·ROI</a>
+    <a href="#c11">C11. 공동출하 가입</a>
+    <a href="#c12">C12. 공동출하·유통</a>
+    <div class="nav-group">Greenhouse</div>
+    <a href="#g1">G1. 온실 홈</a>
+    <a href="#g2">G2. 환경·에너지</a>
+    <a href="#g3">G3. 관수·양액</a>
+    <a href="#g4">G4. 생육모델·재배력</a>
+    <a href="#g5">G5. 병해·품질 이미지</a>
+    <a href="#g6">G6. 수확·유통·수익</a>
+    <div class="nav-group">Open Field</div>
+    <a href="#f1">F1. 노지 Field 홈</a>
+    <a href="#f2">F2. 필지 GIS</a>
+    <a href="#f3">F3. 기상·재해</a>
+    <a href="#f4">F4. 토양수분·관개</a>
+    <a href="#f5">F5. 원격탐사</a>
+    <a href="#f6">F6. 병해충·방제</a>
+    <a href="#f7">F7. 수확·유통·작업</a>
+  </nav>
+</div>
+
+<!-- DESKTOP ASIDE (1100px+) -->
+<div class="app">
+<aside class="desktop-aside">
+  <div class="brand"><h1>KAASA SmartOS</h1><p>스마트농업 AI 의사결정·수익최적화·공동출하 통합 플랫폼</p></div>
+  <nav>
+    <div class="nav-title">Overview</div>
+    <a href="#overview">전체 구조</a><a href="#flow">최종 사용자 흐름</a>
+    <div class="nav-title">Common Platform</div>
+    <a href="#c0">C0. 회원가입·권한관리</a><a href="#c1">C1. 내 농장 기본세팅</a>
+    <a href="#c2">C2. 데이터 공개·활용</a><a href="#c3">C3. 통합 홈</a>
+    <a href="#c4">C4. AI 진단·전문가</a><a href="#c5">C5. 수익성·ERP</a>
+    <a href="#c6">C6. AI 학습·모델관리</a><a href="#c7">C7. 학습기여 보상</a>
+    <a href="#c8">C8. 이기종 연동</a><a href="#c9">C9. 벤치마킹·보고서</a>
+    <a href="#c10">C10. 투자·ROI</a><a href="#c11">C11. 공동출하 가입</a><a href="#c12">C12. 공동출하·유통</a>
+    <div class="nav-title">Greenhouse</div>
+    <a href="#g1">G1. 온실 홈</a><a href="#g2">G2. 환경·에너지</a><a href="#g3">G3. 관수·양액</a>
+    <a href="#g4">G4. 생육모델·재배력</a><a href="#g5">G5. 병해·품질 이미지</a><a href="#g6">G6. 수확·유통·수익</a>
+    <div class="nav-title">Open Field</div>
+    <a href="#f1">F1. 노지 Field 홈</a><a href="#f2">F2. 필지 GIS</a><a href="#f3">F3. 기상·재해</a>
+    <a href="#f4">F4. 토양수분·관개</a><a href="#f5">F5. 원격탐사</a>
+    <a href="#f6">F6. 병해충·방제</a><a href="#f7">F7. 수확·유통·작업</a>
+  </nav>
+</aside>
+
+<main>
+
+<!-- ══ OVERVIEW ══ -->
+<section id="overview">
+  <div class="hero">
+    <h2>KAASA Smart Agriculture AI Platform / SmartOS</h2>
+    <p>농진청 표준모델, KAASA 현장학습모델, 내 농장 맞춤모델을 연결하여 AI 진단, 전문가 처방, 수익성, 투자, 공동출하, 학습보상을 하나의 플랫폼에서 관리합니다.</p>
+    <div class="hero-grid">
+      <div class="hero-card"><b>공통 플랫폼</b><span>회원·데이터동의·AI·ERP·투자·공동출하·보상·보고서</span></div>
+      <div class="hero-card"><b>온실모델</b><span>환경제어·관수양액·생육·병해품질·수확유통</span></div>
+      <div class="hero-card"><b>노지모델</b><span>필지 GIS·기상재해·토양수분·원격탐사·작업수익</span></div>
+      <div class="hero-card"><b>공동출하모델</b><span>가입·약정·Pool 매칭·물류·정산·성과학습</span></div>
+    </div>
+  </div>
+  <div class="section-title"><h3>플랫폼 모듈 인덱스</h3><p>카드형·대시보드형·지도형·워크플로우형으로 구분</p></div>
+  <div class="module-index">
+    <div class="card"><h5>공통 플랫폼 12개</h5><p>C0~C12. 회원, 데이터권리, AI, ERP, 학습, 보상, 투자, 공동출하</p></div>
+    <div class="card"><h5>온실모델 6개</h5><p>G1~G6. 환경제어형 스마트팜 운영</p></div>
+    <div class="card"><h5>노지모델 7개</h5><p>F1~F7. 필지형 의사결정 DSS</p></div>
+    <div class="card"><h5>AI 추천 3유형</h5><p>즉시조치, 생육전략, 수익최적화</p></div>
+  </div>
+  <div class="screen">
+    <div class="screen-header"><h4>모델 계층 구조</h4><span class="meta">표준→현장→맞춤→실행→보상</span></div>
+    <div class="flow">
+      <span>농진청 표준모델</span><em>→</em>
+      <span>KAASA 현장학습모델</span><em>→</em>
+      <span>내 농장 맞춤모델</span><em>→</em>
+      <span>AI 추천 3유형</span><em>→</em>
+      <span>To-do 실행</span><em>→</em>
+      <span>전문가 처방·공동출하 성과</span><em>→</em>
+      <span>학습보상·모델고도화</span>
+    </div>
+    <div class="explain"><b>설명:</b> 농진청 모델은 공공 기준, KAASA 모델은 회원농가·전문가·공동출하 데이터를 반영한 현장학습, 내 농장 맞춤모델은 농장별 조건 보정 역할을 수행합니다.</div>
+  </div>
+</section>
+
+<!-- ══ C0 ══ -->
+<section id="c0">
+  <div class="section-title"><h3>C0. 회원가입·권한관리</h3><p>대상별·기능별 가입과 권한 분리</p></div>
+  <div class="screen">
+    <div class="screen-header"><h4>회원 유형 선택</h4><span class="meta">농가·조직·전문가·기업·공공</span></div>
+    <div class="grid-1">
+      <div class="card"><h5>개별 농가</h5><p>온실·노지 농장을 직접 운영. AI 진단, To-do, 수익분석, 공동출하 참여.</p></div>
+      <div class="card"><h5>작목반·농업법인·APC</h5><p>공동출하 운영, 농가별 성과관리, 품질·정산 관리.</p></div>
+      <div class="card"><h5>전문가</h5><p>품목, 병해충, 관수·양액, 경영·유통 상담 및 처방.</p></div>
+      <div class="card"><h5>장비·솔루션 기업</h5><p>센서, 제어기, 드론, 관수, ERP 연동과 A/S.</p></div>
+      <div class="card"><h5>유통·구매처</h5><p>공동출하 Pool 조회, 구매제안, 계약출하.</p></div>
+      <div class="card"><h5>공공기관·교육기관</h5><p>지역 성과관리, 정책 KPI, 교육성과, 익명 집계 리포트.</p></div>
+      <div class="card"><h5>관리자</h5><p>전체 운영, 권한 승인, 데이터 품질, 모델 배포.</p></div>
+      <div class="card"><h5>기능 선택</h5><p>AI 진단, 공동출하, 전문가 상담, 데이터 보상, 장비 연동 선택.</p></div>
+    </div>
+    <div class="explain"><b>설명:</b> 회원 유형에 따라 접근 가능한 데이터와 기능이 다릅니다. 유통회원은 공동출하 가능 물량·등급·출하일 등 거래 필수정보만 접근하도록 제한합니다.</div>
+  </div>
+</section>
+
+<!-- ══ C1 ══ -->
+<section id="c1">
+  <div class="section-title"><h3>C1. 내 농장 기본세팅 Wizard</h3><p>온실과 노지의 기준값을 분리 입력</p></div>
+  <div class="screen">
+    <div class="screen-header"><h4>초기 세팅 단계</h4><span class="meta">Wizard 7 Step</span></div>
+    <!-- Step Progress Bar -->
+    <div class="step-bar">
+      <div class="step-dot done">1</div><div class="step-line done"></div>
+      <div class="step-dot done">2</div><div class="step-line done"></div>
+      <div class="step-dot active">3</div><div class="step-line"></div>
+      <div class="step-dot">4</div><div class="step-line"></div>
+      <div class="step-dot">5</div><div class="step-line"></div>
+      <div class="step-dot">6</div><div class="step-line"></div>
+      <div class="step-dot">7</div>
+    </div>
+    <div class="grid-1">
+      <div class="card"><h5>Step 1. 농장 기본정보</h5><p>농장명, 주소, GPS, 고도, 기상관측지점, 관리자.</p></div>
+      <div class="card"><h5>Step 2. 재배유형</h5><p>온실, 노지, 온실+노지 혼합 선택.</p></div>
+      <div class="card"><h5>Step 3-A. 온실 기본세팅</h5><p>총면적, 동수, 동면적, 피복재, 품목, 품종, 묘 발주수, 재식밀도, 코코배지, 드리퍼.</p></div>
+      <div class="card"><h5>Step 3-B. 노지 기본세팅</h5><p>필지명, PNU, GPS 경계, 면적, 토성, 경사, 배수등급, 수원, 관개방식.</p></div>
+      <div class="card"><h5>Step 4. 기준모델 선택</h5><p>농진청 표준모델, KAASA 현장학습모델, 내 농장 맞춤모델.</p></div>
+      <div class="card"><h5>Step 5. 데이터 활용모드</h5><p>Private, Learning, Benchmark, Network, Organization.</p></div>
+      <div class="card"><h5>Step 6. AI·전문가 네트워크</h5><p>임계값, 생육전략, 수익최적화 기준과 전문가 Pool 연결.</p></div>
+      <div class="card"><h5>Step 7. 학습 시작</h5><p>환경, 관수·관개, 생육, 병해, 수확, 경영, 유통 모델 학습 개시.</p></div>
+    </div>
+    <div class="sticky-footer">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <button class="btn outline full">이전</button>
+        <button class="btn full">다음 단계</button>
+      </div>
+    </div>
+    <div class="explain"><b>설명:</b> 기본세팅은 AI 추천 정확도의 핵심입니다. 온실은 슬라브·드리퍼·배지·에너지 설비를, 노지는 필지·토성·수원·관개방식·PNU를 기준 데이터로 사용합니다.</div>
+  </div>
+</section>
+
+<!-- ══ C2 ══ -->
+<section id="c2">
+  <div class="section-title"><h3>C2. 데이터 공개·활용 설정</h3><p>농가 데이터 주권을 전제로 선택동의형 체계</p></div>
+  <div class="screen">
+    <div class="screen-header"><h4>데이터 활용모드</h4><span class="meta">Private 기본값</span></div>
+    <div class="seg">
+      <button class="seg-btn active">Private</button>
+      <button class="seg-btn">Learning</button>
+      <button class="seg-btn">Benchmark</button>
+      <button class="seg-btn">Network</button>
+    </div>
+    <div class="card" style="margin-bottom:10px;">
+      <h5>현재 선택: Private</h5>
+      <p>내 농장 내부 분석만 허용. 외부 공유 없음.</p>
+    </div>
+    <div class="card">
+      <h5>동의 항목</h5>
+      <div class="table-wrap">
+        <table class="table">
+          <tr><th>항목</th><th>상태</th><th>활용</th></tr>
+          <tr><td>내 농장 내부 분석</td><td><span class="badge green">허용</span></td><td>AI 진단, To-do, 수익성</td></tr>
+          <tr><td>익명 AI 학습</td><td><span class="badge orange">선택</span></td><td>KAASA 모델 학습</td></tr>
+          <tr><td>익명 벤치마킹</td><td><span class="badge orange">선택</span></td><td>작목·지역 평균 비교</td></tr>
+          <tr><td>전문가 상담 공유</td><td><span class="badge orange">선택</span></td><td>최근 7일 자료</td></tr>
+          <tr><td>공동출하 제한공개</td><td><span class="badge orange">선택</span></td><td>품목·등급·물량·출하일</td></tr>
+        </table>
+      </div>
+    </div>
+    <div class="toolbar" style="margin-top:10px;">
+      <span class="pill green">동의내역 확인</span>
+      <span class="pill orange">동의 철회</span>
+      <span class="pill red">전체 비공개</span>
+    </div>
+    <div class="explain"><b>설명:</b> 농가가 정보공개를 거부해도 기본 서비스는 유지됩니다. 네트워크 기능은 선택 동의 기반으로 확장됩니다.</div>
+  </div>
+</section>
+
+<!-- ══ C3 통합 홈 (P1 핵심) ══ -->
+<section id="c3">
+  <div class="section-title"><h3>C3. 통합 홈 대시보드</h3><p>오늘 해야 할 일 중심 실행형 홈</p></div>
+  <div class="screen">
+    <div class="screen-header"><h4>오늘의 농장 운영상태</h4><span class="meta">혼합 재배 / Private</span></div>
+    <div class="toolbar">
+      <span class="pill green">재배유형: 혼합</span>
+      <span class="pill orange">Private 모드</span>
+      <span class="pill blue">승인형 자동제어</span>
+    </div>
+    <!-- KPI 2×2 -->
+    <div class="kpi-grid">
+      <div class="kpi"><span class="label">오늘 원가</span><span class="value">2,380원<small style="font-size:13px;font-weight:400">/kg</small></span><span class="hint">전일 대비 -2.1%</span></div>
+      <div class="kpi"><span class="label">오늘 마진</span><span class="value">3,470원<small style="font-size:13px;font-weight:400">/kg</small></span><span class="hint">공동출하 시 +560원</span></div>
+      <div class="kpi"><span class="label">예상 소득률</span><span class="value">59.3%</span><span class="hint">목표 60%</span></div>
+      <div class="kpi"><span class="label">공동출하 예정</span><span class="value">250kg</span><span class="hint">제한공개 필요</span></div>
+    </div>
+    <!-- To-do (P1 핵심: 상단 배치) -->
+    <div class="card" style="margin-bottom:12px;">
+      <h5>오늘의 To-do List</h5>
+      <div class="todo-list">
+        <div class="todo">
+          <div class="todo-row1"><div class="num">1</div><b>온실 A동 P4 정오 관수 1회 추가</b></div>
+          <div class="todo-row2"><span class="todo-detail">근거: 배액률 12%, 목표 20~30% 미달</span><button class="btn">적용</button></div>
+        </div>
+        <div class="todo">
+          <div class="todo-row1"><div class="num">2</div><b>노지 3번 필지 오전 관개</b></div>
+          <div class="todo-row2"><span class="todo-detail">근거: 토양수분 부족, 강우예보 없음</span><button class="btn blue">확인</button></div>
+        </div>
+        <div class="todo">
+          <div class="todo-row1"><div class="num">3</div><b>생육사진 3장 등록</b></div>
+          <div class="todo-row2"><span class="todo-detail">근거: 생육모델 학습 데이터 부족</span><button class="btn secondary">등록</button></div>
+        </div>
+        <div class="todo">
+          <div class="todo-row1"><div class="num">4</div><b>공동출하 물량 250kg 선별·등록</b></div>
+          <div class="todo-row2"><span class="todo-detail">근거: 내일 공동출하 Pool 후보</span><button class="btn orange" onclick="openSheet('sheetJointShip')">참여</button></div>
+        </div>
+      </div>
+    </div>
+    <!-- AI 추천 (컴팩트) -->
+    <div class="card" style="margin-bottom:12px;">
+      <h5>AI 추천 신뢰도</h5>
+      <div class="bars">
+        <div class="bar-row"><span>즉시조치</span><div class="bar red"><i style="width:82%"></i></div><b>82%</b></div>
+        <div class="bar-row"><span>생육전략</span><div class="bar orange"><i style="width:71%"></i></div><b>71%</b></div>
+        <div class="bar-row"><span>수익최적화</span><div class="bar blue"><i style="width:88%"></i></div><b>88%</b></div>
+        <div class="bar-row"><span>학습상태</span><div class="bar"><i style="width:64%"></i></div><b>64%</b></div>
+      </div>
+      <div class="explain" style="margin-top:8px;"><b>추천:</b> 내일 오전 공동출하 Pool에 30% 물량을 배정하면 개별출하 대비 kg당 마진이 개선될 가능성이 높습니다.</div>
+    </div>
+    <!-- 요약 카드 1열 -->
+    <div class="grid-1">
+      <div class="card"><h5>온실 요약</h5><p>VPD 1.55kPa, 배액 EC 3.6, 배액률 12%.</p></div>
+      <div class="card"><h5>노지 요약</h5><p>3번 필지 토양수분 부족, NDVI 저하구역 2곳.</p></div>
+      <div class="card"><h5>공동출하 요약</h5><p>참여 후보 8농가, 예상물량 1.2톤, 평균단가 5,850원/kg.</p></div>
+      <div class="card"><h5>데이터 활용상태</h5><p>Private. 벤치마킹·학습보상·자동 Pool 제한.</p></div>
+    </div>
+    <div class="explain"><b>설명:</b> 홈은 그래프보다 실행을 우선합니다. AI가 오늘의 관수, 관개, 사진등록, 공동출하 준비, 작업기록을 To-do로 변환합니다.</div>
+  </div>
+</section>
+
+<!-- ══ C4 ══ -->
+<section id="c4">
+  <div class="section-title"><h3>C4. AI 진단·전문가 컨설팅</h3><p>공식자료 기반 AI 1차 진단과 전문가 미팅 연결</p></div>
+  <div class="screen">
+    <div class="screen-header"><h4>AI 진단 콘솔</h4><span class="meta">질문→근거→추천→전문가</span></div>
+    <div class="toolbar">
+      <span class="pill blue">질문: 내일 공동출하가 유리한가요?</span>
+      <span class="pill green">수익최적화</span>
+    </div>
+    <div class="card" style="margin-bottom:10px;">
+      <h5>AI 1차 진단</h5>
+      <p>공동출하 예상단가가 개별출하 대비 450원/kg 높고, 공동물류비는 110원/kg 낮습니다. 30% 물량 참여를 권장합니다.</p>
+    </div>
+    <div class="accordion">
+      <button class="accordion-head" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
+        근거자료 <span>▾</span>
+      </button>
+      <div class="accordion-body" style="display:none;">
+        가격 API, 수확예측, 품질이미지, 공동출하 Pool, 포장·운송비, 과거 정산 이력.
+      </div>
+    </div>
+    <div class="accordion">
+      <button class="accordion-head" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
+        신뢰도 점수 <span class="badge green" style="margin-left:8px;">86%</span> <span>▾</span>
+      </button>
+      <div class="accordion-body" style="display:none;">
+        데이터 충분성 높음, 가격 API 정상, 품질이미지 일부 보완 필요.
+      </div>
+    </div>
+    <div style="margin-top:12px;display:grid;gap:8px;">
+      <button class="btn full blue" onclick="openSheet('sheetExpert')">전문가 미팅 예약</button>
+      <button class="btn full secondary">자료 선택 공유</button>
+    </div>
+    <div class="explain"><b>설명:</b> AI가 단독으로 처방하지 않고 공식자료·내 농장 데이터·이미지·API를 근거로 1차 진단합니다.</div>
+  </div>
+</section>
+
+<!-- ══ C5 ══ -->
+<section id="c5">
+  <div class="section-title"><h3>C5. 수익성·ERP 원가·마진 관리</h3><p>kg당 원가, 마진, 소득률, 공동출하 효과</p></div>
+  <div class="screen">
+    <div class="screen-header"><h4>농장 경영 KPI</h4><span class="meta">월간 / 작기 / 동별</span></div>
+    <div class="seg">
+      <button class="seg-btn active">월간</button>
+      <button class="seg-btn">작기</button>
+      <button class="seg-btn">온실동별</button>
+    </div>
+    <div class="kpi-grid">
+      <div class="kpi"><span class="label">월매출</span><span class="value">42.5<small>백만</small></span><span class="hint">목표 대비 96%</span></div>
+      <div class="kpi"><span class="label">총비용</span><span class="value">17.3<small>백만</small></span><span class="hint">에너지 29%</span></div>
+      <div class="kpi"><span class="label">kg당 원가</span><span class="value">2,380원</span><span class="hint">온실 A동 높음</span></div>
+      <div class="kpi"><span class="label">소득률</span><span class="value">59.3%</span><span class="hint">공동출하 시 개선</span></div>
+    </div>
+    <div class="card" style="margin-bottom:10px;">
+      <h5>원가 구조 분석</h5>
+      <div class="bars">
+        <div class="bar-row"><span>에너지</span><div class="bar orange"><i style="width:29%"></i></div><b>29%</b></div>
+        <div class="bar-row"><span>노동</span><div class="bar blue"><i style="width:24%"></i></div><b>24%</b></div>
+        <div class="bar-row"><span>자재·양액</span><div class="bar"><i style="width:21%"></i></div><b>21%</b></div>
+        <div class="bar-row"><span>물류·포장</span><div class="bar red"><i style="width:13%"></i></div><b>13%</b></div>
+      </div>
+    </div>
+    <div class="card">
+      <h5>공동출하 수익효과 비교</h5>
+      <div class="table-wrap">
+        <table class="table">
+          <tr><th>항목</th><th>개별출하</th><th>공동출하</th></tr>
+          <tr><td>예상단가</td><td>5,400원</td><td>5,850원</td></tr>
+          <tr><td>물류비</td><td>320원</td><td>210원</td></tr>
+          <tr><td>kg당 마진</td><td>2,700원</td><td>3,260원</td></tr>
+          <tr><td>효과</td><td>—</td><td><b style="color:var(--green)">+560원/kg</b></td></tr>
+        </table>
+      </div>
+    </div>
+    <div class="explain"><b>설명:</b> 공동출하는 단가 상승과 물류비 절감 효과를 수익성 화면에서 직접 비교합니다.</div>
+  </div>
+</section>
+
+<!-- ══ C6 ══ -->
+<section id="c6">
+  <div class="section-title"><h3>C6. AI 학습·모델관리 센터</h3><p>동의된 데이터 기반 모델 학습</p></div>
+  <div class="screen">
+    <div class="screen-header"><h4>모델 학습 상태</h4><span class="meta">Private 데이터 제외</span></div>
+    <div class="seg">
+      <button class="seg-btn active">온실</button>
+      <button class="seg-btn">노지</button>
+      <button class="seg-btn">공동출하</button>
+      <button class="seg-btn">수익</button>
+    </div>
+    <div class="kpi-grid">
+      <div class="kpi"><span class="label">학습데이터</span><span class="value">128K</span><span class="hint">익명동의 기준</span></div>
+      <div class="kpi"><span class="label">데이터품질</span><span class="value">96.2%</span><span class="hint">결측률 3.8%</span></div>
+      <div class="kpi"><span class="label">모델정확도</span><span class="value">R² .90</span><span class="hint">작목별 상이</span></div>
+      <div class="kpi"><span class="label">최신 학습일</span><span class="value">D-1</span><span class="hint">승인 후 배포</span></div>
+    </div>
+    <div class="card" style="margin-bottom:10px;">
+      <h5>학습 파이프라인</h5>
+      <div class="flow">
+        <span>수집</span><em>→</em><span>정제</span><em>→</em><span>라벨링</span><em>→</em>
+        <span>학습</span><em>→</em><span>검증</span><em>→</em><span>배포</span><em>→</em><span>피드백</span>
+      </div>
+    </div>
+    <div class="grid-1">
+      <div class="card"><h5>온실 학습상태</h5><p>환경, 관수, 생육, 병해, 수확, 에너지 모델.</p></div>
+      <div class="card"><h5>노지 학습상태</h5><p>토양, 관개, NDVI, 재해, 작업, 필지수익.</p></div>
+      <div class="card"><h5>공동출하 모델</h5><p>Pool, 물류, 정산, 클레임, 출하단가.</p></div>
+      <div class="card"><h5>전문가 처방학습</h5><p>처방, 적용결과, 성과개선, 후속점검.</p></div>
+    </div>
+    <div class="explain"><b>설명:</b> AI 학습은 동의된 데이터만 활용합니다. 전문가 처방과 공동출하 성과는 고품질 라벨 데이터로 활용됩니다.</div>
+  </div>
+</section>
+
+<!-- ══ C7 ══ -->
+<section id="c7">
+  <div class="section-title"><h3>C7. 학습기여 보상센터</h3><p>데이터·이미지·처방·출하 성과를 기여도로 환산</p></div>
+  <div class="screen">
+    <div class="screen-header"><h4>내 학습기여 요약</h4><span class="meta">포인트·할인·리포트·상담권</span></div>
+    <div class="kpi-grid">
+      <div class="kpi"><span class="label">학습기여 점수</span><span class="value">395점</span><span class="hint">상위 18%</span></div>
+      <div class="kpi"><span class="label">보유 포인트</span><span class="value">28.5K P</span><span class="hint">상담권 교환 가능</span></div>
+    </div>
+    <div class="card" style="margin-bottom:10px;">
+      <h5>기여 항목별 점수</h5>
+      <div class="bars">
+        <div class="bar-row"><span>전문가처방</span><div class="bar"><i style="width:100%"></i></div><b>120</b></div>
+        <div class="bar-row"><span>공동출하</span><div class="bar blue"><i style="width:75%"></i></div><b>90</b></div>
+        <div class="bar-row"><span>수확기록</span><div class="bar orange"><i style="width:50%"></i></div><b>60</b></div>
+        <div class="bar-row"><span>환경데이터</span><div class="bar"><i style="width:67%"></i></div><b>80</b></div>
+        <div class="bar-row"><span>생육이미지</span><div class="bar red"><i style="width:37%"></i></div><b>45</b></div>
+      </div>
+    </div>
+    <div class="grid-1">
+      <button class="btn full">상담권 사용</button>
+      <button class="btn full blue">리포트 받기</button>
+      <button class="btn full orange">교육 할인</button>
+    </div>
+    <div class="explain"><b>설명:</b> 학습보상은 품질, 지속성, 모델 기여도, 처방 효과, 공동출하 성과 기준으로 산정합니다.</div>
+  </div>
+</section>
+
+<!-- ══ C8 ══ -->
+<section id="c8">
+  <div class="section-title"><h3>C8. 이기종 연동·진단·업그레이드</h3><p>온실 장비와 노지 데이터 소스 통합</p></div>
+  <div class="screen">
+    <div class="screen-header"><h4>연동·진단 현황</h4><span class="meta">장비탐색→표준매핑→캘리브레이션</span></div>
+    <div class="kpi-grid">
+      <div class="kpi"><span class="label">센서 연결률</span><span class="value">94%</span><span class="hint">2개 점검 필요</span></div>
+      <div class="kpi"><span class="label">제어기 연결</span><span class="value">88%</span><span class="hint">양액기 1대 지연</span></div>
+      <div class="kpi"><span class="label">GIS/API</span><span class="value">91%</span><span class="hint">드론 API 대기</span></div>
+      <div class="kpi"><span class="label">제어 성공률</span><span class="value">97%</span><span class="hint">Fail-safe 정상</span></div>
+    </div>
+    <div class="grid-1">
+      <div class="card"><h5>온실 장비 연동</h5><p>센서, 복합환경제어기, 양액기, 카메라, 트랩, CO₂, LED, 스크린.</p></div>
+      <div class="card"><h5>노지 장비·데이터 연동</h5><p>GIS, PNU, 토양센서, 관개밸브, 드론, 위성, 기상 API.</p></div>
+      <div class="card"><h5>업그레이드 추천</h5><p>배액센서 4개 설치, 유량계 캘리브레이션, 차광 자동화 연동. <b>예상 회수기간 1.6년</b></p></div>
+    </div>
+    <div class="explain"><b>설명:</b> 이기종 연동은 단순 연결이 아니라 물리적 성능 보정까지 포함해야 합니다.</div>
+  </div>
+</section>
+
+<!-- ══ C9 ══ -->
+<section id="c9">
+  <div class="section-title"><h3>C9. 벤치마킹·보고서</h3><p>익명 동의 데이터 기반 우수농가 비교</p></div>
+  <div class="screen">
+    <div class="screen-header"><h4>비교군 설정</h4><span class="meta">작목·지역·시설유형</span></div>
+    <div class="seg">
+      <button class="seg-btn active">온실</button>
+      <button class="seg-btn">노지</button>
+      <button class="seg-btn">공동출하</button>
+      <button class="seg-btn">보고서</button>
+    </div>
+    <div class="grid-1">
+      <div class="card"><h5>온실 우수농가 비교</h5><p>환경 안정도, 관수 효율, 수확량, 상품과율, kg당 마진.</p></div>
+      <div class="card"><h5>노지 우수필지 비교</h5><p>토양수분, 관개효율, NDVI, 작업비, 필지수익성.</p></div>
+      <div class="card"><h5>공동출하 성과 비교</h5><p>개별출하 대비 단가, 물류비, 마진, 클레임률 비교.</p></div>
+      <div class="card"><h5>자동 보고서</h5><p>일간, 주간, 월간, 작기, 조직형, 공공기관용 성과 보고서.</p></div>
+    </div>
+    <button class="btn full" style="margin-top:12px;">보고서 자동 생성</button>
+    <div class="explain"><b>설명:</b> 벤치마킹은 Private 데이터를 제외하고 익명 동의 데이터만 사용합니다.</div>
+  </div>
+</section>
+
+<!-- ══ C10 ══ -->
+<section id="c10">
+  <div class="section-title"><h3>C10. 투자·시나리오·ROI 시뮬레이션</h3><p>설비투자, 에너지절감, 공동출하 투자 경제성 비교</p></div>
+  <div class="screen">
+    <div class="screen-header"><h4>투자안 비교</h4><span class="meta">ROI / 회수기간 / NPV</span></div>
+    <div class="toolbar">
+      <span class="pill green">설비투자</span><span class="pill blue">에너지절감</span>
+      <span class="pill orange">관수개선</span><span class="pill purple">노지확장</span><span class="pill red">작물전환</span>
+    </div>
+    <div class="grid-1">
+      <div class="card"><h5>투자안 A: 배액센서+유량계</h5><p>투자비 500만원, 배액률 안정 +15%, 관수추천 정확도 개선. <b style="color:var(--green)">회수기간 1.6년</b></p></div>
+      <div class="card"><h5>투자안 B: 보온스크린 자동화</h5><p>투자비 1,200만원, 에너지비 -8%, 온도 안정도 개선. <b style="color:var(--green)">회수기간 2.4년</b></p></div>
+      <div class="card"><h5>노지: 토양센서+관개밸브</h5><p>필지 관개 우선순위 자동화, 수분부족 시간 -22%, 작업비 절감.</p></div>
+      <div class="card"><h5>공동출하 투자안</h5><p>선별·포장·집하 개선, 물류비 절감, 공동출하 단가 프리미엄 확대.</p></div>
+    </div>
+    <div class="explain"><b>설명:</b> 투자 화면은 장비 추천이 아니라 수익 개선 전략 화면입니다. 투자비, 운영효과, 마진개선, 회수기간까지 연결합니다.</div>
+  </div>
+</section>
+
+<!-- ══ C11 ══ -->
+<section id="c11">
+  <div class="section-title"><h3>C11. 공동출하 가입·조직관리</h3><p>가입·약정·품질기준·정산기준 기반 운영</p></div>
+  <div class="screen">
+    <div class="screen-header"><h4>공동출하 가입 Wizard</h4><span class="meta">개별농가·작목반·APC</span></div>
+    <div class="step-bar">
+      <div class="step-dot done">1</div><div class="step-line done"></div>
+      <div class="step-dot done">2</div><div class="step-line done"></div>
+      <div class="step-dot active">3</div><div class="step-line"></div>
+      <div class="step-dot">4</div><div class="step-line"></div>
+      <div class="step-dot">5</div><div class="step-line"></div>
+      <div class="step-dot">6</div><div class="step-line"></div>
+      <div class="step-dot">7</div>
+    </div>
+    <div class="grid-1">
+      <div class="card"><h5>Step 1. 기본정보</h5><p>농가명, 대표자, 연락처, 주소, 사업자번호, 농장ID.</p></div>
+      <div class="card"><h5>Step 2. 재배정보 연동</h5><p>작목, 품종, 재배유형, 면적, 온실동·필지, 예상 생산량.</p></div>
+      <div class="card"><h5>Step 3. 출하 가능 품목</h5><p>품목, 품종, 출하시기, 예상물량, 등급, 인증, 포장규격.</p></div>
+      <div class="card"><h5>Step 4. 품질·선별 기준 동의</h5><p>등급, 크기, 당도, 착색도, 외관손상, 허용오차.</p></div>
+      <div class="card"><h5>Step 5. 공동출하 약정</h5><p>참여기간, 최소 출하물량, 출하 취소기준, 품질책임, 클레임.</p></div>
+      <div class="card"><h5>Step 6. 정산방식 설정</h5><p>농가별, 등급별, 공동비용 공제, 수수료, 지급일.</p></div>
+      <div class="card"><h5>Step 7. 데이터 공개 범위</h5><p>공동출하 필수정보만 제한공개 또는 조직형 공유.</p></div>
+      <div class="card"><h5>승인관리</h5><p>신청완료, 서류검토, 품질기준 확인, 승인, 보완요청, 반려.</p></div>
+    </div>
+    <div class="sticky-footer">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <button class="btn outline full">이전</button>
+        <button class="btn full">다음 단계</button>
+      </div>
+    </div>
+    <div class="explain"><b>설명:</b> 공동출하는 품질기준, 정산방식, 클레임 책임, 공개범위 동의가 선행되어야 합니다.</div>
+  </div>
+</section>
+
+<!-- ══ C12 ══ -->
+<section id="c12">
+  <div class="section-title"><h3>C12. 공동출하·유통관리 센터</h3><p>Pool, 물류, 정산, 성과학습 통합 관리</p></div>
+  <div class="screen">
+    <div class="screen-header"><h4>공동출하 운영 대시보드</h4><span class="meta">Pool 생성·참여·정산</span></div>
+    <div class="kpi-grid">
+      <div class="kpi"><span class="label">가입 농가 수</span><span class="value">42</span><span class="hint">승인 38</span></div>
+      <div class="kpi"><span class="label">7일 예상물량</span><span class="value">4.8톤</span><span class="hint">특·상 72%</span></div>
+      <div class="kpi"><span class="label">예상 평균단가</span><span class="value">5,850원</span><span class="hint">전주 +7.8%</span></div>
+      <div class="kpi"><span class="label">예상 공동마진</span><span class="value">+11.3%</span><span class="hint">개별출하 대비</span></div>
+    </div>
+    <!-- Pool 스와이프 카드 -->
+    <div style="overflow-x:auto;display:flex;gap:10px;padding-bottom:6px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;margin-bottom:12px;">
+      <div class="card" style="min-width:220px;flex-shrink:0;scroll-snap-align:start;">
+        <h5>딸기 — 05-28</h5>
+        <p>물량: 1.2톤</p>
+        <span class="badge orange" style="margin-top:6px;">참여요청</span>
+        <button class="btn full" style="margin-top:10px;" onclick="openSheet('sheetJointShip')">참여 동의</button>
+      </div>
+      <div class="card" style="min-width:220px;flex-shrink:0;scroll-snap-align:start;">
+        <h5>토마토 — 05-29</h5>
+        <p>물량: 2.1톤</p>
+        <span class="badge blue" style="margin-top:6px;">가격협상</span>
+        <button class="btn full blue" style="margin-top:10px;">상세 보기</button>
+      </div>
+      <div class="card" style="min-width:220px;flex-shrink:0;scroll-snap-align:start;">
+        <h5>오이 — 05-30</h5>
+        <p>물량: 1.5톤</p>
+        <span class="badge green" style="margin-top:6px;">물류배정</span>
+        <button class="btn full secondary" style="margin-top:10px;">현황 확인</button>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:10px;">
+      <h5>공동출하 정보 공개 설정</h5>
+      <p><b>공개:</b> 품목, 품종, 예상물량, 등급, 출하 가능일, 포장규격, 인증 여부.</p>
+      <p style="margin-top:6px;"><b>비공개:</b> 농장 상세주소, 원가·마진, 센서 원자료, 전체 생산량.</p>
+    </div>
+    <div class="card">
+      <h5>AI 공동출하 추천</h5>
+      <p>내일 오전 공동출하 Pool에 30% 물량 배정 권장. 개별출하 대비 kg당 마진 <b style="color:var(--green)">+560원</b> 예상.</p>
+    </div>
+    <div class="sticky-footer">
+      <button class="btn full" onclick="openSheet('sheetJointShip')">참여 등록하기</button>
+    </div>
+    <div class="explain"><b>설명:</b> 공동출하 운영은 Pool 매칭, 제한공개, 물류·포장, 정산, 성과학습까지 연결됩니다.</div>
+  </div>
+</section>
+
+<!-- ══ G1 온실 홈 (P1) ══ -->
+<section id="g1">
+  <div class="section-title"><h3>G1. 온실 홈</h3><p>핵심 KPI와 To-do 요약</p></div>
+  <div class="screen">
+    <div class="screen-header"><h4>온실 상태 요약</h4><span class="meta">제어형 스마트팜 OS</span></div>
+    <div class="kpi-grid">
+      <div class="kpi"><span class="label">환경 안정도</span><span class="value">82%</span><span class="hint">VPD 주의</span></div>
+      <div class="kpi"><span class="label">관수 효율</span><span class="value">76%</span><span class="hint">배액률 부족</span></div>
+      <div class="kpi"><span class="label">kg당 마진</span><span class="value">3,470원</span><span class="hint">공동출하 시 개선</span></div>
+    </div>
+    <div class="card" style="margin-bottom:12px;">
+      <h5>온실 To-do</h5>
+      <div class="todo-list">
+        <div class="todo">
+          <div class="todo-row1"><div class="num">1</div><b>P4 정오 관수 1회 추가</b></div>
+          <div class="todo-row2"><span class="todo-detail">배액률 목표 미달</span><button class="btn">적용</button></div>
+        </div>
+        <div class="todo">
+          <div class="todo-row1"><div class="num">2</div><b>배액 EC 16:00 재측정</b></div>
+          <div class="todo-row2"><span class="todo-detail">3일 연속 상승</span><button class="btn secondary">기록</button></div>
+        </div>
+        <div class="todo">
+          <div class="todo-row1"><div class="num">3</div><b>공동출하 대상 물량 선별</b></div>
+          <div class="todo-row2"><span class="todo-detail">내일 Pool 후보</span><button class="btn orange">선별</button></div>
+        </div>
+      </div>
+    </div>
+    <div class="chart-placeholder">
+      <b>24시간 환경·관수 그래프</b>
+      <p>온도 / VPD / CO₂ / 일사 / 급액 / 배액 / EC / pH</p>
+    </div>
+    <div class="explain"><b>설명:</b> 온실 홈은 환경, 관수, 생육, 병해, 수확·공동출하 준비를 한 화면에서 확인하는 운영 화면입니다.</div>
+  </div>
+</section>
+
+<!-- ══ G2 환경제어 (P1) ══ -->
+<section id="g2">
+  <div class="section-title"><h3>G2. 환경·기후·에너지 제어</h3><p>온실 환경과 에너지 비용을 동시에 최적화</p></div>
+  <div class="screen">
+    <div class="screen-header"><h4>환경제어 콘솔</h4><span class="meta">수동보조 / 권고형 / 승인형 / 자동</span></div>
+    <!-- 제어 모드 선택 카드 -->
+    <div class="seg">
+      <button class="seg-btn">수동보조</button>
+      <button class="seg-btn">권고형</button>
+      <button class="seg-btn active">승인형</button>
+      <button class="seg-btn">자동제어</button>
+    </div>
+    <div class="toolbar">
+      <span class="pill orange">피크위험: 주의</span>
+      <span class="pill green">Fail-safe 정상</span>
+    </div>
+    <!-- 환경 KPI 가로 스크롤 -->
+    <div style="overflow-x:auto;display:flex;gap:10px;padding-bottom:6px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;margin-bottom:12px;">
+      <div class="kpi" style="min-width:120px;flex-shrink:0;scroll-snap-align:start;"><span class="label">온도</span><span class="value">27.8℃</span></div>
+      <div class="kpi" style="min-width:120px;flex-shrink:0;scroll-snap-align:start;"><span class="label">VPD</span><span class="value">1.55</span></div>
+      <div class="kpi" style="min-width:120px;flex-shrink:0;scroll-snap-align:start;"><span class="label">CO₂</span><span class="value">680ppm</span></div>
+      <div class="kpi" style="min-width:120px;flex-shrink:0;scroll-snap-align:start;"><span class="label">DLI</span><span class="value">18.4</span></div>
+      <div class="kpi" style="min-width:120px;flex-shrink:0;scroll-snap-align:start;"><span class="label">에너지요금</span><span class="value" style="color:var(--red)">피크</span></div>
+    </div>
+    <div class="chart-placeholder" style="min-height:200px;">
+      <b>24시간 환경·에너지 시계열</b>
+      <p>온도, 습도, VPD, CO₂, 일사, 난방, LED</p>
+    </div>
+    <div class="card" style="margin-bottom:10px;">
+      <h5>AI 제어추천</h5>
+      <p>차광 30%, 환기 강화, 피크시간 난방 20% 절감. 센서 이상 없음.</p>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <button class="btn full">승인 적용</button>
+      <button class="btn full secondary">보류</button>
+    </div>
+    <div class="explain"><b>설명:</b> 자동제어는 항상 안전제어와 함께 설계해야 합니다. 센서 오류·통신장애·제어편차가 발생하면 수동모드로 전환합니다.</div>
+  </div>
+</section>
+
+<!-- ══ G3 관수·양액 (P1) ══ -->
+<section id="g3">
+  <div class="section-title"><h3>G3. 관수·양액 Period 관리</h3><p>하루를 P1~P6 Period로 나누어 의사결정</p></div>
+  <div class="screen">
+    <div class="screen-header"><h4>관수·양액 Dashboard</h4><span class="meta">첫 관수·정오 고부하·마감</span></div>
+    <div class="kpi-grid">
+      <div class="kpi"><span class="label">관수횟수</span><span class="value">8회</span></div>
+      <div class="kpi"><span class="label">배액률</span><span class="value">12%</span></div>
+      <div class="kpi"><span class="label">배액 EC</span><span class="value">3.6</span></div>
+      <div class="kpi"><span class="label">급액 pH</span><span class="value">5.8</span></div>
+    </div>
+    <!-- Period 타임라인 -->
+    <div class="card" style="margin-bottom:12px;">
+      <h5>Period 진행 현황</h5>
+      <div style="display:grid;gap:6px;margin-top:8px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--panel-soft);border-radius:10px;border:1px solid var(--line);">
+          <span style="font-size:13px;font-weight:700;">P1 관수 전</span><span class="badge green">완료</span></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--green-soft);border-radius:10px;border:1.5px solid var(--green);">
+          <span style="font-size:13px;font-weight:700;color:var(--green);">P2 첫 관수</span><span class="badge green">진행중</span></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--panel-soft);border-radius:10px;border:1px solid var(--line);">
+          <span style="font-size:13px;font-weight:700;">P3 오전</span><span class="badge" style="background:#f0f0f0;color:#888;">대기</span></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--orange-soft);border-radius:10px;border:1px solid #ffe1a8;">
+          <span style="font-size:13px;font-weight:700;color:var(--orange);">P4 정오 ⚠</span><span class="badge orange">추가 필요</span></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--panel-soft);border-radius:10px;border:1px solid var(--line);">
+          <span style="font-size:13px;font-weight:700;">P5 오후</span><span class="badge" style="background:#f0f0f0;color:#888;">대기</span></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--panel-soft);border-radius:10px;border:1px solid var(--line);">
+          <span style="font-size:13px;font-weight:700;">P6 마감</span><span class="badge" style="background:#f0f0f0;color:#888;">대기</span></div>
+      </div>
+    </div>
+    <div class="chart-placeholder" style="min-height:180px;">
+      <b>급액·배액 타임라인</b>
+      <p>회차별 급액량, 배액량, 배액률, EC/pH</p>
+    </div>
+    <div class="card">
+      <h5>AI 관수추천</h5>
+      <p>P4 정오 Period 급액량 10% 증가, 배액률 목표 25%로 상향, 16:00 배액 EC 재측정.</p>
+    </div>
+    <div class="explain"><b>설명:</b> 관수는 일일 총량보다 시간대별 반응이 중요합니다. Period별 관수량·배액률·EC/pH를 학습해 농장별 관수모델을 보정합니다.</div>
+  </div>
+</section>
+
+<!-- ══ G4 ══ -->
+<section id="g4">
+  <div class="section-title"><h3>G4. 온실 생육모델·재배력</h3><p>표준·현장학습·내 농장 동적 재배력 비교</p></div>
+  <div class="screen">
+    <div class="screen-header"><h4>생육모델·재배력</h4><span class="meta">정식 후 일수 기반</span></div>
+    <div class="seg">
+      <button class="seg-btn active">농진청 표준</button>
+      <button class="seg-btn">KAASA</button>
+      <button class="seg-btn">내 농장 동적</button>
+    </div>
+    <div class="kpi-grid">
+      <div class="kpi"><span class="label">정식 후</span><span class="value">94일</span></div>
+      <div class="kpi"><span class="label">현재 생육단계</span><span class="value">수확초기</span></div>
+    </div>
+    <div class="card" style="margin-bottom:10px;">
+      <h5>AI 보정</h5>
+      <p><span class="badge orange">5일 지연</span> 과비대 회복 전략, P4 배액률 상향, 하엽 제거 필요.</p>
+    </div>
+    <div class="chart-placeholder">
+      <b>표준 vs 내 농장 생육곡선</b>
+      <p>초세, 착과부하, 과비대, 상품과율</p>
+    </div>
+    <div class="card">
+      <h5>주차별 To-do</h5>
+      <p>과비대 회복 전략, P4 배액률 상향, 하엽 제거, 생장점 이미지 등록, 공동출하 품질 선별 준비.</p>
+    </div>
+    <div class="explain"><b>설명:</b> 재배력은 정식일, 생육단계, 환경, 관수, 병해, 수확·공동출하 일정을 반영해 자동 갱신됩니다.</div>
+  </div>
+</section>
+
+<!-- ══ G5 ══ -->
+<section id="g5">
+  <div class="section-title"><h3>G5. 온실 병해·품질 이미지 진단</h3><p>병해 이미지와 품질이미지를 AI 진단에 활용</p></div>
+  <div class="screen">
+    <div class="screen-header"><h4>이미지 검증센터</h4><span class="meta">병반·트랩·과실·생장점</span></div>
+    <div class="kpi-grid">
+      <div class="kpi"><span class="label">병해위험</span><span class="value" style="color:var(--orange)">주의</span></div>
+      <div class="kpi"><span class="label">해충위험</span><span class="value" style="color:var(--red)">응애</span></div>
+      <div class="kpi"><span class="label">품질위험</span><span class="value">보통</span></div>
+    </div>
+    <div class="chart-placeholder" style="min-height:180px;">
+      <b>병해 위험그래프</b>
+      <p>결로, 습윤지수, 고온건조, 트랩 포획량</p>
+    </div>
+    <div class="card" style="margin-bottom:10px;">
+      <h5>AI 이미지 판정</h5>
+      <p>잎 뒷면 응애 의심, 병반 이미지 추가 필요. 과실 착색도는 공동출하 상 등급 기준 충족 가능.</p>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <button class="btn full secondary">사진 등록 📷</button>
+      <button class="btn full blue" onclick="openSheet('sheetExpert')">전문가 확인</button>
+    </div>
+    <div class="explain"><b>설명:</b> 품질 이미지는 공동출하 등급 판정의 근거가 됩니다. 병해 이미지는 전문가 처방과 병해모델 학습에 반영됩니다.</div>
+  </div>
+</section>
+
+<!-- ══ G6 수확·유통 (P1) ══ -->
+<section id="g6">
+  <div class="section-title"><h3>G6. 온실 수확·유통·공동출하·수익 최적화</h3><p>수확예측, 품질검증, 가격·채널, 수익 통합</p></div>
+  <div class="screen">
+    <div class="screen-header"><h4>온실 출하 의사결정</h4><span class="meta">개별출하 vs 공동출하</span></div>
+    <div class="kpi-grid">
+      <div class="kpi"><span class="label">7일 예상수확</span><span class="value">820kg</span></div>
+      <div class="kpi"><span class="label">상품과율</span><span class="value">84%</span></div>
+      <div class="kpi"><span class="label">공동출하 마진</span><span class="value">3,260원</span></div>
+    </div>
+    <div class="chart-placeholder" style="min-height:180px;">
+      <b>수확예측 그래프</b>
+      <p>오늘 / 3일 / 7일 / 14일 예상량</p>
+    </div>
+    <div class="card" style="margin-bottom:10px;">
+      <h5>AI 출하추천</h5>
+      <p>내일 공동출하 30%, 모레 개별 분산출하 70% 추천. 예상 총마진 <b style="color:var(--green)">+7.4%</b></p>
+    </div>
+    <div class="card" style="margin-bottom:10px;">
+      <h5>공동 물류·포장 계획</h5>
+      <p>집하 08:00, 포장 2kg 박스 125개, 공동 운송비 210원/kg.</p>
+    </div>
+    <div class="sticky-footer">
+      <button class="btn full" onclick="openSheet('sheetJointShip')">제한공개 동의 후 참여</button>
+    </div>
+    <div class="explain"><b>설명:</b> 온실 수확 화면은 수확량 관리가 아니라 유통·수익 의사결정 화면입니다.</div>
+  </div>
+</section>
+
+<!-- ══ F1 노지 홈 (P1) ══ -->
+<section id="f1">
+  <div class="section-title"><h3>F1. 노지 Field 홈</h3><p>필지 지도 기반 토양수분·NDVI·병해위험 확인</p></div>
+  <div class="screen">
+    <div class="screen-header"><h4>노지 Field Dashboard</h4><span class="meta">필지형 의사결정 DSS</span></div>
+    <div class="kpi-grid">
+      <div class="kpi"><span class="label">관개필요 필지</span><span class="value" style="color:var(--red)">3개</span></div>
+      <div class="kpi"><span class="label">재해위험 필지</span><span class="value" style="color:var(--orange)">2개</span></div>
+      <div class="kpi"><span class="label">작업지연 필지</span><span class="value">1개</span></div>
+    </div>
+    <div class="map-placeholder">
+      <b>필지 지도 레이어</b>
+      <p>토양수분 / NDVI / 병해위험 / 관개필요 / 수확예정</p>
+      <div class="map-zone zone-1">1필지 적정</div>
+      <div class="map-zone zone-2">3필지 관개</div>
+      <div class="map-zone zone-3">7필지 NDVI↓</div>
+    </div>
+    <!-- 필지 탭 -->
+    <div class="toolbar">
+      <span class="pill green">1필지</span>
+      <span class="pill red">3필지</span>
+      <span class="pill orange">7필지</span>
+    </div>
+    <div class="card" style="margin-bottom:12px;">
+      <h5>노지 To-do</h5>
+      <div class="todo-list">
+        <div class="todo">
+          <div class="todo-row1"><div class="num">1</div><b>3번 필지 오전 관개</b></div>
+          <div class="todo-row2"><span class="todo-detail">토양수분 부족</span><button class="btn">작업</button></div>
+        </div>
+        <div class="todo">
+          <div class="todo-row1"><div class="num">2</div><b>5번 필지 방제 연기</b></div>
+          <div class="todo-row2"><span class="todo-detail">오후 강풍 예보</span><button class="btn orange">연기</button></div>
+        </div>
+        <div class="todo">
+          <div class="todo-row1"><div class="num">3</div><b>7번 필지 현장확인</b></div>
+          <div class="todo-row2"><span class="todo-detail">NDVI 저하 구역 발생</span><button class="btn blue">확인</button></div>
+        </div>
+      </div>
+    </div>
+    <div class="explain"><b>설명:</b> 노지는 제어기보다 필지·기상·작업 Window가 핵심입니다. 지도 기반 화면이 노지모델의 중심입니다.</div>
+  </div>
+</section>
+
+<!-- ══ F2 ══ -->
+<section id="f2">
+  <div class="section-title"><h3>F2. 필지 GIS·구획관리</h3><p>노지 의사결정의 기본 단위 필지 정보 관리</p></div>
+  <div class="screen">
+    <div class="screen-header"><h4>필지 관리</h4><span class="meta">PNU / GPS / 토성 / 배수</span></div>
+    <div class="map-placeholder">
+      <b>GIS 지도</b>
+      <p>경계 / 구획 / 수원 / 배수로 / 진입로 / 센서위치</p>
+      <div class="map-zone zone-1">PNU 001</div>
+      <div class="map-zone zone-2">PNU 002</div>
+      <div class="map-zone zone-3">PNU 003</div>
+    </div>
+    <div class="card">
+      <h5>필지 목록</h5>
+      <div style="display:grid;gap:8px;margin-top:4px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:#fff;border:1px solid var(--line);border-radius:12px;">
+          <div><b style="font-size:14px;">1필지</b> <span style="color:var(--muted);font-size:12px;">0.8ha · 고추</span></div>
+          <span class="badge green">낮음</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:#fff;border:1px solid var(--line);border-radius:12px;">
+          <div><b style="font-size:14px;">3필지</b> <span style="color:var(--muted);font-size:12px;">1.2ha · 배추</span></div>
+          <span class="badge red">관개</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:#fff;border:1px solid var(--line);border-radius:12px;">
+          <div><b style="font-size:14px;">7필지</b> <span style="color:var(--muted);font-size:12px;">0.6ha · 마늘</span></div>
+          <span class="badge orange">NDVI↓</span>
+        </div>
+      </div>
+    </div>
+    <div class="explain"><b>설명:</b> 노지의 필지는 온실의 동·구역과 같은 기본 운영 단위입니다. 필지 기본세팅이 정확해야 관개·방제·수확·공동출하 판단이 가능합니다.</div>
+  </div>
+</section>
+
+<!-- ══ F3 ══ -->
+<section id="f3">
+  <div class="section-title"><h3>F3. 기상·재해위험 관리</h3><p>강우·풍속·폭염·서리에 따른 작업 Window 제시</p></div>
+  <div class="screen">
+    <div class="screen-header"><h4>기상·재해 Dashboard</h4><span class="meta">7일 예보 기반</span></div>
+    <div class="kpi-grid">
+      <div class="kpi"><span class="label">강우예보</span><span class="value">18mm</span><span class="hint">내일 오후</span></div>
+      <div class="kpi"><span class="label">풍속</span><span class="value" style="color:var(--orange)">6.2m/s</span><span class="hint">방제 주의</span></div>
+      <div class="kpi"><span class="label">폭염·서리</span><span class="value">낮음</span></div>
+    </div>
+    <!-- 7일 가로 스크롤 날짜 카드 -->
+    <div style="overflow-x:auto;display:flex;gap:8px;padding-bottom:6px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;margin-bottom:12px;">
+      <div class="card" style="min-width:90px;flex-shrink:0;scroll-snap-align:start;text-align:center;">
+        <div style="font-size:11px;color:var(--muted);">오늘</div>
+        <div style="font-size:18px;margin:4px 0;">☀️</div>
+        <div style="font-size:12px;font-weight:700;">0mm</div>
+      </div>
+      <div class="card" style="min-width:90px;flex-shrink:0;scroll-snap-align:start;text-align:center;">
+        <div style="font-size:11px;color:var(--muted);">내일</div>
+        <div style="font-size:18px;margin:4px 0;">🌧️</div>
+        <div style="font-size:12px;font-weight:700;color:var(--blue)">18mm</div>
+      </div>
+      <div class="card" style="min-width:90px;flex-shrink:0;scroll-snap-align:start;text-align:center;">
+        <div style="font-size:11px;color:var(--muted);">모레</div>
+        <div style="font-size:18px;margin:4px 0;">⛅</div>
+        <div style="font-size:12px;font-weight:700;">3mm</div>
+      </div>
+      <div class="card" style="min-width:90px;flex-shrink:0;scroll-snap-align:start;text-align:center;">
+        <div style="font-size:11px;color:var(--muted);">+3일</div>
+        <div style="font-size:18px;margin:4px 0;">☀️</div>
+        <div style="font-size:12px;font-weight:700;">0mm</div>
+      </div>
+      <div class="card" style="min-width:90px;flex-shrink:0;scroll-snap-align:start;text-align:center;">
+        <div style="font-size:11px;color:var(--muted);">+4일</div>
+        <div style="font-size:18px;margin:4px 0;">🌤️</div>
+        <div style="font-size:12px;font-weight:700;">1mm</div>
+      </div>
+    </div>
+    <div class="card">
+      <h5>작업 가능시간</h5>
+      <div style="display:grid;gap:6px;margin-top:8px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;">관개</span><span class="badge green">오전 가능</span></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;">방제</span><span class="badge red">오후 강풍 연기</span></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;">수확</span><span class="badge blue">내일 오전 권장</span></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;">드론비행</span><span class="badge green">금일 가능</span></div>
+      </div>
+    </div>
+    <div class="explain"><b>설명:</b> 노지에서는 병해위험만큼 실제 작업 가능시간이 중요합니다. 방제·관개·수확·드론비행 Window를 함께 제공합니다.</div>
+  </div>
+</section>
+
+<!-- ══ F4 토양수분·관개 (P1) ══ -->
+<section id="f4">
+  <div class="section-title"><h3>F4. 토양수분·관개 Window</h3><p>토양수분·강우예보·ETc로 필지별 관개 추천</p></div>
+  <div class="screen">
+    <div class="screen-header"><h4>관개 의사결정</h4><span class="meta">필지별 우선순위</span></div>
+    <div class="kpi-grid">
+      <div class="kpi"><span class="label">평균 토양수분</span><span class="value">21%</span></div>
+      <div class="kpi"><span class="label">ETc</span><span class="value">4.8mm</span></div>
+      <div class="kpi"><span class="label">관개필요량</span><span class="value">32톤</span></div>
+    </div>
+    <div class="map-placeholder">
+      <b>필지별 토양수분 지도</b>
+      <p>부족 / 적정 / 과습 / 센서이상</p>
+      <div class="map-zone zone-1">적정</div>
+      <div class="map-zone zone-2" style="color:var(--red);border-color:var(--red);background:var(--red-soft);">부족</div>
+      <div class="map-zone zone-3">과습</div>
+    </div>
+    <div class="card">
+      <h5>관개 우선순위</h5>
+      <div style="display:grid;gap:8px;margin-top:6px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--red-soft);border:1px solid #ffc7c7;border-radius:12px;">
+          <div><span class="badge red" style="margin-right:8px;">1순위</span><b style="font-size:13px;">3필지</b> <span style="color:var(--muted);font-size:12px;">14톤</span></div>
+          <span style="font-size:12px;font-weight:700;color:var(--red)">09:00</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--orange-soft);border:1px solid #ffe1a8;border-radius:12px;">
+          <div><span class="badge orange" style="margin-right:8px;">2순위</span><b style="font-size:13px;">7필지</b> <span style="color:var(--muted);font-size:12px;">8톤</span></div>
+          <span style="font-size:12px;font-weight:700;color:var(--orange)">10:30</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--panel-soft);border:1px solid var(--line);border-radius:12px;">
+          <div><span class="badge blue" style="margin-right:8px;">3순위</span><b style="font-size:13px;">2필지</b> <span style="color:var(--muted);font-size:12px;">6톤</span></div>
+          <span style="font-size:12px;font-weight:700;color:var(--blue)">15:00</span>
+        </div>
+      </div>
+    </div>
+    <div class="explain"><b>설명:</b> 노지 관개는 토양수분만으로 결정하지 않습니다. 강우예보, 토성, 생육단계, ETc, 펌프·밸브 상태를 함께 판단합니다.</div>
+  </div>
+</section>
+
+<!-- ══ F5 ══ -->
+<section id="f5">
+  <div class="section-title"><h3>F5. Field Feedback·원격탐사</h3><p>드론·위성·NDVI·열화상으로 생육편차 탐지</p></div>
+  <div class="screen">
+    <div class="screen-header"><h4>원격탐사 레이어</h4><span class="meta">NDVI / NDRE / 열화상 / RGB</span></div>
+    <div class="seg">
+      <button class="seg-btn active">NDVI</button>
+      <button class="seg-btn">NDRE</button>
+      <button class="seg-btn">열화상</button>
+      <button class="seg-btn">RGB</button>
+    </div>
+    <div class="map-placeholder">
+      <b>NDVI 생육편차 지도</b>
+      <p>좌표 / 면적 / 원인후보</p>
+      <div class="map-zone zone-1">정상</div>
+      <div class="map-zone zone-2">수분스트레스</div>
+      <div class="map-zone zone-3">현장확인</div>
+    </div>
+    <div class="card" style="margin-bottom:12px;">
+      <h5>현장확인 To-do</h5>
+      <p>7번 필지 남서측 0.12ha 생육저하. 토양수분·병해·결주 확인 필요.</p>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <button class="btn full secondary">사진 등록 📷</button>
+      <button class="btn full">현장확인 완료</button>
+    </div>
+    <div class="explain"><b>설명:</b> 온실의 Plant Feedback이 생장점·잎·과실 중심이라면, 노지의 Field Feedback은 필지 전체의 공간 편차를 보는 기능입니다.</div>
+  </div>
+</section>
+
+<!-- ══ F6 ══ -->
+<section id="f6">
+  <div class="section-title"><h3>F6. 노지 병해충·방제 Window</h3><p>병해충 위험과 실제 방제 가능시간 함께 관리</p></div>
+  <div class="screen">
+    <div class="screen-header"><h4>병해충·방제 의사결정</h4><span class="meta">위험지도 + 작업 Window</span></div>
+    <div class="kpi-grid">
+      <div class="kpi"><span class="label">병해위험</span><span class="value" style="color:var(--orange)">중간</span></div>
+      <div class="kpi"><span class="label">해충위험</span><span class="value" style="color:var(--red)">높음</span></div>
+      <div class="kpi"><span class="label">방제가능</span><span class="value">오전</span></div>
+    </div>
+    <div class="map-placeholder">
+      <b>병해충 위험지도</b>
+      <p>발생위치 / 확산방향 / 주변필지 영향</p>
+      <div class="map-zone zone-1">예찰</div>
+      <div class="map-zone zone-2" style="color:var(--red);border-color:var(--red);background:var(--red-soft);">해충 밀도↑</div>
+      <div class="map-zone zone-3">방제 연기</div>
+    </div>
+    <div class="card">
+      <h5>방제 Window 타임라인</h5>
+      <div style="display:grid;gap:6px;margin-top:8px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;">08:00 ~ 10:30</span><span class="badge green">방제 가능</span></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;">10:30 ~ 18:00</span><span class="badge red">강풍 연기</span></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;">내일 오전</span><span class="badge blue">재확인 필요</span></div>
+      </div>
+      <p style="margin-top:10px;font-size:13px;color:var(--muted);">전문가 처방 필요 시 이미지 첨부 후 문의.</p>
+    </div>
+    <div class="explain"><b>설명:</b> 노지 방제는 병해위험뿐 아니라 강우·풍속·온도·수확전일수·약제 기준을 함께 고려해야 합니다.</div>
+  </div>
+</section>
+
+<!-- ══ F7 노지 수확·유통 (P1) ══ -->
+<section id="f7">
+  <div class="section-title"><h3>F7. 노지 수확·유통·공동출하·작업·수익관리</h3><p>필지별 수확예측, 작업비, 공동출하, 정산 연결</p></div>
+  <div class="screen">
+    <div class="screen-header"><h4>노지 수확·공동출하</h4><span class="meta">필지별 수확지도 + 일정</span></div>
+    <div class="kpi-grid">
+      <div class="kpi"><span class="label">필지별 수확량</span><span class="value">3.4톤</span></div>
+      <div class="kpi"><span class="label">작업비</span><span class="value">1.2백만</span></div>
+      <div class="kpi"><span class="label">공동출하 단가</span><span class="value">5,650원</span></div>
+    </div>
+    <div class="map-placeholder">
+      <b>필지별 수확예측 지도</b>
+      <p>수확가능일 / 예상수량 / 품질 / 작업필요인력</p>
+      <div class="map-zone zone-1">05-28</div>
+      <div class="map-zone zone-2">05-29</div>
+      <div class="map-zone zone-3">06-01</div>
+    </div>
+    <!-- 스와이프 카드 -->
+    <div style="overflow-x:auto;display:flex;gap:10px;padding-bottom:6px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;margin-bottom:12px;">
+      <div class="card" style="min-width:200px;flex-shrink:0;scroll-snap-align:start;">
+        <h5>1필지</h5>
+        <p>800kg · <b>상 등급</b></p>
+        <span class="badge green" style="margin-top:6px;">집하 가능</span>
+        <button class="btn full" style="margin-top:8px;">참여 등록</button>
+      </div>
+      <div class="card" style="min-width:200px;flex-shrink:0;scroll-snap-align:start;">
+        <h5>3필지</h5>
+        <p>1.1톤 · <b>특 등급</b></p>
+        <span class="badge green" style="margin-top:6px;">집하 가능</span>
+        <button class="btn full" style="margin-top:8px;">참여 등록</button>
+      </div>
+      <div class="card" style="min-width:200px;flex-shrink:0;scroll-snap-align:start;">
+        <h5>7필지</h5>
+        <p>500kg · <b>중 등급</b></p>
+        <span class="badge orange" style="margin-top:6px;">보류</span>
+        <button class="btn full secondary" style="margin-top:8px;">상세 확인</button>
+      </div>
+    </div>
+    <div class="sticky-footer">
+      <button class="btn full" onclick="openSheet('sheetJointShip')">공동출하 참여 등록하기</button>
+    </div>
+    <div class="explain"><b>설명:</b> 노지는 수확·공동출하가 작업인력, 농기계, 기상, 집하장 일정과 연결됩니다.</div>
+  </div>
+</section>
+
+<!-- ══ USER FLOW ══ -->
+<section id="flow">
+  <div class="section-title"><h3>최종 사용자 흐름</h3><p>회원가입부터 모델 보정까지 폐쇄루프형 AI 운영</p></div>
+  <div class="screen">
+    <div class="screen-header"><h4>End-to-End Process</h4><span class="meta">가입→동의→세팅→실행→보상→고도화</span></div>
+    <div class="flow">
+      <span>1. 회원가입</span><em>→</em>
+      <span>2. 데이터 활용모드 선택</span><em>→</em>
+      <span>3. 내 농장 기본세팅</span><em>→</em>
+      <span>4. 기준모델 선택</span><em>→</em>
+      <span>5. 데이터 연동</span><em>→</em>
+      <span>6. AI 학습</span><em>→</em>
+      <span>7. 통합 홈</span><em>→</em>
+      <span>8. 생산 실행</span><em>→</em>
+      <span>9. 전문가 연결</span><em>→</em>
+      <span>10. 공동출하</span><em>→</em>
+      <span>11. 학습보상</span><em>→</em>
+      <span>12. 투자 판단</span><em>→</em>
+      <span>13. 모델 보정</span>
+    </div>
+    <div class="grid-1" style="margin-top:14px;">
+      <div class="card"><h5>Private 모드</h5><p>내 농장 AI·To-do·수익분석은 유지하되 외부학습, 벤치마킹, 자동 공동출하는 제한됩니다.</p></div>
+      <div class="card"><h5>Network 모드</h5><p>전문가 상담과 공동출하 제한공개를 통해 네트워크 혜택을 받을 수 있습니다.</p></div>
+      <div class="card"><h5>Organization 모드</h5><p>작목반, APC, 수출단지 단위의 공동출하, 정산, 조직 리포트를 제공합니다.</p></div>
+    </div>
+    <div class="explain"><b>최종 설명:</b> KAASA 현장학습모델을 중심으로 농가 데이터 주권, 온실·노지 분리, 공동출하 유통, 학습기여 보상, 전문가 네트워크, 수익성·투자 의사결정을 하나의 SmartOS로 통합합니다.</div>
+  </div>
+</section>
+
+<div class="footer-note">
+  <h3>최종 설계 요약</h3>
+  <p>공통 플랫폼에서는 회원가입, 데이터 동의, AI 진단, 전문가 처방, ERP, 투자, 공동출하, 학습보상을 통합 관리하고, 실행 영역은 온실 제어형 모델과 노지 필지형 모델로 완전히 분리합니다. Private 모드에서도 기본 AI 서비스를 제공하되, Learning·Benchmark·Network·Organization 모드로 확장할수록 학습보상, 벤치마킹, 전문가 연결, 공동출하 자동매칭, 조직형 리포트 혜택을 제공합니다.</p>
+</div>
+
+</main>
+</div><!-- /.app -->
+
+<!-- ══ BOTTOM SHEET: 공동출하 참여 ══ -->
+<div class="sheet-overlay" id="overlayJointShip" onclick="closeSheet('sheetJointShip','overlayJointShip')"></div>
+<div class="sheet" id="sheetJointShip">
+  <div class="sheet-handle"></div>
+  <h4>공동출하 참여 동의</h4>
+  <p style="font-size:14px;color:var(--muted);margin-bottom:14px;">아래 정보를 공동출하 Pool에 제한 공개합니다.</p>
+  <div class="card" style="margin-bottom:12px;">
+    <h5>공개 정보</h5>
+    <p>품목, 품종, 예상물량, 등급, 출하 가능일, 포장규격, 인증 여부</p>
+  </div>
+  <div class="card" style="margin-bottom:12px;border-color:#ffc7c7;background:var(--red-soft);">
+    <h5 style="color:var(--red);">비공개 유지</h5>
+    <p>농장 상세주소, 원가·마진, 센서 원자료, 전체 생산량</p>
+  </div>
+  <div class="sheet-btns">
+    <button class="btn full" onclick="closeSheet('sheetJointShip','overlayJointShip')">동의하고 참여</button>
+    <button class="btn full secondary" onclick="closeSheet('sheetJointShip','overlayJointShip')">비공개 유지</button>
+  </div>
+</div>
+
+<!-- ══ BOTTOM SHEET: 전문가 미팅 예약 ══ -->
+<div class="sheet-overlay" id="overlayExpert" onclick="closeSheet('sheetExpert','overlayExpert')"></div>
+<div class="sheet" id="sheetExpert">
+  <div class="sheet-handle"></div>
+  <h4>전문가 미팅 예약</h4>
+  <p style="font-size:14px;color:var(--muted);margin-bottom:14px;">전문가 상담을 예약합니다. 최근 7일 자료가 자동 첨부됩니다.</p>
+  <div class="grid-1" style="margin-bottom:12px;">
+    <div class="card"><h5>공동출하·유통 전문가</h5><p>공동출하 Pool 분석, 마진 최적화 전문.</p></div>
+    <div class="card"><h5>관수·양액 전문가</h5><p>배액률 관리, EC/pH 조정 전문.</p></div>
+    <div class="card"><h5>병해충 전문가</h5><p>응애·곰팡이 방제 처방 전문.</p></div>
+  </div>
+  <div class="sheet-btns">
+    <button class="btn full blue" onclick="closeSheet('sheetExpert','overlayExpert')">미팅 예약하기</button>
+    <button class="btn full secondary" onclick="closeSheet('sheetExpert','overlayExpert')">취소</button>
+  </div>
+</div>
+
+<!-- ══ BOTTOM NAVIGATION ══ -->
+<nav class="bottom-nav">
+  <button class="bnav-tab active" onclick="scrollToSection('c3')">
+    <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>홈
+  </button>
+  <button class="bnav-tab" onclick="scrollToSection('g1')">
+    <svg viewBox="0 0 24 24"><path d="M19 9l-7-6-7 6v11h5v-5h4v5h5V9z"/></svg>온실
+  </button>
+  <button class="bnav-tab" onclick="scrollToSection('f1')">
+    <svg viewBox="0 0 24 24"><path d="M17 8C8 10 5.9 16.17 3.82 21L5.71 22l1-2.3A4.49 4.49 0 0 0 8 20c4 0 4-2 8-2s4 2 8 2v-2c-4 0-4-2-8-2-1.16 0-2.03.15-2.75.33C13.89 12.8 16 10.57 17 8z"/></svg>노지
+  </button>
+  <button class="bnav-tab" onclick="scrollToSection('c12')">
+    <svg viewBox="0 0 24 24"><path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>출하
+  </button>
+  <button class="bnav-tab" onclick="openDrawer()">
+    <svg viewBox="0 0 24 24"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>메뉴
+  </button>
+</nav>
+
+<script>
+  function openDrawer(){
+    document.getElementById('drawer').classList.add('open');
+    document.getElementById('drawerOverlay').classList.add('open');
+    document.body.style.overflow='hidden';
+  }
+  function closeDrawer(){
+    document.getElementById('drawer').classList.remove('open');
+    document.getElementById('drawerOverlay').classList.remove('open');
+    document.body.style.overflow='';
+  }
+  function openSheet(sheetId){
+    const overlay = document.getElementById('overlay'+sheetId.replace('sheet',''));
+    document.getElementById(sheetId).classList.add('open');
+    if(overlay) overlay.style.display='block';
+    document.body.style.overflow='hidden';
+  }
+  function closeSheet(sheetId, overlayId){
+    document.getElementById(sheetId).classList.remove('open');
+    const overlay = document.getElementById(overlayId);
+    if(overlay) overlay.style.display='none';
+    document.body.style.overflow='';
+  }
+  function scrollToSection(id){
+    closeDrawer();
+    const el = document.getElementById(id);
+    if(el) el.scrollIntoView({behavior:'smooth',block:'start'});
+    // Update active tab
+    document.querySelectorAll('.bnav-tab').forEach(t=>t.classList.remove('active'));
+    event.currentTarget.classList.add('active');
+  }
+  // Drawer links close drawer on click
+  document.querySelectorAll('.drawer nav a').forEach(a=>{
+    a.addEventListener('click', closeDrawer);
+  });
+  // Seg control
+  document.querySelectorAll('.seg').forEach(seg=>{
+    seg.querySelectorAll('.seg-btn').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        seg.querySelectorAll('.seg-btn').forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+      });
+    });
+  });
+</script>
+</body>
+</html>

@@ -1,8 +1,6 @@
-# Cloudflare Tunnel 설정 — KAASA SmartOS
-# {TUNNEL_ID}, {DOMAIN} 을 실제 값으로 치환하세요.
-tunnel: {TUNNEL_ID}
-credentials-file: C:\Users\IIamHub3\.cloudflared\{TUNNEL_ID}.json
+tunnel: c3970739-1e23-4640-b88a-b5c7741131c0
+credentials-file: C:\Users\IIamHub3\.cloudflared\c3970739-1e23-4640-b88a-b5c7741131c0.json
 ingress:
-  - hostname: {DOMAIN}
+  - hostname: farmingsight.org
     service: http://localhost:8000
   - service: http_status:404
