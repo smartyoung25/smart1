@@ -148,16 +148,21 @@ def health():
     return {"status": "ok", "version": app.version}
 
 
-# ── 대시보드 정적 파일 서빙 (프리뷰/단일포트 접속용) ──────────────────────────
+# ── 대시보드 일원화: 구 PC 다크 대시보드는 비노출(모바일로 통일) ─────────────────
+#   파일(dashboard/)은 보존(롤백 안전) — 라우트만 /intro 로 차단.
 _DASHBOARD = Path(__file__).parent.parent / "dashboard"
 if _DASHBOARD.exists():
-    app.mount("/dashboard", StaticFiles(directory=str(_DASHBOARD)), name="dashboard")
+    from starlette.responses import RedirectResponse as _Redirect
 
     @app.get("/", include_in_schema=False)
     def serve_index():
-        # 일원화: 루트 진입은 모바일 인트로로 리다이렉트.
-        # 구 PC 대시보드는 /dashboard/index.html 로 계속 접근 가능(보조).
-        from starlette.responses import RedirectResponse as _Redirect
+        return _Redirect(url="/intro", status_code=307)
+
+    @app.get("/dashboard", include_in_schema=False)
+    @app.get("/dashboard/", include_in_schema=False)
+    @app.get("/dashboard/{path:path}", include_in_schema=False)
+    def _block_legacy_dashboard(path: str = ""):
+        # 구 PC 대시보드 전 경로 → 모바일 인트로로 일원화
         return _Redirect(url="/intro", status_code=307)
 
 # ── SmartOS 모바일 화면 정적 서빙 (/screens, /components, /index.html) ─────────
