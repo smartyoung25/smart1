@@ -3366,12 +3366,13 @@ def post_climate_plan(farm_id: str, body: dict):
     return _cp.save_plan(farm_id, body)
 
 
-@router.get("/environment/climate-plan/active", summary="정식일+현재시각 기준 지금 적용 목표값")
-def get_climate_active(farm_id: str, crop: str = "", hour: int = -1):
+@router.get("/environment/climate-plan/active", summary="정식일+현재시각 기준 지금 적용 목표값(광연동 승온 포함)")
+def get_climate_active(farm_id: str, crop: str = "", hour: int = -1, solar: float = -1):
     from api.services import climate_plan as _cp
     _require_farm(farm_id)
     _crop = crop or (_FARM_META.get(farm_id, {}) or {}).get("crop") or "딸기"
-    return _cp.active_setpoint(farm_id, _crop, hour if hour >= 0 else None)
+    return _cp.active_setpoint(farm_id, _crop, hour if hour >= 0 else None,
+                               solar if solar >= 0 else None)
 
 
 @router.delete("/equipment/{device_id}", summary="기자재 삭제")

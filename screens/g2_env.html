@@ -998,7 +998,9 @@ function _cpRender(){
     });
     h+='</tr>';
   });
+  const method=(_cpPlan.benchmark||{}).method||'';
   h+='</tbody></table><div class="cp-legend">셀 = 온도℃ / 습도% / CO₂ppm · <span class="cp-act-dot"></span> 지금 적용 구간</div>';
+  if(method) h+=`<div class="cp-legend" style="margin-top:3px;">🌐 벤치마크: ${method}</div>`;
   document.getElementById('cpTable').innerHTML=h;
   document.querySelectorAll('.cp-in').forEach(inp=>inp.addEventListener('input',e=>{
     const{si,pk,f}=e.target.dataset; const v=e.target.value===''?null:Number(e.target.value);
@@ -1008,13 +1010,23 @@ function _cpRender(){
 async function _cpLoadActive(){
   const {api,farm}=await _cpEnsure();
   try{
-    _cpActive=await fetch(`${api}/api/farms/${farm}/environment/climate-plan/active`,{headers:_cpH()}).then(r=>r.json());
-    const t=_cpActive.target||{}; const wk=_cpActive.weeks_since_transplant;
+    // 현재 일사(W/m²) — 광연동 승온 계산용 (있으면 전달)
+    let solar=null; try{ const e=(window.KaasaData&&KaasaData._latestEnv&&KaasaData._latestEnv())||null; if(e&&e.solar_rad!=null) solar=Math.round(e.solar_rad); }catch(_){}
+    const q=solar!=null?`?solar=${solar}`:'';
+    _cpActive=await fetch(`${api}/api/farms/${farm}/environment/climate-plan/active${q}`,{headers:_cpH()}).then(r=>r.json());
+    const t=_cpActive.target||{}, m=_cpActive.metrics||{}; const wk=_cpActive.weeks_since_transplant;
     const el=document.getElementById('cpActive');
     if(t.temp==null){ el.innerHTML='⏱️ 정식일을 지정하면 현재 생육시기에 맞는 목표값을 자동 안내합니다.'; }
-    else el.innerHTML=`⏱️ 지금 적용 목표 — <b>${_cpActive.stage_label||'-'} · ${_cpActive.period_label||'-'}</b>`+
-      (wk!=null?` <span style="font-weight:500;color:var(--muted)">(정식 ${wk}주차)</span>`:'')+
-      `<br>🌡️ <b>${t.temp}℃</b> · 💧 <b>${t.rh}%</b> · CO₂ <b>${t.co2}ppm</b> · VPD <b>${t.vpd}</b>kPa`;
+    else {
+      const boosted=(t.light_boost>0);
+      const tempStr=boosted?`<b>${t.temp_adj}℃</b> <span style="font-size:10px;color:var(--orange,#b45309)">(광연동 +${t.light_boost}, 기준 ${t.temp})</span>`:`<b>${t.temp}℃</b>`;
+      const avgBand=m.avg24_band?` <span style="font-size:10px;color:var(--muted)">(권장 ${m.avg24_band[0]}~${m.avg24_band[1]})</span>`:'';
+      const vpdBand=m.vpd_band?`${m.vpd_band[0]}~${m.vpd_band[1]}`:'-';
+      el.innerHTML=`⏱️ 지금 적용 목표 — <b>${_cpActive.stage_label||'-'} · ${_cpActive.period_label||'-'}</b>`+
+        (wk!=null?` <span style="font-weight:500;color:var(--muted)">(정식 ${wk}주차)</span>`:'')+
+        `<br>🌡️ ${tempStr} · 💧 <b>${t.rh}%</b> · CO₂ <b>${t.co2}ppm</b> · VPD <b>${t.vpd}</b>`+
+        `<br><span style="font-size:11px;color:var(--green-dark)">📊 24h 평균 <b>${m.avg24??'-'}℃</b>${avgBand} · DIF(주야차) <b>${m.dif??'-'}℃</b> · VPD 권장 ${vpdBand}kPa</span>`;
+    }
     _cpRender(); // 활성 셀 강조 반영
   }catch(e){}
 }

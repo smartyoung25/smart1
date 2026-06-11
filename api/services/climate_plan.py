@@ -25,6 +25,47 @@ PERIODS = [
 ]
 
 
+# ── 선진사례 벤치마크 파라미터 ────────────────────────────────────────────────
+#   Priva/Hoogendoorn 광연동 승온(lichtverhoging): 일사 ref 초과분 100W/m²당 +Δ℃, 상한 cap
+_LIGHT_BOOST = {"ref_wm2": 200, "slope_per_100wm2": 0.6, "cap_c": 3.0}
+#   Het Nieuwe Telen 24h 평균기온·VPD 권장 밴드 (작물군별, 단계키 기준)
+_RECOMMEND = {
+    "딸기":     {"avg24": {"establish": [13, 15], "veg": [12, 15], "flower": [11, 14], "harvest": [12, 14]},
+                "vpd":   {"establish": [0.4, 0.7], "veg": [0.6, 0.9], "flower": [0.7, 1.0], "harvest": [0.6, 0.9]}},
+    "_default": {"avg24": {"establish": [17, 20], "veg": [18, 21], "flower": [18, 21], "harvest": [17, 20]},
+                "vpd":   {"establish": [0.4, 0.8], "veg": [0.6, 1.0], "flower": [0.8, 1.2], "harvest": [0.7, 1.1]}},
+}
+_BENCH_METHOD = ("Het Nieuwe Telen(차세대 재배)·Plant Empowerment · "
+                 "Priva 광연동 승온 · 농진청 시설표준")
+
+
+def _period_hours() -> dict:
+    out = {}
+    for p in PERIODS:
+        f, t = p["from"], p["to"]
+        out[p["key"]] = (t - f) if f < t else (24 - f + t)
+    return out
+
+
+def segment_metrics(seg: dict) -> dict:
+    """전략표 한 행의 24h 평균기온·DIF(주야차)를 계산(선진 온도적산 관리)."""
+    hrs = _period_hours()
+    per = seg.get("periods", {})
+    tot_h = sum(hrs.values()) or 24
+    avg24 = sum((per.get(k, {}).get("temp") or 0) * h for k, h in hrs.items()) / tot_h
+    day_t = (per.get("day", {}) or {}).get("temp")
+    night_t = (per.get("night", {}) or {}).get("temp")
+    dif = (day_t - night_t) if (day_t is not None and night_t is not None) else None
+    return {"avg24": round(avg24, 1), "dif": round(dif, 1) if dif is not None else None}
+
+
+def _recommend_for(crop: str) -> dict:
+    for k in _RECOMMEND:
+        if k != "_default" and k in (crop or ""):
+            return _RECOMMEND[k]
+    return _RECOMMEND["_default"]
+
+
 def current_period_key(hour: int) -> str:
     for p in PERIODS:
         f, t = p["from"], p["to"]
@@ -118,6 +159,8 @@ def build_template(crop: str, mode: str = "stage", transplant_date: str = "") ->
                              "periods": json.loads(json.dumps(base["periods"]))})
     return {"crop": crop, "basis": "transplant", "transplant_date": transplant_date,
             "mode": mode, "periods_def": PERIODS, "segments": segments,
+            "benchmark": {"method": _BENCH_METHOD, "light_boost": dict(_LIGHT_BOOST),
+                          "recommend": _recommend_for(crop)},
             "source": "template"}
 
 
@@ -152,8 +195,10 @@ def _weeks_since(transplant_date: str) -> int | None:
         return None
 
 
-def active_setpoint(farm_id: str, crop: str = "딸기", hour: int | None = None) -> dict:
-    """정식일 경과 + 현재시각 → 지금 적용할 목표 셀."""
+def active_setpoint(farm_id: str, crop: str = "딸기", hour: int | None = None,
+                    solar: float | None = None) -> dict:
+    """정식일 경과 + 현재시각 → 지금 적용할 목표 셀.
+    선진 기법 적용: 광연동 승온(주간 일사 보정) · 24h 평균기온/DIF · VPD 권장밴드."""
     plan = load_plan(farm_id, crop)
     if hour is None:
         hour = datetime.now().hour
@@ -172,14 +217,36 @@ def active_setpoint(farm_id: str, crop: str = "딸기", hour: int | None = None)
 
     cell = (seg or {}).get("periods", {}).get(pkey, {}) if seg else {}
     temp, rh, co2 = cell.get("temp"), cell.get("rh"), cell.get("co2")
+
+    # ① 광연동 승온(Priva lichtverhoging): 주간·일출 구간에서 일사 ref 초과분만큼 설정온도 상향
+    bench = plan.get("benchmark", {})
+    lb = bench.get("light_boost", _LIGHT_BOOST)
+    boost = 0.0
+    if temp is not None and pkey in ("day", "dawn") and solar is not None:
+        over = max(0.0, float(solar) - lb.get("ref_wm2", 200))
+        boost = min(lb.get("cap_c", 3.0), lb.get("slope_per_100wm2", 0.6) * over / 100.0)
+        boost = round(boost, 1)
+    adj_temp = round(temp + boost, 1) if temp is not None else None
+
+    # ② 24h 평균기온·DIF (온도적산 관리)  ③ VPD 권장밴드
+    metrics = segment_metrics(seg) if seg else {"avg24": None, "dif": None}
+    rec = bench.get("recommend") or _recommend_for(crop)
+    skey = (seg or {}).get("key")
+    avg24_band = (rec.get("avg24", {}) or {}).get(skey)
+    vpd_band = (rec.get("vpd", {}) or {}).get(skey)
+
     return {
         "farm_id": farm_id, "crop": crop,
         "weeks_since_transplant": wk,
-        "stage_key": (seg or {}).get("key"), "stage_label": (seg or {}).get("label"),
+        "stage_key": skey, "stage_label": (seg or {}).get("label"),
         "period_key": pkey,
         "period_label": next((p["label"] for p in PERIODS if p["key"] == pkey), pkey),
         "target": {"temp": temp, "rh": rh, "co2": co2,
+                   "temp_adj": adj_temp, "light_boost": boost,
                    "vpd": vpd(temp, rh) if (temp is not None and rh is not None) else None},
+        "metrics": {"avg24": metrics["avg24"], "dif": metrics["dif"],
+                    "avg24_band": avg24_band, "vpd_band": vpd_band},
+        "benchmark_method": bench.get("method", _BENCH_METHOD),
         "transplant_date": plan.get("transplant_date", ""),
         "mode": plan.get("mode", "stage"),
     }
