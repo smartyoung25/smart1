@@ -65,7 +65,8 @@ if _PUBLIC_DEMO:
         "/api/v1/auth/token", "/api/v1/auth/register",
         "/api/v1/auth/password/forgot", "/api/v1/auth/password/reset",
         "/api/telemetry/client",
-    }   # 로그인·회원가입·비번재설정·에러텔레메트리만 허용
+        "/api/data/growth", "/api/data/harvest",   # 생육·수확 실측 입력(M1/M2 학습 피드)
+    }   # 로그인·회원가입·비번재설정·에러텔레메트리·학습데이터 입력
     # 조회성/신청·등록성 POST: AI 챗봇(/chat)·연동신청(/integration-request)·장비등록(/equipment)
     # — 온보딩·신청 성격으로 농장 운영데이터(관수·수확 등)는 변경하지 않음
     _WRITE_ALLOW_SUFFIX = ("/chat", "/integration-request", "/equipment", "/climate-plan", "/consent", "/daily-temp", "/whatif")

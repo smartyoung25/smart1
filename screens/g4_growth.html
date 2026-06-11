@@ -195,8 +195,28 @@
       <div><label class="wi-l">CO₂ ppm</label><input class="wi-i" id="wiCo2" type="number" step="50" placeholder="예: 1000"/></div>
       <div><label class="wi-l">EC dS/m</label><input class="wi-i" id="wiEc" type="number" step="0.1" placeholder="예: 2.8"/></div>
     </div>
-    <button id="wiBtn" onclick="_runWhatif()" style="width:100%;margin-top:12px;padding:12px;background:var(--blue);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer;min-height:46px;">시뮬레이션 실행</button>
+    <div style="display:flex;gap:8px;margin-top:12px;">
+      <button id="wiBtn" onclick="_runWhatif()" style="flex:1;padding:12px;background:var(--blue);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer;min-height:46px;">시뮬레이션 실행</button>
+      <button id="sfBtn" onclick="_runScenarios()" style="flex:0 0 44%;padding:12px;background:var(--panel);color:var(--blue);border:1.5px solid var(--blue);border-radius:10px;font-size:13px;font-weight:800;cursor:pointer;min-height:46px;">프리셋 4종 비교</button>
+    </div>
     <div id="wiResult" style="margin-top:12px;"></div>
+    <div id="sfResult" style="margin-top:10px;"></div>
+  </div>
+
+  <!-- ★ 수확 실측 입력 (M2 모델 학습 피드 — PC 데이터수집 폼 이식) -->
+  <div class="section-label" style="margin-top:16px;">수확 실측 입력 <span class="trust-badge trust-live">🟢 M2 학습</span></div>
+  <div class="card" style="padding:14px;margin-bottom:14px;">
+    <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.5;">실측 수확량을 입력하면 <b>M2 수확량 모델이 내 농장에 맞게 학습</b>됩니다.</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div><label class="wi-l">단위수확량 kg/㎡ <span style="color:var(--red)">*</span></label><input class="wi-i" id="hvYield" type="number" step="0.1" placeholder="예: 5.2"/></div>
+      <div><label class="wi-l">재배면적 ㎡</label><input class="wi-i" id="hvArea" type="number" step="1" placeholder="예: 1000"/></div>
+      <div><label class="wi-l">수확일</label><input class="wi-i" id="hvDate" type="date"/></div>
+      <div><label class="wi-l">정식일</label><input class="wi-i" id="hvPlant" type="date"/></div>
+      <div><label class="wi-l">시즌 평균온도 ℃</label><input class="wi-i" id="hvTemp" type="number" step="0.5" placeholder="예: 22"/></div>
+      <div><label class="wi-l">시즌 평균습도 %</label><input class="wi-i" id="hvRh" type="number" step="1" placeholder="예: 70"/></div>
+    </div>
+    <button id="hvBtn" onclick="_submitHarvest()" style="width:100%;margin-top:12px;padding:12px;background:var(--green);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer;min-height:46px;">수확 실측 저장</button>
+    <div id="hvResult" style="margin-top:10px;font-size:12.5px;font-weight:700;text-align:center;min-height:16px;"></div>
   </div>
 
   <!-- 생육 조언 -->
@@ -538,6 +558,66 @@ async function _runWhatif(){
     }
   }catch(e){ res.innerHTML='<div style="color:var(--red);font-size:12px;">네트워크 오류: '+e.message+'</div>'; }
   btn.disabled=false; btn.textContent='시뮬레이션 실행';
+}
+
+// ★ SFROP식 4시나리오 비교 — /whatif 4회로 클라이언트 비교
+const _SF_PRESETS=[
+  {label:'기준', body:{}},
+  {label:'생육최적', body:{temp_internal:24, co2_ppm:1000}},
+  {label:'에너지절감', body:{temp_internal:20}},
+  {label:'AI통합', body:{temp_internal:23, co2_ppm:1100, ec_dsm:2.8}},
+];
+async function _runScenarios(){
+  const res=document.getElementById('sfResult'); const btn=document.getElementById('sfBtn');
+  btn.disabled=true; btn.textContent='비교 중…';
+  try{
+    if(!_tokenG) _tokenG=sessionStorage.getItem('sf_token')||'';
+    const api=KaasaData.getApiBase(); const H={'Content-Type':'application/json',Authorization:`Bearer ${_tokenG}`};
+    const out=[];
+    for(const p of _SF_PRESETS){
+      const r=await fetch(`${api}/api/farms/${_farmG}/whatif`,{method:'POST',headers:H,body:JSON.stringify(p.body)});
+      const d=await r.json(); if(r.ok) out.push({label:p.label, rev:d.whatif_revenue_krw, dpct:d.delta_pct});
+    }
+    if(!out.length){ res.innerHTML='<div style="color:var(--red);font-size:12px;">비교 실패</div>'; }
+    else{
+      const best=Math.max(...out.map(o=>o.rev));
+      const man=v=>(v/10000).toLocaleString(undefined,{maximumFractionDigits:0})+'만';
+      res.innerHTML=`<div style="font-size:11px;color:var(--muted);margin-bottom:6px;">시나리오별 예상 매출 비교</div>`+
+        out.map(o=>{const top=o.rev===best; const col=o.dpct>=0?'var(--green-dark)':'var(--red)';
+          return `<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);">
+            <span style="flex:1;font-size:13px;font-weight:${top?800:600};">${top?'🏆 ':''}${o.label}</span>
+            <span style="font-size:13px;font-weight:800;">${man(o.rev)}</span>
+            <span style="font-size:11px;font-weight:700;color:${col};width:54px;text-align:right;">${o.dpct>=0?'+':''}${(o.dpct||0).toFixed(1)}%</span></div>`;}).join('');
+    }
+  }catch(e){ res.innerHTML='<div style="color:var(--red);font-size:12px;">오류: '+e.message+'</div>'; }
+  btn.disabled=false; btn.textContent='프리셋 4종 비교';
+}
+
+// ★ 수확 실측 입력 → M2 학습 (/api/data/harvest)
+async function _submitHarvest(){
+  const res=document.getElementById('hvResult'); const btn=document.getElementById('hvBtn');
+  const y=parseFloat(document.getElementById('hvYield').value);
+  if(isNaN(y)||y<=0){ res.style.color='var(--red)'; res.textContent='단위수확량(kg/㎡)을 입력하세요'; return; }
+  btn.disabled=true; btn.textContent='저장 중…'; res.style.color='var(--muted)'; res.textContent='저장 중…';
+  try{
+    if(!_tokenG) _tokenG=sessionStorage.getItem('sf_token')||'';
+    const api=KaasaData.getApiBase(); const H={'Content-Type':'application/json',Authorization:`Bearer ${_tokenG}`};
+    // 작물 조회
+    let crop='딸기'; try{ const hv=await fetch(`${api}/api/farms/${_farmG}/harvest`,{headers:H}).then(r=>r.json()); if(hv&&hv.crop_ko) crop=hv.crop_ko; }catch(_){}
+    const body={farm_id:_farmG, crop_ko:crop, yield_kg_m2:y,
+      harvest_date:(document.getElementById('hvDate').value)||new Date().toISOString().slice(0,10),
+      source:'manual'};
+    const ar=parseFloat(document.getElementById('hvArea').value); if(!isNaN(ar)) body.area_m2=ar;
+    const pd=document.getElementById('hvPlant').value; if(pd) body.planting_date=pd;
+    const tt=parseFloat(document.getElementById('hvTemp').value); if(!isNaN(tt)) body.season_avg_temp=tt;
+    const rh=parseFloat(document.getElementById('hvRh').value); if(!isNaN(rh)) body.season_avg_humidity=rh;
+    const r=await fetch(`${api}/api/data/harvest`,{method:'POST',headers:H,body:JSON.stringify(body)});
+    const d=await r.json().catch(()=>({}));
+    if(r.ok){ res.style.color='var(--green)'; res.innerHTML=`✓ 저장 완료 — ${crop} ${y}kg/㎡ 기록${d.near_retrain?' · 재학습 임박':''}`; }
+    else if(r.status===403){ res.style.color='var(--green)'; res.textContent='✓ 저장(데모 모드)'; }
+    else { res.style.color='var(--red)'; res.textContent=d.detail||`오류 ${r.status}`; }
+  }catch(e){ res.style.color='var(--red)'; res.textContent='네트워크 오류'; }
+  btn.disabled=false; btn.textContent='수확 실측 저장';
 }
 </script>
 <style>

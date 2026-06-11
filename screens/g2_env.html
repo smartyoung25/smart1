@@ -285,6 +285,10 @@
     </div>
   </div>
 
+  <!-- ★ AI 권고 빈도 (PC 대시보드 기능 이식) -->
+  <div class="section-label" style="margin-top:16px;">AI 권고 빈도 <span class="trust-badge trust-model">🔵 이력</span></div>
+  <div class="card" style="padding:14px;" id="advFreq"><div style="text-align:center;color:var(--muted);font-size:12px;">불러오는 중…</div></div>
+
   <!-- 외기 현황 -->
   <div class="section-label" style="margin-top:16px;">외기 현황 (ASOS)</div>
   <div class="card" style="padding:14px;">
@@ -1080,7 +1084,29 @@ async function _cpSave(){
   }catch(e){ msg.style.color='var(--red)'; msg.textContent='네트워크 오류'; }
 }
 // G2 로드 시 전략표 초기화 (기존 init 흐름과 독립)
-window.addEventListener('DOMContentLoaded',()=>{ setTimeout(_cpLoad, 600); });
+window.addEventListener('DOMContentLoaded',()=>{ setTimeout(_cpLoad, 600); setTimeout(_loadAdvFreq, 900); });
+
+// ★ AI 권고 빈도 — /journal/advisory 에서 환경변수별 권고 횟수 집계
+const _ADV_KO={temp_internal:'온도',humidity_int:'습도',co2_ppm:'CO₂',soil_temp:'지온',ec_dsm:'EC',vpd:'VPD',solar_rad:'일사'};
+async function _loadAdvFreq(){
+  const el=document.getElementById('advFreq'); if(!el) return;
+  try{
+    const {api,farm}=await _cpEnsure();
+    const d=await fetch(`${api}/api/farms/${farm}/journal/advisory?limit=100`,{headers:_cpH()}).then(r=>r.json());
+    const ents=d.entries||[];
+    if(!ents.length){ el.innerHTML='<div style="text-align:center;color:var(--muted);font-size:12px;">최근 AI 권고 이력이 없습니다.</div>'; return; }
+    const cnt={};
+    ents.forEach(e=>(e.advices||[]).forEach(a=>{ const f=a.field||a.metric; if(f) cnt[f]=(cnt[f]||0)+1; }));
+    const arr=Object.entries(cnt).sort((a,b)=>b[1]-a[1]).slice(0,6);
+    if(!arr.length){ el.innerHTML='<div style="text-align:center;color:var(--muted);font-size:12px;">권고 항목 없음 (총 '+ents.length+'건)</div>'; return; }
+    const max=arr[0][1];
+    el.innerHTML=`<div style="font-size:11px;color:var(--muted);margin-bottom:8px;">최근 ${ents.length}건 · 환경변수별 권고 빈도(가장 자주 조정 권고된 항목)</div>`+
+      arr.map(([f,c])=>`<div style="display:flex;align-items:center;gap:9px;padding:5px 0;">
+        <span style="width:42px;font-size:12px;font-weight:700;flex:0 0 auto;">${_ADV_KO[f]||f}</span>
+        <div style="flex:1;height:14px;background:var(--gray-soft);border-radius:7px;overflow:hidden;"><div style="height:100%;width:${Math.round(c/max*100)}%;background:var(--blue);border-radius:7px;"></div></div>
+        <span style="font-size:12px;font-weight:800;width:30px;text-align:right;">${c}</span></div>`).join('');
+  }catch(e){ el.innerHTML='<div style="text-align:center;color:var(--muted);font-size:12px;">권고 이력 로드 실패</div>'; }
+}
 </script>
 <style>
   .cp-mode{border:none;background:transparent;font-size:12px;font-weight:800;color:var(--muted);padding:7px 11px;border-radius:7px;cursor:pointer;min-height:34px;}
