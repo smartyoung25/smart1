@@ -155,11 +155,10 @@ if _DASHBOARD.exists():
 
     @app.get("/", include_in_schema=False)
     def serve_index():
-        resp = FileResponse(str(_DASHBOARD / "index.html"))
-        resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
-        resp.headers["Pragma"] = "no-cache"
-        resp.headers["Expires"] = "0"
-        return resp
+        # 일원화: 루트 진입은 모바일 인트로로 리다이렉트.
+        # 구 PC 대시보드는 /dashboard/index.html 로 계속 접근 가능(보조).
+        from starlette.responses import RedirectResponse as _Redirect
+        return _Redirect(url="/intro", status_code=307)
 
 # ── SmartOS 모바일 화면 정적 서빙 (/screens, /components, /index.html) ─────────
 _SMARTOS_ROOT = Path(__file__).parent.parent
