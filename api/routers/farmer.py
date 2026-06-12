@@ -3110,6 +3110,29 @@ def _load_checklist(farm_id: str) -> dict:
     return {}
 
 
+# ── 문진 회차 목록(여러 건 저장·조회·수정) ────────────────────────────────────
+def _checklist_records_path(farm_id: str):
+    from pathlib import Path as _P
+    d = _P(__file__).resolve().parents[1] / "data" / "diagnosis"
+    d.mkdir(parents=True, exist_ok=True)
+    return d / f"{farm_id}_records.json"
+
+
+def _load_checklist_records(farm_id: str) -> list:
+    import json as _json
+    fp = _checklist_records_path(farm_id)
+    if fp.exists():
+        try: return _json.loads(fp.read_text(encoding="utf-8")).get("records", [])
+        except Exception: return []
+    return []
+
+
+def _save_checklist_records(farm_id: str, records: list) -> None:
+    import json as _json
+    _checklist_records_path(farm_id).write_text(
+        _json.dumps({"records": records}, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
 def _diag_history_path(farm_id: str):
     from pathlib import Path as _P
     d = _P(__file__).resolve().parents[1] / "data" / "diagnosis"
@@ -3190,22 +3213,56 @@ def get_diagnosis_checklist(farm_id: str):
             "updated_at": saved.get("updated_at"), "consultant": saved.get("consultant", "")}
 
 
-@router.post("/diagnosis/checklist", summary="현장컨설팅 문진 응답 저장")
+@router.get("/diagnosis/checklist/records", summary="현장 문진 회차 목록(저장된 문진 전체)")
+def list_diagnosis_checklists(farm_id: str):
+    _require_farm(farm_id)
+    recs = _load_checklist_records(farm_id)
+    # 목록은 요약만(응답 본문 제외) — 최신순
+    summary = [{"id": r.get("id"), "ts": r.get("ts"), "consultant": r.get("consultant", ""),
+                "item_count": len(r.get("responses", {}))} for r in recs]
+    summary.sort(key=lambda x: x.get("ts", ""), reverse=True)
+    return {"farm_id": farm_id, "records": summary, "total": len(summary)}
+
+
+@router.get("/diagnosis/checklist/records/{rid}", summary="현장 문진 단건 조회(응답 포함)")
+def get_diagnosis_checklist_record(farm_id: str, rid: str):
+    _require_farm(farm_id)
+    for r in _load_checklist_records(farm_id):
+        if str(r.get("id")) == str(rid):
+            return r
+    raise HTTPException(status_code=404, detail="해당 문진 회차를 찾을 수 없습니다.")
+
+
+@router.post("/diagnosis/checklist", summary="현장컨설팅 문진 응답 저장(신규) 또는 수정(id 지정)")
 def post_diagnosis_checklist(farm_id: str, body: dict = Body(...)):
     import json as _json
     from datetime import datetime as _dt, timezone as _tz
     _require_farm(farm_id)
-    rec = {
-        "responses": body.get("responses", {}) or {},
-        "consultant": (body.get("consultant") or "").strip(),
-        "updated_at": _dt.now(_tz.utc).isoformat(),
-    }
+    now = _dt.now(_tz.utc).isoformat()
+    responses = body.get("responses", {}) or {}
+    consultant = (body.get("consultant") or "").strip()
+    rid = body.get("id")   # 있으면 수정, 없으면 신규
+
+    recs = _load_checklist_records(farm_id)
+    mode = "updated"
+    if rid:
+        found = next((r for r in recs if str(r.get("id")) == str(rid)), None)
+        if not found:
+            raise HTTPException(status_code=404, detail="수정 대상 문진을 찾을 수 없습니다.")
+        found.update({"responses": responses, "consultant": consultant, "ts": now})
+    else:
+        rid = f"ck_{int(_dt.now(_tz.utc).timestamp())}"
+        recs.append({"id": rid, "ts": now, "consultant": consultant, "responses": responses})
+        mode = "created"
+    _save_checklist_records(farm_id, recs)
+
+    # 최신본을 단일 파일에도 반영(C17 종합진단 호환) + 진단 스냅샷 누적
+    rec = {"responses": responses, "consultant": consultant, "updated_at": now}
     _checklist_path(farm_id).write_text(_json.dumps(rec, ensure_ascii=False, indent=2), encoding="utf-8")
-    n = len(rec["responses"])
-    # 문진 저장 시 진단 스냅샷 자동 누적(회차 추적)
-    try: _append_diag_snapshot(farm_id, rec["consultant"])
+    try: _append_diag_snapshot(farm_id, consultant)
     except Exception: pass
-    return {"ok": True, "saved_items": n, "updated_at": rec["updated_at"]}
+    return {"ok": True, "id": rid, "mode": mode, "saved_items": len(responses),
+            "updated_at": now, "total_records": len(recs)}
 
 
 @router.get("/equipment/schema", summary="기자재 분류·통합 입력 스키마 반환")
