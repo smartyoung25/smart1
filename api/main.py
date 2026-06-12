@@ -198,18 +198,33 @@ if _INTRO.exists():
 # 행정구역 시도→시군구 트리 (C1 농장세팅 지역 구조화 입력용)
 @app.get("/api/regions", include_in_schema=False)
 def serve_regions():
+    # 정식 17개 시도로 정규화(개편 전후·약칭 중복 병합)
+    _CANON = {
+        "서울": "서울특별시", "부산": "부산광역시", "대구": "대구광역시", "인천": "인천광역시",
+        "광주": "광주광역시", "대전": "대전광역시", "울산": "울산광역시", "세종": "세종특별자치시",
+        "경기": "경기도", "강원": "강원특별자치도", "충북": "충청북도", "충남": "충청남도",
+        "전북": "전북특별자치도", "전남": "전라남도", "경북": "경상북도", "경남": "경상남도", "제주": "제주특별자치도",
+    }
+    _ORDER = list(dict.fromkeys(_CANON.values()))
+
+    def _base(sido: str) -> str | None:
+        s = (sido or "").replace("특별자치도", "").replace("특별자치시", "") \
+            .replace("특별시", "").replace("광역시", "").replace("도", "")
+        if s.startswith("충청"): s = "충" + s[2:3]
+        elif s.startswith("전라"): s = "전" + s[2:3]
+        elif s.startswith("경상"): s = "경" + s[2:3]
+        return s[:2] if s else None
     try:
         from api.services.region_station import _MAPPING
-        tree: dict[str, set] = {}
+        tree: dict[str, set] = {v: set() for v in _ORDER}
         for (sido, sgg) in _MAPPING.keys():
-            # 정식 시도명만(특별시·광역시·도·특별자치) 사용, 약칭 제외
-            if not any(k in sido for k in ("특별시", "광역시", "특별자치", "도")):
+            canon = _CANON.get(_base(sido))
+            if not canon:
                 continue
-            tree.setdefault(sido, set())
             if sgg and sgg[-1] in "시군구":
-                tree[sido].add(sgg)
-        out = {s: sorted(v) for s, v in sorted(tree.items())}
-        return {"sido": list(out.keys()), "tree": out}
+                tree[canon].add(sgg)
+        out = {s: sorted(tree[s]) for s in _ORDER}
+        return {"sido": _ORDER, "tree": out}
     except Exception as e:
         return {"sido": [], "tree": {}, "error": str(e)[:80]}
 
