@@ -20,8 +20,9 @@
 
 ### PUBLIC_DEMO 쓰기 허용목록 (api/main.py) — 사용자 요청 기능만 선별 개방
 - `_WRITE_ALLOW`: auth token·register·password/forgot·reset·telemetry·`/api/data/{growth,harvest}`
-- `_WRITE_ALLOW_SUFFIX`: `/chat`·`/integration-request`·`/equipment`·`/climate-plan`·`/consent`·`/daily-temp`·`/whatif`
-- 운영데이터(activity 등)·`/api/admin/*` 쓰기는 **여전히 403**
+- `_WRITE_ALLOW_SUFFIX`: `/chat`·`/integration-request`·`/equipment`·`/climate-plan`·`/consent`·`/daily-temp`·`/whatif`·`/diagnosis/checklist`·`/activity`(운영기록 RecordSheet 개방)
+- `_WRITE_ALLOW_CONTAINS`: `/equipment/`(장비 삭제 DELETE by id)
+- **`/api/admin/*` 관리자 쓰기·조회는 여전히 403**(notify·drift·retrain 등). 일반 농가 데이터 입력/기록은 개방
 
 ### C1 정정 + 신규 화면
 - **재배방식 분류 정정**: 잘못된 '양액' 독립항목 제거(수경·배지경 모두 양액재배). 안내문 추가

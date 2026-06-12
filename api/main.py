@@ -67,16 +67,21 @@ if _PUBLIC_DEMO:
         "/api/telemetry/client",
         "/api/data/growth", "/api/data/harvest",   # 생육·수확 실측 입력(M1/M2 학습 피드)
     }   # 로그인·회원가입·비번재설정·에러텔레메트리·학습데이터 입력
-    # 조회성/신청·등록성 POST: AI 챗봇(/chat)·연동신청(/integration-request)·장비등록(/equipment)
-    # — 온보딩·신청 성격으로 농장 운영데이터(관수·수확 등)는 변경하지 않음
-    _WRITE_ALLOW_SUFFIX = ("/chat", "/integration-request", "/equipment", "/climate-plan", "/consent", "/daily-temp", "/whatif", "/diagnosis/checklist")
+    # 사용자 데이터 입력·기록·신청 POST 허용 (운영기록 /activity 포함).
+    #   ※ /api/admin/* 관리자 쓰기는 아래에서 항상 403 유지.
+    _WRITE_ALLOW_SUFFIX = ("/chat", "/integration-request", "/equipment", "/climate-plan",
+                           "/consent", "/daily-temp", "/whatif", "/diagnosis/checklist",
+                           "/activity")
+    # 경로 중간 일치 허용(예: 장비 삭제 DELETE /equipment/{device_id})
+    _WRITE_ALLOW_CONTAINS = ("/equipment/",)
 
     class PublicDemoMiddleware:
         def __init__(self, app): self.app = app
         async def __call__(self, scope, receive, send):
             if scope.get("type") == "http":
                 path = scope.get("path", ""); method = scope.get("method", "GET")
-                _allow_post = (path in _WRITE_ALLOW) or path.endswith(_WRITE_ALLOW_SUFFIX)
+                _allow_post = ((path in _WRITE_ALLOW) or path.endswith(_WRITE_ALLOW_SUFFIX)
+                               or any(c in path for c in _WRITE_ALLOW_CONTAINS))
                 blocked = (
                     (path.startswith("/api/admin")) or
                     (method in _WRITE and path.startswith("/api/") and not _allow_post)
