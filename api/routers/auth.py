@@ -82,11 +82,18 @@ class PasswordResetRequest(BaseModel):
 
 class OnboardingRequest(BaseModel):
     farm_id: str = ""
+    farm_name: str = ""                       # 사람이 읽는 농장명(표시용)
     crop_ko: str = ""
     facility_type: str = ""
     area_m2: Optional[float] = None
     cultivation_method: str = "토경"
+    cultivation_detail: str = ""              # 양액 세부(담액/NFT/암면/코코 등)
+    irrigation_method: str = ""               # 노지 관개방식(이전엔 저장 누락)
     region: str = ""
+    sido: str = ""
+    sigungu: str = ""
+    emd: str = ""                             # 읍면동
+    address_detail: str = ""
     season_start: str = ""
     season_end: str = ""
     growing_year: int = 1
@@ -170,10 +177,10 @@ def _register_farm_from_onboarding(farm_id: str, req: "OnboardingRequest") -> No
 
         if farm_id not in _FARM_META:
             crop = req.crop_ko or "미상"
-            # region 예: "경북 성주" / "충남 논산" / "전북 익산" …
-            region_parts = (req.region or "").split()
-            sido     = region_parts[0] if len(region_parts) > 0 else None
-            sigungu  = region_parts[1] if len(region_parts) > 1 else None
+            # 구조화 지역 우선, 없으면 region 문자열 split 폴백
+            _rp = (req.region or "").split()
+            sido     = req.sido or (_rp[0] if len(_rp) > 0 else None)
+            sigungu  = req.sigungu or (_rp[1] if len(_rp) > 1 else None)
 
             _fac = req.facility_type or ""
             _cm  = req.cultivation_method or ""
@@ -182,13 +189,16 @@ def _register_farm_from_onboarding(farm_id: str, req: "OnboardingRequest") -> No
                 "tier":           FarmTier.MANUAL,
                 "area_m2":        float(req.area_m2) if req.area_m2 else 1000.0,
                 "iot_available":  False,
-                "name":           f"{crop} 농장 ({farm_id})",
+                "name":           (req.farm_name or f"{crop} 농장 ({farm_id})"),
                 "crop":           crop,
                 "sido":           sido,
                 "sigungu":        sigungu,
-                "address_detail": "",
+                "emd":            req.emd or "",
+                "address_detail": req.address_detail or "",
                 "facility_type":  _fac,
                 "cultivation_method": _cm,
+                "cultivation_detail": req.cultivation_detail or "",
+                "irrigation_method":  req.irrigation_method or "",
                 "farm_type":      "field" if _is_field else "greenhouse",
             }
             logger.info("[auth] _FARM_META 동적 등록: %s (작목=%s)", farm_id, crop)
@@ -205,17 +215,18 @@ def _register_farm_from_onboarding(farm_id: str, req: "OnboardingRequest") -> No
         farms = registry.setdefault("farms", {})
         if farm_id not in farms:
             crop = req.crop_ko or "미상"
-            region_parts = (req.region or "").split()
-            sido    = region_parts[0] if len(region_parts) > 0 else "—"
-            sigungu = region_parts[1] if len(region_parts) > 1 else "—"
+            _rp = (req.region or "").split()
+            sido    = req.sido or (_rp[0] if len(_rp) > 0 else "—")
+            sigungu = req.sigungu or (_rp[1] if len(_rp) > 1 else "—")
 
             farms[farm_id] = {
                 "crop":           crop,
                 "crop_ko":        crop,
                 "sido":           sido,
                 "sigungu":        sigungu,
+                "emd":            req.emd or "",
                 "area_m2":        float(req.area_m2) if req.area_m2 else 1000.0,
-                "name":           f"{crop} 농장 ({farm_id})",
+                "name":           (req.farm_name or f"{crop} 농장 ({farm_id})"),
                 "iot_available":  False,
                 "onboarding":     True,
             }

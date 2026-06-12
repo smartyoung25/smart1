@@ -51,6 +51,16 @@
   <div id="eqList"><div class="eq-empty">불러오는 중…</div></div>
   <button class="addbtn" style="margin-top:12px;" onclick="_openAdd()">＋ 장비 추가</button>
 
+  <!-- 견적서/시방서 업로드 → 자동 정리 -->
+  <div style="margin-top:10px;padding:12px 14px;background:var(--panel-soft);border:1.5px dashed var(--border);border-radius:12px;">
+    <div style="font-size:13px;font-weight:800;margin-bottom:4px;">📄 견적서·시방서로 자동 등록</div>
+    <div style="font-size:11px;color:var(--muted);line-height:1.5;margin-bottom:8px;">엑셀(.xlsx/.csv)·PDF·이미지를 올리면 기자재 항목을 자동 추출합니다. 검토 후 일괄 등록.</div>
+    <input type="file" id="quoteFile" accept=".xlsx,.xls,.csv,.pdf,.png,.jpg,.jpeg" style="font-size:12px;width:100%;"/>
+    <button class="addbtn ghost" style="min-height:42px;font-size:13px;margin-top:8px;" onclick="_importQuote()">불러오기</button>
+    <div id="importMsg" style="font-size:12px;font-weight:700;text-align:center;margin-top:8px;min-height:14px;"></div>
+    <div id="importPreview"></div>
+  </div>
+
   <!-- 직접 등록이 어려운 장비는 연동 신청 -->
   <a href="c21_apply.html" style="display:flex;align-items:center;gap:11px;margin-top:10px;padding:13px 14px;background:var(--blue-soft);border:1.5px solid var(--blue);border-radius:12px;text-decoration:none;color:var(--text);">
     <span style="font-size:20px;">📝</span>
@@ -68,7 +78,7 @@
 <!-- 장비 추가 시트 -->
 <div class="mask" id="mask" onclick="if(event.target===this)_close()">
   <div class="sheet">
-    <div style="font-size:17px;font-weight:800;margin-bottom:8px;">시설 기자재 등록</div>
+    <div style="font-size:17px;font-weight:800;margin-bottom:8px;" id="sheetTitle">시설 기자재 등록</div>
     <label class="lbl">분류</label>
     <select class="sel" id="fCat" onchange="_onCat()"></select>
     <label class="lbl">장비 종류</label>
@@ -165,10 +175,82 @@ function _collectDps(){
     return o;
   }).filter(o=>o.tag);
 }
-function _openAdd(){ _dps=[]; document.getElementById('dpList').innerHTML=''; _addDp();
-  document.getElementById('fId').value=''; document.getElementById('eqMsg').textContent='';
+let _items=[], _editId=null;
+function _openAdd(){ _editId=null; _dps=[]; document.getElementById('dpList').innerHTML=''; _addDp();
+  document.getElementById('sheetTitle').textContent='시설 기자재 등록';
+  ['fId','fLoc','fMaker','fModel','fHost','fPort'].forEach(id=>document.getElementById(id).value='');
+  const fid=document.getElementById('fId'); fid.readOnly=false; fid.style.opacity='1';
+  document.getElementById('eqMsg').textContent='';
   document.getElementById('mask').classList.add('open'); }
+// ★ 기존 장비 수정 — 값·데이터포인트 로드
+function _openEdit(ix){
+  const it=_items[ix]; if(!it) return; _editId=it.device_id;
+  document.getElementById('sheetTitle').textContent='기자재 수정';
+  if(it.category) document.getElementById('fCat').value=it.category; _onCat();
+  if(it.device_type) document.getElementById('fType').value=it.device_type;
+  document.getElementById('fId').value=it.device_id||'';
+  document.getElementById('fLoc').value=it.location||'';
+  document.getElementById('fMaker').value=it.maker||'';
+  document.getElementById('fModel').value=it.model||'';
+  if(it.protocol) document.getElementById('fProto').value=it.protocol;
+  document.getElementById('fHost').value=it.host||'';
+  document.getElementById('fPort').value=it.port??'';
+  const fid=document.getElementById('fId'); fid.readOnly=true; fid.style.opacity='.6';   // device_id 고정(upsert 키)
+  document.getElementById('dpList').innerHTML=''; _dps=[];
+  (it.datapoints||[]).forEach(dp=>_addDpFilled(dp));
+  if(!(it.datapoints||[]).length) _addDp();
+  document.getElementById('eqMsg').textContent='';
+  document.getElementById('mask').classList.add('open');
+}
+// 데이터포인트 행을 값과 함께 추가
+function _addDpFilled(dp){
+  _addDp();
+  const row=document.querySelector('#dpList .dp-row:last-child');
+  if(!row) return;
+  row.querySelectorAll('[data-f]').forEach(el=>{ const v=dp[el.dataset.f]; if(v!==undefined&&v!==null) el.value=v; });
+}
 function _close(){ document.getElementById('mask').classList.remove('open'); }
+
+// ★ 견적서/시방서 업로드 → 초안 파싱 → 미리보기
+let _draft=[];
+async function _importQuote(){
+  const f=document.getElementById('quoteFile').files[0]; const msg=document.getElementById('importMsg');
+  if(!f){ msg.style.color='var(--red)'; msg.textContent='파일을 선택하세요'; return; }
+  msg.style.color='var(--muted)'; msg.textContent='분석 중…';
+  try{
+    if(!_tokenG) _tokenG=await _ensureToken();
+    const api=KaasaData.getApiBase(); const fd=new FormData(); fd.append('file',f);
+    const r=await fetch(`${api}/api/farms/${_farmG}/equipment/import`,{method:'POST',headers:{Authorization:`Bearer ${_tokenG}`},body:fd});
+    const d=await r.json();
+    _draft=(d.items||[]).map(x=>({...x}));
+    msg.style.color=_draft.length?'var(--green)':'var(--orange)'; msg.textContent=d.note||'';
+    _renderDraft();
+  }catch(e){ msg.style.color='var(--red)'; msg.textContent='업로드 실패: '+e.message; }
+}
+function _renderDraft(){
+  const el=document.getElementById('importPreview');
+  if(!_draft.length){ el.innerHTML=''; return; }
+  el.innerHTML=`<div style="font-size:12px;font-weight:800;margin:10px 0 6px;">파싱 초안 ${_draft.length}건 (검토·수정 후 등록)</div>`+
+    _draft.map((it,i)=>`<div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;">
+      <input class="inp" style="flex:2;" value="${(it.device_type||'').replace(/"/g,'&quot;')}" oninput="_draft[${i}].device_type=this.value" placeholder="품명"/>
+      <input class="inp" style="flex:1.3;" value="${(it.maker||'').replace(/"/g,'&quot;')}" oninput="_draft[${i}].maker=this.value" placeholder="제조사"/>
+      <input class="inp" style="flex:1;" value="${(it.protocol||'').replace(/"/g,'&quot;')}" oninput="_draft[${i}].protocol=this.value" placeholder="프로토콜"/>
+      <button class="eq-del" onclick="_draft.splice(${i},1);_renderDraft()">×</button></div>`).join('')+
+    `<button class="addbtn" style="min-height:44px;margin-top:6px;" onclick="_bulkRegister()">초안 ${_draft.length}건 일괄 등록</button>`;
+}
+async function _bulkRegister(){
+  const msg=document.getElementById('importMsg'); const api=KaasaData.getApiBase();
+  if(!_tokenG) _tokenG=await _ensureToken();
+  let ok=0;
+  for(let i=0;i<_draft.length;i++){ const d=_draft[i];
+    const dt=(d.device_type||'').trim(); if(!dt) continue;
+    const body={device_id:`IMP-${Date.now().toString(36)}-${i}`, category:d.category||'', device_type:dt,
+      maker:d.maker||'', model:d.model||'', protocol:d.protocol||'', datapoints:[]};
+    try{ const r=await fetch(`${api}/api/farms/${_farmG}/equipment`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${_tokenG}`},body:JSON.stringify(body)}); if(r.ok||r.status===403) ok++; }catch(e){}
+  }
+  msg.style.color='var(--green)'; msg.textContent=`✓ ${ok}건 등록 완료`;
+  _draft=[]; document.getElementById('importPreview').innerHTML=''; document.getElementById('quoteFile').value=''; _loadList();
+}
 
 async function _save(){
   const body={
@@ -202,18 +284,18 @@ async function _save(){
 async function _loadList(){
   const api=KaasaData.getApiBase();
   const d=await fetch(`${api}/api/farms/${_farmG}/equipment`,{headers:{Authorization:`Bearer ${_tokenG}`}}).then(r=>r.json()).catch(()=>({items:[]}));
-  const items=d.items||[];
+  const items=d.items||[]; _items=items;
   const el=document.getElementById('eqList');
   var _ns=document.getElementById('nextStep');
   if(!items.length){ el.innerHTML='<div class="eq-empty">등록된 장비가 없습니다. ＋ 장비 추가로 시작하세요.</div>'; document.getElementById('mapSummary').style.display='none'; if(_ns)_ns.style.display='none'; return; }
   if(_ns)_ns.style.display='block';
-  el.innerHTML=items.map(it=>{
+  el.innerHTML=items.map((it,ix)=>{
     const dps=(it.datapoints||[]);
-    const mapped=dps.filter(p=>p.canonical_name);
     return `<div class="eq-card"><div class="eq-head">
         <span class="eq-ico">${CAT_ICO[it.category]||'📦'}</span>
         <span class="eq-name">${it.device_id} · ${it.device_type||''}</span>
         <span class="eq-proto">${it.protocol||'-'}</span>
+        <button class="eq-del" style="background:var(--blue-soft);color:var(--blue);" onclick="_openEdit(${ix})">수정</button>
         <button class="eq-del" onclick="_del('${it.device_id}')">삭제</button></div>
       <div class="eq-sub">${it.maker||'-'} ${it.model||''} · ${it.location||'위치 미지정'}${it.host?` · ${it.host}${it.port?':'+it.port:''}`:''}</div>
       <div style="margin-top:6px;">${dps.map(p=>`<span class="eq-dp">${p.tag}${p.canonical_name?` → ${p.canonical_name}`:''}</span>`).join('')||'<span class="eq-sub">데이터 포인트 없음</span>'}</div>

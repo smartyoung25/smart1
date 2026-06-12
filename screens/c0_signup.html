@@ -79,6 +79,9 @@
 
   <div class="section-label" style="margin-top:14px;">관심 기능 (복수 선택)</div>
   <div class="feat-chip-wrap" id="featChips"></div>
+  <div id="featEtcBox" style="display:none;margin-top:8px;">
+    <input class="signup-input" id="fFeatEtc" placeholder="기타 관심 기능 직접 입력(쉼표로 여러 개)" oninput="_etcFeat(this.value)"/>
+  </div>
   </div>
 </main>
 
@@ -105,7 +108,8 @@ window.addEventListener('DOMContentLoaded', ()=>{
   document.getElementById('roleList').innerHTML=ROLES.map(([id,ic,n,d])=>`
     <div class="role-card" onclick="_selRole('${id}',this)"><span class="role-ico">${ic}</span>
       <div><div class="role-name">${n}</div><div class="role-desc">${d}</div></div></div>`).join('');
-  document.getElementById('featChips').innerHTML=FEATS.map(f=>`<div class="feat-chip" onclick="_toggleFeat('${f}',this)">${f}</div>`).join('');
+  document.getElementById('featChips').innerHTML=FEATS.map(f=>`<div class="feat-chip" onclick="_toggleFeat('${f}',this)">${f}</div>`).join('')
+    +`<div class="feat-chip" id="featEtcChip" onclick="_toggleEtc(this)">＋ 기타(직접입력)</div>`;
   // 재방문(이전 가입 흔적)·로그아웃·?mode=login 이면 로그인 모드 기본 표시
   const qp=new URLSearchParams(location.search);
   const returning = qp.get('mode')==='login' || localStorage.getItem('sf_signup_name') || localStorage.getItem('sf_signup_role');
@@ -189,6 +193,13 @@ const _LAND={farmer:['c1_setup.html','농장 세팅'], org:['c1_setup.html','농
 function _landing(){ return (_LAND[_role]||_LAND.farmer)[0]; }
 function _landingLabel(){ return (_LAND[_role]||_LAND.farmer)[1]; }
 function _toggleFeat(f,el){const i=_feats.indexOf(f);if(i>=0){_feats.splice(i,1);el.classList.remove('sel');}else{_feats.push(f);el.classList.add('sel');}}
+let _etcFeats=[];
+function _toggleEtc(el){ const box=document.getElementById('featEtcBox'); const on=box.style.display==='none'; box.style.display=on?'block':'none'; el.classList.toggle('sel',on); if(on) document.getElementById('fFeatEtc').focus(); else { _etcFeat(''); document.getElementById('fFeatEtc').value=''; } }
+function _etcFeat(v){ // 직접입력 기능을 _feats에서 교체(쉼표 분리)
+  _feats=_feats.filter(f=>!_etcFeats.includes(f));
+  _etcFeats=v.split(',').map(s=>s.trim()).filter(Boolean);
+  _etcFeats.forEach(f=>{ if(!_feats.includes(f)) _feats.push(f); });
+}
 
 const _EMAIL_RE=/^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 const _PHONE_RE=/^0\d{1,2}-?\d{3,4}-?\d{4}$/;

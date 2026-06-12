@@ -4,7 +4,7 @@ import logging
 from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Body
+from fastapi import APIRouter, Depends, HTTPException, Query, Body, UploadFile, File
 from pydantic import BaseModel, Field
 from typing import Optional
 from api.middleware.auth import require_auth
@@ -3265,6 +3265,19 @@ def post_diagnosis_checklist(farm_id: str, body: dict = Body(...)):
             "updated_at": now, "total_records": len(recs)}
 
 
+@router.post("/equipment/import", summary="견적서/시방서 업로드 → 기자재 초안 파싱(저장 안 함)")
+async def import_equipment_doc(farm_id: str, file: UploadFile = File(...)):
+    """엑셀/CSV/PDF/이미지 업로드 → 기자재 초안 목록 반환. 사용자가 검토 후 일괄 등록."""
+    from api.services import equipment_import as _imp
+    _require_farm(farm_id)
+    content = await file.read()
+    if len(content) > 8 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="파일이 너무 큽니다(최대 8MB).")
+    result = _imp.parse(file.filename or "", content)
+    result["farm_id"] = farm_id
+    return result
+
+
 @router.get("/equipment/schema", summary="기자재 분류·통합 입력 스키마 반환")
 def get_equipment_schema(farm_id: str):
     import json as _json
@@ -3333,6 +3346,7 @@ class IntegrationRequest(BaseModel):
     title:       str = Field(..., max_length=120)
     maker:       str = Field("", max_length=64)
     protocol:    str = Field("", max_length=40)
+    infra_level: str = Field("", max_length=40)    # none | manual_valve | electric_switch (현재 인프라 정도)
     contact:     str = Field("", max_length=64)    # 연락처(전화/이메일)
     note:        str = Field("", max_length=500)
 

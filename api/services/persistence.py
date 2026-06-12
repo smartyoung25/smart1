@@ -417,6 +417,17 @@ def create_user(
 
 def save_onboarding(user_id: int, farm_id: str, data: dict) -> None:
     """온보딩 데이터 저장 및 onboarding_completed 플래그 TRUE 설정."""
+    # 전체 온보딩 데이터 사이드 파일 보존(DB 컬럼 미존재 필드 — irrigation_method·
+    # farm_name·sido/sigungu/emd·cultivation_detail 등 — 누락 방지)
+    try:
+        _op = Path(__file__).resolve().parents[1] / "data" / "onboarding"
+        _op.mkdir(parents=True, exist_ok=True)
+        (_op / f"{farm_id}.json").write_text(
+            json.dumps({"user_id": user_id, "farm_id": farm_id, **data}, ensure_ascii=False, indent=2),
+            encoding="utf-8")
+    except Exception as _e:
+        logger.warning("[persistence] 온보딩 사이드 저장 실패: %s", str(_e)[:80])
+
     engine = _get_engine()
     if engine is None:
         _mem_onboarding[user_id] = {"farm_id": farm_id, **data}

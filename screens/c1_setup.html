@@ -65,10 +65,19 @@
   <div class="wiz-step active" data-step="1">
     <div class="wiz-title">농장 기본 정보</div>
     <div class="wiz-desc">농장을 식별할 기본 정보를 입력하세요.</div>
-    <label class="wiz-label">농장 ID</label>
-    <input class="wiz-input" id="fFarmId" value="farm_001" placeholder="farm_001"/>
-    <label class="wiz-label">재배 지역</label>
-    <input class="wiz-input" id="fRegion" placeholder="예: 충남 논산시"/>
+    <label class="wiz-label">농장명 <span style="color:var(--red)">*</span></label>
+    <input class="wiz-input" id="fFarmName" placeholder="예: 논산 햇살딸기농장"/>
+    <div style="font-size:11px;color:var(--muted);margin-top:5px;">농장 ID(자동): <b id="fFarmIdView">—</b> <span style="opacity:.7;">— 시스템이 자동 부여(중복 없음)</span></div>
+
+    <label class="wiz-label" style="margin-top:14px;">재배 지역</label>
+    <div class="opt-grid" style="grid-template-columns:1fr 1fr;gap:8px;">
+      <select class="wiz-input" id="fSido" onchange="_onSido()"><option value="">시도 선택</option></select>
+      <select class="wiz-input" id="fSigungu"><option value="">시군구 선택</option></select>
+    </div>
+    <input class="wiz-input" id="fEmd" style="margin-top:8px;" placeholder="읍·면·동 (예: 광석면)"/>
+    <input class="wiz-input" id="fAddr" style="margin-top:8px;" placeholder="상세주소 (선택)"/>
+    <button type="button" onclick="_lookupParcels()" style="width:100%;margin-top:8px;padding:11px;background:var(--panel);color:var(--blue);border:1.5px solid var(--blue);border-radius:10px;font-size:13px;font-weight:800;cursor:pointer;min-height:44px;">🗺️ 필지 조회</button>
+    <div id="parcelResult" style="margin-top:8px;font-size:12px;"></div>
   </div>
 
   <!-- Step 2: 재배 작물 -->
@@ -98,7 +107,11 @@
     <input class="wiz-input" id="fArea" type="number" inputmode="decimal" placeholder="예: 1200"/>
     <label class="wiz-label">재배 방식</label>
     <div class="opt-grid" id="methodGrid"></div>
-    <div style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.5;background:var(--panel-soft);border-radius:8px;padding:9px 11px;">
+    <div id="substrateBlock" style="display:none;margin-top:10px;">
+      <label class="wiz-label" id="substrateLabel">양액 세부</label>
+      <div class="opt-grid" id="substrateGrid"></div>
+    </div>
+    <div id="methodInfo" style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.5;background:var(--panel-soft);border-radius:8px;padding:9px 11px;">
       ℹ️ <b>수경·배지경은 모두 양액재배</b>입니다 — <b>수경</b>=배지 없이 양액에 뿌리(담액·NFT·DFT), <b>배지경</b>=고형배지(암면·코코피트·펄라이트)에 양액 공급.
     </div>
   </div>
@@ -146,9 +159,12 @@
 const TOTAL=7;
 let _step=1;
 const STEP_NAMES=['기본 정보','재배 작물','시설 유형','재배 규모','작기','개선 목표','확인'];
-const form={ farm_id:'farm_001', region:'', crop_ko:'', facility_type:'', area_m2:null,
-  cultivation_method:'토경', irrigation_method:'', season_start:'', season_end:'', growing_year:1,
+const form={ farm_id:'', farm_name:'', region:'', sido:'', sigungu:'', emd:'', address_detail:'',
+  crop_ko:'', facility_type:'', area_m2:null,
+  cultivation_method:'토경', cultivation_detail:'', irrigation_method:'', season_start:'', season_end:'', growing_year:1,
   pain_points:[], kpi_yield_kg:null, kpi_yield_per_10a:null };
+// 자동 농장 ID 생성 (중복 없음)
+function _genFarmId(){ return 'farm_'+Math.random().toString(36).slice(2,8); }
 
 const CROPS=[['딸기','🍓'],['오이','🥒'],['완숙토마토','🍅'],['방울토마토','🍅'],['파프리카','🫑'],['참외','🍈'],['감귤','🍊'],['월동무','🥬'],['당근','🥕'],['양배추','🥬'],['브로콜리','🥦'],['마늘','🧄'],['양파','🧅']];
 const FIELD_CROPS=['감귤','월동무','당근','양배추','브로콜리','마늘','양파'];
@@ -159,14 +175,50 @@ const FACILITIES=[
 ];
 const FIELD_FAC=new Set(FACILITIES.filter(f=>f[2]==='field').map(f=>f[0]));
 const IRRIGS=[['점적관개','💧'],['스프링클러','🚿'],['지표관개','🌊'],['무관개(천수답)','🌧️']];
-const METHODS=[['토경','🌱'],['수경','💧'],['배지경','🪴'],['노지토경','🌾'],['노지재배','🚜']];
+// 온실/노지별 재배방식 하이어라키 (조건부 노출)
+const METHODS_GH=[['토경','🌱'],['수경','💧'],['배지경','🪴']];
+const METHODS_FIELD=[['노지토경','🌾'],['노지재배','🚜']];
+// 양액 2단계 세부 (수경/배지경 선택 시)
+const SUBSTRATE={ '수경':['담액(DFT)','NFT','박막'], '배지경':['암면','코코피트','펄라이트'] };
 const PAINS=['수확량 증대','품질 향상','에너지 절감','병해 예방','관수 효율','인건비 절감','출하가 향상'];
 
 window.addEventListener('DOMContentLoaded', ()=>{
   _ensureToken();
   _renderOpts();
+  // 자동 농장 ID
+  form.farm_id=_genFarmId();
+  document.getElementById('fFarmIdView').textContent=form.farm_id;
+  _loadRegions();
   _showStep(1);
 });
+
+// 행정구역 시도→시군구 로드
+let _regionTree={};
+async function _loadRegions(){
+  try{ const api=sessionStorage.getItem('sf_api')||location.origin;
+    const d=await fetch(`${api}/api/regions`).then(r=>r.json());
+    _regionTree=d.tree||{};
+    document.getElementById('fSido').innerHTML='<option value="">시도 선택</option>'+(d.sido||[]).map(s=>`<option>${s}</option>`).join('');
+  }catch(e){}
+}
+function _onSido(){
+  const s=document.getElementById('fSido').value;
+  const list=_regionTree[s]||[];
+  document.getElementById('fSigungu').innerHTML='<option value="">시군구 선택</option>'+list.map(g=>`<option>${g}</option>`).join('');
+}
+async function _lookupParcels(){
+  const el=document.getElementById('parcelResult');
+  el.style.color='var(--muted)'; el.textContent='필지 조회 중…';
+  try{ const api=sessionStorage.getItem('sf_api')||location.origin; const t=sessionStorage.getItem('sf_token')||'';
+    const d=await fetch(`${api}/api/farms/${form.farm_id}/field/parcels`,{headers:{Authorization:`Bearer ${t}`}}).then(r=>r.json());
+    const ps=d.parcels||[];
+    if(!ps.length){ el.style.color='var(--muted)'; el.textContent='조회된 필지가 없습니다(지역 미연동 — 저장 후 정밀 연동).'; return; }
+    el.style.color='var(--text)';
+    el.innerHTML=`<div style="font-weight:700;margin-bottom:4px;">${d.source==='farmmap_real'?'🛰️ 팜맵 실데이터':'⚪ 예시'} · ${ps.length}필지</div>`+
+      ps.slice(0,5).map(p=>`<div style="padding:4px 0;border-bottom:1px solid var(--border);">${p.name||p.pnu||'필지'} · ${p.jimok||'-'} · ${p.area_ha??'-'}ha${p.crop?(' · '+p.crop):''}</div>`).join('')+
+      `<div style="font-size:10px;color:var(--muted);margin-top:4px;">${d.note||''}</div>`;
+  }catch(e){ el.style.color='var(--red)'; el.textContent='필지 조회 실패'; }
+}
 
 async function _ensureToken(){
   const s=sessionStorage.getItem('sf_token'); if(s)return s;
@@ -177,19 +229,38 @@ async function _ensureToken(){
 
 function _renderOpts(){
   document.getElementById('cropGrid').innerHTML=CROPS.map(([c,i])=>`<div class="opt-card" onclick="_selCrop('${c}',this)"><span class="opt-ico">${i}</span>${c}</div>`).join('');
-  document.getElementById('methodGrid').innerHTML=METHODS.map(([c,i])=>`<div class="opt-card" onclick="_selMethod('${c}',this)"><span class="opt-ico">${i}</span>${c}</div>`).join('');
   document.getElementById('irrigGrid').innerHTML=IRRIGS.map(([c,i])=>`<div class="opt-card" onclick="_selIrrig('${c}',this)"><span class="opt-ico">${i}</span>${c}</div>`).join('');
-  _renderStep3();
+  _renderStep3(); _renderMethods();
   document.getElementById('painChips').innerHTML=PAINS.map(p=>`<div class="chip" onclick="_togglePain('${p}',this)">${p}</div>`).join('');
 }
+// ★ 온실/노지에 따라 재배방식 목록 조건부 렌더 (하이어라키)
+function _renderMethods(){
+  const list = _isField()? METHODS_FIELD : METHODS_GH;
+  document.getElementById('methodGrid').innerHTML=list.map(([c,i])=>`<div class="opt-card${form.cultivation_method===c?' sel':''}" onclick="_selMethod('${c}',this)"><span class="opt-ico">${i}</span>${c}</div>`).join('');
+  document.getElementById('methodInfo').style.display=_isField()?'none':'';
+  // 현재 선택이 목록에 없으면 기본값 보정
+  if(!list.some(m=>m[0]===form.cultivation_method)){ form.cultivation_method=list[0][0]; form.cultivation_detail=''; }
+  _renderSubstrate();
+}
+function _renderSubstrate(){
+  const subs=SUBSTRATE[form.cultivation_method];
+  const blk=document.getElementById('substrateBlock');
+  if(!subs){ blk.style.display='none'; form.cultivation_detail=''; return; }
+  blk.style.display='block';
+  document.getElementById('substrateLabel').textContent = form.cultivation_method==='수경'?'수경 방식':'배지 종류';
+  document.getElementById('substrateGrid').innerHTML=subs.map(s=>`<div class="opt-card${form.cultivation_detail===s?' sel':''}" onclick="_selSubstrate('${s}',this)">${s}</div>`).join('');
+}
+function _selSubstrate(s,el){ form.cultivation_detail=s; document.querySelectorAll('#substrateGrid .opt-card').forEach(x=>x.classList.remove('sel')); el.classList.add('sel'); }
 // 선택한 시설이 노지 유형인지 (시설 우선, 미선택 시 작물로 추정)
 function _isField(){ return form.facility_type ? FIELD_FAC.has(form.facility_type) : FIELD_CROPS.includes(form.crop_ko); }
 function _selCrop(c,el){ form.crop_ko=c; document.querySelectorAll('#cropGrid .opt-card').forEach(x=>x.classList.remove('sel')); el.classList.add('sel'); }
 function _selFacility(c,el){ form.facility_type=c; document.querySelectorAll('#facilityGrid .opt-card').forEach(x=>x.classList.remove('sel')); el.classList.add('sel');
-  // 노지 시설 선택 시 관개방식 입력 노출 + 재배방식 노지로 보정
+  // 노지 시설 선택 시 관개방식 입력 노출
   const field=FIELD_FAC.has(c);
   document.getElementById('irrigBlock').style.display = field?'block':'none';
-  if(field && !['노지토경','노지재배'].includes(form.cultivation_method)) form.cultivation_method='노지토경';
+  // 시설 유형에 맞춰 재배방식 하이어라키 재렌더(온실↔노지)
+  form.cultivation_method = field?'노지토경':'토경'; form.cultivation_detail='';
+  _renderMethods();
 }
 function _selIrrig(c,el){ form.irrigation_method=c; document.querySelectorAll('#irrigGrid .opt-card').forEach(x=>x.classList.remove('sel')); el.classList.add('sel'); }
 
@@ -200,7 +271,7 @@ function _renderStep3(){
   document.getElementById('facilityGrid').innerHTML = FACILITIES.map(([c,i,t])=>`<div class="opt-card${form.facility_type===c?' sel':''}" onclick="_selFacility('${c}',this)"><span class="opt-ico">${i}</span>${c}${t==='field'?' <span style="font-size:9px;color:var(--green-dark);">노지</span>':''}</div>`).join('');
   document.getElementById('irrigBlock').style.display = (form.facility_type && FIELD_FAC.has(form.facility_type))?'block':'none';
 }
-function _selMethod(c,el){ form.cultivation_method=c; document.querySelectorAll('#methodGrid .opt-card').forEach(x=>x.classList.remove('sel')); el.classList.add('sel'); }
+function _selMethod(c,el){ form.cultivation_method=c; form.cultivation_detail=''; document.querySelectorAll('#methodGrid .opt-card').forEach(x=>x.classList.remove('sel')); el.classList.add('sel'); _renderSubstrate(); }
 function _togglePain(p,el){ const i=form.pain_points.indexOf(p); if(i>=0){form.pain_points.splice(i,1);el.classList.remove('sel');}else{form.pain_points.push(p);el.classList.add('sel');} }
 
 function _showStep(n){
@@ -211,11 +282,19 @@ function _showStep(n){
   document.getElementById('wizStepNum').textContent=`${n} / ${TOTAL}`;
   document.getElementById('btnPrev').disabled = n===1;
   document.getElementById('btnNext').textContent = n===TOTAL ? '저장' : '다음';
+  if(n===4) _renderMethods();   // 시설(Step3) 선택 반영해 재배방식 재렌더
   if(n===TOTAL) _renderSummary();
 }
 
 function _collectStep(){
-  if(_step===1){ form.farm_id=document.getElementById('fFarmId').value.trim()||'farm_001'; form.region=document.getElementById('fRegion').value.trim(); }
+  if(_step===1){
+    form.farm_name=document.getElementById('fFarmName').value.trim();
+    form.sido=document.getElementById('fSido').value;
+    form.sigungu=document.getElementById('fSigungu').value;
+    form.emd=document.getElementById('fEmd').value.trim();
+    form.address_detail=document.getElementById('fAddr').value.trim();
+    form.region=[form.sido,form.sigungu].filter(Boolean).join(' ');   // 하위호환 합성
+  }
   if(_step===4){ form.area_m2=parseFloat(document.getElementById('fArea').value)||null; }
   if(_step===5){ form.season_start=document.getElementById('fStart').value; form.season_end=document.getElementById('fEnd').value; form.growing_year=parseInt(document.getElementById('fYear').value)||1; }
   if(_step===6){
@@ -235,6 +314,7 @@ document.addEventListener('input',e=>{
 });
 
 function _validate(){
+  if(_step===1 && !form.farm_name){ alert('농장명을 입력하세요'); return false; }
   if(_step===2 && !form.crop_ko){ alert('작물을 선택하세요'); return false; }
   if(_step===3 && !form.facility_type){ alert(_isField()?'노지 재배환경을 선택하세요':'시설 유형을 선택하세요'); return false; }
   if(_step===3 && _isField() && !form.irrigation_method){ alert('관개 방식을 선택하세요'); return false; }
@@ -250,12 +330,14 @@ function _next(){
 function _prev(){ if(_step>1) _showStep(_step-1); }
 
 function _renderSummary(){
+  const _loc=[form.sido,form.sigungu,form.emd].filter(Boolean).join(' ')||form.region||'—';
+  const _cm=form.cultivation_method+(form.cultivation_detail?` (${form.cultivation_detail})`:'');
   const rows=[
-    ['농장 ID',form.farm_id],['지역',form.region||'—'],['작물',form.crop_ko||'—'],
+    ['농장명',form.farm_name||'—'],['농장 ID',form.farm_id],['지역',_loc],['작물',form.crop_ko||'—'],
     [_isField()?'노지환경':'시설',form.facility_type||'—'],
     ...(_isField()?[['관개방식',form.irrigation_method||'—']]:[]),
     ['면적',form.area_m2?form.area_m2+'m²':'—'],
-    ['재배방식',form.cultivation_method],['작기',`${form.season_start||'—'} ~ ${form.season_end||'—'}`],
+    ['재배방식',_cm],['작기',`${form.season_start||'—'} ~ ${form.season_end||'—'}`],
     ['재배연차',form.growing_year+'년차'],['개선목표',form.pain_points.join(', ')||'—'],
     ['목표수확량',form.kpi_yield_per_10a?`${form.kpi_yield_per_10a} kg/10a${form.kpi_yield_kg?` (총 ${form.kpi_yield_kg.toLocaleString()}kg)`:''}`:'—'],
   ];
@@ -269,8 +351,10 @@ function _saveProfile(){
     ? (FIELD_FAC.has(form.facility_type) ? 'field' : 'greenhouse')
     : (FIELD_CROPS.includes(form.crop_ko) ? 'field' : 'greenhouse');
   const profile = { crop_ko:form.crop_ko, facility_type:form.facility_type,
-    cultivation_method:form.cultivation_method, irrigation_method:form.irrigation_method, farm_type,
-    region:form.region, area_m2:form.area_m2, farm_id:form.farm_id };
+    cultivation_method:form.cultivation_method, cultivation_detail:form.cultivation_detail,
+    irrigation_method:form.irrigation_method, farm_type,
+    region:form.region, sido:form.sido, sigungu:form.sigungu, emd:form.emd,
+    area_m2:form.area_m2, farm_id:form.farm_id, farm_name:form.farm_name };
   localStorage.setItem('sf_profile', JSON.stringify(profile));
 }
 

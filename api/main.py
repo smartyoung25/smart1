@@ -64,6 +64,7 @@ if _PUBLIC_DEMO:
     _WRITE_ALLOW = {
         "/api/v1/auth/token", "/api/v1/auth/register",
         "/api/v1/auth/password/forgot", "/api/v1/auth/password/reset",
+        "/api/v1/auth/onboarding",                  # 농장 세팅(C1) 저장
         "/api/telemetry/client",
         "/api/data/growth", "/api/data/harvest",   # 생육·수확 실측 입력(M1/M2 학습 피드)
     }   # 로그인·회원가입·비번재설정·에러텔레메트리·학습데이터 입력
@@ -193,6 +194,25 @@ if _INTRO.exists():
     @app.get("/intro/", include_in_schema=False)
     def serve_intro():
         return FileResponse(str(_INTRO))
+
+# 행정구역 시도→시군구 트리 (C1 농장세팅 지역 구조화 입력용)
+@app.get("/api/regions", include_in_schema=False)
+def serve_regions():
+    try:
+        from api.services.region_station import _MAPPING
+        tree: dict[str, set] = {}
+        for (sido, sgg) in _MAPPING.keys():
+            # 정식 시도명만(특별시·광역시·도·특별자치) 사용, 약칭 제외
+            if not any(k in sido for k in ("특별시", "광역시", "특별자치", "도")):
+                continue
+            tree.setdefault(sido, set())
+            if sgg and sgg[-1] in "시군구":
+                tree[sido].add(sgg)
+        out = {s: sorted(v) for s, v in sorted(tree.items())}
+        return {"sido": list(out.keys()), "tree": out}
+    except Exception as e:
+        return {"sido": [], "tree": {}, "error": str(e)[:80]}
+
 
 # PWA — manifest·service worker·아이콘 (루트 스코프로 전 화면 제어)
 @app.get("/manifest.webmanifest", include_in_schema=False)

@@ -56,6 +56,13 @@
     <input class="ap-input" id="apMaker" placeholder="예: Priva, Hortimax"/>
     <label class="ap-label">통신 프로토콜</label>
     <input class="ap-input" id="apProto" placeholder="예: Modbus TCP, BACnet, MQTT"/>
+    <label class="ap-label">현재 인프라 정도</label>
+    <select class="ap-input" id="apInfra">
+      <option value="">선택</option>
+      <option value="none">① 완전 미구축 (수동 제어)</option>
+      <option value="manual_valve">② 개폐 밸브·레버 등 (수동 기계)</option>
+      <option value="electric_switch">③ 스위치 On/Off (전동·원격 가능)</option>
+    </select>
   </div>
   <label class="ap-label">연락처 <span style="color:var(--red)">*</span></label>
   <input class="ap-input" id="apContact" placeholder="010-1234-5678 또는 이메일"/>
@@ -115,7 +122,7 @@ function _open(it){
   document.getElementById('shTitle').textContent=it.title;
   document.getElementById('shDesc').textContent=it.desc;
   document.getElementById('eqFields').style.display = (it.kind==='equipment')?'block':'none';
-  ['apTitle','apMaker','apProto','apContact','apNote'].forEach(id=>document.getElementById(id).value='');
+  ['apTitle','apMaker','apProto','apContact','apNote','apInfra'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('apResult').textContent='';
   document.getElementById('ov').classList.add('open');
   document.getElementById('sheet').classList.add('open');
@@ -130,7 +137,8 @@ async function _submitReq(){
   res.style.color='var(--muted)';res.textContent='접수 중…';
   try{
     const body={kind:_cur.kind,title:title,maker:document.getElementById('apMaker').value.trim(),
-      protocol:document.getElementById('apProto').value.trim(),contact:contact,note:document.getElementById('apNote').value.trim()};
+      protocol:document.getElementById('apProto').value.trim(),infra_level:document.getElementById('apInfra').value,
+      contact:contact,note:document.getElementById('apNote').value.trim()};
     const r=await fetch(`${_api}/api/farms/${_farm}/integration-request`,{method:'POST',headers:_H(),body:JSON.stringify(body)});
     const d=await r.json().catch(()=>({}));
     if(r.ok){
