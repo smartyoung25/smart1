@@ -350,15 +350,26 @@ def get_model_drift(
     - **MAPE > 35% 또는 최근 급등**: red — 재학습 권고
     """
     from api.services.drift_monitor import compute_drift, compute_all_drift, summary_badge
+    import math as _math
+
+    def _finite(o):
+        """NaN/Infinity → None (JSON 직렬화 안전). dict/list 재귀."""
+        if isinstance(o, float):
+            return o if _math.isfinite(o) else None
+        if isinstance(o, dict):
+            return {k: _finite(v) for k, v in o.items()}
+        if isinstance(o, list):
+            return [_finite(v) for v in o]
+        return o
 
     if crop_ko:
         stats = compute_drift(crop_ko, farm_id=farm_id, n_recent=n_recent)
-        return {
+        return _finite({
             "mode": "single",
             "crop_ko": crop_ko,
             "drift": stats.to_dict(),
             "badge": summary_badge(stats),
-        }
+        })
 
     all_stats = compute_all_drift(farm_id=farm_id)
     badges = {c: summary_badge(s) for c, s in all_stats.items()}
@@ -371,12 +382,12 @@ def get_model_drift(
     if any(s.alert == "red"    for s in valid): overall_alert = "red"
     elif any(s.alert == "yellow" for s in valid): overall_alert = "yellow"
 
-    return {
+    return _finite({
         "mode":           "all",
         "overall_alert":  overall_alert,
         "crops":          badges,
         "detail":         {c: s.to_dict() for c, s in all_stats.items()},
-    }
+    })
 
 
 # ---------------------------------------------------------------------------

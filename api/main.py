@@ -75,6 +75,9 @@ if _PUBLIC_DEMO:
                            "/activity")
     # 경로 중간 일치 허용(예: 장비 삭제 DELETE /equipment/{device_id})
     _WRITE_ALLOW_CONTAINS = ("/equipment/",)
+    # 관리자 조회+안전변경 허용. 단, 무거운(재학습)·파괴적 작업만 차단 유지.
+    _ADMIN_BLOCK_CONTAINS = ("/pipeline/trigger", "/pipeline/retrain", "/retrain",
+                             "/models/promote", "/models/rollback")
 
     class PublicDemoMiddleware:
         def __init__(self, app): self.app = app
@@ -83,15 +86,16 @@ if _PUBLIC_DEMO:
                 path = scope.get("path", ""); method = scope.get("method", "GET")
                 _allow_post = ((path in _WRITE_ALLOW) or path.endswith(_WRITE_ALLOW_SUFFIX)
                                or any(c in path for c in _WRITE_ALLOW_CONTAINS))
-                blocked = (
-                    (path.startswith("/api/admin")) or
-                    (method in _WRITE and path.startswith("/api/") and not _allow_post)
-                )
+                if path.startswith("/api/admin"):
+                    # 관리자: 조회(GET/HEAD)·안전 변경 허용, 무거운·파괴적만 차단
+                    heavy = any(c in path for c in _ADMIN_BLOCK_CONTAINS)
+                    blocked = (method in _WRITE) and (heavy or method == "DELETE")
+                    deny_msg = "이 작업은 재학습·삭제 등 무거운/위험 작업이라 데모에서 비활성화되어 있습니다."
+                else:
+                    blocked = (method in _WRITE and path.startswith("/api/") and not _allow_post)
+                    deny_msg = "공개 데모(읽기 전용) 모드입니다. 일반 입력·기록은 가능하나 이 변경은 비활성화되어 있습니다."
                 if blocked:
-                    resp = _JSONResp(
-                        {"detail": "공개 데모(읽기 전용) 모드입니다. 변경·관리자 기능은 비활성화되어 있습니다."},
-                        status_code=403)
-                    await resp(scope, receive, send); return
+                    await _JSONResp({"detail": deny_msg}, status_code=403)(scope, receive, send); return
             await self.app(scope, receive, send)
 
     app.add_middleware(PublicDemoMiddleware)
