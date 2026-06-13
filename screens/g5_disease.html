@@ -163,6 +163,9 @@
   <div id="controlAdvices">
     <div style="text-align:center;padding:14px;color:var(--muted);font-size:12px;"><div class="spinner"></div></div>
   </div>
+  <!-- ★ 방제 이행 기록 (M5/IPM 폐루프) -->
+  <button onclick="_logPest()" style="width:100%;margin-top:10px;padding:13px;background:var(--green);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:800;cursor:pointer;min-height:46px;">🐛 방제·점검 이행 기록</button>
+  <div class="card" style="padding:12px 14px;margin-top:10px;" id="pestRecent"></div>
 
   <!-- 품질 관리 팁 -->
   <div class="section-label" style="margin-top:16px;">품질 관리 체크포인트</div>
@@ -192,6 +195,7 @@
 </nav>
 
 <script src="../components/data.js"></script>
+<script src="../components/record_sheet.js"></script>
 <script src="../components/tier_guard.js"></script>
 <script>
 'use strict';
@@ -249,13 +253,25 @@ const DISEASE_DB = {
 };
 
 // ── 초기화 ──────────────────────────────────────────────────────────────────
+let _farmG='farm_001', _tokG='';
+function _refreshPest(){ if(window.RecordSheet&&_tokG) RecordSheet.renderRecent(document.getElementById('pestRecent'),_farmG,_tokG,{kinds:['disease_check'],limit:4}); }
+function _logPest(){
+  if(!window.RecordSheet){ return; }
+  RecordSheet.open({ title:'방제·점검 이행 기록',
+    fields:[ {id:'item',label:'방제/점검 항목',type:'text',placeholder:'예: 흰가루병 예방 살포'},
+             {id:'detail',label:'약제·조치 내용',type:'text',placeholder:'약제명·희석배수·부위'} ],
+    onSubmit: async (v)=>{ await RecordSheet.logActivity(_farmG,_tokG,{kind:'disease_check', item:v.item||'방제·점검', detail:v.detail||'', value:null}); _refreshPest(); }
+  });
+}
 window.addEventListener('DOMContentLoaded', () => {
   const farmId = new URLSearchParams(location.search).get('farm') ||
                  sessionStorage.getItem('sf_farm_id') || 'farm_001';
-
+  _farmG = farmId;
   _ensureToken().then(token => {
+    _tokG = token;
     KaasaData.init({ farmId, token, onStatus: _onWsStatus });
     _loadAll(token, farmId);
+    _refreshPest();
     // 등급 게이팅: 병해 판단근거·env_snapshot 상세는 pro 등급 전용 (growth_disease_detail)
     KaasaTier.init(farmId, token).then(() => {
       KaasaTier.guard(document.getElementById('anomalyGuard'), 'growth_disease_detail',

@@ -169,6 +169,9 @@
   <!-- 비용 절감 조언 -->
   <div class="section-label">비용 절감 조언</div>
   <div id="savingAdvices"></div>
+  <!-- ★ 절감 조치 이행 기록 (경영 폐루프) -->
+  <button onclick="_logSaving()" style="width:100%;margin-top:10px;padding:13px;background:var(--green);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:800;cursor:pointer;min-height:46px;">💡 절감 조치 이행 기록</button>
+  <div class="card" style="padding:12px 14px;margin-top:10px;" id="savingRecent"></div>
 
 </main>
 
@@ -192,6 +195,7 @@
 </nav>
 
 <script src="../components/data.js"></script>
+<script src="../components/record_sheet.js"></script>
 <script src="../components/tier_guard.js"></script>
 <script>
 'use strict';
@@ -210,12 +214,25 @@ const COST_ICONS = {
   nutrients:'🌿', pesticides:'🧪', other:'📦',
 };
 
+let _farmG='farm_001', _tokG='';
+function _refreshSaving(){ if(window.RecordSheet&&_tokG) RecordSheet.renderRecent(document.getElementById('savingRecent'),_farmG,_tokG,{kinds:['cost_reduction'],limit:4}); }
+function _logSaving(){
+  if(!window.RecordSheet){ return; }
+  RecordSheet.open({ title:'절감 조치 이행 기록',
+    fields:[ {id:'item',label:'절감 조치',type:'text',placeholder:'예: 피크시간 난방 감축'},
+             {id:'detail',label:'세부·기대효과',type:'text',placeholder:'예: 10~17시 LED 20% 감축'} ],
+    onSubmit: async (v)=>{ await RecordSheet.logActivity(_farmG,_tokG,{kind:'cost_reduction', item:v.item||'절감 조치', detail:v.detail||'', value:null}); _refreshSaving(); }
+  });
+}
 window.addEventListener('DOMContentLoaded', () => {
   const farmId = new URLSearchParams(location.search).get('farm') ||
                  sessionStorage.getItem('sf_farm_id') || 'farm_001';
+  _farmG = farmId;
   _ensureToken().then(token => {
+    _tokG = token;
     KaasaData.init({ farmId, token, onStatus: _onWsStatus });
     _loadAll(token, farmId);
+    _refreshSaving();
     // 등급 게이팅: 이익률(소득률) 분석은 pro 등급 전용 (energy_profit_margin)
     KaasaTier.init(farmId, token).then(() => {
       KaasaTier.guard(document.getElementById('marginCard'), 'energy_profit_margin',

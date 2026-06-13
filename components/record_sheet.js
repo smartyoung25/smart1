@@ -105,6 +105,8 @@
     joint_ship:    { ico:'🤝', label:'공동출하' },
     consent:       { ico:'📑', label:'데이터동의' },
     growth:        { ico:'🌿', label:'생육측정' },
+    cost_reduction:{ ico:'💡', label:'절감조치' },
+    integration_request:{ ico:'🔌', label:'연동신청' },
   };
   function _ago(ts){
     try{ const d=new Date(ts), now=new Date(), m=Math.floor((now-d)/60000);
