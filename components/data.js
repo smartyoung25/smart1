@@ -513,6 +513,7 @@ const KaasaData = (() => {
       ['c17_diagnosis.html', '🩺', '시스템 종합진단'],
       ['c16_equipment.html', '🔌', '시설 기자재 등록'],
       ['c21_apply.html', '📝', '연동·서비스 신청'],
+      ['c22_tiers.html', '⭐', '등급 비교·업그레이드'],
       ['c5_erp.html', '💰', '수익성 ERP'],
       ['c14_report.html', '📋', '월간 리포트'],
       ['c4_diagnosis.html', '📊', 'AI 진단'],
