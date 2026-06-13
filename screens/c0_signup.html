@@ -231,7 +231,7 @@ async function _submit(){
   try{
     const api=sessionStorage.getItem('sf_api')||location.origin;
     const r=await fetch(`${api}/api/v1/auth/register`,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({username:user,password:pass,name:name,email:email,phone:phone})});
+      body:JSON.stringify({username:user,password:pass,name:name,email:email,phone:phone,role:_role})});
     if(r.ok){
       const d=await r.json();
       if(d.access_token) sessionStorage.setItem('sf_token',d.access_token);

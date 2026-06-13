@@ -230,7 +230,15 @@ def get_user_by_username(username: str) -> Optional[dict]:
                 text("SELECT id, username, role, hashed_password, farm_id, onboarding_completed FROM users WHERE username = :u"),
                 {"u": username},
             ).fetchone()
-        return dict(row._mapping) if row else None
+        if not row:
+            return None
+        u = dict(row._mapping)
+        # 비즈니스 역할(사이드 파일) 오버레이 — DB는 안전역할만 저장하므로 재로그인 시 복원
+        if u.get("role") not in ("admin", "manager"):
+            br = _user_role(username)
+            if br:
+                u["role"] = br
+        return u
     except Exception as e:
         logger.error("[persistence] get_user_by_username 오류: %s", e)
         # DB 접속 실패 → env 기반 dev 사용자 폴백 (테스트·개발 환경 호환)
@@ -244,6 +252,30 @@ def get_user_by_username(username: str) -> Optional[dict]:
             }
         }
         return _dev_users.get(username)
+
+
+def _user_roles_path() -> Path:
+    return Path(__file__).resolve().parents[1] / "data" / "user_roles.json"
+
+
+def _save_user_role(username: str, role: str) -> None:
+    try:
+        fp = _user_roles_path()
+        store = json.loads(fp.read_text(encoding="utf-8")) if fp.exists() else {}
+        store[username] = role
+        fp.write_text(json.dumps(store, ensure_ascii=False, indent=2), encoding="utf-8")
+    except Exception as e:
+        logger.warning("[persistence] user_role 저장 실패: %s", str(e)[:80])
+
+
+def _user_role(username: str) -> Optional[str]:
+    try:
+        fp = _user_roles_path()
+        if fp.exists():
+            return json.loads(fp.read_text(encoding="utf-8")).get(username)
+    except Exception:
+        pass
+    return None
 
 
 def get_user_by_email(email: str) -> Optional[dict]:
@@ -304,6 +336,10 @@ def create_user(
     """신규 사용자 생성. 생성된 사용자 dict 반환. 중복 시 ValueError."""
     safe = re.sub(r"[^a-z0-9_]", "", username.lower())[:16] or "user"
     engine = _get_engine()
+    # 비즈니스 역할(farmer|org|distributor|expert|public)은 사이드 파일에 저장.
+    # DB users.role 은 CHECK 제약(admin/manager/farmer/viewer 등) 때문에 안전값으로만 저장.
+    _save_user_role(username, role)
+    db_role = role if role in ("farmer", "viewer", "manager", "admin") else "farmer"
 
     # ── 인메모리 폴백 ──────────────────────────────────────────────────────────
     if engine is None:
@@ -315,7 +351,7 @@ def create_user(
             "id": new_id, "username": username,
             "hashed_password": hashed_password,
             "name": name, "email": email, "phone": phone,
-            "role": role, "farm_id": farm_id,
+            "role": role, "farm_id": farm_id,   # in-memory엔 비즈니스 역할 그대로
             "onboarding_completed": False,
         }
         _mem_users[username] = user
@@ -359,7 +395,7 @@ def create_user(
                         RETURNING id
                     """),
                     {"u": username, "hp": hashed_password, "n": name, "e": email or None,
-                     "ph": phone or None, "r": role},
+                     "ph": phone or None, "r": db_role},
                 ).fetchone()
             else:
                 row = conn.execute(
@@ -368,7 +404,7 @@ def create_user(
                         VALUES (:u, :hp, :n, :e, :r, FALSE)
                         RETURNING id
                     """),
-                    {"u": username, "hp": hashed_password, "n": name, "e": email or None, "r": role},
+                    {"u": username, "hp": hashed_password, "n": name, "e": email or None, "r": db_role},
                 ).fetchone()
             # 전화번호 사이드 파일 보존 (컬럼 유무와 무관하게 항상 기록)
             if phone:

@@ -51,6 +51,13 @@ class RegisterRequest(BaseModel):
     name: str = Field("", max_length=64)
     email: str = Field(..., min_length=5, max_length=128)   # 필수
     phone: str = Field(..., min_length=9, max_length=20)    # 필수 (연락처)
+    role: str = Field("farmer", max_length=20)              # farmer|org|distributor|expert|public
+
+    @field_validator("role")
+    @classmethod
+    def _chk_role(cls, v: str) -> str:
+        v = (v or "farmer").strip()
+        return v if v in ("farmer", "org", "distributor", "expert", "public") else "farmer"
 
     @field_validator("email")
     @classmethod
@@ -279,7 +286,7 @@ async def register(req: RegisterRequest):
             name=req.name,
             email=req.email,
             phone=req.phone,
-            role="farmer",
+            role=req.role,   # C0 선택 역할 저장(farmer|org|distributor|expert|public)
         )
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))

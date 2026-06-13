@@ -81,6 +81,11 @@
 
 <main class="sf-main" style="padding:14px;max-width:480px;margin:0 auto;">
 
+  <div id="distRoleBanner" style="display:none;font-size:11.5px;background:var(--blue-soft);color:var(--blue);border-radius:10px;padding:9px 12px;margin-bottom:10px;line-height:1.5;">
+    🚚 <b>유통전문가 모드</b> — 시세·채널 비교 조회와 공동출하 참여가 가능합니다. 산지 수매·가격 협상·공급처 관리는 <b>준비 중</b>입니다.
+  </div>
+  <script>try{if(localStorage.getItem('sf_signup_role')==='distributor')document.getElementById('distRoleBanner').style.display='block';}catch(e){}</script>
+
   <!-- Pool 운영 KPI -->
   <div class="pool-hero">
     <div class="pool-kpi-row">

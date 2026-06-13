@@ -229,6 +229,18 @@ def serve_regions():
         return {"sido": [], "tree": {}, "error": str(e)[:80]}
 
 
+# 공공기관(public 역할) 조회 전용 클러스터 관제 — admin 권한 없이 읽기만 허용
+@app.get("/api/cluster/overview", include_in_schema=False)
+def serve_cluster_overview_public(region: str = "", crop: str = ""):
+    try:
+        from api.data.stats_loader import _farm_registry
+        farms = (_farm_registry() or {}).get("farms", {})
+    except Exception:
+        farms = {}
+    from api.services.cluster_overview import build_overview
+    return build_overview(farms, region=region, crop=crop)
+
+
 # PWA — manifest·service worker·아이콘 (루트 스코프로 전 화면 제어)
 @app.get("/manifest.webmanifest", include_in_schema=False)
 def serve_manifest():
