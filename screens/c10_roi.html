@@ -49,7 +49,7 @@
 (async function(){
   const api=sessionStorage.getItem('sf_api')||location.origin;
   let token=sessionStorage.getItem('sf_token');
-  if(!token){const r=await fetch(`${api}/api/v1/auth/token`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:'admin',password:'1250'})});if(r.ok){token=(await r.json()).access_token;sessionStorage.setItem('sf_token',token);}}
+  if(!token){const r=await fetch(`${api}/api/v1/auth/demo-token`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({})});if(r.ok){token=(await r.json()).access_token;sessionStorage.setItem('sf_token',token);}}
   const farmId=sessionStorage.getItem('sf_farm_id')||'farm_001';
   const H={Authorization:`Bearer ${token}`};
   const [rev,costs]=await Promise.all([

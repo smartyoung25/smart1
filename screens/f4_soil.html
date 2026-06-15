@@ -149,7 +149,7 @@ function onFarmChange(id){sessionStorage.setItem('sf_farm_id',id);location.reloa
 async function _ensureToken(){
   const s=sessionStorage.getItem('sf_token');if(s)return s;
   try{const api=sessionStorage.getItem('sf_api')||location.origin;
-    const r=await fetch(`${api}/api/v1/auth/token`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:'admin',password:'1250'})});
+    const r=await fetch(`${api}/api/v1/auth/demo-token`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({})});
     if(r.ok){const d=await r.json();sessionStorage.setItem('sf_token',d.access_token);return d.access_token;}}catch{}return '';
 }
 function _onWsStatus(s){const dot=document.getElementById('wsDot'),lbl=document.getElementById('wsLabel');if(dot)dot.className='ws-dot '+s;if(lbl)lbl.textContent=s==='connected'?'실시간 연결 중':s==='reconnecting'?'재연결 중…':'연결 안 됨';}

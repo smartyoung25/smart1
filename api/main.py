@@ -62,7 +62,7 @@ if _PUBLIC_DEMO:
     from starlette.responses import JSONResponse as _JSONResp
     _WRITE = {"POST", "PUT", "PATCH", "DELETE"}
     _WRITE_ALLOW = {
-        "/api/v1/auth/token", "/api/v1/auth/register",
+        "/api/v1/auth/token", "/api/v1/auth/demo-token", "/api/v1/auth/register",
         "/api/v1/auth/password/forgot", "/api/v1/auth/password/reset",
         "/api/v1/auth/onboarding",                  # 농장 세팅(C1) 저장
         "/api/telemetry/client",

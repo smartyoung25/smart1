@@ -36,6 +36,7 @@ _EXPIRE_MINUTES = int(os.environ.get("JWT_EXPIRE_MINUTES", "60"))
 _PUBLIC_PATHS: set[str] = {
     "/health",
     "/api/v1/auth/token",
+    "/api/v1/auth/demo-token",    # 공개 데모 무자격 토큰 발급
     "/api/v1/auth/register",     # 신규 회원가입
     "/api/v1/auth/password/forgot",  # 비밀번호 재설정 요청 (비인증)
     "/api/v1/auth/password/reset",   # 새 비밀번호 설정 (토큰 자체 검증)
@@ -133,6 +134,27 @@ async def require_auth(
             headers={"WWW-Authenticate": "Bearer"},
         )
     return decode_token(credentials.credentials)
+
+
+_PUBLIC_DEMO = os.environ.get("PUBLIC_DEMO", "").lower() in ("1", "true", "yes")
+
+
+async def require_admin_view(user: dict = Depends(require_auth)) -> dict:
+    """admin 라우터 접근 — admin/manager는 전체 허용. 'demo' 역할은 공개 데모에서만 허용.
+
+    데모의 파괴적·고비용 쓰기(model promote/rollback·DELETE)는 PublicDemoMiddleware가
+    별도로 차단하므로, 여기서는 데모 신원이 관리자 조회·안전변경 화면(C6·C20 등)을
+    이용할 수 있도록 통과시킨다. 비-데모 배포에는 'demo' 역할 자체가 발급되지 않는다.
+    """
+    role = user.get("role")
+    if role in ("admin", "manager", "superadmin"):
+        return user
+    if role == "demo" and _PUBLIC_DEMO:
+        return user
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="관리자 권한이 필요합니다.",
+    )
 
 
 def require_role(role: str):

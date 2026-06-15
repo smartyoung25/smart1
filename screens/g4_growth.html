@@ -348,9 +348,9 @@ async function _ensureToken() {
   if (s) return s;
   try {
     const api = sessionStorage.getItem('sf_api') || location.origin;
-    const r = await fetch(`${api}/api/v1/auth/token`, {
+    const r = await fetch(`${api}/api/v1/auth/demo-token`, {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({username:'admin',password:'1250'}),
+      body: JSON.stringify({}),
     });
     if (r.ok) { const d = await r.json(); sessionStorage.setItem('sf_token', d.access_token); return d.access_token; }
   } catch {}
