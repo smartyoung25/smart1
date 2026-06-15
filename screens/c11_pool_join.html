@@ -108,14 +108,28 @@ let _step=1;
 const STEP_NAMES=['조직 선택','출하 품목','예상 물량','품질 등급','약정 동의','확인'];
 const form={ org:'', crop_ko:'', volume_kg:null, ship_date:'', min_grade:'', consents:{c1:false,c2:false,c3:false} };
 const ORGS=[['논산딸기연합','🍓'],['부여토마토조합','🍅'],['청양파프리카','🫑'],['KAASA 통합Pool','🤝']];
-const CROPS=[['딸기','🍓'],['오이','🥒'],['완숙토마토','🍅'],['방울토마토','🍅'],['파프리카','🫑'],['참외','🍈'],['감귤','🍊'],['월동무','🥬'],['당근','🥕'],['양배추','🥬'],['브로콜리','🥦'],['마늘','🧄'],['양파','🧅']];
-const GRADES=[['A등급(상품)','🥇'],['B등급(보통)','🥈'],['C등급(등외)','🥉'],['혼합','📦']];
+const CROPS=[['딸기','🍓'],['오이','🥒'],['가지','🍆'],['완숙토마토','🍅'],['방울토마토','🍅'],['파프리카','🫑'],['참외','🍈'],['감귤','🍊'],['월동무','🥬'],['당근','🥕'],['양배추','🥬'],['브로콜리','🥦'],['마늘','🧄'],['양파','🧅']];
+// ── 작목별 품질 등급 체계 (현장 표기 상이) ──────────────────────────
+//   num : 숫자형(1·2·3등급) — 딸기·완숙토마토·방울토마토
+//   ts  : 특·상·등외 — 오이·가지
+//   std : 특·상·보통(표준규격 기본) — 그 외 작목 폴백
+const GRADE_SETS={
+  num:[['1등급','🥇'],['2등급','🥈'],['3등급','🥉'],['혼합','📦']],
+  ts :[['특','🥇'],['상','🥈'],['등외','🥉'],['혼합','📦']],
+  std:[['특','🥇'],['상','🥈'],['보통','🥉'],['혼합','📦']],
+};
+const CROP_GRADE={ '딸기':'num','완숙토마토':'num','방울토마토':'num','오이':'ts','가지':'ts' };
+function _gradesFor(crop){ return GRADE_SETS[CROP_GRADE[crop]||'std']; }
+function _renderGrades(){
+  const set=_gradesFor(form.crop_ko);
+  document.getElementById('gradeGrid').innerHTML=set.map(([c,i])=>`<div class="opt-card${form.min_grade===c?' sel':''}" onclick="_sel('min_grade','${c}',this,'#gradeGrid')"><span class="opt-ico">${i}</span>${c}</div>`).join('');
+}
 
 window.addEventListener('DOMContentLoaded', ()=>{
   _ensureToken();
   document.getElementById('orgGrid').innerHTML=ORGS.map(([c,i])=>`<div class="opt-card" onclick="_sel('org','${c}',this,'#orgGrid')"><span class="opt-ico">${i}</span>${c}</div>`).join('');
   document.getElementById('cropGrid').innerHTML=CROPS.map(([c,i])=>`<div class="opt-card" onclick="_sel('crop_ko','${c}',this,'#cropGrid')"><span class="opt-ico">${i}</span>${c}</div>`).join('');
-  document.getElementById('gradeGrid').innerHTML=GRADES.map(([c,i])=>`<div class="opt-card" onclick="_sel('min_grade','${c}',this,'#gradeGrid')"><span class="opt-ico">${i}</span>${c}</div>`).join('');
+  _renderGrades();   // 기본(표준형) 1회 렌더 — step4 진입 시 작목 기준 재렌더
   // 기존 farm 작물 자동 선택 시도
   _showStep(1);
 });
@@ -127,7 +141,11 @@ async function _ensureToken(){
     if(r.ok){const d=await r.json();sessionStorage.setItem('sf_token',d.access_token);return d.access_token;}}catch{}return '';
 }
 
-function _sel(key,val,el,grid){ form[key]=val; document.querySelectorAll(`${grid} .opt-card`).forEach(x=>x.classList.remove('sel')); el.classList.add('sel'); }
+function _sel(key,val,el,grid){
+  form[key]=val; document.querySelectorAll(`${grid} .opt-card`).forEach(x=>x.classList.remove('sel')); el.classList.add('sel');
+  // 작목이 바뀌면 등급 체계가 달라지므로 선택 초기화
+  if(key==='crop_ko'){ form.min_grade=''; }
+}
 function _toggleConsent(id){ form.consents[id]=!form.consents[id]; document.getElementById(id).classList.toggle('checked', form.consents[id]); }
 
 function _showStep(n){
@@ -138,6 +156,7 @@ function _showStep(n){
   document.getElementById('wizStepNum').textContent=`${n} / ${TOTAL}`;
   document.getElementById('btnPrev').disabled=n===1;
   document.getElementById('btnNext').textContent=n===TOTAL?'가입 신청':'다음';
+  if(n===4) _renderGrades();   // 선택한 작목 기준 등급 카드 재렌더
   if(n===TOTAL) _renderSummary();
 }
 function _collect(){

@@ -3,7 +3,7 @@
  * 정적(CSS/JS/아이콘): stale-while-revalidate → 빠름 + 백그라운드 갱신
  * API(/api/): network-first
  */
-const CACHE = 'kaasa-smartos-v31';  // ★ 버전 변경 시 구 캐시 자동 삭제 (v31: 영농 가이드 3종(관수·환경·병해) SEO 페이지)
+const CACHE = 'kaasa-smartos-v32';  // ★ 버전 변경 시 구 캐시 자동 삭제 (v32: C11 작목별 품질등급 표기·가지 품목)
 const CORE = [
   '/intro', '/index.html',
   '/components/base.css', '/components/data.js',
