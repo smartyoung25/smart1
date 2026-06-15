@@ -61,7 +61,9 @@ _PUBLIC_PATHS: set[str] = {
     "/index.html",  # 네비게이터 (화면들의 ../index.html 링크 대상)
     "/intro",       # 시스템 소개 인트로(랜딩)
     "/favicon.ico",
-    "/api/data",    # IoT 기기 데이터 수집 (JWT 불필요 — 센서/자동화 시스템 호출)
+    # NOTE: '/api/data' 무인증 공개경로 제거 (보안 P0) — 생육/수확 수신·이력 GET은
+    #   엔드포인트에서 require_auth + farm_id 소유권 검증함(data_collection.py).
+    #   외부 IoT 센서 무인증 수집이 필요하면 X-Sensor-Key 헤더 분기로 재개방할 것.
 }
 
 _security = HTTPBearer(auto_error=False)
