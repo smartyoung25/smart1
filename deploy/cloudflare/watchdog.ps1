@@ -8,10 +8,20 @@
 $ErrorActionPreference = "SilentlyContinue"
 
 # ── 단일 인스턴스 가드 (중복 watchdog → cloudflared 중복기동·터널충돌 방지) ──
+#   1차: 프로세스 기반 — 이미 다른 watchdog(-File ...watchdog.ps1)가 살아있으면 즉시 종료.
+#        (Mutex만으로는 강제종료 시 'abandoned' 상태가 되어 중복 획득이 허용되던 문제 보완.)
+$__selfPid = $PID
+$__others = @(Get-CimInstance Win32_Process -Filter "Name='powershell.exe'" -ErrorAction SilentlyContinue |
+    Where-Object { $_.ProcessId -ne $__selfPid -and $_.CommandLine -like '*-File*watchdog.ps1*' })
+if ($__others.Count -gt 0) {
+    exit 0   # 이미 watchdog 가 돌고 있음
+}
+#   2차: 명명 Mutex — abandoned 예외도 '소유권 인계'로 정상 처리(직전 인스턴스 비정상 종료).
 $global:__wdMutex = New-Object System.Threading.Mutex($false, "Global\KAASA_Watchdog_Singleton")
-if (-not $global:__wdMutex.WaitOne(0)) {
-    # 이미 다른 watchdog 가 돌고 있음 → 즉시 종료
-    exit 0
+try {
+    [void]$global:__wdMutex.WaitOne(0)
+} catch [System.Threading.AbandonedMutexException] {
+    # 직전 watchdog 가 mutex 보유 중 종료됨 → 본 인스턴스가 소유권 인계(정상 진행)
 }
 
 $SMART = "C:\smart_farm"
@@ -30,6 +40,10 @@ function Test-Api {
 }
 
 function Start-Api {
+    # 중복 기동 방지: 이미 uvicorn 프로세스가 있으면(느린 부팅 중 /health 미응답) 새로 띄우지 않음
+    $alive = @(Get-CimInstance Win32_Process -Filter "Name='python.exe'" -ErrorAction SilentlyContinue |
+        Where-Object { $_.CommandLine -like '*uvicorn*api.main:app*' })
+    if ($alive.Count -gt 0) { Log "uvicorn 기동 중(부팅 대기) — 중복 기동 생략"; return }
     # 줄연속(백틱) 미사용 — 실행환경에서 백틱 유실 시 파싱오류로 재기동 실패하던 문제 방지
     $env:PYTHONPATH = $SMART; $env:PYTHONIOENCODING = "utf-8"; $env:PUBLIC_DEMO = "1"
     $apiArgs = @("-m","uvicorn","api.main:app","--host","0.0.0.0","--port","8000","--log-level","warning")
