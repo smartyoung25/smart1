@@ -1,6 +1,6 @@
 {
   "generated_at": "2026-05-10T10:48:35.173501",
-  "total_farms": 725,
+  "total_farms": 727,
   "area_stats_by_crop": {
     "가지": {
       "avg_m2": 1930.0,
@@ -9409,6 +9409,28 @@
       "sigungu": "서귀포시",
       "area_m2": 3000.0,
       "name": "감귤 농장 (jeju_gam)",
+      "iot_available": false,
+      "onboarding": true
+    },
+    "farm_testq": {
+      "crop": "딸기",
+      "crop_ko": "딸기",
+      "sido": "충청남도",
+      "sigungu": "논산시",
+      "emd": "광석면",
+      "area_m2": 1000.0,
+      "name": "테스트농장",
+      "iot_available": false,
+      "onboarding": true
+    },
+    "farm_3yrnkv": {
+      "crop": "오이",
+      "crop_ko": "오이",
+      "sido": "세종특별자치시",
+      "sigungu": "—",
+      "emd": "연서면 월하리",
+      "area_m2": 1000.0,
+      "name": "말라이카",
       "iot_available": false,
       "onboarding": true
     }

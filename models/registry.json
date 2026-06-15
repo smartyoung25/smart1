@@ -1,6 +1,6 @@
 {
   "strawberry": {
-    "active_version": 7,
+    "active_version": 8,
     "versions": [
       {
         "version": 1,
@@ -76,13 +76,24 @@
         "mape_stage3": 17.9,
         "cv_r2": 0.25,
         "gate_passed": false,
-        "is_active": true,
+        "is_active": false,
         "snapshot_version": 7
+      },
+      {
+        "version": 8,
+        "timestamp": "2026-06-14T06:25:27.061513+00:00",
+        "triggered_by": "retrain_trigger",
+        "mape_stage2": 19.8,
+        "mape_stage3": 17.9,
+        "cv_r2": 0.25,
+        "gate_passed": false,
+        "is_active": true,
+        "snapshot_version": 8
       }
     ]
   },
   "cherry_tomato": {
-    "active_version": 7,
+    "active_version": 8,
     "versions": [
       {
         "version": 1,
@@ -158,13 +169,24 @@
         "mape_stage3": 18.2,
         "cv_r2": 0.167,
         "gate_passed": false,
-        "is_active": true,
+        "is_active": false,
         "snapshot_version": 7
+      },
+      {
+        "version": 8,
+        "timestamp": "2026-06-14T06:25:31.684579+00:00",
+        "triggered_by": "retrain_trigger",
+        "mape_stage2": 8.8,
+        "mape_stage3": 18.2,
+        "cv_r2": 0.167,
+        "gate_passed": false,
+        "is_active": true,
+        "snapshot_version": 8
       }
     ]
   },
   "tomato": {
-    "active_version": 7,
+    "active_version": 8,
     "versions": [
       {
         "version": 1,
@@ -240,13 +262,24 @@
         "mape_stage3": 26.0,
         "cv_r2": 0.366,
         "gate_passed": false,
-        "is_active": true,
+        "is_active": false,
         "snapshot_version": 7
+      },
+      {
+        "version": 8,
+        "timestamp": "2026-06-14T06:25:36.316618+00:00",
+        "triggered_by": "retrain_trigger",
+        "mape_stage2": 17.1,
+        "mape_stage3": 26.0,
+        "cv_r2": 0.366,
+        "gate_passed": false,
+        "is_active": true,
+        "snapshot_version": 8
       }
     ]
   },
   "melon": {
-    "active_version": 7,
+    "active_version": 8,
     "versions": [
       {
         "version": 1,
@@ -322,13 +355,24 @@
         "mape_stage3": 12.8,
         "cv_r2": 0.225,
         "gate_passed": false,
-        "is_active": true,
+        "is_active": false,
         "snapshot_version": 7
+      },
+      {
+        "version": 8,
+        "timestamp": "2026-06-14T06:25:40.907680+00:00",
+        "triggered_by": "retrain_trigger",
+        "mape_stage2": 8.7,
+        "mape_stage3": 12.8,
+        "cv_r2": 0.225,
+        "gate_passed": false,
+        "is_active": true,
+        "snapshot_version": 8
       }
     ]
   },
   "paprika": {
-    "active_version": 7,
+    "active_version": 8,
     "versions": [
       {
         "version": 1,
@@ -404,8 +448,19 @@
         "mape_stage3": 16.0,
         "cv_r2": 0.204,
         "gate_passed": false,
-        "is_active": true,
+        "is_active": false,
         "snapshot_version": 7
+      },
+      {
+        "version": 8,
+        "timestamp": "2026-06-14T06:25:45.560468+00:00",
+        "triggered_by": "retrain_trigger",
+        "mape_stage2": 11.8,
+        "mape_stage3": 16.0,
+        "cv_r2": 0.204,
+        "gate_passed": false,
+        "is_active": true,
+        "snapshot_version": 8
       }
     ]
   }

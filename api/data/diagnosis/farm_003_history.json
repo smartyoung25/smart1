@@ -1,0 +1,17 @@
+[
+  {
+    "date": "2026-06-12",
+    "ts": "2026-06-12T14:25:47.187020+00:00",
+    "overall": 33,
+    "grade": "개선필요",
+    "domains": {
+      "sensor": 0,
+      "actuator": 0,
+      "cultivation": 50,
+      "operation": 49,
+      "sales": 70,
+      "data": 30
+    },
+    "consultant": "라이브검증"
+  }
+]

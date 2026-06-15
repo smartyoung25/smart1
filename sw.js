@@ -3,7 +3,7 @@
  * 정적(CSS/JS/아이콘): stale-while-revalidate → 빠름 + 백그라운드 갱신
  * API(/api/): network-first
  */
-const CACHE = 'kaasa-smartos-v28';  // ★ 버전 변경 시 구 캐시 자동 삭제 (v17: 현장문진 목록·조회·저장·수정 CRUD)
+const CACHE = 'kaasa-smartos-v29';  // ★ 버전 변경 시 구 캐시 자동 삭제 (v29: OG PNG·네비/화면별 SEO 메타)
 const CORE = [
   '/intro', '/index.html',
   '/components/base.css', '/components/data.js',

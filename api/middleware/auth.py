@@ -49,6 +49,7 @@ _PUBLIC_PATHS: set[str] = {
     "/manifest.webmanifest",     # PWA manifest (브라우저 비인증 로드)
     "/sw.js",                    # PWA 서비스워커
     "/icon.svg",                 # PWA 아이콘
+    "/og-image.png",             # SEO 소셜 공유 카드(1200×630)
     "/docs",
     "/redoc",
     "/openapi.json",

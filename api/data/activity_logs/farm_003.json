@@ -1,0 +1,51 @@
+[
+  {
+    "ts": "2026-06-12T08:33:38.649824+00:00",
+    "kind": "irrigation",
+    "item": "관수 기록",
+    "value": 1.0,
+    "detail": ""
+  },
+  {
+    "ts": "2026-06-12T14:25:18.844332+00:00",
+    "kind": "test",
+    "item": "livecheck",
+    "value": 1.0,
+    "detail": ""
+  },
+  {
+    "ts": "2026-06-12T14:25:46.856733+00:00",
+    "kind": "관수",
+    "item": "라이브 관수기록",
+    "value": 1.0,
+    "detail": ""
+  },
+  {
+    "ts": "2026-06-12T15:02:52.054092+00:00",
+    "kind": "x",
+    "item": "",
+    "value": null,
+    "detail": ""
+  },
+  {
+    "ts": "2026-06-13T10:39:30.403793+00:00",
+    "kind": "disease_check",
+    "item": "x",
+    "value": null,
+    "detail": "y"
+  },
+  {
+    "ts": "2026-06-13T10:39:32.504431+00:00",
+    "kind": "cost_reduction",
+    "item": "x",
+    "value": null,
+    "detail": "y"
+  },
+  {
+    "ts": "2026-06-13T10:53:25.185808+00:00",
+    "kind": "x",
+    "item": "",
+    "value": null,
+    "detail": ""
+  }
+]

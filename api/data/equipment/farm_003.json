@@ -1,0 +1,22 @@
+[
+  {
+    "device_id": "NEXT-946",
+    "category": "sensor",
+    "device_type": "온습도센서",
+    "location": "",
+    "maker": "테스트",
+    "model": "",
+    "protocol": "Modbus",
+    "host": "",
+    "port": null,
+    "unit_id": null,
+    "datapoints": [
+      {
+        "tag": "t1",
+        "canonical_name": "temp_internal"
+      }
+    ],
+    "install_date": "",
+    "ts": "2026-06-15T01:25:42.476312+00:00"
+  }
+]

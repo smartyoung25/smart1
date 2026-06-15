@@ -1,0 +1,27 @@
+{
+  "user_id": 69,
+  "farm_id": "farm_3yrnkv",
+  "farm_name": "말라이카",
+  "crop_ko": "오이",
+  "facility_type": "단동온실",
+  "area_m2": null,
+  "cultivation_method": "배지경",
+  "cultivation_detail": "코코피트",
+  "irrigation_method": "",
+  "region": "세종특별자치시",
+  "sido": "세종특별자치시",
+  "sigungu": "",
+  "emd": "연서면 월하리",
+  "address_detail": "289번지",
+  "season_start": "2026-06-15",
+  "season_end": "2026-09-15",
+  "growing_year": 1,
+  "pain_points": [
+    "수확량 증대",
+    "인건비 절감"
+  ],
+  "kpi_yield_kg": null,
+  "kpi_revenue_wan": null,
+  "kpi_energy_save": null,
+  "kpi_drain_rate": null
+}

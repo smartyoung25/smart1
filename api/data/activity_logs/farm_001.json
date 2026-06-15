@@ -320,5 +320,12 @@
     "item": "AI 관수·양액 추천",
     "value": 72.0,
     "detail": "내부 온도 +5.0℃ · 심각도 info · 출처 model"
+  },
+  {
+    "ts": "2026-06-15T00:55:08.053660+00:00",
+    "kind": "decision_apply",
+    "item": "관수 기준값 확인",
+    "value": 70.0,
+    "detail": "배액률 20~30% 유지 (농진청 표준) · 심각도 info · 출처 standard"
   }
 ]

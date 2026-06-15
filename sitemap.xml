@@ -8,6 +8,7 @@
   <url><loc>https://farmingsight.org/screens/g3_period.html</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
   <url><loc>https://farmingsight.org/screens/g2_env.html</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
   <url><loc>https://farmingsight.org/screens/f1_field.html</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://farmingsight.org/screens/g5_disease.html</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
   <url><loc>https://farmingsight.org/screens/c12_joint.html</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
   <url><loc>https://farmingsight.org/screens/c22_tiers.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
   <url><loc>https://farmingsight.org/screens/help.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>

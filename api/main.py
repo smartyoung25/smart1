@@ -270,3 +270,8 @@ def serve_sw():
 @app.get("/icon.svg", include_in_schema=False)
 def serve_icon():
     return FileResponse(str(_SMARTOS_ROOT / "icon.svg"), media_type="image/svg+xml")
+
+@app.get("/og-image.png", include_in_schema=False)
+def serve_og_image():
+    # SEO/소셜 공유 카드(1200×630) — Open Graph·Twitter Card 썸네일
+    return FileResponse(str(_SMARTOS_ROOT / "og-image.png"), media_type="image/png")

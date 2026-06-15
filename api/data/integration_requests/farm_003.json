@@ -1,0 +1,14 @@
+[
+  {
+    "kind": "equipment",
+    "title": "테스트",
+    "maker": "",
+    "protocol": "",
+    "infra_level": "manual_valve",
+    "contact": "010",
+    "note": "",
+    "id": "req_1781275963",
+    "ts": "2026-06-12T14:52:43.540493+00:00",
+    "status": "접수"
+  }
+]
