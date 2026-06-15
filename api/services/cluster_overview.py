@@ -10,6 +10,17 @@
 """
 from __future__ import annotations
 import hashlib
+import os
+
+# 익명화 솔트 — 서버 시크릿 기반(없으면 폴백). 솔트가 비밀이라 farm_id 브루트포스 역추적 차단.
+_ANON_SALT = (os.environ.get("CLUSTER_ANON_SALT")
+              or os.environ.get("JWT_SECRET_KEY")
+              or "kaasa-cluster-anon")
+
+
+def _anon(fid: str) -> str:
+    """공개 응답용 익명 농장 프록시ID — 솔트 해시(역추적 불가)."""
+    return "f_" + hashlib.md5(f"{fid}:{_ANON_SALT}".encode("utf-8")).hexdigest()[:8]
 
 
 def _proxy(fid: str, salt: str, lo: float, hi: float) -> float:
@@ -25,8 +36,13 @@ def _diag(fid: str) -> int:
     return int(round(_proxy(fid, "diag", 45, 94)))
 
 
-def build_overview(farms: dict, region: str = "", crop: str = "") -> dict:
-    """registry farms({fid:{crop,sido,sigungu,...}}) → 광역 클러스터 집계."""
+def build_overview(farms: dict, region: str = "", crop: str = "",
+                   anonymize: bool = False) -> dict:
+    """registry farms({fid:{crop,sido,sigungu,...}}) → 광역 클러스터 집계.
+
+    anonymize=True(무인증 공개 응답): 출력 farm_id를 솔트 해시 프록시로 대체해
+    개별 농가 역추적을 차단(P1 PII). 인증된 admin 경로는 False로 원본 유지(위치특정→실행).
+    """
     region = (region or "").strip()
     crop = (crop or "").strip()
     rows = []
@@ -39,7 +55,7 @@ def build_overview(farms: dict, region: str = "", crop: str = "") -> dict:
             continue
         v = _vigor(fid); dg = _diag(fid)
         status = "이상" if (v < 0.50 or dg < 55) else ("주의" if (v < 0.58 or dg < 65) else "정상")
-        rows.append({"farm_id": fid, "sido": sido,
+        rows.append({"farm_id": (_anon(fid) if anonymize else fid), "sido": sido,
                      "sigungu": (f.get("sigungu") or "").strip(),
                      "crop": c, "vigor": v, "diag": dg, "status": status})
 
