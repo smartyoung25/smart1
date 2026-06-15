@@ -245,6 +245,17 @@ def serve_cluster_overview_public(region: str = "", crop: str = ""):
     return build_overview(farms, region=region, crop=crop)
 
 
+# SEO — robots.txt / sitemap.xml (검색엔진 크롤링)
+@app.get("/robots.txt", include_in_schema=False)
+def serve_robots():
+    return FileResponse(str(_SMARTOS_ROOT / "robots.txt"), media_type="text/plain")
+
+
+@app.get("/sitemap.xml", include_in_schema=False)
+def serve_sitemap():
+    return FileResponse(str(_SMARTOS_ROOT / "sitemap.xml"), media_type="application/xml")
+
+
 # PWA — manifest·service worker·아이콘 (루트 스코프로 전 화면 제어)
 @app.get("/manifest.webmanifest", include_in_schema=False)
 def serve_manifest():

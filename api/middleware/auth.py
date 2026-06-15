@@ -44,6 +44,8 @@ _PUBLIC_PATHS: set[str] = {
     "/api/telemetry/client",     # 클라이언트 에러 텔레메트리(비인증 수집)
     "/api/regions",              # 행정구역 시도→시군구(공개 GET, C1 농장세팅용)
     "/api/cluster/overview",     # 공공기관 조회 전용 클러스터 관제(읽기)
+    "/robots.txt",               # SEO 크롤러
+    "/sitemap.xml",              # SEO 사이트맵
     "/manifest.webmanifest",     # PWA manifest (브라우저 비인증 로드)
     "/sw.js",                    # PWA 서비스워커
     "/icon.svg",                 # PWA 아이콘

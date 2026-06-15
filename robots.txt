@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /$
+Allow: /intro
+Allow: /smartos
+Allow: /screens/
+Allow: /components/
+Disallow: /api/
+
+Sitemap: https://farmingsight.org/sitemap.xml
