@@ -275,7 +275,9 @@ const KaasaData = (() => {
   function wsConnect() {
     if (_ws) { _ws.onclose = null; _ws.close(); }
     clearTimeout(_wsTimer);
-    const url = `${_apiBase.replace(/^http/, 'ws')}/ws/farms/${_farmId}/sensors`;
+    // 인증 토큰을 쿼리로 전달 (WS는 헤더 미지원) — 서버가 소유권 검증
+    const _tq = _token ? `?token=${encodeURIComponent(_token)}` : '';
+    const url = `${_apiBase.replace(/^http/, 'ws')}/ws/farms/${_farmId}/sensors${_tq}`;
     try { _ws = new WebSocket(url); } catch { _scheduleRetry(); return; }
 
     _ws.onopen = () => {
