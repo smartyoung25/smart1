@@ -95,7 +95,7 @@ window.addEventListener('DOMContentLoaded',()=>{
   _ensureToken().then(t=>KaasaData.init({farmId,token:t,onStatus:_ws}));
 });
 function onFarmChange(id){sessionStorage.setItem('sf_farm_id',id);location.reload();}
-async function _ensureToken(){const s=sessionStorage.getItem('sf_token');if(s)return s;try{const a=sessionStorage.getItem('sf_api')||location.origin;const r=await fetch(`${a}/api/v1/auth/token`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:'admin',password:'1250'})});if(r.ok){const d=await r.json();sessionStorage.setItem('sf_token',d.access_token);return d.access_token;}}catch{}return '';}
+async function _ensureToken(){const s=sessionStorage.getItem('sf_token');if(s)return s;try{const a=sessionStorage.getItem('sf_api')||location.origin;const r=await fetch(`${a}/api/v1/auth/demo-token`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({})});if(r.ok){const d=await r.json();sessionStorage.setItem('sf_token',d.access_token);return d.access_token;}}catch{}return '';}
 function _ws(s){const d=document.getElementById('wsDot'),l=document.getElementById('wsLabel');if(d)d.className='ws-dot '+s;if(l)l.textContent=s==='connected'?'실시간 연결 중':'연결 안 됨';}
 
 function _autoGrow(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,100)+'px';}

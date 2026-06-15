@@ -78,7 +78,7 @@ async function _loadSoil(token){
     _renderMap(); _renderCheck();
   }catch(e){ /* 예시값 유지 */ }
 }
-async function _ensureToken(){const s=sessionStorage.getItem('sf_token');if(s)return s;try{const a=sessionStorage.getItem('sf_api')||location.origin;const r=await fetch(`${a}/api/v1/auth/token`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:'admin',password:'1250'})});if(r.ok){const d=await r.json();sessionStorage.setItem('sf_token',d.access_token);return d.access_token;}}catch{}return '';}
+async function _ensureToken(){const s=sessionStorage.getItem('sf_token');if(s)return s;try{const a=sessionStorage.getItem('sf_api')||location.origin;const r=await fetch(`${a}/api/v1/auth/demo-token`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({})});if(r.ok){const d=await r.json();sessionStorage.setItem('sf_token',d.access_token);return d.access_token;}}catch{}return '';}
 function _refreshRecent(){ if(window.RecordSheet) RecordSheet.renderRecent(document.getElementById('recentRec'),_farmG,_tokenG,{kinds:['disease_check','todo'],limit:5}); }
 function _openCheckRecord(){
   const low=CELLS.map((v,i)=>({v,i})).filter(x=>x.v<0.5).map(x=>`${Math.floor(x.i/4)+1}행 ${x.i%4+1}열`);

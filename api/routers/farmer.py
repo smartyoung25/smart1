@@ -80,8 +80,10 @@ def _cache_evict() -> None:
 async def _verify_farm_ownership(
     farm_id: str, user: dict = Depends(require_auth)
 ) -> dict:
-    """URL의 farm_id가 인증된 사용자의 소유인지 확인 (admin/manager는 전체 허용)."""
-    if user.get("role") not in ("admin", "manager", "superadmin"):
+    """URL의 farm_id가 인증된 사용자의 소유인지 확인 (admin/manager/demo는 전체 허용)."""
+    # 'demo'는 공개 데모 신원 — 데모 농장(farm_001~005) 전환 시연을 위해 전체 허용.
+    #   (demo 역할은 PUBLIC_DEMO에서만 발급되며, 파괴적 쓰기는 미들웨어가 차단.)
+    if user.get("role") not in ("admin", "manager", "superadmin", "demo"):
         token_farm = user.get("farm_id", "")
         if token_farm and token_farm != farm_id:
             raise HTTPException(

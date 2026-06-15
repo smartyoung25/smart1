@@ -108,7 +108,7 @@ async function _loadRecord(rid){
 }
 function _newChecklist(){ _editId=null; _resp={}; document.getElementById('ckName').value=''; _editBadge(); _loadList(); _rerender(); }
 function _rerender(){ _load(_tokG); }   // 스키마 재렌더(현재 _resp 반영)
-async function _ensureToken(){const s=sessionStorage.getItem('sf_token');if(s)return s;try{const a=sessionStorage.getItem('sf_api')||location.origin;const r=await fetch(`${a}/api/v1/auth/token`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:'admin',password:'1250'})});if(r.ok){const d=await r.json();sessionStorage.setItem('sf_token',d.access_token);return d.access_token;}}catch{}return '';}
+async function _ensureToken(){const s=sessionStorage.getItem('sf_token');if(s)return s;try{const a=sessionStorage.getItem('sf_api')||location.origin;const r=await fetch(`${a}/api/v1/auth/demo-token`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({})});if(r.ok){const d=await r.json();sessionStorage.setItem('sf_token',d.access_token);return d.access_token;}}catch{}return '';}
 
 async function _load(token, pullResp=true){
   const api=KaasaData.getApiBase?KaasaData.getApiBase():location.origin;

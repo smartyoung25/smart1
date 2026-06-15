@@ -101,7 +101,7 @@ window.addEventListener('DOMContentLoaded',()=>{
   try{ if(localStorage.getItem('sf_signup_role')==='public') document.getElementById('publicRoleBanner').style.display='block'; }catch(e){}
   _ensureToken().then(t=>{ _tokG=t; _reload(); });
 });
-async function _ensureToken(){const s=sessionStorage.getItem('sf_token');if(s)return s;try{const a=sessionStorage.getItem('sf_api')||location.origin;const r=await fetch(`${a}/api/v1/auth/token`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:'admin',password:'1250'})});if(r.ok){const d=await r.json();sessionStorage.setItem('sf_token',d.access_token);return d.access_token;}}catch{}return '';}
+async function _ensureToken(){const s=sessionStorage.getItem('sf_token');if(s)return s;try{const a=sessionStorage.getItem('sf_api')||location.origin;const r=await fetch(`${a}/api/v1/auth/demo-token`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({})});if(r.ok){const d=await r.json();sessionStorage.setItem('sf_token',d.access_token);return d.access_token;}}catch{}return '';}
 function _drill(fid){ sessionStorage.setItem('sf_farm_id',fid); location.href='c17_diagnosis.html?farm='+encodeURIComponent(fid); }
 async function _reload(){
   const api=(window.KaasaData&&KaasaData.getApiBase)?KaasaData.getApiBase():location.origin;

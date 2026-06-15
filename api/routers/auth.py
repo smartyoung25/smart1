@@ -25,6 +25,9 @@ _PHONE_RE = _re.compile(r"^0\d{1,2}-?\d{3,4}-?\d{4}$")
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
+# 공개 데모 모드 — 무자격 데모토큰 발급 게이트
+_PUBLIC_DEMO = os.environ.get("PUBLIC_DEMO", "").lower() in ("1", "true", "yes")
+
 # farm_registry.json 경로 (프로젝트 루트 기준)
 _FARM_REGISTRY_PATH = Path(__file__).parent.parent / "data" / "farm_registry.json"
 
@@ -270,6 +273,41 @@ async def issue_token(req: TokenRequest):
     else:
         onboarding_required = not bool(user.get("onboarding_completed", False))
     return _build_token_response(user, onboarding_required=onboarding_required)
+
+
+@router.post("/demo-token", response_model=TokenResponse, summary="공개 데모 토큰 발급(무자격)")
+async def issue_demo_token():
+    """공개 데모(PUBLIC_DEMO=1) 전용 — 자격증명 없이 데모 토큰 발급.
+
+    클라이언트 소스에 admin/비밀번호를 박지 않기 위한 근본 대책:
+      - role="demo" (관리자 아님), farm_id="farm_001"
+      - 전 기능 시연을 위해 tier="enterprise"로 노출
+      - 파괴적·관리자 쓰기는 PublicDemoMiddleware가 차단,
+        admin 조회화면은 require_admin_view가 demo 역할의 GET만 허용.
+    PUBLIC_DEMO가 아니면 발급하지 않는다(403).
+    """
+    if not _PUBLIC_DEMO:
+        raise HTTPException(status_code=403, detail="데모 토큰은 공개 데모 모드에서만 발급됩니다.")
+    from api.middleware.auth import create_access_token
+    from api.services.billing import _AI_QUOTAS
+
+    expire_minutes = int(os.environ.get("JWT_EXPIRE_MINUTES", "60"))
+    tier = "enterprise"
+    token = create_access_token({
+        "sub":     "demo",
+        "role":    "demo",
+        "farm_id": "farm_001",
+        "tier":    tier,
+        "user_id": 0,
+        "demo":    True,
+    })
+    return TokenResponse(
+        access_token=token,
+        expires_in=expire_minutes * 60,
+        tier=tier,
+        chat_quota_max=_AI_QUOTAS.get(tier, 0),
+        onboarding_required=False,
+    )
 
 
 # ── 회원가입 ──────────────────────────────────────────────────────────────────

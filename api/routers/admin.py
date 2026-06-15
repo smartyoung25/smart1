@@ -13,7 +13,7 @@ from uuid import uuid4
 from fastapi import APIRouter, Depends, HTTPException, Query, Body
 from pydantic import BaseModel
 
-from api.middleware.auth import require_role
+from api.middleware.auth import require_role, require_admin_view
 from api.schemas.admin import (
     AdminOverview,
     CropModelInfo,
@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(
     prefix="/api/admin",
     tags=["admin"],
-    dependencies=[Depends(require_role("admin"))],  # 모든 admin 라우트에 admin 역할 필수
+    dependencies=[Depends(require_admin_view)],  # admin/manager 전체 + 공개데모 demo 조회 허용
 )
 
 ARTIFACTS_DIR = Path(__file__).parent.parent.parent / "models" / "artifacts"
