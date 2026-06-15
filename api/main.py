@@ -249,7 +249,8 @@ def serve_cluster_overview_public(region: str = "", crop: str = ""):
     except Exception:
         farms = {}
     from api.services.cluster_overview import build_overview
-    return build_overview(farms, region=region, crop=crop)
+    # 무인증 공개 경로 → 개별 farm_id를 익명 해시 프록시로(P1 PII 역추적 차단)
+    return build_overview(farms, region=region, crop=crop, anonymize=True)
 
 
 # SEO — robots.txt / sitemap.xml (검색엔진 크롤링)
