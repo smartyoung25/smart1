@@ -32,12 +32,31 @@ from collections import defaultdict
 from datetime import datetime, timezone
 from typing import Optional
 
-from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
+
+from api.middleware.auth import decode_token, require_auth
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["realtime"])
+
+# ── 소유권 검증 (WS는 HTTP 미들웨어를 우회하므로 엔드포인트 내부에서 검증) ─────────
+_OWNER_BYPASS = ("admin", "manager", "superadmin", "demo")
+
+
+def _owner_ok(user: dict, farm_id: str) -> bool:
+    """토큰 농장이 대상 farm_id와 일치하거나 관리/데모 역할이면 True."""
+    role = (user or {}).get("role", "")
+    if role in _OWNER_BYPASS:
+        return True
+    token_farm = (user or {}).get("farm_id", "")
+    return bool(token_farm) and token_farm == farm_id
+
+
+def _require_owner_http(user: dict, farm_id: str) -> None:
+    if not _owner_ok(user, farm_id):
+        raise HTTPException(status_code=403, detail="해당 농가에 대한 접근 권한이 없습니다.")
 
 # ── 연결 관리자 ───────────────────────────────────────────────────────────────
 
@@ -162,9 +181,24 @@ def _setup_mqtt_bridge() -> None:
 async def ws_sensor_stream(websocket: WebSocket, farm_id: str):
     """실시간 센서 스트리밍 WebSocket.
 
+    연결 시 ?token=<JWT> 로 인증 + 농장 소유권 검증(무인증 도청 차단).
     연결 직후 최근 20개 메시지를 일괄 전송 후
     이후 MQTT에서 수신되는 메시지를 실시간으로 푸시합니다.
     """
+    # WS는 JWT 미들웨어를 우회 → 쿼리 토큰을 직접 검증
+    token = websocket.query_params.get("token", "")
+    if not token:
+        await websocket.close(code=4401)   # 인증 토큰 없음
+        return
+    try:
+        user = decode_token(token)
+    except Exception:
+        await websocket.close(code=4401)   # 토큰 검증 실패
+        return
+    if not _owner_ok(user, farm_id):
+        await websocket.close(code=4403)   # 소유권 없음(타 농장 도청 차단)
+        return
+
     await manager.connect(websocket, farm_id)
     try:
         # 연결 직후 최근 캐시 전송
@@ -243,8 +277,10 @@ class SensorStatusResponse(BaseModel):
 def get_latest_sensor(
     farm_id: str,
     n: int = Query(default=20, ge=1, le=200, description="반환 메시지 수"),
+    user: dict = Depends(require_auth),
 ):
-    """WebSocket을 사용할 수 없는 클라이언트를 위한 HTTP 폴링 엔드포인트."""
+    """WebSocket을 사용할 수 없는 클라이언트를 위한 HTTP 폴링 엔드포인트. (인증+소유권)"""
+    _require_owner_http(user, farm_id)
     try:
         from pipeline.mqtt_subscriber import get_recent_messages
         messages = get_recent_messages(farm_id=farm_id, n=n)
@@ -267,8 +303,9 @@ def get_latest_sensor(
     tags=["realtime"],
     summary="센서 스트림 연결 상태",
 )
-def get_sensor_status(farm_id: str):
-    """현재 WebSocket 연결 수와 마지막 수신 시각."""
+def get_sensor_status(farm_id: str, user: dict = Depends(require_auth)):
+    """현재 WebSocket 연결 수와 마지막 수신 시각. (인증+소유권)"""
+    _require_owner_http(user, farm_id)
     mqtt_active = False
     try:
         import pipeline.mqtt_subscriber   # noqa: F401
