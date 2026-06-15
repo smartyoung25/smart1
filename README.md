@@ -2,6 +2,11 @@
 
 스마트팜 환경 데이터 기반 수확량 예측 · 소득 최적화 · 운영 자동화 플랫폼
 
+> **⚠️ 운영 배포 안내 (2026-06 기준)**
+> 실가동 UI는 **모바일 화면 `screens/` (41화면)** 이며, 배포는 **Cloudflare named tunnel(`kaasa-smartos`) → uvicorn :8000** (nginx/docker 미사용)입니다.
+> 구 PC 대시보드(`dashboard/`)는 **`archive/dashboard/`로 이관된 죽은 코드**로, 라우트(`/`·`/dashboard/*`)는 `/intro`로 차단됩니다.
+> 아래 "빠른 시작 (Docker)" 등 docker/nginx 기준 설명은 **레거시 참고용**입니다. 운영 기준은 `CLAUDE.md`를 따르세요.
+
 ---
 
 ## 목차
