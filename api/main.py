@@ -166,6 +166,12 @@ if _DASHBOARD.exists():
 
     @app.get("/", include_in_schema=False)
     def serve_index():
+        # SEO: 루트를 intro.html 직접 서빙(200) — canonical=/ 와 신호 일치
+        # (구: /intro 307 리다이렉트 → 색인 신호 분산). intro head의 canonical이 / 라
+        # 중복콘텐츠(/intro)는 정규화됨.
+        _intro = Path(__file__).parent.parent / "screens" / "intro.html"
+        if _intro.exists():
+            return FileResponse(str(_intro))
         return _Redirect(url="/intro", status_code=307)
 
     @app.get("/dashboard", include_in_schema=False)

@@ -41,6 +41,46 @@
     "publisher": { "@type": "Organization", "name": "KAASA", "url": "https://farmingsight.org/" }
   }
   </script>
+  <!-- 구조화 데이터: 브레드크럼 -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "홈", "item": "https://farmingsight.org/" },
+      { "@type": "ListItem", "position": 2, "name": "화면 네비게이터", "item": "https://farmingsight.org/smartos" }
+    ]
+  }
+  </script>
+  <!-- 구조화 데이터: 자주 묻는 질문(FAQ) — 구글 FAQ 리치결과 -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "KAASA smartfarmingsight는 어떤 서비스인가요?",
+        "acceptedAnswer": { "@type": "Answer", "text": "스마트농업 경영최적화 의사결정 플랫폼입니다. 스마트팜 환경관리, 생육모델 기반 수확량 예측, 이기종 장비 통합, 온실관리·노지관리를 하나로 제공합니다." }
+      },
+      {
+        "@type": "Question",
+        "name": "관수는 어떤 기준으로 제어하나요?",
+        "acceptedAnswer": { "@type": "Answer", "text": "시각이 아닌 일사 적산(J/cm²)·순간 일사(W/m²)를 우선 기준으로 P1~P6 관수 Period를 제어합니다. 급액/배액 EC·pH, 배액률, 슬라브 함수율 dry-back을 함께 관리하며 Priva·Grodan 기준에 정합합니다." }
+      },
+      {
+        "@type": "Question",
+        "name": "어떤 작목을 지원하나요?",
+        "acceptedAnswer": { "@type": "Answer", "text": "온실 6작목과 제주 노지 7작목, 총 13작목의 환경관리·생육모델·관수 의사결정을 지원합니다." }
+      },
+      {
+        "@type": "Question",
+        "name": "이기종 장비도 연동되나요?",
+        "acceptedAnswer": { "@type": "Answer", "text": "복합환경제어기·센서 등 서로 다른 제조사의 이기종 장비를 등록하고 데이터 통합·연동 신청을 통해 하나의 운영 화면에서 관리할 수 있습니다." }
+      }
+    ]
+  }
+  </script>
   <link rel="stylesheet" href="../components/base.css"/>
   <style>
     body{background:var(--bg);}
