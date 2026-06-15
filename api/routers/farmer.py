@@ -85,7 +85,8 @@ async def _verify_farm_ownership(
     #   (demo 역할은 PUBLIC_DEMO에서만 발급되며, 파괴적 쓰기는 미들웨어가 차단.)
     if user.get("role") not in ("admin", "manager", "superadmin", "demo"):
         token_farm = user.get("farm_id", "")
-        if token_farm and token_farm != farm_id:
+        # 빈 farm_id도 거부 (fail-open 우회 차단 — 기존 'and' 단락평가 취약점 Z1)
+        if (not token_farm) or token_farm != farm_id:
             raise HTTPException(
                 status_code=403,
                 detail="해당 농가에 대한 접근 권한이 없습니다.",

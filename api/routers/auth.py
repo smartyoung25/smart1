@@ -262,10 +262,10 @@ async def issue_token(req: TokenRequest):
     if not _verify_password(req.password, user.get("hashed_password", "")):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="인증 실패")
 
-    # farmer/viewer는 farm_id 기본값 보정
+    # Z3 차단: farm_id 없는 일반 사용자를 실증농장 farm_001로 자동 보정하지 않는다.
+    #   (신규 가입자는 create_user가 고유 farm_id를 부여하므로 빈 값이 정상적으로 없음.
+    #    혹시 빈 값이면 그대로 둬 farmer 소유권 검증(Z1)이 거부하도록 한다.)
     role = user.get("role", "viewer")
-    if role not in ("admin", "manager") and not user.get("farm_id"):
-        user["farm_id"] = "farm_001"
 
     # admin/manager는 온보딩 불필요
     if role in ("admin", "manager"):
