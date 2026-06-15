@@ -72,7 +72,7 @@ if _PUBLIC_DEMO:
     #   ※ /api/admin/* 관리자 쓰기는 아래에서 항상 403 유지.
     _WRITE_ALLOW_SUFFIX = ("/chat", "/integration-request", "/equipment", "/climate-plan",
                            "/consent", "/daily-temp", "/whatif", "/diagnosis/checklist",
-                           "/activity")
+                           "/activity", "/irrigation")   # /irrigation: G3 일일 관수 기록 입력
     # 경로 중간 일치 허용(예: 장비 삭제 DELETE /equipment/{device_id})
     _WRITE_ALLOW_CONTAINS = ("/equipment/",)
     # 관리자 조회+안전변경 허용. 재학습 트리거는 엔드포인트가 데모에서 '시뮬레이션+쿨다운'으로
