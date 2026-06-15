@@ -22,6 +22,7 @@ import json
 import logging
 import os
 import re
+import secrets
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
@@ -335,6 +336,10 @@ def create_user(
 ) -> dict:
     """신규 사용자 생성. 생성된 사용자 dict 반환. 중복 시 ValueError."""
     safe = re.sub(r"[^a-z0-9_]", "", username.lower())[:16] or "user"
+    # Z2 차단: farm_id를 username에서 파생하지 않고 충돌 불가능한 고유값으로 부여.
+    #   (기존: f"farm_{safe}" → username '001' 가입 시 실증농장 farm_001 탈취 가능.)
+    #   'farm_u' 접두 + 랜덤 hex → 데모/실증 농장(farm_001~005 등)과 절대 겹치지 않음.
+    new_farm_id = "farm_u" + secrets.token_hex(4)
     engine = _get_engine()
     # 비즈니스 역할(farmer|org|distributor|expert|public)은 사이드 파일에 저장.
     # DB users.role 은 CHECK 제약(admin/manager/farmer/viewer 등) 때문에 안전값으로만 저장.
@@ -346,7 +351,7 @@ def create_user(
         if username in _mem_users:
             raise ValueError(f"이미 사용 중인 사용자명입니다: {username}")
         new_id = max((u["id"] for u in _mem_users.values()), default=100) + 1
-        farm_id = f"farm_{safe}"
+        farm_id = new_farm_id
         user = {
             "id": new_id, "username": username,
             "hashed_password": hashed_password,
@@ -416,7 +421,7 @@ def create_user(
                 except Exception as _e:
                     logger.warning("[persistence] 연락처 사이드 저장 실패: %s", str(_e)[:80])
             user_id = row[0]
-            farm_id = f"farm_{safe}"
+            farm_id = new_farm_id
 
             # farms 테이블에 row가 없으면 먼저 생성 (FK 제약 충족)
             # tier: 'manual' | 'semi_auto' | 'auto'  (farms_tier_check 제약)
