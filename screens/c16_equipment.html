@@ -54,7 +54,8 @@
   <!-- 견적서/시방서 업로드 → 자동 정리 -->
   <div style="margin-top:10px;padding:12px 14px;background:var(--panel-soft);border:1.5px dashed var(--border);border-radius:12px;">
     <div style="font-size:13px;font-weight:800;margin-bottom:4px;">📄 견적서·시방서로 자동 등록</div>
-    <div style="font-size:11px;color:var(--muted);line-height:1.5;margin-bottom:8px;">엑셀(.xlsx/.csv)·PDF·이미지를 올리면 기자재 항목을 자동 추출합니다. 검토 후 일괄 등록.</div>
+    <div style="font-size:11px;color:var(--muted);line-height:1.5;margin-bottom:6px;">엑셀(.xlsx/.csv)·PDF·이미지를 올리면 기자재 항목을 자동 추출합니다. 검토 후 일괄 등록.</div>
+    <div style="font-size:10.5px;color:var(--orange);line-height:1.5;margin-bottom:8px;">⚠️ 주의: 자유양식은 100% 자동인식이 어려워 <b>초안 검토·수정 후 등록</b>하세요. 스캔 이미지는 OCR 환경에서만 인식되며, <b>엑셀·텍스트 PDF</b> 권장.</div>
     <input type="file" id="quoteFile" accept=".xlsx,.xls,.csv,.pdf,.png,.jpg,.jpeg" style="font-size:12px;width:100%;"/>
     <button class="addbtn ghost" style="min-height:42px;font-size:13px;margin-top:8px;" onclick="_importQuote()">불러오기</button>
     <div id="importMsg" style="font-size:12px;font-weight:700;text-align:center;margin-top:8px;min-height:14px;"></div>
@@ -69,9 +70,13 @@
     <span style="font-size:16px;color:var(--blue);">›</span>
   </a>
 
-  <div id="nextStep" style="display:none;margin-top:16px;">
-    <div style="font-size:13px;color:var(--muted);text-align:center;margin-bottom:10px;line-height:1.5;">장비 연동을 마쳤습니다. 다음으로 <b>시스템 종합진단</b>으로 현재 역량과 개선 처방을 확인하세요.</div>
-    <button onclick="location.href='c17_diagnosis.html'" style="width:100%;padding:14px;background:var(--green);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:800;cursor:pointer;min-height:48px;">🩺 종합진단 받기 →</button>
+  <div id="nextStep" style="display:none;margin-top:16px;border-radius:14px;">
+    <div style="font-size:13px;color:var(--muted);text-align:center;margin-bottom:10px;line-height:1.5;">✅ <b id="eqDoneN">장비</b> 등록 완료 — 다음 과정으로 진행하세요.</div>
+    <button onclick="location.href='c17_diagnosis.html'" style="width:100%;padding:14px;background:var(--green);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:800;cursor:pointer;min-height:48px;">🩺 다음: 시스템 종합진단 받기 →</button>
+    <div style="display:flex;gap:8px;margin-top:8px;">
+      <button onclick="location.href='c19_capability.html'" style="flex:1;padding:11px;background:var(--panel);color:var(--green-dark);border:1.5px solid var(--green);border-radius:10px;font-size:12px;font-weight:800;cursor:pointer;min-height:42px;">🎯 역량단계</button>
+      <button onclick="location.href='c3_home.html'" style="flex:1;padding:11px;background:var(--panel);color:var(--muted);border:1.5px solid var(--border);border-radius:10px;font-size:12px;font-weight:800;cursor:pointer;min-height:42px;">🏠 홈으로</button>
+    </div>
   </div>
 </main>
 
@@ -249,7 +254,7 @@ async function _bulkRegister(){
     try{ const r=await fetch(`${api}/api/farms/${_farmG}/equipment`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${_tokenG}`},body:JSON.stringify(body)}); if(r.ok||r.status===403) ok++; }catch(e){}
   }
   msg.style.color='var(--green)'; msg.textContent=`✓ ${ok}건 등록 완료`;
-  _draft=[]; document.getElementById('importPreview').innerHTML=''; document.getElementById('quoteFile').value=''; _loadList();
+  _draft=[]; document.getElementById('importPreview').innerHTML=''; document.getElementById('quoteFile').value=''; _afterSave();
 }
 
 async function _save(){
@@ -274,11 +279,21 @@ async function _save(){
     const api=KaasaData.getApiBase();
     const r=await fetch(`${api}/api/farms/${_farmG}/equipment`,{method:'POST',
       headers:{'Content-Type':'application/json','Authorization':`Bearer ${_tokenG}`},body:JSON.stringify(body)});
-    if(r.status===403){ msg.style.color='var(--green)'; msg.textContent='✓ 저장(데모 모드)'; setTimeout(()=>{_close();_loadList();},700); }
+    if(r.status===403){ msg.style.color='var(--green)'; msg.textContent='✓ 저장(데모 모드)'; setTimeout(_afterSave,700); }
     else if(!r.ok){ throw new Error('HTTP '+r.status); }
-    else { msg.style.color='var(--green)'; msg.textContent='✓ 저장됨'; setTimeout(()=>{_close();_loadList();},700); }
+    else { msg.style.color='var(--green)'; msg.textContent='✓ 저장됨 — 다음 과정으로 안내합니다'; setTimeout(_afterSave,700); }
   }catch(e){ msg.style.color='var(--orange)'; msg.textContent='저장 실패: '+e.message; }
   btn.disabled=false; btn.textContent='장비 저장';
+}
+// 저장 후: 시트 닫고 목록 갱신 → 다음 과정(종합진단)으로 스크롤·강조
+async function _afterSave(){
+  _close(); await _loadList();
+  const ns=document.getElementById('nextStep');
+  if(ns && ns.style.display!=='none'){
+    ns.scrollIntoView({behavior:'smooth', block:'center'});
+    ns.style.transition='box-shadow .3s'; ns.style.boxShadow='0 0 0 3px var(--green-soft)';
+    setTimeout(()=>{ ns.style.boxShadow='none'; }, 1600);
+  }
 }
 
 async function _loadList(){
@@ -288,7 +303,7 @@ async function _loadList(){
   const el=document.getElementById('eqList');
   var _ns=document.getElementById('nextStep');
   if(!items.length){ el.innerHTML='<div class="eq-empty">등록된 장비가 없습니다. ＋ 장비 추가로 시작하세요.</div>'; document.getElementById('mapSummary').style.display='none'; if(_ns)_ns.style.display='none'; return; }
-  if(_ns)_ns.style.display='block';
+  if(_ns){ _ns.style.display='block'; const dn=document.getElementById('eqDoneN'); if(dn) dn.textContent=`장비 ${items.length}대`; }
   el.innerHTML=items.map((it,ix)=>{
     const dps=(it.datapoints||[]);
     return `<div class="eq-card"><div class="eq-head">
