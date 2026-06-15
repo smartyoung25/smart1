@@ -104,3 +104,5 @@ tmp_*.png
 tmp_i.py
 tmp_tr.py
 check_ids.py
+_backup_sec_*/
+scripts/_*.py

@@ -20,8 +20,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 
+from api.middleware.auth import require_auth
 from api.schemas.data_collection import (
     GrowthRecord,
     GrowthRecordResponse,
@@ -34,6 +35,20 @@ from api.schemas.data_collection import (
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/data", tags=["data-collection"])
+
+# 공개 데모 모드 — 재학습 subprocess 실행 차단(시뮬레이션화)에 사용
+_PUBLIC_DEMO = os.environ.get("PUBLIC_DEMO", "").lower() in ("1", "true", "yes")
+
+# 소유권 검증 — 토큰 농장과 대상 farm_id 일치 요구. admin/manager/demo는 전체 허용.
+#   (data_collection은 farmer 라우터 밖이라 _verify_farm_ownership가 적용되지 않으므로
+#    여기서 동형 검사를 수행한다.)
+def _require_owner(user: dict, farm_id: str) -> None:
+    role = (user or {}).get("role", "")
+    if role in ("admin", "manager", "superadmin", "demo"):
+        return
+    token_farm = (user or {}).get("farm_id", "")
+    if (not token_farm) or token_farm != farm_id:
+        raise HTTPException(status_code=403, detail="해당 농가에 대한 접근 권한이 없습니다.")
 
 # ── 저장 경로 (JSON 파일 폴백) ─────────────────────────────────────────────────
 _DATA_DIR = Path("data/collected")
@@ -281,6 +296,14 @@ def _maybe_trigger_retrain(
     if mode is None:
         return False, ""
 
+    # 공개 데모: 실제 재학습(subprocess, 10분 점유) 차단 → 시뮬레이션 로그만.
+    #   무인증/대량 POST로 재학습을 반복 트리거하는 자원고갈(DoS) 경로 제거.
+    if _PUBLIC_DEMO:
+        msg = (f"[데모] {crop_ko} 재학습 임계치 도달(수확 {h_count}건 / 생육 {g_count}건) "
+               f"— 시뮬레이션(실제 학습 미실행)")
+        logger.info("[data_collection] %s", msg)
+        return False, msg
+
     msg = (f"신규 {'수확' if mode == 'both' else '생육'} 데이터 임계치 도달 "
            f"(수확 {h_count}건 / 생육 {g_count}건) — {crop_ko} 재학습 예약")
     logger.info("[data_collection] %s", msg)
@@ -299,13 +322,16 @@ _load_retrain_state()
 def receive_growth(
     body: GrowthRecord,
     background_tasks: BackgroundTasks,
+    user: dict = Depends(require_auth),
 ) -> GrowthRecordResponse:
     """주간 생육 측정값을 수신하여 DB(없으면 JSON 파일)에 저장합니다.
 
+    - 인증 필수 + farm_id 소유권 검증(무인증 모델오염 차단)
     - 모든 환경·생육 필드는 선택 사항 — 입력된 필드만 저장
     - VPD 미입력 시 온도·습도에서 자동 계산
     - 생육 데이터 30건 누적 시 M1 모델 자동 재학습 예약
     """
+    _require_owner(user, body.farm_id)
     rec_id = str(uuid.uuid4())
     now_iso = datetime.now(timezone.utc).isoformat()
 
@@ -372,13 +398,16 @@ def receive_growth(
 def receive_harvest(
     body: HarvestRecord,
     background_tasks: BackgroundTasks,
+    user: dict = Depends(require_auth),
 ) -> HarvestRecordResponse:
     """수확량 실측값을 수신하여 저장합니다.
 
+    - 인증 필수 + farm_id 소유권 검증(무인증 모델오염·재학습DoS 차단)
     - yield_kg_m2 (kg/m²) 는 필수 입력
     - total_yield_kg 미입력 시 yield_kg_m2 × area_m2 자동 계산
     - 수확 데이터 10건 누적 시 M1+M2 모델 자동 재학습 예약
     """
+    _require_owner(user, body.farm_id)
     rec_id = str(uuid.uuid4())
     now_iso = datetime.now(timezone.utc).isoformat()
 
@@ -467,8 +496,10 @@ def receive_harvest(
 def get_growth_history(
     farm_id: str = Query(..., description="농장 ID"),
     limit: int  = Query(50, ge=1, le=200, description="반환할 최대 레코드 수"),
+    user: dict = Depends(require_auth),
 ) -> dict:
-    """특정 농장의 생육 측정 기록 이력을 JSON 파일에서 읽어 반환합니다."""
+    """특정 농장의 생육 측정 기록 이력을 JSON 파일에서 읽어 반환합니다. (인증+소유권)"""
+    _require_owner(user, farm_id)
     records: list[dict] = []
     if _GROWTH_DIR.exists():
         for fpath in _GROWTH_DIR.glob("*.json"):
@@ -490,8 +521,10 @@ def get_growth_history(
 def get_harvest_history(
     farm_id: str = Query(..., description="농장 ID"),
     limit: int  = Query(50, ge=1, le=200, description="반환할 최대 레코드 수"),
+    user: dict = Depends(require_auth),
 ) -> dict:
-    """특정 농장의 수확량 기록 이력을 JSON 파일에서 읽어 반환합니다."""
+    """특정 농장의 수확량 기록 이력을 JSON 파일에서 읽어 반환합니다. (인증+소유권)"""
+    _require_owner(user, farm_id)
     records: list[dict] = []
     if _HARVEST_DIR.exists():
         for fpath in _HARVEST_DIR.glob("*.json"):
