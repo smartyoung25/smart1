@@ -89,7 +89,7 @@ services:
       - "${NGINX_SSL_PORT:-443}:443"
     volumes:
       - ./nginx/nginx-selfsigned.conf:/etc/nginx/nginx.conf:ro
-      - ./dashboard:/usr/share/nginx/html:ro
+      - ./archive/dashboard:/usr/share/nginx/html:ro   # 구 PC 대시보드(보존용) — 운영 D2는 미사용
       - certbot_www:/var/www/certbot:ro
       - certbot_certs:/etc/letsencrypt:ro
       - C:/nginx/ssl:/etc/nginx/certs:ro   # self-signed 인증서 (Let's Encrypt 전환 전 사용)

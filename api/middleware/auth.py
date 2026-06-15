@@ -105,13 +105,22 @@ def create_access_token(
 def decode_token(token: str) -> dict:
     """JWT 디코드 및 검증. 실패 시 HTTPException 발생."""
     jwt_lib, JWTError = _get_jwt_lib()
+    # fail-closed: JWT 라이브러리/시크릿 미설정 시 '익명 통과'(fail-open) 대신 거부.
+    #   (구: anonymous/viewer 반환 → 환경변수 누락 시 인증이 조용히 꺼지는 취약점 A1.)
     if jwt_lib is None:
-        logger.warning("[auth] JWT 라이브러리 없음 — 인증 비활성화")
-        return {"sub": "anonymous", "role": "viewer"}
-
+        logger.critical("[auth] JWT 라이브러리 없음 — 인증 불가(fail-closed 401)")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="서버 인증 구성 오류(JWT 라이브러리 없음).",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     if not _SECRET_KEY:
-        logger.warning("[auth] JWT_SECRET_KEY 없음 — 인증 비활성화")
-        return {"sub": "anonymous", "role": "viewer"}
+        logger.critical("[auth] JWT_SECRET_KEY 미설정 — 인증 불가(fail-closed 401)")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="서버 인증 구성 오류(JWT_SECRET_KEY 미설정).",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
     try:
         return jwt_lib.decode(token, _SECRET_KEY, algorithms=[_ALGORITHM])
@@ -195,13 +204,19 @@ class JWTMiddleware:
             await self.app(scope, receive, send)
             return
 
-        # JWT_SECRET_KEY 없으면 미들웨어 비활성화 (개발 환경)
-        if not _SECRET_KEY:
-            await self.app(scope, receive, send)
-            return
-
         from starlette.requests import Request as StarletteRequest
         from starlette.responses import JSONResponse
+
+        # fail-closed: JWT_SECRET_KEY 미설정 시 보호경로를 '통과'(fail-open)시키지 않고 거부.
+        #   공개 경로는 위에서 이미 통과 처리됨 → 여기 도달은 인증 필요 경로뿐.
+        if not _SECRET_KEY:
+            logger.critical("[auth] JWT_SECRET_KEY 미설정 — 보호경로 차단(fail-closed 401)")
+            response = JSONResponse(
+                {"detail": "서버 인증 구성 오류(JWT_SECRET_KEY 미설정)."},
+                status_code=401, headers={"WWW-Authenticate": "Bearer"},
+            )
+            await response(scope, receive, send)
+            return
 
         request = StarletteRequest(scope, receive)
         auth_header = request.headers.get("Authorization", "")

@@ -159,27 +159,28 @@ def health():
 
 
 # ── 대시보드 일원화: 구 PC 다크 대시보드는 비노출(모바일로 통일) ─────────────────
-#   파일(dashboard/)은 보존(롤백 안전) — 라우트만 /intro 로 차단.
-_DASHBOARD = Path(__file__).parent.parent / "dashboard"
-if _DASHBOARD.exists():
-    from starlette.responses import RedirectResponse as _Redirect
+#   구 dashboard/는 archive/dashboard/로 이관(죽은 코드). 라우트는 항상 /intro로 차단.
+#   (dashboard/ 존재 여부와 무관하게 '/'·차단 라우트를 등록 — 이관 후에도 루트 정상.)
+from starlette.responses import RedirectResponse as _Redirect
 
-    @app.get("/", include_in_schema=False)
-    def serve_index():
-        # SEO: 루트를 intro.html 직접 서빙(200) — canonical=/ 와 신호 일치
-        # (구: /intro 307 리다이렉트 → 색인 신호 분산). intro head의 canonical이 / 라
-        # 중복콘텐츠(/intro)는 정규화됨.
-        _intro = Path(__file__).parent.parent / "screens" / "intro.html"
-        if _intro.exists():
-            return FileResponse(str(_intro))
-        return _Redirect(url="/intro", status_code=307)
 
-    @app.get("/dashboard", include_in_schema=False)
-    @app.get("/dashboard/", include_in_schema=False)
-    @app.get("/dashboard/{path:path}", include_in_schema=False)
-    def _block_legacy_dashboard(path: str = ""):
-        # 구 PC 대시보드 전 경로 → 모바일 인트로로 일원화
-        return _Redirect(url="/intro", status_code=307)
+@app.get("/", include_in_schema=False)
+def serve_index():
+    # SEO: 루트를 intro.html 직접 서빙(200) — canonical=/ 와 신호 일치
+    # (구: /intro 307 리다이렉트 → 색인 신호 분산). intro head의 canonical이 / 라
+    # 중복콘텐츠(/intro)는 정규화됨.
+    _intro = Path(__file__).parent.parent / "screens" / "intro.html"
+    if _intro.exists():
+        return FileResponse(str(_intro))
+    return _Redirect(url="/intro", status_code=307)
+
+
+@app.get("/dashboard", include_in_schema=False)
+@app.get("/dashboard/", include_in_schema=False)
+@app.get("/dashboard/{path:path}", include_in_schema=False)
+def _block_legacy_dashboard(path: str = ""):
+    # 구 PC 대시보드 전 경로 → 모바일 인트로로 일원화(archive 이관 후에도 차단 유지)
+    return _Redirect(url="/intro", status_code=307)
 
 # ── SmartOS 모바일 화면 정적 서빙 (/screens, /components, /index.html) ─────────
 _SMARTOS_ROOT = Path(__file__).parent.parent

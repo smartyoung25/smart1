@@ -1,0 +1,26 @@
+﻿<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>Tab Test</title>
+<style>body{margin:0;background:#0f1117;color:#94a3b8;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;}</style>
+</head>
+<body><p id="m">로그인 중...</p>
+<script>
+(async()=>{
+  const API='http://localhost:8000';
+  try {
+    const r = await fetch(`${API}/api/v1/auth/demo-token`,{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({})
+    });
+    const d = await r.json();
+    const p = JSON.parse(atob(d.access_token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+    sessionStorage.setItem('sf_token', d.access_token);
+    sessionStorage.setItem('sf_api', API);
+    sessionStorage.setItem('sf_farm_id', p.farm_id||'');
+    sessionStorage.setItem('sf_tier', p.tier||'admin');
+    document.getElementById('m').textContent = '이동 중...';
+    setTimeout(()=>{ window.location.replace('/#control'); }, 300);
+  } catch(e) { document.getElementById('m').textContent = '실패: '+e.message; }
+})();
+</script>
+</body></html>
