@@ -27,10 +27,20 @@
 - 데모 다농장(farm_001~005) 전환 시연 정상(demo 역할 소유권 바이패스)
 - G3 관수 기록·G4 생육·G5 방제 기록 등 데모 쓰기 정상(demo 토큰 보유)
 
-## 명시적 이연 (다음 라운드)
-- **P1**: A1 fail-closed(JWT 미설정 기동거부) — `.env` 존재로 운영 위험 낮음.
-- **P2**: B1 무료 enterprise 승급 / I3 연합 factor clip / Z6 billing overview 권한 — `¬PUBLIC_DEMO` 전제라 데모에서 미성립(POST 차단).
-- **P3**: P1 클러스터 PII 최소화 / `dashboard/` 죽은코드 archive 이동(autologin.html 포함) / README–실제 배포 문서 일치 / Z2 UUID 전면 마이그레이션.
+## 추가 완료 라운드
+
+**P1 + P3** (커밋 `a7826b8`):
+- A1 fail-closed: JWT 라이브러리/시크릿 미설정 시 익명 통과 → 401 거부(`middleware/auth.py`).
+- dashboard 죽은코드 `archive/dashboard/` 이관 + main.py 루트 라우트 디커플 + README/docker-compose 정정.
+
+**P2 결제·연합 무결성** (이번 라운드):
+- **B1** `billing.py request_upgrade`: 농장 소유권 검증 추가 + 클라이언트 `pg_channel="manual"` 즉시승인을 **관리자 전용**으로 제한(일반 사용자는 결제채널만 → 콜백 전 티어 미변경). billing GET(plan/quota/features)에도 소유권 적용.
+- **Z6** `billing.py admin_billing_overview`: `require_auth` → `require_admin_view`(일반 사용자 403, 데모 조회 허용).
+- **I3** `aggregate.py merge_corrections`: factor[0.5,2.0]·shrink[0,1]·n≥0 클램프(추론 오염 차단). `federated.py post_correction`: require_auth + 업로드 farm_id를 토큰 농장으로 바인딩(타농장 보정 덮어쓰기 403).
+- 검증(비데모 8001): B1/Z6/I3 인증·소유권 10/10 PASS, factor 클립 단위검증, 데모 회귀 0(GET 200·POST 게이트 403 유지).
+
+## 명시적 이연 (잔여)
+- **P3 잔여**: P1 클러스터 PII 최소화(무인증 farm_id·지역 노출) / Z2 UUID 전면 마이그레이션(현재 신규가입만 고유화) / watchdog abandoned-mutex 중복기동 가드.
 
 ## 핵심 변경 파일
 - `api/routers/data_collection.py` · `api/routers/ws.py` · `api/routers/auth.py` · `api/routers/farmer.py`

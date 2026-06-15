@@ -16,13 +16,26 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
-from api.middleware.auth import require_auth
+from api.middleware.auth import require_auth, require_admin_view
 from api.services.billing import (
     check_chat_quota, check_feature, consume_chat_quota,
     get_farm_tier, get_plan_info, set_farm_tier, tier_rank,
 )
 
 logger = logging.getLogger(__name__)
+
+# billing farm_router는 farmer 라우터 밖이라 _verify_farm_ownership가 적용되지 않음 →
+# 본인 농장만 접근하도록 동형 소유권 검사. admin/manager/demo는 전체 허용.
+_OWNER_BYPASS = ("admin", "manager", "superadmin", "demo")
+
+
+def _require_owner(user: dict, farm_id: str) -> None:
+    role = (user or {}).get("role", "")
+    if role in _OWNER_BYPASS:
+        return
+    token_farm = (user or {}).get("farm_id", "")
+    if (not token_farm) or token_farm != farm_id:
+        raise HTTPException(status_code=403, detail="해당 농가에 대한 접근 권한이 없습니다.")
 
 # ── 농가 라우터 (prefix: /api/farms/{farm_id}/billing) ───────────────────────
 farm_router  = APIRouter(tags=["billing"])
@@ -58,6 +71,7 @@ class SetTierRequest(BaseModel):
 @farm_router.get("/billing/plan")
 def get_billing_plan(farm_id: str, user: dict = Depends(require_auth)):
     """현재 구독 티어, 가용 기능 전체, 업그레이드 옵션 반환."""
+    _require_owner(user, farm_id)
     return get_plan_info(farm_id)
 
 
@@ -68,6 +82,7 @@ def get_billing_plan(farm_id: str, user: dict = Depends(require_auth)):
 @farm_router.get("/billing/quota")
 def get_quota(farm_id: str, user: dict = Depends(require_auth)):
     """AI 채팅 쿼터 현황."""
+    _require_owner(user, farm_id)
     return check_chat_quota(farm_id)
 
 
@@ -85,6 +100,7 @@ def get_features(
 
     UI tierGuard()가 이 엔드포인트를 호출해 잠금 오버레이를 표시합니다.
     """
+    _require_owner(user, farm_id)
     plan = get_plan_info(farm_id)
     items = plan["unlocked"] + plan["locked"]
     if section:
@@ -112,8 +128,16 @@ def request_upgrade(
     body: UpgradeRequest,
     user: dict = Depends(require_auth),
 ):
-    """업그레이드 요청. 결제 PG 연동 전 stub — 'manual' 채널은 즉시 승인."""
+    """업그레이드 요청. 본인 농장만 + 결제검증 필요.
+
+    보안(B1): (1) 농장 소유권 검증 — 타 농장 승급 차단.
+    (2) 클라이언트가 지정한 'manual' 채널의 즉시 승인은 **관리자 전용**으로 제한 —
+        일반 사용자는 결제 채널(kakaopay/toss)로만 요청 가능하며, 실 결제 콜백 전까지
+        티어가 변경되지 않는다(무료 enterprise 자가승급 차단).
+    """
     from uuid import uuid4
+    _require_owner(user, farm_id)
+    is_operator = (user or {}).get("role") in ("admin", "manager", "superadmin")
     current = get_farm_tier(farm_id)
     if tier_rank(body.target_tier) <= tier_rank(current):
         raise HTTPException(
@@ -123,13 +147,19 @@ def request_upgrade(
 
     req_id = f"upg_{uuid4().hex[:10]}"
 
-    # manual 채널: 즉시 승인 (데모/운영자 직접 처리)
+    # manual 채널 즉시 승인은 관리자(운영자)만 — 일반 사용자의 무료 자가승급 차단.
     if body.pg_channel == "manual":
+        if not is_operator:
+            raise HTTPException(
+                status_code=403,
+                detail="수동 승인은 관리자 전용입니다. 결제 채널(kakaopay/toss)을 선택하세요.",
+            )
         set_farm_tier(farm_id, body.target_tier)
-        logger.info("[billing] 업그레이드 승인 (manual) farm=%s %s→%s", farm_id, current, body.target_tier)
+        logger.info("[billing] 업그레이드 승인 (manual/operator=%s) farm=%s %s→%s",
+                    user.get("sub"), farm_id, current, body.target_tier)
         return UpgradeResponse(
             status="approved",
-            message_ko=f"업그레이드 완료: {current} → {body.target_tier} (수동 승인)",
+            message_ko=f"업그레이드 완료: {current} → {body.target_tier} (관리자 수동 승인)",
             request_id=req_id,
         )
 
@@ -166,8 +196,8 @@ def _db_log_upgrade_request(farm_id: str, target_tier: str, pg_channel: str, req
 # ---------------------------------------------------------------------------
 
 @admin_router.get("/billing/overview")
-def admin_billing_overview(user: dict = Depends(require_auth)):
-    """전체 농장 티어 현황 (관리자 대시보드용)."""
+def admin_billing_overview(user: dict = Depends(require_admin_view)):
+    """전체 농장 티어 현황 (관리자 대시보드용). (Z6: 관리자/데모조회만 — 일반 사용자 403)"""
     from api.routers.farmer import _FARM_META   # type: ignore
     rows = []
     for farm_id in _FARM_META:
