@@ -14,8 +14,15 @@
 3. **색인 요청**: URL 검사 → `https://farmingsight.org/` → 색인 생성 요청.
 4. (권장) **OG 이미지 교체**: 현재 `/icon.svg` → 1200×630 PNG 권장(카드 썸네일 품질↑). 만들면 intro의 `og:image`·`twitter:image`를 PNG URL로 교체.
 
+## 추가 적용 (2026-06-15)
+7. **OG 이미지 PNG**(`/og-image.png`, 1200×630): intro·index `og:image`·`twitter:image` 적용(+width/height/alt). 카톡·페북·트위터·슬랙 카드 썸네일.
+8. **`/smartos` 네비게이터 메타**: index.html 풀 SEO 헤드(title·desc·keywords·canonical·OG).
+9. **화면별 개별 메타(롱테일)**: g3 관수·g2 환경·g1 온실·f1 노지·g5 병해·c12 공동출하·c22 등급 — 화면 고유 description·keywords·canonical·OG.
+10. **`/` 200 직접서빙**: 기존 `/intro` 307 리다이렉트 제거 → 루트가 intro.html 직접 200(canonical=/ 신호 일치, 색인 분산 해소).
+11. **Breadcrumb·FAQ 구조화 데이터**: intro에 `BreadcrumbList` + `FAQPage`(4문항) JSON-LD — 구글 FAQ 리치결과.
+
 ## 한계·주의
-- `/` → `/intro` 307 리다이렉트 구조라 canonical을 `/`로 통일해 신호 일관화함. 색인이 안정되면 `/`를 200 직접서빙으로 바꾸는 것이 더 강함(선택).
+- `/`·`/intro` 모두 intro.html을 서빙(중복콘텐츠)하나 intro head의 `canonical=https://farmingsight.org/`로 정규화됨.
 - SPA가 아니라 정적 HTML이라 크롤링 우호적(JS 렌더 불필요).
 - 콘텐츠 신선도·외부 백링크·실사용 트래픽이 순위의 핵심 — 기술 SEO는 토대일 뿐.
 
