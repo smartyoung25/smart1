@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>스마트팜 환경관리 전략 — VPD·DLI·CO₂ 광연동 제어 | KAASA smartfarmingsight</title>
+<meta name="description" content="스마트팜 환경관리 전략 가이드. VPD 밴드(0.4~0.6 kPa), DLI(PAR 4.57), CO₂ 시비, 광연동 승온을 생육시기×하루 4구간 전략표로 운영하는 방법."/>
+<meta name="keywords" content="스마트팜 환경관리,VPD,DLI,CO2 시비,광연동 승온,온실 기후관리,환경 전략표,주야간 온도"/>
+<link rel="canonical" href="https://farmingsight.org/screens/guide/environment-strategy.html"/>
+<meta name="robots" content="index,follow,max-image-preview:large"/>
+<meta property="og:type" content="article"/>
+<meta property="og:site_name" content="KAASA smartfarmingsight"/>
+<meta property="og:title" content="스마트팜 환경관리 전략 — VPD·DLI·CO₂ 광연동 제어 | KAASA smartfarmingsight"/>
+<meta property="og:description" content="스마트팜 환경관리 전략 가이드. VPD 밴드(0.4~0.6 kPa), DLI(PAR 4.57), CO₂ 시비, 광연동 승온을 생육시기×하루 4구간 전략표로 운영하는 방법."/>
+<meta property="og:url" content="https://farmingsight.org/screens/guide/environment-strategy.html"/>
+<meta property="og:image" content="https://farmingsight.org/og-image.png"/>
+<meta property="og:locale" content="ko_KR"/>
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:image" content="https://farmingsight.org/og-image.png"/>
+<script type="application/ld+json">
+{ "@context":"https://schema.org","@type":"Article",
+  "headline":"스마트팜 환경관리 전략 — VPD·DLI·CO₂ 광연동","description":"스마트팜 환경관리 전략 가이드. VPD 밴드(0.4~0.6 kPa), DLI(PAR 4.57), CO₂ 시비, 광연동 승온을 생육시기×하루 4구간 전략표로 운영하는 방법.",
+  "inLanguage":"ko","mainEntityOfPage":"https://farmingsight.org/screens/guide/environment-strategy.html",
+  "image":"https://farmingsight.org/og-image.png",
+  "author":{"@type":"Organization","name":"KAASA"},
+  "publisher":{"@type":"Organization","name":"KAASA","url":"https://farmingsight.org/"} }
+</script>
+<script type="application/ld+json">
+{ "@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[
+  {"@type":"ListItem","position":1,"name":"홈","item":"https://farmingsight.org/"},
+  {"@type":"ListItem","position":2,"name":"가이드","item":"https://farmingsight.org/screens/help.html"},
+  {"@type":"ListItem","position":3,"name":"환경관리 전략","item":"https://farmingsight.org/screens/guide/environment-strategy.html"} ]}
+</script>
+<script type="application/ld+json">
+{ "@context":"https://schema.org","@type":"FAQPage","mainEntity":[
+{ "@type":"Question","name":"VPD 목표 범위는 얼마인가요?","acceptedAnswer":{"@type":"Answer","text":"일반적으로 0.4 kPa(하한)~0.6 kPa(상한) 밴드를 목표로 합니다. 너무 낮으면 환기를 강화합니다."} },
+{ "@type":"Question","name":"DLI는 어떻게 계산하나요?","acceptedAnswer":{"@type":"Answer","text":"PAR 계수 4.57을 적용해 하루 누적 광량(mol/m²·d)을 구합니다. 이 계수를 빠뜨리면 약 4.6배 과소 계산됩니다."} },
+{ "@type":"Question","name":"환경관리는 무엇을 기준으로 하나요?","acceptedAnswer":{"@type":"Answer","text":"생육시기×하루 4구간 전략표의 온도·습도·CO₂ 목표와 자동 계산된 VPD를 기준으로 실측 편차를 처방합니다."} } ]}
+</script>
+<link rel="stylesheet" href="../../components/base.css"/>
+<style>
+  body{background:var(--bg);}
+  main{max-width:560px;margin:0 auto;padding:16px 16px 48px;}
+  article{background:var(--panel);border:1.5px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px 16px;}
+  h1{font-size:20px;font-weight:900;color:var(--green-dark);line-height:1.35;margin:0 0 8px;}
+  .lede{font-size:13.5px;color:var(--muted);line-height:1.7;margin:0 0 16px;}
+  h2{font-size:15px;font-weight:800;color:var(--text);margin:20px 0 8px;border-left:4px solid var(--green);padding-left:8px;}
+  p{font-size:13.5px;color:var(--text);line-height:1.75;margin:8px 0;}
+  table{width:100%;font-size:12.5px;border-collapse:collapse;margin:10px 0;}
+  th,td{padding:7px 6px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top;}
+  th{color:var(--green-dark);font-weight:800;background:var(--green-soft);}
+  td:first-child{font-weight:700;color:var(--green-dark);white-space:nowrap;}
+  .cta{display:inline-block;margin:6px 6px 0 0;font-size:12.5px;font-weight:700;background:var(--green-soft);color:var(--green-dark);padding:8px 13px;border-radius:10px;text-decoration:none;}
+  .crumb{font-size:12px;color:var(--muted);margin-bottom:10px;}
+  .crumb a{color:var(--green);text-decoration:none;}
+  .rel{margin-top:22px;padding-top:14px;border-top:1px solid var(--border);}
+  .rel a{display:block;font-size:13px;color:var(--green-dark);font-weight:700;padding:7px 0;text-decoration:none;}
+</style>
+</head>
+<body>
+<main>
+  <nav class="crumb"><a href="../../">홈</a> &rsaquo; <a href="../help.html">가이드</a> &rsaquo; 환경관리 전략</nav>
+  <article>
+    <h1>스마트팜 환경관리 전략 — VPD·DLI·CO₂ 광연동</h1>
+    <p class="lede">온도·습도·CO₂를 따로 보지 않고 <b>VPD</b>로 묶어, 생육시기와 하루 4구간(야간·일출·주간·일몰 전) 전략표로 운영합니다. 대상: 딸기·오이·방울토마토·완숙토마토·파프리카·참외(온실 6작목) + 제주 노지 7작목.</p>
+    
+ <h2>핵심 환경 지표와 목표 밴드</h2>
+ <table>
+ <tr><th>지표</th><th>의미</th><th>목표</th></tr>
+ <tr><td>VPD</td><td>증산 구동력(온·습도 결합)</td><td>0.4~0.6 kPa 밴드</td></tr>
+ <tr><td>DLI</td><td>하루 누적 광량(PAR)</td><td>PAR 계수 4.57 mol/m²·d 적용</td></tr>
+ <tr><td>CO₂</td><td>광합성 원료</td><td>광량 연동 시비(환기와 균형)</td></tr>
+ </table>
+ <p><b>주의:</b> DLI 계산 시 PAR 계수 4.57을 빠뜨리면 약 4.6배 과소 오류가 납니다.</p>
+ <h2>2축 환경관리 전략표</h2>
+ <p>행은 생육시기(정식 기준), 열은 하루 4구간(야간·일출·주간·일몰 전). 각 셀에 온도·습도·CO₂ 목표를 두고 VPD를 자동 계산합니다. 벤치마크는 Priva 광연동 승온, HNT 24시간 평균, Plant Empowerment VPD 밴드입니다.</p>
+ <h2>편차 &rarr; AI 처방</h2>
+ <p>전략표 목표 대비 실측 편차를 평가해 구간별 처방(승온·환기·가습·CO₂)을 생성합니다. 조치 결과는 기록되어 다음 처방 정확도를 높입니다.</p>
+ <a class="cta" href="../g2_env.html">환경·기후 제어 화면 열기 &rarr;</a>
+ <a class="cta" href="../g1_home.html">온실 홈 &rarr;</a>
+ 
+    <div class="rel">
+      <b style="font-size:12.5px;color:var(--muted);">관련 가이드</b>
+      <a href="irrigation-period.html">&rarr; 스마트팜 관수 P1~P6 가이드</a>
+      <a href="environment-strategy.html">&rarr; 스마트팜 환경관리 전략(VPD·DLI·CO₂)</a>
+      <a href="disease-early-warning.html">&rarr; 병해 조기경보·IPM 가이드</a>
+    </div>
+  </article>
+</main>
+</body>
+</html>

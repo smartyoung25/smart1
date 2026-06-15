@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>병해 조기경보·IPM 가이드 — 결로시간 기반 예방 | KAASA smartfarmingsight</title>
+<meta name="description" content="스마트팜 병해 조기경보·IPM 가이드. 잎 결로(습윤) 시간과 환경 위험을 기반으로 감염 위험을 미리 알리고, 방제 이행을 기록해 품질을 관리하는 방법."/>
+<meta name="keywords" content="병해 조기경보,IPM,결로시간,잎 습윤,방제 이행,작물 품질관리,곰팡이병 예방"/>
+<link rel="canonical" href="https://farmingsight.org/screens/guide/disease-early-warning.html"/>
+<meta name="robots" content="index,follow,max-image-preview:large"/>
+<meta property="og:type" content="article"/>
+<meta property="og:site_name" content="KAASA smartfarmingsight"/>
+<meta property="og:title" content="병해 조기경보·IPM 가이드 — 결로시간 기반 예방 | KAASA smartfarmingsight"/>
+<meta property="og:description" content="스마트팜 병해 조기경보·IPM 가이드. 잎 결로(습윤) 시간과 환경 위험을 기반으로 감염 위험을 미리 알리고, 방제 이행을 기록해 품질을 관리하는 방법."/>
+<meta property="og:url" content="https://farmingsight.org/screens/guide/disease-early-warning.html"/>
+<meta property="og:image" content="https://farmingsight.org/og-image.png"/>
+<meta property="og:locale" content="ko_KR"/>
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:image" content="https://farmingsight.org/og-image.png"/>
+<script type="application/ld+json">
+{ "@context":"https://schema.org","@type":"Article",
+  "headline":"병해 조기경보·IPM — 결로시간 기반 예방","description":"스마트팜 병해 조기경보·IPM 가이드. 잎 결로(습윤) 시간과 환경 위험을 기반으로 감염 위험을 미리 알리고, 방제 이행을 기록해 품질을 관리하는 방법.",
+  "inLanguage":"ko","mainEntityOfPage":"https://farmingsight.org/screens/guide/disease-early-warning.html",
+  "image":"https://farmingsight.org/og-image.png",
+  "author":{"@type":"Organization","name":"KAASA"},
+  "publisher":{"@type":"Organization","name":"KAASA","url":"https://farmingsight.org/"} }
+</script>
+<script type="application/ld+json">
+{ "@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[
+  {"@type":"ListItem","position":1,"name":"홈","item":"https://farmingsight.org/"},
+  {"@type":"ListItem","position":2,"name":"가이드","item":"https://farmingsight.org/screens/help.html"},
+  {"@type":"ListItem","position":3,"name":"병해 조기경보","item":"https://farmingsight.org/screens/guide/disease-early-warning.html"} ]}
+</script>
+<script type="application/ld+json">
+{ "@context":"https://schema.org","@type":"FAQPage","mainEntity":[
+{ "@type":"Question","name":"결로시간이 왜 병해와 관련 있나요?","acceptedAnswer":{"@type":"Answer","text":"곰팡이성 병해 포자는 잎이 젖어 있는 동안 발아합니다. 결로(습윤) 지속 시간이 임계치를 넘기 전에 환기·제습으로 차단하면 예방 효과가 큽니다."} },
+{ "@type":"Question","name":"IPM이 무엇인가요?","acceptedAnswer":{"@type":"Answer","text":"종합적 병해충 관리로, 화학 방제에만 의존하지 않고 환경관리·예찰·생물적 방제를 결합해 병해를 줄이는 접근입니다."} },
+{ "@type":"Question","name":"조기경보 후 무엇을 하나요?","acceptedAnswer":{"@type":"Answer","text":"환기·제습 등 환경 조치와 예찰·방제를 시행하고, 이행 결과를 기록해 IPM 이력과 모델 학습에 반영합니다."} } ]}
+</script>
+<link rel="stylesheet" href="../../components/base.css"/>
+<style>
+  body{background:var(--bg);}
+  main{max-width:560px;margin:0 auto;padding:16px 16px 48px;}
+  article{background:var(--panel);border:1.5px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px 16px;}
+  h1{font-size:20px;font-weight:900;color:var(--green-dark);line-height:1.35;margin:0 0 8px;}
+  .lede{font-size:13.5px;color:var(--muted);line-height:1.7;margin:0 0 16px;}
+  h2{font-size:15px;font-weight:800;color:var(--text);margin:20px 0 8px;border-left:4px solid var(--green);padding-left:8px;}
+  p{font-size:13.5px;color:var(--text);line-height:1.75;margin:8px 0;}
+  table{width:100%;font-size:12.5px;border-collapse:collapse;margin:10px 0;}
+  th,td{padding:7px 6px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top;}
+  th{color:var(--green-dark);font-weight:800;background:var(--green-soft);}
+  td:first-child{font-weight:700;color:var(--green-dark);white-space:nowrap;}
+  .cta{display:inline-block;margin:6px 6px 0 0;font-size:12.5px;font-weight:700;background:var(--green-soft);color:var(--green-dark);padding:8px 13px;border-radius:10px;text-decoration:none;}
+  .crumb{font-size:12px;color:var(--muted);margin-bottom:10px;}
+  .crumb a{color:var(--green);text-decoration:none;}
+  .rel{margin-top:22px;padding-top:14px;border-top:1px solid var(--border);}
+  .rel a{display:block;font-size:13px;color:var(--green-dark);font-weight:700;padding:7px 0;text-decoration:none;}
+</style>
+</head>
+<body>
+<main>
+  <nav class="crumb"><a href="../../">홈</a> &rsaquo; <a href="../help.html">가이드</a> &rsaquo; 병해 조기경보</nav>
+  <article>
+    <h1>병해 조기경보·IPM — 결로시간 기반 예방</h1>
+    <p class="lede">곰팡이성 병해는 잎이 젖어 있는 시간(결로·습윤)이 길수록 위험이 커집니다. 환경 데이터로 위험을 미리 알리고 방제를 기록하는 IPM 폐루프를 정리했습니다. 대상: 딸기·오이·방울토마토·완숙토마토·파프리카·참외(온실 6작목) + 제주 노지 7작목.</p>
+    
+ <h2>왜 결로시간이 중요한가</h2>
+ <p>대부분의 곰팡이성 병해(잿빛곰팡이·노균병 등)는 포자가 발아하려면 <b>잎 표면이 젖어 있는 시간</b>이 필요합니다. 야간 습도와 온도로 결로 발생·지속 시간을 추정해, 임계 시간을 넘기 전에 환기·제습으로 차단하는 것이 예방의 핵심입니다.</p>
+ <h2>IPM 폐루프(예측 &rarr; 조치 &rarr; 기록)</h2>
+ <table>
+ <tr><th>단계</th><th>내용</th></tr>
+ <tr><td>예측</td><td>결로 시간·환경 위험으로 감염 위험 조기경보</td></tr>
+ <tr><td>조치</td><td>환기·제습·예찰·약제 방제 등 대응</td></tr>
+ <tr><td>기록</td><td>방제 이행을 기록 &rarr; IPM 이력·모델 피드</td></tr>
+ </table>
+ <p>화학 방제에만 의존하지 않고 환경관리·예찰·생물적 방제를 함께 쓰는 것이 IPM(종합적 병해충 관리)입니다.</p>
+ <a class="cta" href="../g5_disease.html">병해·품질 화면 열기 &rarr;</a>
+ <a class="cta" href="environment-strategy.html">환경관리로 결로 줄이기 &rarr;</a>
+ 
+    <div class="rel">
+      <b style="font-size:12.5px;color:var(--muted);">관련 가이드</b>
+      <a href="irrigation-period.html">&rarr; 스마트팜 관수 P1~P6 가이드</a>
+      <a href="environment-strategy.html">&rarr; 스마트팜 환경관리 전략(VPD·DLI·CO₂)</a>
+      <a href="disease-early-warning.html">&rarr; 병해 조기경보·IPM 가이드</a>
+    </div>
+  </article>
+</main>
+</body>
+</html>

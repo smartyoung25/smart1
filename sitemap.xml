@@ -12,4 +12,7 @@
   <url><loc>https://farmingsight.org/screens/c12_joint.html</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
   <url><loc>https://farmingsight.org/screens/c22_tiers.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
   <url><loc>https://farmingsight.org/screens/help.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://farmingsight.org/screens/guide/irrigation-period.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://farmingsight.org/screens/guide/environment-strategy.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://farmingsight.org/screens/guide/disease-early-warning.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
 </urlset>
