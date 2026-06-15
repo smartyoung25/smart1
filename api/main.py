@@ -75,9 +75,9 @@ if _PUBLIC_DEMO:
                            "/activity")
     # 경로 중간 일치 허용(예: 장비 삭제 DELETE /equipment/{device_id})
     _WRITE_ALLOW_CONTAINS = ("/equipment/",)
-    # 관리자 조회+안전변경 허용. 단, 무거운(재학습)·파괴적 작업만 차단 유지.
-    _ADMIN_BLOCK_CONTAINS = ("/pipeline/trigger", "/pipeline/retrain", "/retrain",
-                             "/models/promote", "/models/rollback")
+    # 관리자 조회+안전변경 허용. 재학습 트리거는 엔드포인트가 데모에서 '시뮬레이션+쿨다운'으로
+    # 자체 안전처리하므로 게이트 통과 허용. 파괴적(모델 교체·DELETE)만 차단 유지.
+    _ADMIN_BLOCK_CONTAINS = ("/models/promote", "/models/rollback")
 
     class PublicDemoMiddleware:
         def __init__(self, app): self.app = app

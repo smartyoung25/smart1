@@ -47,6 +47,11 @@ RETRAIN_LOG   = PIPELINE_DIR / "state" / "retrain_history.json"
 ETL_LOG       = LOGS_DIR / "etl.log"
 RETRAIN_FLOG  = LOGS_DIR / "retrain.log"
 
+_LAST_DEMO_TRIG = 0.0   # 데모 재학습 시뮬레이션 쿨다운(스팸 방지)
+def _dtnow() -> str:
+    from datetime import datetime as _dt, timezone as _tz
+    return _dt.now(_tz.utc).isoformat()
+
 
 # ── 모니터링 응답 모델 ─────────────────────────────────────────────────────────
 
@@ -532,6 +537,26 @@ def trigger_pipeline(body: TriggerRequest):
 
     import threading
     run_id = f"run_{uuid4().hex[:8]}"
+
+    # 공개 데모: 실제 재학습(고비용 subprocess) 대신 시뮬레이션 + 쿨다운(스팸 방지)
+    import os as _os, time as _time
+    if _os.environ.get("PUBLIC_DEMO", "").lower() in ("1", "true", "yes"):
+        global _LAST_DEMO_TRIG
+        now = _time.time()
+        if now - _LAST_DEMO_TRIG < 60:
+            raise HTTPException(status_code=429,
+                detail="데모 재학습은 1분에 1회만 시뮬레이션됩니다. 잠시 후 다시 시도하세요.")
+        _LAST_DEMO_TRIG = now
+        try:
+            hist = json.loads(RETRAIN_LOG.read_text(encoding="utf-8")) if RETRAIN_LOG.exists() else []
+            if not isinstance(hist, list): hist = []
+            hist.append({"run_id": run_id, "status": "simulated", "crops": crops or "all",
+                         "reason": body.reason or "데모 수동 트리거", "ts": _dtnow()})
+            RETRAIN_LOG.write_text(json.dumps(hist[-50:], ensure_ascii=False, indent=2), encoding="utf-8")
+        except Exception:
+            pass
+        return TriggerResponse(run_id=run_id, status="simulated",
+            message=f"데모 모드 — 재학습 요청 접수(시뮬레이션, run_id={run_id}). 실제 학습은 운영 환경에서 실행됩니다.")
 
     def _run_bg():
         try:
