@@ -30,18 +30,18 @@ function Test-Api {
 }
 
 function Start-Api {
+    # 줄연속(백틱) 미사용 — 실행환경에서 백틱 유실 시 파싱오류로 재기동 실패하던 문제 방지
     $env:PYTHONPATH = $SMART; $env:PYTHONIOENCODING = "utf-8"; $env:PUBLIC_DEMO = "1"
-    Start-Process -WindowStyle Hidden -FilePath $PY `
-        -ArgumentList "-m","uvicorn","api.main:app","--host","0.0.0.0","--port","8000","--log-level","warning" `
-        -WorkingDirectory $SMART
-    Log "uvicorn 재기동"
+    $apiArgs = @("-m","uvicorn","api.main:app","--host","0.0.0.0","--port","8000","--log-level","warning")
+    try { Start-Process -WindowStyle Hidden -FilePath $PY -ArgumentList $apiArgs -WorkingDirectory $SMART; Log "uvicorn 재기동" }
+    catch { Log "uvicorn 재기동 실패: $_" }
 }
 
 function Start-Tunnel {
-    Start-Process -WindowStyle Hidden -FilePath $CF `
-        -ArgumentList "tunnel","--config",$CFG,"run",$TUN `
-        -RedirectStandardError $CFLOG -WorkingDirectory $SMART
-    Log "cloudflared 재기동"
+    # RedirectStandardError 제거 — tunnel.log 파일잠금으로 Start-Process 실패하던 문제 방지
+    $tunArgs = @("tunnel","--config",$CFG,"run",$TUN)
+    try { Start-Process -WindowStyle Hidden -FilePath $CF -ArgumentList $tunArgs -WorkingDirectory $SMART; Log "cloudflared 재기동" }
+    catch { Log "cloudflared 재기동 실패: $_" }
 }
 
 Log "watchdog 시작"
