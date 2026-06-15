@@ -12,15 +12,18 @@ from __future__ import annotations
 import json
 import os
 from typing import List, Dict, Any
-from fastapi import APIRouter, Body, HTTPException
+from fastapi import APIRouter, Body, Depends, HTTPException
 
+from api.middleware.auth import require_auth
 from pipeline.federated.aggregate import merge_corrections, ARTS
 
 router = APIRouter(prefix="/api/federated", tags=["federated"])
 
+_OWNER_BYPASS = ("admin", "manager", "superadmin", "demo")
+
 
 @router.post("/correction", summary="농장 로컬 보정 파라미터 업로드·병합 (원본 미반출)")
-def post_correction(body: dict = Body(...)) -> Dict[str, Any]:
+def post_correction(body: dict = Body(...), user: dict = Depends(require_auth)) -> Dict[str, Any]:
     crop_en = str(body.get("crop_en", "")).strip()
     crop_ko = str(body.get("crop_ko", "")).strip()
     payloads: List[Dict[str, Any]] = body.get("corrections") or []
@@ -28,11 +31,18 @@ def post_correction(body: dict = Body(...)) -> Dict[str, Any]:
         raise HTTPException(status_code=400, detail="crop_en 필요")
     if not isinstance(payloads, list) or not payloads:
         raise HTTPException(status_code=400, detail="corrections(list) 필요")
+    # I3 차단: 업로드 farm_id를 토큰 농장으로 바인딩 — 임의 농장 보정 덮어쓰기 방지.
+    #   (관리자/매니저/데모는 다농장 일괄 업로드 허용.)
+    role = (user or {}).get("role", "")
+    token_farm = (user or {}).get("farm_id", "")
+    is_operator = role in _OWNER_BYPASS
     # 파라미터만 허용 — 원본 데이터 필드가 섞여 오면 거부(반출 방지 가드)
     clean = []
     for p in payloads:
         if not isinstance(p, dict) or "farm_id" not in p or "factor" not in p:
             continue
+        if not is_operator and p.get("farm_id") != token_farm:
+            raise HTTPException(status_code=403, detail="본인 농장의 보정값만 업로드할 수 있습니다.")
         clean.append({k: p.get(k) for k in ("farm_id", "factor", "raw_geo", "n", "shrink")})
     if not clean:
         raise HTTPException(status_code=400, detail="유효한 보정 파라미터 없음(farm_id·factor 필수)")
