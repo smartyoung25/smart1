@@ -67,14 +67,16 @@ if _PUBLIC_DEMO:
         "/api/v1/auth/onboarding",                  # 농장 세팅(C1) 저장
         "/api/telemetry/client",
         "/api/data/growth", "/api/data/harvest",   # 생육·수확 실측 입력(M1/M2 학습 피드)
-    }   # 로그인·회원가입·비번재설정·에러텔레메트리·학습데이터 입력
+        "/api/v2/recommend",                        # AI 추천 생성(무변경 읽기 — 메서드만 POST)
+    }   # 로그인·회원가입·비번재설정·에러텔레메트리·학습데이터 입력·추천
     # 사용자 데이터 입력·기록·신청 POST 허용 (운영기록 /activity 포함).
     #   ※ /api/admin/* 관리자 쓰기는 아래에서 항상 403 유지.
     _WRITE_ALLOW_SUFFIX = ("/chat", "/integration-request", "/equipment", "/climate-plan",
                            "/consent", "/daily-temp", "/whatif", "/diagnosis/checklist",
                            "/activity", "/irrigation")   # /irrigation: G3 일일 관수 기록 입력
     # 경로 중간 일치 허용(예: 장비 삭제 DELETE /equipment/{device_id})
-    _WRITE_ALLOW_CONTAINS = ("/equipment/",)
+    #   /whatif: G4 단일·다중(/whatif/multi) 시뮬레이션(무변경 읽기) 모두 허용
+    _WRITE_ALLOW_CONTAINS = ("/equipment/", "/whatif")
     # 관리자 조회+안전변경 허용. 재학습 트리거는 엔드포인트가 데모에서 '시뮬레이션+쿨다운'으로
     # 자체 안전처리하므로 게이트 통과 허용. 파괴적(모델 교체·DELETE)만 차단 유지.
     _ADMIN_BLOCK_CONTAINS = ("/models/promote", "/models/rollback")
