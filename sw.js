@@ -3,7 +3,7 @@
  * 정적(CSS/JS/아이콘): stale-while-revalidate → 빠름 + 백그라운드 갱신
  * API(/api/): network-first
  */
-const CACHE = 'kaasa-smartos-v35';  // ★ 버전 변경 시 구 캐시 자동 삭제 (v35: 데모 무자격 demo-token 전환, admin/1250 제거)
+const CACHE = 'kaasa-smartos-v36';  // ★ 버전 변경 시 구 캐시 자동 삭제 (v36: 읽기성 POST 게이트 허용·components network-first)
 const CORE = [
   '/intro', '/index.html',
   '/components/base.css', '/components/data.js',
@@ -40,10 +40,13 @@ self.addEventListener('fetch', (e) => {
     return;
   }
 
-  // HTML 화면(네비게이션·.html·라우트): network-first → 항상 최신 (오프라인만 캐시)
+  // network-first 대상: HTML 화면 + 공용 클라이언트 JS/CSS(/components/).
+  //   components/* 도 network-first로 둬야 배포 직후 data.js·base.css 수정이 즉시 반영됨
+  //   (구: SWR → 첫 로드는 구 data.js 서빙 → 게이트/등급/관수 수정이 한 박자 늦게 적용되던 문제).
   const isHTML = req.mode === 'navigate'
     || (req.headers.get('accept') || '').includes('text/html')
     || url.pathname.endsWith('.html')
+    || url.pathname.startsWith('/components/')
     || ['/smartos', '/intro', '/index.html'].includes(url.pathname);
   if (isHTML) {
     e.respondWith(
