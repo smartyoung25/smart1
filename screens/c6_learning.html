@@ -59,6 +59,11 @@
   <div class="card" style="padding:14px;margin-bottom:6px;" id="driftList"><div style="text-align:center;color:var(--muted);font-size:12px;"><div class="spinner"></div></div></div>
   <div style="font-size:10.5px;color:var(--muted);margin:0 4px 14px;line-height:1.5;">🟢 양호(MAPE≤20%) · 🟡 주의(20~35%, 재학습 권고) · 🔴 위험(&gt;35%, 폴백·재학습). 재학습 실행은 관리자 권한에서 수행됩니다.</div>
 
+  <!-- ★ 입력 데이터 품질 (드리프트 선행 신호) -->
+  <div class="section-label">입력 데이터 품질 (드리프트 신호) <span class="trust-badge trust-live">🟢 입력 모니터링</span></div>
+  <div class="card" style="padding:13px 14px;margin-bottom:6px;" id="inputDrift"><div style="text-align:center;color:var(--muted);font-size:12px;">불러오는 중…</div></div>
+  <div style="font-size:10.5px;color:var(--muted);margin:0 4px 14px;line-height:1.5;">정상 범위를 벗어난 입력(이상치)이 누적되면 학습 데이터가 오염돼 모델 드리프트를 유발할 수 있습니다. 이상치 급증 시 센서 교정·데이터 검수 후 재학습을 권장합니다.</div>
+
   <!-- M1~M5 통합 성능 매트릭스 -->
   <div class="section-label">모델 성능 매트릭스 (M1~M5) <span class="trust-badge trust-model">🔵 모델</span></div>
   <div class="card" style="padding:12px;margin-bottom:14px;" id="matrix"><div style="text-align:center;color:var(--muted);font-size:12px;"><div class="spinner"></div></div></div>
@@ -82,8 +87,28 @@ window.addEventListener('DOMContentLoaded',()=>{
 });
 async function _ensureToken(){const s=sessionStorage.getItem('sf_token');if(s)return s;try{const a=sessionStorage.getItem('sf_api')||location.origin;const r=await fetch(`${a}/api/v1/auth/demo-token`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({})});if(r.ok){const d=await r.json();sessionStorage.setItem('sf_token',d.access_token);return d.access_token;}}catch{}return '';}
 function _ws(s){const d=document.getElementById('wsDot'),l=document.getElementById('wsLabel');if(d)d.className='ws-dot '+s;if(l)l.textContent=s==='connected'?'실시간 연결 중':'연결 안 됨';}
+// 입력 데이터 품질 — data_anomaly 누적을 드리프트 선행 신호로 표시
+async function _loadInputDrift(token,farmId){
+  const el=document.getElementById('inputDrift'); if(!el) return;
+  try{
+    const api=KaasaData.getApiBase();
+    const d=await fetch(`${api}/api/farms/${farmId}/activity/summary`,{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.json());
+    const byKind=d.by_kind||{}; const recent=d.recent||[];
+    const n=byKind['data_anomaly']||recent.filter(i=>i.kind==='data_anomaly').length;
+    const inputs=(byKind['env_manual']||0)+(byKind['irrigation']||0)+(byKind['env_setpoint']||0);
+    const st = n===0?{i:'🟢',t:'양호',c:'var(--green-dark)'} : n<=2?{i:'🟡',t:'주의',c:'var(--orange)'} : {i:'🔴',t:'위험(검수 권장)',c:'var(--red)'};
+    let h=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><span style="font-size:16px;">${st.i}</span>`
+      +`<b style="color:${st.c};font-size:13px;">입력 이상치 ${n}건 · ${st.t}</b>`
+      +`<span style="margin-left:auto;color:var(--muted);font-size:11px;">수동 입력 ${inputs}건</span></div>`;
+    if(n){ h+=recent.filter(i=>i.kind==='data_anomaly').slice(0,3).map(i=>`<div style="font-size:11.5px;padding:3px 0;border-top:1px dashed var(--border);">⚠️ ${i.item||'이상치'} — ${(i.detail||'').slice(0,44)}</div>`).join('');
+      h+=`<div style="margin-top:8px;"><a href="c17_diagnosis.html" style="color:var(--green-dark);font-weight:800;font-size:11.5px;">→ C17 데이터 품질 점검</a></div>`; }
+    else { h+=`<div style="font-size:11.5px;color:var(--muted);">입력 이상치 없음 — 학습 데이터 품질 양호.</div>`; }
+    el.innerHTML=h;
+  }catch(e){ el.textContent='입력 품질 정보를 불러올 수 없습니다.'; }
+}
 async function _load(token,farmId){
   const api=KaasaData.getApiBase();
+  _loadInputDrift(token,farmId);
   const perf=await fetch(`${api}/api/farms/${farmId}/system/model-performance`,{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.ok?r.json():null).catch(()=>null);
   const m1=perf?.m1_growth||[], m2=perf?.m2_yield||[];
   const totalN=[...m1,...m2].reduce((s,m)=>s+(m.n_train||m.n_samples||0),0);
