@@ -1,108 +1,19 @@
-# ── Python ───────────────────────────────────────────────────────────────────
 __pycache__/
 *.py[cod]
 *.pyo
-*.pyd
-.Python
+.env
+.venv/
+venv/
 *.egg-info/
 dist/
 build/
-*.so
-.venv/
-venv/
-env/
-.env
-.env.*
-!.env.example
-
-# ── Node / Frontend ───────────────────────────────────────────────────────────
-node_modules/
-frontend/dist/
-frontend/build/
-.npm/
-
-# ── ML Artifacts ──────────────────────────────────────────────────────────────
-*.pkl
-*.joblib
-*.h5
-*.pt
-*.onnx
-mlruns/
-mlartifacts/
-
-# ── DB & Logs ─────────────────────────────────────────────────────────────────
-*.db
-*.sqlite3
-logs/
 *.log
-server_restart.log
+*.err
 
-# ── IDE & OS ──────────────────────────────────────────────────────────────────
-.vscode/
-.idea/
-*.swp
-*.swo
-.DS_Store
-Thumbs.db
+# 런타임 텔레메트리 (일별 누적, 커밋 불필요)
+api/data/telemetry/
 
-# ── Test / Coverage ───────────────────────────────────────────────────────────
-.coverage
-.coverage.*
-.coveragerc
-htmlcov/
-.pytest_cache/
-.cache/
-*.db-journal
-
-# ── Raw data / uploads ────────────────────────────────────────────────────────
-기초자료.zip
-기초자료/
-~$*.docx
-~$*.xlsx
-*.docx
-*.hwpx
-
-# ── 운영 제외 파일 ────────────────────────────────────────────────────────────
-backups/
-pg17.zip
-*.zip
-etl_data/
-# 런타임 수집 IoT 데이터 (누적 성장, 수확 JSON)
-data/collected/growth/
-data/collected/harvest/
-data/collected/retrain_state.json
-# env/ 는 이미 위에서 제외 (.venv/, venv/, env/)
-
-# ── 임시·디버그·민감 파일 ─────────────────────────────────────────────────────
-cols_check.txt
-pdf_extract*.txt
-/env
-
-# ── 민감 데이터 캐시 (API 응답 캐시는 state/ 내부만 허용) ─────────────────────
-api/data/kamis_price_cache.json
-
-# ── Tools ─────────────────────────────────────────────────────────────────────
-.code-review-graph/
-.claude/
-.superpowers/
-.mcp.json
-
-dashboard/test_*.html
-data_real/
-deploy/cloudflare/bin/
-deploy/cloudflare/current_url.txt
-deploy/cloudflare/_tunnel.log
-
-# ── 모델 버전 스냅샷: 로컬 전용(재생성·롤백용, 재학습마다 증가) — git 미추적 ──
-#   (.gitattributes 의 *.pkl→LFS 설정은 향후 의도적 바이너리 대비로 유지)
-models/artifacts/.versions/
-# ── 런타임 산출·스크래치 (커밋 제외) ──
-outputs/
-_docx_extract/
-tmp_*.py
-tmp_*.png
-tmp_i.py
-tmp_tr.py
-check_ids.py
-_backup_sec_*/
-scripts/_*.py
+# 대용량 산출물 바이너리
+out/*.pptx
+out/*.docx
+out/*.xlsx
