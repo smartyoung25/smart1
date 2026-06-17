@@ -105,7 +105,7 @@
     <label class="lbl">분류</label>
     <select class="sel" id="fCat" onchange="_onCat()"></select>
     <label class="lbl">장비 종류</label>
-    <select class="sel" id="fType"></select>
+    <select class="sel" id="fType" onchange="_onType()"></select>
     <div class="row2">
       <div><label class="lbl">장비 ID *</label><input class="inp" id="fId" placeholder="예: HEAT-01"/></div>
       <div><label class="lbl">설치 위치</label><input class="inp" id="fLoc" placeholder="1동 2구역"/></div>
@@ -121,6 +121,7 @@
       <div><label class="lbl">포트</label><input class="inp" id="fPort" type="number" placeholder="502"/></div>
     </div>
     <label class="lbl">데이터 포인트 (표준변수 매핑)</label>
+    <div id="dpHint" style="font-size:11px;color:var(--green-dark);background:var(--green-soft);border-radius:8px;padding:7px 10px;margin-bottom:8px;line-height:1.5;"></div>
     <div id="dpList"></div>
     <button class="addbtn ghost" style="min-height:42px;font-size:13px;" onclick="_addDp()">＋ 데이터 포인트 추가</button>
     <div id="eqMsg" style="font-size:12.5px;font-weight:700;text-align:center;margin-top:10px;min-height:16px;"></div>
@@ -169,6 +170,24 @@ function _initForm(){
 function _onCat(){
   const cats=_schema.categories||[]; const c=cats.find(x=>x.key===document.getElementById('fCat').value);
   document.getElementById('fType').innerHTML=((c&&c.devices)||[]).map(d=>`<option>${d}</option>`).join('');
+  _onType();   // 분류 변경 → 첫 장비 기준 표준변수 자동 제안
+}
+// ★ 장비 종류 선택 → 기본 체계의 표준변수를 데이터포인트로 자동 제안
+function _onType(){
+  if(_editId) return;   // 수정 모드: 기존 데이터포인트 보존(클로버 방지)
+  const dv=(_schema&&_schema.device_variables)||{};
+  const vu=(_schema&&_schema.variable_units)||{};
+  const dev=document.getElementById('fType').value;
+  const vars=dv[dev]||[];
+  document.getElementById('dpList').innerHTML=''; _dps=[];
+  const hint=document.getElementById('dpHint');
+  if(vars.length){
+    vars.forEach(v=>_addDpFilled({tag:v, canonical_name:v, unit:vu[v]||'', data_type:'float', poll_interval:60, rw:'read'}));
+    if(hint) hint.innerHTML=`✅ '<b>${dev}</b>'의 표준 변수 <b>${vars.length}개</b>를 자동 제안했습니다. 실제 태그/주소(레지스터·토픽)만 보완하세요.`;
+  }else{
+    _addDp();
+    if(hint) hint.textContent='ℹ️ 이 장비는 표준변수 제안이 없습니다. 데이터 포인트를 직접 매핑하세요.';
+  }
 }
 function _addDp(){
   const i=_dps.length; _dps.push({});
@@ -201,7 +220,7 @@ function _collectDps(){
   }).filter(o=>o.tag);
 }
 let _items=[], _editId=null;
-function _openAdd(){ _editId=null; _dps=[]; document.getElementById('dpList').innerHTML=''; _addDp();
+function _openAdd(){ _editId=null; _dps=[]; document.getElementById('dpList').innerHTML=''; _onType();
   document.getElementById('sheetTitle').textContent='시설 기자재 등록';
   ['fId','fLoc','fMaker','fModel','fHost','fPort'].forEach(id=>document.getElementById(id).value='');
   const fid=document.getElementById('fId'); fid.readOnly=false; fid.style.opacity='1';
@@ -222,6 +241,7 @@ function _openEdit(ix){
   document.getElementById('fPort').value=it.port??'';
   const fid=document.getElementById('fId'); fid.readOnly=true; fid.style.opacity='.6';   // device_id 고정(upsert 키)
   document.getElementById('dpList').innerHTML=''; _dps=[];
+  const _dh=document.getElementById('dpHint'); if(_dh) _dh.textContent='기존 데이터 포인트를 불러왔습니다. 필요 시 수정하세요.';
   (it.datapoints||[]).forEach(dp=>_addDpFilled(dp));
   if(!(it.datapoints||[]).length) _addDp();
   document.getElementById('eqMsg').textContent='';

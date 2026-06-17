@@ -199,5 +199,112 @@
     "datapoints": [],
     "install_date": "",
     "ts": "2026-06-11T06:33:01.027180+00:00"
+  },
+  {
+    "device_id": "TEST-DEV-1",
+    "category": "환경제어",
+    "device_type": "복합환경제어기",
+    "location": "",
+    "maker": "그린씨에스",
+    "model": "GCS-2000",
+    "protocol": "Modbus",
+    "host": "",
+    "port": null,
+    "unit_id": null,
+    "datapoints": [],
+    "install_date": "",
+    "ts": "2026-06-17T04:41:23.958604+00:00"
+  },
+  {
+    "device_id": "TEST-ADD-9",
+    "category": "env_actuator",
+    "device_type": "난방기(온풍·온수·지열)",
+    "location": "",
+    "maker": "테스트제조사",
+    "model": "",
+    "protocol": "MQTT",
+    "host": "",
+    "port": null,
+    "unit_id": null,
+    "datapoints": [],
+    "install_date": "",
+    "ts": "2026-06-17T05:33:25.022069+00:00"
+  },
+  {
+    "device_id": "OK-740",
+    "category": "env_actuator",
+    "device_type": "난방기(온풍·온수·지열)",
+    "location": "",
+    "maker": "제조사",
+    "model": "",
+    "protocol": "MQTT",
+    "host": "",
+    "port": null,
+    "unit_id": null,
+    "datapoints": [],
+    "install_date": "",
+    "ts": "2026-06-17T05:44:05.228484+00:00"
+  },
+  {
+    "device_id": "OK-667",
+    "category": "env_actuator",
+    "device_type": "난방기(온풍·온수·지열)",
+    "location": "",
+    "maker": "제조사",
+    "model": "",
+    "protocol": "MQTT",
+    "host": "",
+    "port": null,
+    "unit_id": null,
+    "datapoints": [],
+    "install_date": "",
+    "ts": "2026-06-17T05:44:09.270569+00:00"
+  },
+  {
+    "device_id": "OK-600",
+    "category": "env_actuator",
+    "device_type": "난방기(온풍·온수·지열)",
+    "location": "",
+    "maker": "제조사",
+    "model": "",
+    "protocol": "MQTT",
+    "host": "",
+    "port": null,
+    "unit_id": null,
+    "datapoints": [],
+    "install_date": "",
+    "ts": "2026-06-17T05:44:13.339248+00:00"
+  },
+  {
+    "device_id": "STD-TEST-1",
+    "category": "env_actuator",
+    "device_type": "난방기(온풍·온수·지열)",
+    "location": "",
+    "maker": "표준제조사",
+    "model": "",
+    "protocol": "MQTT",
+    "host": "",
+    "port": null,
+    "unit_id": null,
+    "datapoints": [
+      {
+        "tag": "heating_temp_set",
+        "data_type": "float",
+        "unit": "°C",
+        "poll_interval": 60,
+        "rw": "read",
+        "canonical_name": "heating_temp_set"
+      },
+      {
+        "tag": "temp_internal",
+        "data_type": "float",
+        "unit": "°C",
+        "poll_interval": 60,
+        "rw": "read",
+        "canonical_name": "temp_internal"
+      }
+    ],
+    "install_date": "",
+    "ts": "2026-06-17T06:07:44.635218+00:00"
   }
 ]
