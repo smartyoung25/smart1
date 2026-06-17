@@ -3,7 +3,7 @@
  * 정적(CSS/JS/아이콘): stale-while-revalidate → 빠름 + 백그라운드 갱신
  * API(/api/): network-first
  */
-const CACHE = 'kaasa-smartos-v41';  // ★ 버전 변경 시 구 캐시 자동 삭제 (v41: C16 표준변수 한글 라벨)
+const CACHE = 'kaasa-smartos-v42';  // ★ v42: G2 환경 출처배지 정직화(등록 센서 연동 반영)·중복배지 정리';  // ★ 버전 변경 시 구 캐시 자동 삭제 (v41: C16 표준변수 한글 라벨)
 const CORE = [
   '/intro', '/index.html',
   '/components/base.css', '/components/data.js',
