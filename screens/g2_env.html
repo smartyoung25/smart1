@@ -468,6 +468,15 @@ function _openEnvInput(){
       if(!Object.keys(body).length){ alert('입력된 값이 없습니다'); return; }
       const _KO={temp_internal:'온도',humidity_int:'습도',co2_ppm:'CO₂',solar_rad:'일사',ec_dsm:'EC',ph:'pH',soil_temp:'지온'};
       const _U={temp_internal:'℃',humidity_int:'%',co2_ppm:'ppm',solar_rad:'W/m²',ec_dsm:'',ph:'',soil_temp:'℃'};
+      // ── 이상치 경고: 허용범위(hard) 초과 차단, 정상범위(soft) 벗어남 확인 ──
+      const HARD={temp_internal:[0,50],humidity_int:[20,100],co2_ppm:[300,2000],solar_rad:[0,1200],ec_dsm:[0.5,5.0],ph:[4.0,8.5],soil_temp:[5,35]};
+      const SOFT={temp_internal:[10,35],humidity_int:[40,95],co2_ppm:[350,1500],solar_rad:[0,1000],ec_dsm:[0.8,4.0],ph:[5.0,7.5],soil_temp:[10,30]};
+      const _bad=Object.keys(body).filter(k=>HARD[k]&&(body[k]<HARD[k][0]||body[k]>HARD[k][1]))
+        .map(k=>`· ${_KO[k]} ${body[k]}${_U[k]} → 허용 ${HARD[k][0]}~${HARD[k][1]}`);
+      if(_bad.length){ alert('⚠️ 입력값이 허용 범위를 벗어났습니다(오타 확인):\n'+_bad.join('\n')); return; }
+      const _warn=Object.keys(body).filter(k=>SOFT[k]&&(body[k]<SOFT[k][0]||body[k]>SOFT[k][1]))
+        .map(k=>`· ${_KO[k]} ${body[k]}${_U[k]} (정상 ${SOFT[k][0]}~${SOFT[k][1]})`);
+      if(_warn.length && !confirm('⚠️ 정상 범위를 벗어난 값이 있습니다. 그대로 저장할까요?\n'+_warn.join('\n'))) return;
       const _detail=Object.keys(body).map(k=>`${_KO[k]||k} ${body[k]}${_U[k]||''}`).join(' · ');
       const _logHistory=async()=>{ try{ await RecordSheet.logActivity(_farmG,_tokenG,{kind:'env_manual', item:'환경 실측 입력·수정', detail:_detail}); }catch(_e){} _refreshRecent(); };
       try{
