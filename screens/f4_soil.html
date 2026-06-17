@@ -126,6 +126,8 @@ function _openIrrigRecord(){
       if(isNaN(amt)){ alert('관개량을 입력하세요'); return; }
       if(amt<0||amt>100){ alert(`⚠️ 관개량 ${amt}mm는 허용 범위(0~100mm)를 벗어났습니다(오타 확인).`); return; }
       if((amt<1||amt>30) && !confirm(`⚠️ 관개량 ${amt}mm는 일반 범위(1~30mm)를 벗어납니다. 그대로 저장할까요?`)) return;
+      // 이상치 자동 플래그(데이터 품질) → C17 진단 연계
+      if(amt<1||amt>30){ try{ await RecordSheet.logActivity(_farmG,_tokenG,{kind:'data_anomaly', item:'노지 관개량 이상치', detail:`관개량 ${amt}mm (일반 1~30mm)`}); }catch(_e){} }
       await RecordSheet.logActivity(_farmG,_tokenG,{
         kind:'irrigation', item:`${v.parcel} 관개`, value:amt,
         detail:`${v.method||'-'} · ${amt}mm · ${v.date||'오늘'}` }); _refreshRecent(); }
