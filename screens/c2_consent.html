@@ -115,10 +115,20 @@ function _save(){
     r.style.color='var(--green)';
     r.innerHTML=`✓ 저장 완료 — ${modeName} · 공개 ${onCount}/${ITEMS.length}항목`+
       (ok?'':' <span style="font-size:10px;color:var(--muted)">(로컬 저장됨)</span>');
-    // 온보딩 흐름: ?next= 가 있으면 다음 단계로 이어가기
-    try{ const nx=new URLSearchParams(location.search).get('next');
-      if(nx){ r.insertAdjacentHTML('afterend',
-        `<button onclick="location.href='${decodeURIComponent(nx).replace(/'/g,'')}'" style="margin-top:12px;width:100%;padding:14px;background:var(--green);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:800;cursor:pointer;min-height:48px;">계속 →</button>`); }
+    // 다음 단계 안내: ?next= 가 있으면 그 경로로, 없으면 기본 프로세스(데이터 수집 시작)로 이어가기
+    try{
+      document.getElementById('consentNext')?.remove();
+      const nx=new URLSearchParams(location.search).get('next');
+      const btn=(href,label,primary)=>`<button onclick="location.href='${href}'" style="width:100%;margin-top:10px;padding:${primary?14:11}px;background:${primary?'var(--green)':'var(--panel)'};color:${primary?'#fff':'var(--green-dark)'};border:${primary?'none':'1.5px solid var(--green)'};border-radius:var(--radius-sm);font-size:${primary?14:13}px;font-weight:800;cursor:pointer;min-height:${primary?48:44}px;">${label}</button>`;
+      let html='<div id="consentNext" style="margin-top:6px;">';
+      if(nx){ html+=btn(decodeURIComponent(nx).replace(/'/g,''),'계속 →',true); }
+      else{
+        html+='<div style="font-size:11.5px;color:var(--muted);margin-top:12px;line-height:1.5;">동의가 저장됐습니다. 이제 데이터 수집을 시작하세요.</div>'
+            + btn('c16_equipment.html','🔌 다음: 데이터 수집 장비 등록 →',true)
+            + btn('c3_home.html','🏠 홈으로',false);
+      }
+      html+='</div>';
+      r.insertAdjacentHTML('afterend',html);
     }catch(e){}
   })();
 }

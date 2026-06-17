@@ -41,6 +41,11 @@
 
   <div class="section-label" style="margin-top:18px;">내 신청 내역</div>
   <div id="reqList"><div style="text-align:center;padding:12px;color:var(--muted);font-size:12.5px;">신청 내역이 없습니다.</div></div>
+  <div id="apNextHint" style="display:none;margin-top:14px;border:1.5px solid var(--green);border-radius:12px;padding:13px;background:var(--green-soft);">
+    <div style="font-size:12.5px;color:var(--green-dark);font-weight:800;line-height:1.5;margin-bottom:10px;">✅ 신청이 접수되었습니다. 담당자 검토 후 연동되며, 진행 상태는 위 내역에서 확인됩니다.</div>
+    <button onclick="location.href='c16_equipment.html'" style="width:100%;padding:12px;background:var(--green);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:800;min-height:46px;cursor:pointer;">🔌 직접 등록 가능한 장비 먼저 등록 (C16) →</button>
+    <button onclick="location.href='c8_interop.html'" style="width:100%;margin-top:8px;padding:11px;background:var(--panel);color:var(--green-dark);border:1.5px solid var(--green);border-radius:10px;font-size:12.5px;font-weight:800;min-height:44px;cursor:pointer;">🔗 연동 현황 확인 (C8) →</button>
+  </div>
 </main>
 
 <!-- 신청 폼 시트 -->
@@ -141,12 +146,13 @@ async function _submitReq(){
       contact:contact,note:document.getElementById('apNote').value.trim()};
     const r=await fetch(`${_api}/api/farms/${_farm}/integration-request`,{method:'POST',headers:_H(),body:JSON.stringify(body)});
     const d=await r.json().catch(()=>({}));
+    const _showNext=()=>{ const h=document.getElementById('apNextHint'); if(h){ h.style.display='block'; h.scrollIntoView({behavior:'smooth',block:'center'}); } };
     if(r.ok){
       res.style.color='var(--green)';res.textContent='✓ '+(d.note||'신청이 접수되었습니다.');
-      setTimeout(()=>{_close();_loadReqs();},1400);
+      setTimeout(()=>{_close();_loadReqs();_showNext();},1400);
     } else if(r.status===403){
       res.style.color='var(--green)';res.textContent='✓ 신청 접수(데모 모드)';
-      setTimeout(()=>_close(),1400);
+      setTimeout(()=>{_close();_showNext();},1400);
     } else { res.style.color='var(--red)';res.textContent=d.detail||`오류 ${r.status}`; }
   }catch(e){ res.style.color='var(--red)';res.textContent='네트워크 오류: '+e.message; }
 }
