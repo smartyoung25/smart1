@@ -887,6 +887,21 @@ async function submitRecord() {
       slab_wt_kg: null
     }));
 
+  // ── 이상치 경고: EC·pH 허용범위(hard) 초과 차단, 정상범위(soft) 벗어남 확인 ──
+  const _pp = KaasaData.PERIODS.filter(p => p.adapterPeriod);
+  const ECh=[0.5,6.0], ECs=[2.0,4.5], PHh=[4.0,8.5], PHs=[5.0,7.0];
+  const _bad=[], _warn=[];
+  periods.forEach((row,i)=>{
+    const lab=(_pp[i]&&_pp[i].id)||('P'+row.period);
+    if(row.ec!=null){ if(row.ec<ECh[0]||row.ec>ECh[1]) _bad.push(`· ${lab} EC ${row.ec} → 허용 ${ECh[0]}~${ECh[1]} dS/m`);
+      else if(row.ec<ECs[0]||row.ec>ECs[1]) _warn.push(`· ${lab} EC ${row.ec} (정상 ${ECs[0]}~${ECs[1]})`); }
+    if(row.ph!=null){ if(row.ph<PHh[0]||row.ph>PHh[1]) _bad.push(`· ${lab} pH ${row.ph} → 허용 ${PHh[0]}~${PHh[1]}`);
+      else if(row.ph<PHs[0]||row.ph>PHs[1]) _warn.push(`· ${lab} pH ${row.ph} (정상 ${PHs[0]}~${PHs[1]})`); }
+    if(row.drain_ml>row.supply_ml && row.supply_ml>0) _warn.push(`· ${lab} 배액(${row.drain_ml})>급액(${row.supply_ml}) — 확인 필요`);
+  });
+  if(_bad.length){ alert('⚠️ 입력값이 허용 범위를 벗어났습니다(오타 확인):\n'+_bad.join('\n')); return; }
+  if(_warn.length && !confirm('⚠️ 정상 범위를 벗어난 값이 있습니다. 그대로 저장할까요?\n'+_warn.join('\n'))) return;
+
   const resultEl = document.getElementById('recordResult');
   resultEl.textContent = '저장 중…';
   try {
