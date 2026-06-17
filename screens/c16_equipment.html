@@ -181,9 +181,11 @@ function _onType(){
   const vars=dv[dev]||[];
   document.getElementById('dpList').innerHTML=''; _dps=[];
   const hint=document.getElementById('dpHint');
+  const lb=(_schema&&_schema.variable_labels)||{};
   if(vars.length){
     vars.forEach(v=>_addDpFilled({tag:v, canonical_name:v, unit:vu[v]||'', data_type:'float', poll_interval:60, rw:'read'}));
-    if(hint) hint.innerHTML=`✅ '<b>${dev}</b>'의 표준 변수 <b>${vars.length}개</b>를 자동 제안했습니다. 실제 태그/주소(레지스터·토픽)만 보완하세요.`;
+    const koList=vars.map(v=>`${lb[v]||v}${vu[v]?'('+vu[v]+')':''}`).join(' · ');
+    if(hint) hint.innerHTML=`✅ '<b>${dev}</b>'의 표준 변수 <b>${vars.length}개</b> 자동 제안: ${koList}<br>실제 태그/주소(레지스터·토픽)만 보완하세요.`;
   }else{
     _addDp();
     if(hint) hint.textContent='ℹ️ 이 장비는 표준변수 제안이 없습니다. 데이터 포인트를 직접 매핑하세요.';
@@ -204,7 +206,7 @@ function _addDp(){
       <input class="inp" data-f="poll_interval" type="number" placeholder="주기(초) 60"/></div>
     <div class="row2" style="margin-top:6px;">
       <select class="sel" data-f="rw">${rws.map(r=>`<option>${r}</option>`).join('')}</select>
-      <select class="sel" data-f="canonical_name"><option value="">표준변수 매핑…</option>${cn.map(v=>`<option>${v}</option>`).join('')}</select></div>
+      <select class="sel" data-f="canonical_name"><option value="">표준변수 매핑…</option>${cn.map(v=>`<option value="${v}">${(_schema&&_schema.variable_labels&&_schema.variable_labels[v])||v} (${v})</option>`).join('')}</select></div>
     <div style="font-size:10px;color:var(--muted);margin-top:6px;">물리 성능 캘리브레이션 (제어/액추에이터 포인트)</div>
     <div class="row2" style="margin-top:4px;">
       <input class="inp" data-f="actuator_response_s" type="number" placeholder="액추에이터 응답(초)"/>

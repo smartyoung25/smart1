@@ -1,6 +1,6 @@
 {
   "_comment": "농가 시설 기자재 구축 내역 + 이기종 통합 입력 스펙 (KAASA SmartOS). variable_registry canonical_name과 매핑.",
-  "version": "1.1",
+  "version": "1.2",
   "categories": [
     {
       "key": "env_actuator",
@@ -524,5 +524,29 @@
     "heating_temp_set": "°C",
     "vent_open_pct": "%",
     "co2_target_ppm": "ppm"
+  },
+  "variable_labels": {
+    "temp_internal": "내부 온도",
+    "temp_external": "외부 온도",
+    "humidity_int": "내부 습도",
+    "co2_ppm": "CO₂ 농도",
+    "solar_rad": "순간 일사",
+    "solar_rad_cumulative": "적산 일사",
+    "soil_temp": "지온",
+    "wind_speed_ext": "풍속",
+    "ec_dsm": "EC(급액/배액)",
+    "ph": "pH",
+    "rainfall_detect": "강우 감지",
+    "drain_pct": "배액률",
+    "supply_ml": "급액량",
+    "water_content_pct": "함수율",
+    "plant_height_cm": "초장",
+    "leaf_count": "엽수",
+    "fruit_set_count": "착과수",
+    "stem_diameter_mm": "경경(줄기직경)",
+    "power_kwh": "전력량",
+    "heating_temp_set": "난방 설정온도",
+    "vent_open_pct": "창 개도",
+    "co2_target_ppm": "CO₂ 목표"
   }
 }
