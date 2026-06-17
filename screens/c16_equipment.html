@@ -24,9 +24,13 @@
     .addbtn{width:100%;padding:15px;background:var(--green);color:#fff;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:800;cursor:pointer;min-height:48px;}
     .ghost{background:var(--gray-soft);color:var(--muted);font-weight:700;}
     /* sheet */
-    .mask{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:flex-end;z-index:200;}
+    .mask{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:flex-end;z-index:400;}
     .mask.open{display:flex;}
-    .sheet{background:var(--panel);width:100%;max-width:480px;margin:0 auto;border-radius:18px 18px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom));max-height:90vh;overflow-y:auto;}
+    /* ★ base.css 전역 .sheet(transform:translateY(100%) 슬라이드업)와 클래스명 충돌 →
+       시트가 화면 밖으로 밀려 저장버튼 도달불가였음. transform 무력화로 정상 표시. */
+    .sheet{background:var(--panel);width:100%;max-width:480px;margin:0 auto;border-radius:18px 18px 0 0;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;transform:none !important;transition:none !important;}
+    .sheet-body{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:18px 16px 6px;flex:1 1 auto;min-height:0;}
+    .sheet-foot{flex:0 0 auto;display:flex;gap:10px;padding:12px 16px calc(10px + env(safe-area-inset-bottom));background:var(--panel);border-top:1px solid var(--border);}
   </style>
 </head>
 <body>
@@ -96,6 +100,7 @@
 <!-- 장비 추가 시트 -->
 <div class="mask" id="mask" onclick="if(event.target===this)_close()">
   <div class="sheet">
+    <div class="sheet-body">
     <div style="font-size:17px;font-weight:800;margin-bottom:8px;" id="sheetTitle">시설 기자재 등록</div>
     <label class="lbl">분류</label>
     <select class="sel" id="fCat" onchange="_onCat()"></select>
@@ -119,7 +124,9 @@
     <div id="dpList"></div>
     <button class="addbtn ghost" style="min-height:42px;font-size:13px;" onclick="_addDp()">＋ 데이터 포인트 추가</button>
     <div id="eqMsg" style="font-size:12.5px;font-weight:700;text-align:center;margin-top:10px;min-height:16px;"></div>
-    <div style="display:flex;gap:10px;margin-top:14px;">
+    </div><!-- /sheet-body (스크롤 영역) -->
+    <!-- 저장/취소 버튼: 시트 하단 고정 푸터 — 시트가 길어도 항상 보이게 -->
+    <div class="sheet-foot">
       <button class="addbtn ghost" style="flex:0 0 96px;" onclick="_close()">취소</button>
       <button class="addbtn" id="saveBtn" onclick="_save()">장비 저장</button>
     </div>
