@@ -466,13 +466,18 @@ function _openEnvInput(){
       const body={}; ['temp_internal','humidity_int','co2_ppm','solar_rad','ec_dsm','ph','soil_temp'].forEach(k=>{
         if(v[k]!=='' && v[k]!=null && !isNaN(parseFloat(v[k]))) body[k]=parseFloat(v[k]); });
       if(!Object.keys(body).length){ alert('입력된 값이 없습니다'); return; }
+      const _KO={temp_internal:'온도',humidity_int:'습도',co2_ppm:'CO₂',solar_rad:'일사',ec_dsm:'EC',ph:'pH',soil_temp:'지온'};
+      const _U={temp_internal:'℃',humidity_int:'%',co2_ppm:'ppm',solar_rad:'W/m²',ec_dsm:'',ph:'',soil_temp:'℃'};
+      const _detail=Object.keys(body).map(k=>`${_KO[k]||k} ${body[k]}${_U[k]||''}`).join(' · ');
+      const _logHistory=async()=>{ try{ await RecordSheet.logActivity(_farmG,_tokenG,{kind:'env_manual', item:'환경 실측 입력·수정', detail:_detail}); }catch(_e){} _refreshRecent(); };
       try{
         const api=KaasaData.getApiBase();
         const r=await fetch(`${api}/api/farms/${_farmG}/environment/manual`,{method:'POST',
           headers:{'Content-Type':'application/json',Authorization:`Bearer ${_tokenG}`}, body:JSON.stringify(body)});
         if(r.ok){ _onSensor(body); _loadEnvFull(_tokenG,_farmG);   // 즉시 화면 반영 + 서버 재조회
           const sb=document.getElementById('envSrcBadge'); if(sb){ sb.textContent='✏️ 수동 입력'; }
-        } else if(r.status===403){ _onSensor(body); /* 데모 게이트시에도 화면엔 반영 */ }
+          await _logHistory();   // 입력 이력(수정 추적) 기록
+        } else if(r.status===403){ _onSensor(body); await _logHistory(); /* 데모 게이트시에도 화면·이력 반영 */ }
         else { const d=await r.json().catch(()=>({})); alert('저장 실패: '+(d.detail||r.status)); }
       }catch(e){ alert('네트워크 오류: '+e.message); }
     }
@@ -493,7 +498,7 @@ function _openEnvSetpoint(){
       detail:`난방 ${v.heat||'-'}℃ · 환기 ${v.vent||'-'}% · CO₂ ${v.co2||'-'}ppm · 차광 ${v.shade||'-'}` }); _refreshRecent(); }
   });
 }
-function _refreshRecent(){ if(window.RecordSheet&&_tokenG) RecordSheet.renderRecent(document.getElementById('recentRec'),_farmG,_tokenG,{kinds:['env_setpoint'],limit:4}); }
+function _refreshRecent(){ if(window.RecordSheet&&_tokenG) RecordSheet.renderRecent(document.getElementById('recentRec'),_farmG,_tokenG,{kinds:['env_manual','env_setpoint'],limit:5}); }
 let _dliStart = null; // 오늘 첫 센서 수신 시간 (DLI 누적 기준)
 let _dliAccum = 0;    // mol/m²/day 누적값
 let _lastSolarTs = null;
