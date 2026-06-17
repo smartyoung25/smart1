@@ -3,7 +3,7 @@
  * 정적(CSS/JS/아이콘): stale-while-revalidate → 빠름 + 백그라운드 갱신
  * API(/api/): network-first
  */
-const CACHE = 'kaasa-smartos-v44';  // ★ v44: G2 환경 입력 이력(수정 추적) 기록·표시';  // ★ v43: G2 환경 실측값 입력·수정(수동 입력→화면 반영)';  // ★ v42: G2 환경 출처배지 정직화(등록 센서 연동 반영)·중복배지 정리';  // ★ 버전 변경 시 구 캐시 자동 삭제 (v41: C16 표준변수 한글 라벨)
+const CACHE = 'kaasa-smartos-v45';  // ★ v45: G2 환경 입력 이상치 경고(허용범위 차단·정상범위 확인)';  // ★ v44: G2 환경 입력 이력(수정 추적) 기록·표시';  // ★ v43: G2 환경 실측값 입력·수정(수동 입력→화면 반영)';  // ★ v42: G2 환경 출처배지 정직화(등록 센서 연동 반영)·중복배지 정리';  // ★ 버전 변경 시 구 캐시 자동 삭제 (v41: C16 표준변수 한글 라벨)
 const CORE = [
   '/intro', '/index.html',
   '/components/base.css', '/components/data.js',
