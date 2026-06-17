@@ -92,8 +92,25 @@ window.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('ucSugg').innerHTML=UC_CASES.map(([id,label,q])=>
     `<span class="sugg-chip" title="${q.replace(/"/g,'')}" onclick="_quickAsk('${q.replace(/'/g,'')}')">${label}</span>`).join('');
   document.getElementById('initSugg').innerHTML=INIT_SUGG.map(s=>`<span class="sugg-chip" onclick="_quickAsk('${s}')">${s}</span>`).join('');
-  _ensureToken().then(t=>KaasaData.init({farmId,token:t,onStatus:_ws}));
+  _ensureToken().then(t=>{ KaasaData.init({farmId,token:t,onStatus:_ws}); _proactiveAnomaly(t,farmId); });
 });
+// 입력 이상치 누적 시 선제 알림 (C17 데이터 품질 연계)
+async function _proactiveAnomaly(token, farmId){
+  try{
+    const api=KaasaData.getApiBase();
+    const d=await fetch(`${api}/api/farms/${farmId}/activity/summary`,{headers:{Authorization:'Bearer '+token}}).then(r=>r.json());
+    const n=(d.by_kind||{})['data_anomaly']||0;
+    if(!n) return;
+    const recent=(d.recent||[]).filter(i=>i.kind==='data_anomaly').slice(0,2)
+      .map(i=>`• ${_esc(i.item||'이상치')}: ${_esc((i.detail||'').slice(0,40))}`).join('<br>');
+    const sev = n>=3 ? '🔴' : '🟡';
+    _addMsg('ai',
+      `${sev} <b>입력 데이터 이상치 ${n}건</b>이 감지됐습니다. 일부 값이 정상 범위를 벗어나 입력되고 있어요.`
+      + (recent?`<br>${recent}`:'')
+      + `<br><br>👉 센서 교정·점검을 권장합니다. <a href="c17_diagnosis.html" style="color:var(--green-dark);font-weight:800;">시스템 종합진단</a>에서 데이터 품질을 확인하세요.`,
+      '선제 알림 · 데이터 품질');
+  }catch(e){}
+}
 function onFarmChange(id){sessionStorage.setItem('sf_farm_id',id);location.reload();}
 async function _ensureToken(){const s=sessionStorage.getItem('sf_token');if(s)return s;try{const a=sessionStorage.getItem('sf_api')||location.origin;const r=await fetch(`${a}/api/v1/auth/demo-token`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({})});if(r.ok){const d=await r.json();sessionStorage.setItem('sf_token',d.access_token);return d.access_token;}}catch{}return '';}
 function _ws(s){const d=document.getElementById('wsDot'),l=document.getElementById('wsLabel');if(d)d.className='ws-dot '+s;if(l)l.textContent=s==='connected'?'실시간 연결 중':'연결 안 됨';}
