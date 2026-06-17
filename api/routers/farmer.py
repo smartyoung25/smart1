@@ -689,12 +689,8 @@ def apply_recommendation(farm_id: str, body: ApplyRequest):
 
 @router.post("/environment/manual", response_model=ManualEnvResponse)
 def submit_manual_env(farm_id: str, body: ManualEnvInput):
-    meta = _require_farm(farm_id)
-    if meta["iot_available"]:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Farm '{farm_id}'은 IoT가 구축된 농가입니다. 수동 입력이 필요하지 않습니다.",
-        )
+    # IoT 농가도 수동 입력·수정 허용(실측 보정/직접 입력). 부분 업데이트 병합.
+    _require_farm(farm_id)
 
     # None이 아닌 필드만 저장
     incoming = body.model_dump(exclude_none=True)
@@ -706,9 +702,12 @@ def submit_manual_env(farm_id: str, body: ManualEnvInput):
     merged = {**existing, **incoming}
     persistence.set_manual_env(farm_id, merged)
 
+    # 화면·추천에 즉시 반영 — 입력값을 _FARM_ENV에 덮어써 get_environment가 바로 표시
+    _FARM_ENV.setdefault(farm_id, {}).update(incoming)
+
     return ManualEnvResponse(
         status="saved",
-        message_ko=f"{len(incoming)}개 환경값이 저장되었습니다. AI 추천이 업데이트됩니다.",
+        message_ko=f"{len(incoming)}개 환경값이 저장·반영되었습니다. AI 추천이 업데이트됩니다.",
         stored_fields=list(merged.keys()),
     )
 
