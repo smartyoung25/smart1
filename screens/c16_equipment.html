@@ -70,12 +70,25 @@
     <span style="font-size:16px;color:var(--blue);">›</span>
   </a>
 
-  <div id="nextStep" style="display:none;margin-top:16px;border-radius:14px;">
-    <div style="font-size:13px;color:var(--muted);text-align:center;margin-bottom:10px;line-height:1.5;">✅ <b id="eqDoneN">장비</b> 등록 완료 — 다음 과정으로 진행하세요.</div>
-    <button onclick="location.href='c17_diagnosis.html'" style="width:100%;padding:14px;background:var(--green);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:800;cursor:pointer;min-height:48px;">🩺 다음: 시스템 종합진단 받기 →</button>
-    <div style="display:flex;gap:8px;margin-top:8px;">
-      <button onclick="location.href='c19_capability.html'" style="flex:1;padding:11px;background:var(--panel);color:var(--green-dark);border:1.5px solid var(--green);border-radius:10px;font-size:12px;font-weight:800;cursor:pointer;min-height:42px;">🎯 역량단계</button>
-      <button onclick="location.href='c3_home.html'" style="flex:1;padding:11px;background:var(--panel);color:var(--muted);border:1.5px solid var(--border);border-radius:10px;font-size:12px;font-weight:800;cursor:pointer;min-height:42px;">🏠 홈으로</button>
+  <div id="nextStep" style="display:none;margin-top:16px;border:1.5px solid var(--green);border-radius:14px;padding:14px 13px;background:var(--green-soft);">
+    <div style="font-size:13px;color:var(--green-dark);text-align:center;margin-bottom:4px;line-height:1.5;font-weight:800;">✅ <b id="eqDoneN">장비</b> 등록 완료</div>
+    <div style="font-size:11.5px;color:var(--muted);text-align:center;margin-bottom:12px;line-height:1.5;">등록한 장비의 데이터가 <b>표준 변수</b>로 연결됐습니다. 아래 순서로 진행하세요.</div>
+
+    <!-- 1) 연동·데이터 품질 확인 (primary) -->
+    <button onclick="location.href='c8_interop.html'" style="width:100%;padding:13px;background:var(--green);color:#fff;border:none;border-radius:var(--radius-sm);font-size:13.5px;font-weight:800;cursor:pointer;min-height:48px;text-align:left;">
+      <span style="display:inline-block;width:20px;">①</span> 🔗 연동·데이터 품질 확인 (이기종 연동) →
+    </button>
+    <!-- 2) 실시간 모니터링·의사결정 -->
+    <button onclick="location.href='c3_home.html'" style="width:100%;margin-top:8px;padding:12px;background:var(--panel);color:var(--blue);border:1.5px solid var(--blue);border-radius:10px;font-size:13px;font-weight:800;cursor:pointer;min-height:46px;text-align:left;">
+      <span style="display:inline-block;width:20px;">②</span> 📊 실시간 모니터링·AI 의사결정 (통합 홈) →
+    </button>
+    <!-- 3) 시스템 종합진단(인프라 반영) -->
+    <button onclick="location.href='c17_diagnosis.html'" style="width:100%;margin-top:8px;padding:12px;background:var(--panel);color:var(--green-dark);border:1.5px solid var(--green);border-radius:10px;font-size:13px;font-weight:800;cursor:pointer;min-height:46px;text-align:left;">
+      <span style="display:inline-block;width:20px;">③</span> 🩺 시스템 종합진단(인프라 성숙도 반영) →
+    </button>
+    <div style="display:flex;gap:8px;margin-top:10px;">
+      <button onclick="location.href='c21_apply.html'" style="flex:1;padding:10px;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:9px;font-size:11.5px;font-weight:700;cursor:pointer;min-height:40px;">🔌 추가 장비 연동신청</button>
+      <button onclick="location.href='c3_home.html'" style="flex:1;padding:10px;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:9px;font-size:11.5px;font-weight:700;cursor:pointer;min-height:40px;">🏠 홈으로</button>
     </div>
   </div>
 </main>
