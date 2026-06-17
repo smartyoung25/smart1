@@ -53,7 +53,10 @@
   </a>
   <div class="section-label">등록 장비</div>
   <div id="eqList"><div class="eq-empty">불러오는 중…</div></div>
-  <button class="addbtn" style="margin-top:12px;" onclick="_openAdd()">＋ 장비 추가</button>
+  <div style="display:flex;gap:8px;margin-top:12px;">
+    <button class="addbtn" style="flex:1;" onclick="_openAdd()">＋ 장비 추가</button>
+    <button class="addbtn ghost" style="flex:1;min-height:48px;" onclick="_scrollImport()">📋 장비 불러오기</button>
+  </div>
 
   <!-- 견적서/시방서 업로드 → 자동 정리 -->
   <div style="margin-top:10px;padding:12px 14px;background:var(--panel-soft);border:1.5px dashed var(--border);border-radius:12px;">
@@ -114,22 +117,27 @@
       <div><label class="lbl">제조사 *</label><input class="inp" id="fMaker" placeholder="프리바/국산 등"/></div>
       <div><label class="lbl">모델</label><input class="inp" id="fModel"/></div>
     </div>
-    <label class="lbl">통신 프로토콜 *</label>
-    <select class="sel" id="fProto"></select>
-    <div class="row2">
-      <div><label class="lbl">주소(IP/호스트)</label><input class="inp" id="fHost" placeholder="192.168.0.10"/></div>
-      <div><label class="lbl">포트</label><input class="inp" id="fPort" type="number" placeholder="502"/></div>
-    </div>
-    <label class="lbl">데이터 포인트 (표준변수 매핑)</label>
-    <div id="dpHint" style="font-size:11px;color:var(--green-dark);background:var(--green-soft);border-radius:8px;padding:7px 10px;margin-bottom:8px;line-height:1.5;"></div>
-    <div id="dpList"></div>
-    <button class="addbtn ghost" style="min-height:42px;font-size:13px;" onclick="_addDp()">＋ 데이터 포인트 추가</button>
+    <!-- 이기종 연계 설정: 다음 프로세스(선택) — 기본 등록 후 연동 단계에서 설정 가능 -->
+    <details id="interopBox" style="margin-top:10px;border:1.5px solid var(--blue);border-radius:12px;padding:10px 12px;background:var(--blue-soft);">
+      <summary style="font-size:13px;font-weight:800;color:var(--blue);cursor:pointer;list-style:none;display:flex;align-items:center;">🔌 이기종 연계 설정 <span style="font-size:10.5px;font-weight:700;color:var(--muted);margin-left:6px;">다음 단계 · 선택</span><span style="margin-left:auto;">▾</span></summary>
+      <div style="font-size:10.5px;color:var(--muted);margin:8px 0 6px;line-height:1.5;">통신 프로토콜·주소·표준변수 매핑은 <b>장비 등록 후 연동 단계(C8)</b>에서 설정해도 됩니다. 지금 펼쳐서 입력할 수도 있어요.</div>
+      <label class="lbl">통신 프로토콜</label>
+      <select class="sel" id="fProto"></select>
+      <div class="row2">
+        <div><label class="lbl">주소(IP/호스트)</label><input class="inp" id="fHost" placeholder="192.168.0.10"/></div>
+        <div><label class="lbl">포트</label><input class="inp" id="fPort" type="number" placeholder="502"/></div>
+      </div>
+      <label class="lbl">데이터 포인트 (표준변수 매핑)</label>
+      <div id="dpHint" style="font-size:11px;color:var(--green-dark);background:var(--green-soft);border-radius:8px;padding:7px 10px;margin-bottom:8px;line-height:1.5;"></div>
+      <div id="dpList"></div>
+      <button class="addbtn ghost" style="min-height:42px;font-size:13px;" onclick="_addDp()">＋ 데이터 포인트 추가</button>
+    </details>
     <div id="eqMsg" style="font-size:12.5px;font-weight:700;text-align:center;margin-top:10px;min-height:16px;"></div>
     </div><!-- /sheet-body (스크롤 영역) -->
     <!-- 저장/취소 버튼: 시트 하단 고정 푸터 — 시트가 길어도 항상 보이게 -->
     <div class="sheet-foot">
       <button class="addbtn ghost" style="flex:0 0 96px;" onclick="_close()">취소</button>
-      <button class="addbtn" id="saveBtn" onclick="_save()">장비 저장</button>
+      <button class="addbtn" id="saveBtn" onclick="_save()">✓ 장비 등록</button>
     </div>
   </div>
 </div>
@@ -257,6 +265,17 @@ function _addDpFilled(dp){
   row.querySelectorAll('[data-f]').forEach(el=>{ const v=dp[el.dataset.f]; if(v!==undefined&&v!==null) el.value=v; });
 }
 function _close(){ document.getElementById('mask').classList.remove('open'); }
+
+// ★ 장비 불러오기 — 견적서 업로드 영역으로 이동 + 파일 선택창 열기
+function _scrollImport(){
+  const f=document.getElementById('quoteFile');
+  if(!f) return;
+  const box=f.closest('div')||f;
+  box.scrollIntoView({behavior:'smooth', block:'center'});
+  box.style.transition='box-shadow .3s'; box.style.boxShadow='0 0 0 3px var(--green-soft)';
+  setTimeout(()=>{ box.style.boxShadow='none'; }, 1600);
+  try{ f.click(); }catch(_e){}   // 네이티브 파일 선택창 바로 열기
+}
 
 // ★ 견적서/시방서 업로드 → 초안 파싱 → 미리보기
 let _draft=[];
