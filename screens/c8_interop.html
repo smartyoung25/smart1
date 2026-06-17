@@ -30,7 +30,14 @@
   <div class="kpi"><div class="kpi-l">연동 API</div><div class="kpi-v" style="color:var(--blue)"><span id="kConn">—</span><span style="font-size:13px;font-weight:400">개</span></div><div class="kpi-s" id="kConnSub">연결됨</div></div>
   <div class="kpi"><div class="kpi-l">연동률</div><div class="kpi-v" style="color:var(--green)"><span id="kRate">—</span><span style="font-size:13px;font-weight:400">%</span></div><div class="kpi-s">전체 데이터소스</div></div>
 </div>
-<div class="section-label">외부 데이터 연동 현황 <span class="trust-badge trust-live">🟢 실시간</span></div>
+<div id="eqBanner" style="display:none;margin:2px 0 10px;padding:11px 13px;background:var(--green-soft);border:1.5px solid var(--green);border-radius:12px;font-size:12.5px;color:var(--green-dark);font-weight:700;line-height:1.5;"></div>
+<div class="section-label">등록 장비 · 표준변수 매핑 <span class="trust-badge trust-live">🟢 이기종 통합</span></div>
+<div class="card" style="padding:14px;" id="eqList"><div style="text-align:center;color:var(--muted);font-size:12px;">불러오는 중…</div></div>
+<div id="eqNext" style="display:none;margin:10px 0 2px;">
+  <button onclick="location.href='c3_home.html'" style="width:100%;padding:12px;background:var(--green);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:800;min-height:46px;cursor:pointer;">📊 등록 데이터로 모니터링·의사결정 시작 →</button>
+  <button onclick="location.href='c16_equipment.html'" style="width:100%;margin-top:8px;padding:10px;background:var(--panel);color:var(--green-dark);border:1.5px solid var(--green);border-radius:10px;font-size:12px;font-weight:800;min-height:42px;cursor:pointer;">＋ 장비 추가·수정 (C16)</button>
+</div>
+<div class="section-label" style="margin-top:14px;">외부 데이터 연동 현황 <span class="trust-badge trust-live">🟢 실시간</span></div>
 <div class="card" style="padding:14px;" id="apiList"><div style="text-align:center;color:var(--muted);font-size:12px;"><div class="spinner"></div></div></div>
 <div class="section-label" style="margin-top:14px;">MQTT·게이트웨이</div>
 <div class="card" style="padding:14px;" id="mcpList"></div>
@@ -77,6 +84,37 @@
   document.getElementById('mcpList').innerHTML = mEnt.length ? mEnt.map(([k,v])=>`
     <div class="row"><span class="row-ico">🔌</span><div class="row-t" style="flex:1;">${k}<div class="row-s">${typeof v==='object'?(v.status||JSON.stringify(v).slice(0,40)):v}</div></div></div>`).join('')
     : '<div class="row"><span class="row-ico">📡</span><div class="row-t" style="flex:1;">MQTT 브로커 (mosquitto)<div class="row-s">포트 1883 · 센서 스트리밍</div></div><span class="badge" style="background:var(--green-soft);color:var(--green-dark)">활성</span></div>';
+
+  // ── 등록 장비(C16) 반영 — 이기종 통합 현황 ──────────────────────────────
+  try{
+    const eq=await fetch(`${api}/api/farms/${farmId}/equipment`,{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.json());
+    const items=eq.items||[];
+    const vars=new Set();
+    items.forEach(it=>(it.datapoints||[]).forEach(dp=>{ const c=dp.canonical||dp.variable; if(c) vars.add(c); }));
+    const elList=document.getElementById('eqList');
+    if(!items.length){
+      elList.innerHTML='<div style="text-align:center;color:var(--muted);font-size:12px;line-height:1.6;">등록된 장비가 없습니다.<br><a href="c16_equipment.html" style="color:var(--green-dark);font-weight:800;">＋ 장비 등록(C16)</a>으로 시작하세요.</div>';
+    }else{
+      // 연동률 KPI에 등록 장비 반영(외부 API + 등록 장비 통합)
+      const apiTot=entries.length, apiOk=conn;
+      const totalSrc=apiTot+items.length, okSrc=apiOk+items.length;  // 등록 장비는 표준변수 매핑됨=연동
+      document.getElementById('kConn').textContent=okSrc;
+      document.getElementById('kConnSub').textContent=`전체 ${totalSrc}개 중`;
+      document.getElementById('kRate').textContent=totalSrc?Math.round(okSrc/totalSrc*100):0;
+      const ban=document.getElementById('eqBanner');
+      ban.style.display='block';
+      ban.innerHTML=`✅ 등록 장비 <b>${items.length}대</b>가 표준 변수 <b>${vars.size}개</b>로 연동되었습니다. 제조사·프로토콜이 달라도 화면·모델이 동일하게 사용합니다.`;
+      elList.innerHTML=items.map(it=>{
+        const dps=(it.datapoints||[]); const proto=(it.protocol||'—');
+        const vlist=dps.map(dp=>dp.canonical||dp.variable).filter(Boolean).slice(0,5).join(' · ')||'표준변수 매핑 대기';
+        return `<div class="row"><span class="row-ico">🔌</span>
+          <div class="row-t" style="flex:1;">${(it.device_type||it.device_id)} <span style="color:var(--muted);font-weight:400;">${it.maker||''}</span>
+            <div class="row-s">${proto} · ${vlist}</div></div>
+          <span class="badge" style="background:var(--green-soft);color:var(--green-dark)">연동</span></div>`;
+      }).join('');
+      document.getElementById('eqNext').style.display='block';
+    }
+  }catch(e){ document.getElementById('eqList').innerHTML='<div style="color:var(--muted);font-size:12px;">장비 로드 실패</div>'; }
 })();
 </script>
 </body></html>
