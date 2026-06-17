@@ -88,6 +88,8 @@
     <svg id="dgRadar" width="100%" height="260" viewBox="0 0 300 260" preserveAspectRatio="xMidYMid meet"></svg>
   </div>
   <div id="dgDomains"><div style="text-align:center;padding:16px;color:var(--muted);"><div class="spinner"></div></div></div>
+  <div class="section-label" style="margin-top:14px;">데이터 품질 점검 <span class="trust-badge trust-live">🟢 입력 모니터링</span></div>
+  <div class="card" id="dataQuality" style="padding:13px 14px;margin-bottom:6px;font-size:12.5px;color:var(--muted);">불러오는 중…</div>
   <div class="section-label" style="margin-top:14px;">우선순위 처방 (의사결정) <span class="trust-badge trust-model">🔵 ROI</span></div>
   <div id="dgDecisions"></div>
   <details style="margin-top:10px;"><summary style="font-size:12px;color:var(--muted);cursor:pointer;padding:6px 0;">인프라 성숙도 상세 · 업그레이드 추천 ▾</summary>
@@ -169,6 +171,28 @@ async function _loadTrend(token){
   }catch(e){}
 }
 
+// 데이터 품질 점검 — 입력 이상치(data_anomaly) 플래그 집계 → 진단 신호
+async function _loadDataQuality(token){
+  const el=document.getElementById('dataQuality'); if(!el) return;
+  try{
+    const api=KaasaData.getApiBase();
+    const d=await fetch(`${api}/api/farms/${_farmG}/activity/summary`,{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.json());
+    const byKind=d.by_kind||{}; const recent=d.recent||[];
+    const items=recent.filter(i=>i.kind==='data_anomaly');
+    const n=byKind['data_anomaly'] || items.length;
+    const manual=(byKind['env_manual']||0)+(byKind['irrigation']||0)+(byKind['env_setpoint']||0)
+      || recent.filter(i=>['env_manual','irrigation','env_setpoint'].includes(i.kind)).length;
+    const status = n===0 ? {ico:'🟢',txt:'양호',col:'var(--green-dark)'} : n<=2 ? {ico:'🟡',txt:'주의',col:'var(--orange)'} : {ico:'🔴',txt:'점검 필요',col:'var(--red)'};
+    let html=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><span style="font-size:15px;">${status.ico}</span>`
+      +`<b style="color:${status.col};font-size:13px;">입력 이상치 ${n}건 · ${status.txt}</b>`
+      +`<span style="margin-left:auto;color:var(--muted);font-size:11px;">수동 입력 ${manual}건</span></div>`;
+    if(n){ html+=items.slice(0,4).map(i=>`<div style="font-size:11.5px;color:var(--ink,#333);padding:3px 0;border-top:1px dashed var(--border);">⚠️ ${i.item||'이상치'} — ${(i.detail||'').slice(0,46)}</div>`).join('');
+      html+=`<div style="font-size:11px;color:var(--muted);margin-top:6px;">정상 범위를 벗어난 입력이 반복되면 센서 점검·교정을 권장합니다.</div>`; }
+    else { html+=`<div style="font-size:11.5px;color:var(--muted);">정상 범위를 벗어난 입력 이상치가 없습니다. 입력 데이터 품질 양호.</div>`; }
+    el.innerHTML=html;
+  }catch(e){ el.textContent='데이터 품질 정보를 불러올 수 없습니다.'; }
+}
+
 async function _load(token){
   const api=KaasaData.getApiBase();
   let d;
@@ -177,6 +201,7 @@ async function _load(token){
   document.getElementById('dgScore').textContent=d.overall_score;
   document.getElementById('dgGrade').textContent=`종합 ${d.grade} · ${d.tier} 등급`;
   _loadTrend(token);
+  _loadDataQuality(token);
   const st=d.stats||{};
   document.getElementById('dgStats').innerHTML=`
     <div class="stat"><div class="stat-v">${st.devices||0}</div><div class="stat-l">등록 장비</div></div>

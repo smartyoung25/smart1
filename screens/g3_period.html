@@ -901,6 +901,10 @@ async function submitRecord() {
   });
   if(_bad.length){ alert('⚠️ 입력값이 허용 범위를 벗어났습니다(오타 확인):\n'+_bad.join('\n')); return; }
   if(_warn.length && !confirm('⚠️ 정상 범위를 벗어난 값이 있습니다. 그대로 저장할까요?\n'+_warn.join('\n'))) return;
+  // 이상치 자동 플래그(데이터 품질) → C17 진단 연계
+  if(_warn.length){ try{ const _tk=sessionStorage.getItem('sf_token'); const _fid=sessionStorage.getItem('sf_farm_id')||'farm_001';
+    fetch(`${KaasaData.getApiBase()}/api/farms/${_fid}/activity`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+_tk},
+      body:JSON.stringify({kind:'data_anomaly', item:'관수 입력 이상치', detail:_warn.map(s=>s.replace('· ','')).join(' / ')})}); }catch(_e){} }
 
   const resultEl = document.getElementById('recordResult');
   resultEl.textContent = '저장 중…';

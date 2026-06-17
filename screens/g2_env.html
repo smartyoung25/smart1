@@ -477,6 +477,8 @@ function _openEnvInput(){
       const _warn=Object.keys(body).filter(k=>SOFT[k]&&(body[k]<SOFT[k][0]||body[k]>SOFT[k][1]))
         .map(k=>`· ${_KO[k]} ${body[k]}${_U[k]} (정상 ${SOFT[k][0]}~${SOFT[k][1]})`);
       if(_warn.length && !confirm('⚠️ 정상 범위를 벗어난 값이 있습니다. 그대로 저장할까요?\n'+_warn.join('\n'))) return;
+      // 이상치 자동 플래그(데이터 품질) → C17 진단 연계
+      if(_warn.length){ try{ RecordSheet.logActivity(_farmG,_tokenG,{kind:'data_anomaly', item:'환경 입력 이상치', detail:_warn.map(s=>s.replace('· ','')).join(' / ')}); }catch(_e){} }
       const _detail=Object.keys(body).map(k=>`${_KO[k]||k} ${body[k]}${_U[k]||''}`).join(' · ');
       const _logHistory=async()=>{ try{ await RecordSheet.logActivity(_farmG,_tokenG,{kind:'env_manual', item:'환경 실측 입력·수정', detail:_detail}); }catch(_e){} _refreshRecent(); };
       try{
