@@ -187,7 +187,7 @@
   <div class="alert-strip" id="alertStrip"></div>
 
   <!-- 실내 환경 KPI -->
-  <div class="section-label">실내 환경 (실시간) <span class="trust-badge trust-live">🟢 실측</span> <span class="trust-badge trust-live">🟢 실측</span></div>
+  <div class="section-label">실내 환경 (실시간) <span class="trust-badge trust-live" id="envSrcBadge">🟢 실측</span></div>
   <div class="env-kpi-grid">
 
     <div class="env-kpi-card" id="cardTemp">
@@ -574,6 +574,12 @@ window.addEventListener('DOMContentLoaded', () => {
     if(window.EquipmentLink) EquipmentLink.load(farmId, token).then(inv=>{
       EquipmentLink.renderBadge(document.getElementById('eqLink'), inv, ['temp_internal','humidity_int','co2_ppm','solar_rad']);
       EquipmentLink.feedDeviceAlert(inv);
+      // 섹션 배지를 등록 장비 연동 상태에 맞춰 정직하게 표시(데모는 시뮬값)
+      const sb=document.getElementById('envSrcBadge');
+      if(sb){ const n=inv.deviceCount||0;
+        sb.textContent = n ? `🔵 연동 센서 ${n}대` : '🟡 참고값(시뮬)';
+        sb.title = n ? '등록 센서가 측정하는 표준변수입니다(데모는 시뮬값 표시).' : '등록 센서가 없어 작목 표준 시뮬값을 표시합니다.';
+      }
     });
     // 등급 게이팅: VPD+작기단계 분석은 pro 등급 전용 (env_vpd_stage)
     KaasaTier.init(farmId, token).then(() => {
