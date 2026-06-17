@@ -278,6 +278,7 @@
     <button id="cpSave" onclick="_cpSave()" style="width:100%;margin-top:6px;padding:12px;background:var(--green);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer;min-height:46px;">전략표 저장</button>
   </div>
 
+  <button onclick="_openEnvInput()" style="width:100%;margin-bottom:8px;padding:14px;background:var(--blue,#2563eb);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:800;cursor:pointer;min-height:48px;">✏️ 환경 실측값 입력·수정 (센서 미연동 항목)</button>
   <button onclick="_openEnvSetpoint()" style="width:100%;margin-bottom:10px;padding:14px;background:var(--green);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:800;cursor:pointer;min-height:48px;">🌡️ 즉시 환경 설정값 기록 (난방·환기·CO₂)</button>
   <div class="card" style="padding:12px 14px;margin-bottom:14px;" id="recentRec"></div>
 
@@ -444,6 +445,38 @@ function _renderAgentCard(){
         <div style="font-size:11px;color:var(--muted);margin-top:2px;">${led.r} <span style="color:var(--green-dark);">(${led.tip})</span></div></div>
     </div>
     <div style="font-size:10px;color:var(--muted);margin-top:8px;">※ 30초 주기 센서 감시 → 룰엔진 즉시 조치 + ML 72h 병해 예측. 자동 모드에서 활성화.</div>`;
+}
+// ★ 환경 실측값 직접 입력·수정 (현재값 프리필 → /environment/manual 저장 → 화면 반영)
+function _openEnvInput(){
+  const E=_env||{};
+  const n=v=>(v==null||isNaN(v))?'':Math.round(v*10)/10;
+  RecordSheet.open({
+    title:'✏️ 환경 실측값 입력·수정',
+    submitLabel:'저장·반영',
+    fields:[
+      {id:'temp_internal', label:'내부 온도', type:'number', unit:'℃',   placeholder:'18~26', value:n(E.temp_internal)},
+      {id:'humidity_int',  label:'내부 습도', type:'number', unit:'%',    placeholder:'60~85', value:n(E.humidity_int)},
+      {id:'co2_ppm',       label:'CO₂ 농도',  type:'number', unit:'ppm',  placeholder:'400~1500', value:n(E.co2_ppm)},
+      {id:'solar_rad',     label:'순간 일사', type:'number', unit:'W/m²', placeholder:'0~1000', value:n(E.solar_rad)},
+      {id:'ec_dsm',        label:'EC',        type:'number', unit:'dS/m', placeholder:'0.5~5.0', value:n(E.ec_dsm)},
+      {id:'ph',            label:'pH',        type:'number', unit:'',     placeholder:'4.0~8.5', value:n(E.ph)},
+      {id:'soil_temp',     label:'지온',      type:'number', unit:'℃',   placeholder:'5~35', value:n(E.soil_temp)},
+    ],
+    onSubmit: async (v)=>{
+      const body={}; ['temp_internal','humidity_int','co2_ppm','solar_rad','ec_dsm','ph','soil_temp'].forEach(k=>{
+        if(v[k]!=='' && v[k]!=null && !isNaN(parseFloat(v[k]))) body[k]=parseFloat(v[k]); });
+      if(!Object.keys(body).length){ alert('입력된 값이 없습니다'); return; }
+      try{
+        const api=KaasaData.getApiBase();
+        const r=await fetch(`${api}/api/farms/${_farmG}/environment/manual`,{method:'POST',
+          headers:{'Content-Type':'application/json',Authorization:`Bearer ${_tokenG}`}, body:JSON.stringify(body)});
+        if(r.ok){ _onSensor(body); _loadEnvFull(_tokenG,_farmG);   // 즉시 화면 반영 + 서버 재조회
+          const sb=document.getElementById('envSrcBadge'); if(sb){ sb.textContent='✏️ 수동 입력'; }
+        } else if(r.status===403){ _onSensor(body); /* 데모 게이트시에도 화면엔 반영 */ }
+        else { const d=await r.json().catch(()=>({})); alert('저장 실패: '+(d.detail||r.status)); }
+      }catch(e){ alert('네트워크 오류: '+e.message); }
+    }
+  });
 }
 function _openEnvSetpoint(){
   RecordSheet.open({

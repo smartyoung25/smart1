@@ -73,7 +73,8 @@ if _PUBLIC_DEMO:
     #   ※ /api/admin/* 관리자 쓰기는 아래에서 항상 403 유지.
     _WRITE_ALLOW_SUFFIX = ("/chat", "/integration-request", "/equipment", "/climate-plan",
                            "/consent", "/daily-temp", "/whatif", "/diagnosis/checklist",
-                           "/activity", "/irrigation")   # /irrigation: G3 일일 관수 기록 입력
+                           "/activity", "/irrigation",   # /irrigation: G3 일일 관수 기록 입력
+                           "/environment/manual")        # G2 환경 실측 수동 입력·수정
     # 경로 중간 일치 허용(예: 장비 삭제 DELETE /equipment/{device_id})
     #   /whatif: G4 단일·다중(/whatif/multi) 시뮬레이션(무변경 읽기) 모두 허용
     _WRITE_ALLOW_CONTAINS = ("/equipment/", "/whatif")
