@@ -120,9 +120,15 @@ function _openIrrigRecord(){
       {id:'method', label:'관개 방식', type:'select', options:['점적관개','스프링클러','지표관개']},
       {id:'date',   label:'실행일', type:'date'},
     ],
-    onSubmit: async (v)=>{ await RecordSheet.logActivity(_farmG,_tokenG,{
-      kind:'irrigation', item:`${v.parcel} 관개`, value:parseFloat(v.amount)||null,
-      detail:`${v.method||'-'} · ${v.amount||'-'}mm · ${v.date||'오늘'}` }); _refreshRecent(); }
+    onSubmit: async (v)=>{
+      // 이상치 경고: 관개량(mm) 허용범위 초과 차단·일반범위 벗어남 확인
+      const amt=parseFloat(v.amount);
+      if(isNaN(amt)){ alert('관개량을 입력하세요'); return; }
+      if(amt<0||amt>100){ alert(`⚠️ 관개량 ${amt}mm는 허용 범위(0~100mm)를 벗어났습니다(오타 확인).`); return; }
+      if((amt<1||amt>30) && !confirm(`⚠️ 관개량 ${amt}mm는 일반 범위(1~30mm)를 벗어납니다. 그대로 저장할까요?`)) return;
+      await RecordSheet.logActivity(_farmG,_tokenG,{
+        kind:'irrigation', item:`${v.parcel} 관개`, value:amt,
+        detail:`${v.method||'-'} · ${amt}mm · ${v.date||'오늘'}` }); _refreshRecent(); }
   });
 }
 
