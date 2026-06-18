@@ -1,0 +1,41 @@
+{
+    "hooks": {
+        "PostToolUse": [
+            {
+                "matcher": "Edit|Write|Bash",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "code-review-graph update --skip-flows",
+                        "timeout": 30
+                    }
+                ]
+            }
+        ],
+        "SessionStart": [
+            {
+                "matcher": "",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "code-review-graph status",
+                        "timeout": 10
+                    }
+                ]
+            }
+        ],
+        "Stop": [
+            {
+                "matcher": "",
+                "hooks": [
+                    {
+                        "type": "agent",
+                        "prompt": "세션이 종료됩니다. 다음 순서로 NEXT.md를 업데이트하세요:\n1. git status --short 실행\n2. git log --oneline -3 실행\n3. C:\\smart_farm\\NEXT.md 읽기\n4. NEXT.md를 30줄 이내로 업데이트 (현재 상태 한 문장, 완료 목표 [x], 다음 작업 갱신)\n변경 없으면 수정 금지.",
+                        "timeout": 60
+                    }
+                ]
+            }
+        ]
+    },
+    "includeGitInstructions": false
+}

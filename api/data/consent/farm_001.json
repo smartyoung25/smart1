@@ -2,11 +2,14 @@
   "mode": "learning",
   "items": {
     "env": true,
-    "irr": true
+    "irr": true,
+    "growth": true,
+    "disease": false,
+    "revenue": false
   },
-  "note": "",
+  "note": "환경 데이터, 관수 데이터, 생육 데이터",
   "farm_id": "farm_001",
   "saved": true,
-  "updated_at": "2026-06-11T06:32:56.912779+00:00",
-  "shared_count": 2
+  "updated_at": "2026-06-17T05:29:32.171679+00:00",
+  "shared_count": 3
 }

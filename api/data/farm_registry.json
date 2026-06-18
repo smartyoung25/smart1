@@ -1,6 +1,6 @@
 {
   "generated_at": "2026-05-10T10:48:35.173501",
-  "total_farms": 729,
+  "total_farms": 730,
   "area_stats_by_crop": {
     "가지": {
       "avg_m2": 1930.0,
@@ -9442,6 +9442,28 @@
       "emd": "ㅇㅇ",
       "area_m2": 1000.0,
       "name": "논산햇살농장",
+      "iot_available": false,
+      "onboarding": true
+    },
+    "farm_ch60pg": {
+      "crop": "딸기",
+      "crop_ko": "딸기",
+      "sido": "충청남도",
+      "sigungu": "논산시",
+      "emd": "ㅇㅇㅇ",
+      "area_m2": 1000.0,
+      "name": "논산햇살농장",
+      "iot_available": false,
+      "onboarding": true
+    },
+    "farm_u386bfbe7": {
+      "crop": "딸기",
+      "crop_ko": "딸기",
+      "sido": "—",
+      "sigungu": "—",
+      "emd": "",
+      "area_m2": 1000.0,
+      "name": "흐름테스트농장",
       "iot_available": false,
       "onboarding": true
     }
