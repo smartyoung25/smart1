@@ -121,7 +121,10 @@ function _save(){
       const nx=new URLSearchParams(location.search).get('next');
       const btn=(href,label,primary)=>`<button onclick="location.href='${href}'" style="width:100%;margin-top:10px;padding:${primary?14:11}px;background:${primary?'var(--green)':'var(--panel)'};color:${primary?'#fff':'var(--green-dark)'};border:${primary?'none':'1.5px solid var(--green)'};border-radius:var(--radius-sm);font-size:${primary?14:13}px;font-weight:800;cursor:pointer;min-height:${primary?48:44}px;">${label}</button>`;
       let html='<div id="consentNext" style="margin-top:6px;">';
-      if(nx){ html+=btn(decodeURIComponent(nx).replace(/'/g,''),'계속 →',true); }
+      // ?next= 검증: 안전한 내부 상대경로(화면.html[?쿼리])만 허용 — 외부 리다이렉트·스크립트 주입 차단
+      const dest=nx?decodeURIComponent(nx):'';
+      const safeNext=/^[a-zA-Z0-9_]+\.html(\?[\w=&%.\-]*)?$/.test(dest);
+      if(nx&&safeNext){ html+=btn(dest,'계속 →',true); }
       else{
         html+='<div style="font-size:11.5px;color:var(--muted);margin-top:12px;line-height:1.5;">동의가 저장됐습니다. 이제 데이터 수집을 시작하세요.</div>'
             + btn('c16_equipment.html','🔌 다음: 데이터 수집 장비 등록 →',true)
