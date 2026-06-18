@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <title>C24 — 온실 시공업체 찾기 | KAASA smartfarmingsight</title>
+  <link rel="stylesheet" href="../components/base.css"/>
+  <style>
+    .cc-body{padding:14px;max-width:480px;margin:0 auto;padding-bottom:90px;}
+    .cc-filters{background:var(--panel);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:12px;margin-bottom:12px;box-shadow:var(--shadow);}
+    .cc-search{display:flex;gap:8px;}
+    .inp,.sel{width:100%;min-height:46px;padding:11px 13px;border:1.5px solid var(--border);border-radius:10px;font-size:15px;background:var(--panel);color:var(--text);}
+    .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
+    .chip{font-size:12px;font-weight:700;padding:7px 12px;border-radius:999px;border:1.5px solid var(--border);background:var(--panel);color:var(--muted);cursor:pointer;min-height:36px;}
+    .chip.on{background:var(--blue-soft);border-color:var(--blue);color:#1e40af;}
+    .cc-count{font-size:12px;color:var(--muted);margin:6px 2px 10px;font-weight:700;}
+    .cc-card{background:var(--panel);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:13px 14px;margin-bottom:9px;box-shadow:var(--shadow);}
+    .cc-top{display:flex;align-items:center;gap:8px;}
+    .cc-name{font-size:14.5px;font-weight:800;flex:1;}
+    .cc-rank{font-size:10px;font-weight:800;padding:2px 8px;border-radius:7px;background:var(--green-soft);color:var(--green-dark);}
+    .cc-addr{font-size:11.5px;color:var(--muted);margin-top:5px;line-height:1.5;}
+    .cc-tel{display:inline-flex;align-items:center;gap:5px;margin-top:8px;font-size:13px;font-weight:800;color:var(--blue);text-decoration:none;padding:6px 10px;background:var(--blue-soft);border-radius:9px;min-height:38px;}
+    .cc-empty{text-align:center;padding:28px;color:var(--muted);font-size:13px;}
+    .cc-hd{display:flex;align-items:center;gap:9px;margin-bottom:12px;}
+    .cc-hd .back{font-size:22px;text-decoration:none;color:var(--text);min-width:32px;}
+    .cc-hd h1{font-size:17px;font-weight:800;margin:0;flex:1;}
+    .cc-note{font-size:10.5px;color:var(--muted);margin-top:3px;}
+  </style>
+</head>
+<body>
+<main class="cc-body">
+  <div class="cc-hd">
+    <a class="back" href="c16_equipment.html">‹</a>
+    <div style="flex:1;">
+      <h1>🏗️ 온실 시공업체 찾기</h1>
+      <div class="cc-note">스마트팜코리아 공식 DB · 도급순위 기반</div>
+    </div>
+  </div>
+
+  <div class="cc-filters">
+    <div class="cc-search">
+      <input class="inp" id="q" placeholder="상호명 검색 (예: 그린플러스)" oninput="_deb(_run)"/>
+    </div>
+    <div style="font-size:11px;font-weight:700;color:var(--muted);margin:10px 2px 2px;">지역(시·도)</div>
+    <div class="chips" id="regionChips"></div>
+    <div style="font-size:11px;font-weight:700;color:var(--muted);margin:10px 2px 2px;">도급순위</div>
+    <div class="chips" id="rankChips">
+      <span class="chip on" data-rank="" onclick="_pickRank(this,'')">전체</span>
+      <span class="chip" data-rank="1군" onclick="_pickRank(this,'1군')">1군</span>
+      <span class="chip" data-rank="2군" onclick="_pickRank(this,'2군')">2군</span>
+    </div>
+  </div>
+
+  <div class="cc-count" id="ccCount">불러오는 중…</div>
+  <div id="ccList"></div>
+</main>
+
+<nav class="sf-bottom-nav">
+  <button class="bnav-tab" onclick="location.href='c3_home.html'"><span class="bnav-icon">🏠</span>홈</button>
+  <button class="bnav-tab" onclick="location.href='c16_equipment.html'"><span class="bnav-icon">🔌</span>기자재</button>
+  <button class="bnav-tab" onclick="location.href='c21_apply.html'"><span class="bnav-icon">📝</span>신청</button>
+  <button class="bnav-tab" onclick="location.href='g1_home.html'"><span class="bnav-icon">🌱</span>온실</button>
+</nav>
+
+<script src="../components/data.js"></script>
+<script>
+'use strict';
+const REGIONS=['서울','경기','인천','강원','충북','충남','대전','전북','전남','광주','경북','경남','대구','부산','울산','제주'];
+let _region='', _rank='', _t=null;
+function _deb(fn){ clearTimeout(_t); _t=setTimeout(fn,250); }
+
+function _initRegions(){
+  const c=document.getElementById('regionChips');
+  c.innerHTML=`<span class="chip on" data-r="" onclick="_pickRegion(this,'')">전체</span>`+
+    REGIONS.map(r=>`<span class="chip" data-r="${r}" onclick="_pickRegion(this,'${r}')">${r}</span>`).join('');
+}
+function _pickRegion(el,r){ _region=r; document.querySelectorAll('#regionChips .chip').forEach(c=>c.classList.remove('on')); el.classList.add('on'); _run(); }
+function _pickRank(el,r){ _rank=r; document.querySelectorAll('#rankChips .chip').forEach(c=>c.classList.remove('on')); el.classList.add('on'); _run(); }
+
+async function _run(){
+  const q=document.getElementById('q').value.trim();
+  const api=KaasaData.getApiBase();
+  const url=`${api}/api/reference/construction?q=${encodeURIComponent(q)}&region=${encodeURIComponent(_region)}&rank=${encodeURIComponent(_rank)}&limit=100`;
+  const cnt=document.getElementById('ccCount'), list=document.getElementById('ccList');
+  try{
+    const r=await fetch(url); const d=await r.json();
+    const items=d.items||[];
+    cnt.textContent=`${d.count}개 업체`;
+    if(!items.length){ list.innerHTML='<div class="cc-empty">조건에 맞는 시공업체가 없습니다.<br>지역·검색어를 바꿔보세요.</div>'; return; }
+    list.innerHTML=items.map(c=>{
+      const tel=(c.tel||'').replace(/[^0-9]/g,'');
+      return `<div class="cc-card">
+        <div class="cc-top">
+          <div class="cc-name">${c.name||'-'}</div>
+          ${c.rank_group?`<span class="cc-rank">${c.rank_group}</span>`:''}
+        </div>
+        <div class="cc-addr">📍 ${c.address||'-'}</div>
+        ${tel?`<a class="cc-tel" href="tel:${tel}">📞 ${c.tel}</a>`:''}
+      </div>`;
+    }).join('');
+  }catch(e){
+    cnt.textContent=''; list.innerHTML='<div class="cc-empty">데이터를 불러오지 못했습니다.</div>';
+  }
+}
+window.addEventListener('DOMContentLoaded', ()=>{ _initRegions(); _run(); });
+</script>
+</body>
+</html>
