@@ -145,8 +145,11 @@ async function _login(){
     if(r.ok){
       const d=await r.json();
       if(d.access_token) sessionStorage.setItem('sf_token',d.access_token);
-      res.style.color='var(--green)';res.textContent='✓ 로그인 완료! 이동합니다…';
-      setTimeout(()=>location.href='c3_home.html',900);
+      if(d.farm_id) sessionStorage.setItem('sf_farm_id',d.farm_id);   // 계정 농장ID 인계(홈·세팅 일관)
+      // 온보딩 미완료면 농장세팅(C1)으로, 완료면 홈으로
+      const dest=d.onboarding_required?'c1_setup.html':'c3_home.html';
+      res.style.color='var(--green)';res.textContent=d.onboarding_required?'✓ 로그인 완료! 농장 세팅을 이어갑니다…':'✓ 로그인 완료! 이동합니다…';
+      setTimeout(()=>location.href=dest,900);
     } else if(r.status===401){
       res.style.color='var(--red)';res.textContent='아이디 또는 비밀번호가 올바르지 않습니다';
     } else {
@@ -235,6 +238,7 @@ async function _submit(){
     if(r.ok){
       const d=await r.json();
       if(d.access_token) sessionStorage.setItem('sf_token',d.access_token);
+      if(d.farm_id) sessionStorage.setItem('sf_farm_id',d.farm_id);   // 백엔드 발급 농장ID 인계(C1·홈 일관)
       res.style.color='var(--green)';res.innerHTML=`✓ 가입 완료! ${_landingLabel()}(으)로 이동합니다…`;
       localStorage.setItem('sf_signup_feats',JSON.stringify(_feats));
       setTimeout(()=>location.href=_landing(),1500);
