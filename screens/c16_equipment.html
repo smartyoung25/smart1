@@ -40,31 +40,47 @@
   <span style="width:40px;"></span>
 </header>
 <main class="eq-body">
-  <div style="font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:10px;">
-    제조사·프로토콜이 다른 장비를 등록하고, 데이터 포인트를 <b>표준 변수</b>로 매핑하면
-    화면·AI가 기종과 무관하게 동일하게 사용합니다.
-  </div>
-  <div id="mapSummary" class="eq-card" style="border-left:4px solid var(--green);display:none;"></div>
-  <a href="c8_interop.html" style="display:flex;align-items:center;gap:9px;background:var(--blue-soft);border:1.5px solid var(--blue);border-radius:10px;padding:11px 13px;text-decoration:none;color:var(--blue);margin-bottom:12px;">
-    <span style="font-size:18px;">🔗</span>
-    <div style="flex:1;"><div style="font-size:13px;font-weight:800;">이기종 연동 표준·상호운용 안내</div>
-      <div style="font-size:11px;color:var(--muted);margin-top:2px;">프로토콜·표준변수 체계 (C8)</div></div>
-    <span style="font-size:15px;">›</span>
-  </a>
-  <div class="section-label">등록 장비</div>
-  <div id="eqList"><div class="eq-empty">불러오는 중…</div></div>
-  <div style="display:flex;gap:8px;margin-top:12px;">
-    <button class="addbtn" style="flex:1;" onclick="_openAdd()">＋ 장비 추가</button>
-    <button class="addbtn ghost" style="flex:1;min-height:48px;" onclick="_scrollImport()">📋 장비 불러오기</button>
+  <!-- 진행 단계 표시 -->
+  <div style="display:flex;align-items:center;gap:4px;font-size:10.5px;font-weight:700;color:var(--muted);margin-bottom:12px;">
+    <span style="background:var(--green);color:#fff;border-radius:999px;padding:2px 9px;">1 등록</span>
+    <span style="flex:0 0 14px;text-align:center;">›</span>
+    <span>2 연동확인</span><span style="flex:0 0 14px;text-align:center;">›</span>
+    <span>3 모니터링</span>
   </div>
 
+  <div id="mapSummary" class="eq-card" style="border-left:4px solid var(--green);display:none;"></div>
+
+  <!-- 등록 방법 선택: 2개 히어로 카드 -->
+  <div class="section-label">어떻게 등록할까요?</div>
+  <div style="display:flex;flex-direction:column;gap:9px;margin-bottom:14px;">
+    <button onclick="_scrollImport()" style="display:flex;align-items:center;gap:12px;text-align:left;padding:14px;background:var(--green-soft);border:1.5px solid var(--green);border-radius:14px;cursor:pointer;">
+      <span style="font-size:26px;">📄</span>
+      <div style="flex:1;">
+        <div style="font-size:14px;font-weight:800;color:var(--green-dark);">서류로 한 번에 등록 <span style="font-size:10px;background:var(--green);color:#fff;border-radius:6px;padding:1px 6px;margin-left:3px;">추천 · 가장 빠름</span></div>
+        <div style="font-size:11px;color:var(--muted);margin-top:3px;line-height:1.5;">견적서·시방서·도면을 올리면 품목·제조사를 자동 추출하고 <b>분류·등급까지 자동 부여</b>합니다.</div>
+      </div>
+      <span style="font-size:18px;color:var(--green);">›</span>
+    </button>
+    <button onclick="_openAdd()" style="display:flex;align-items:center;gap:12px;text-align:left;padding:14px;background:var(--panel);border:1.5px solid var(--border);border-radius:14px;cursor:pointer;">
+      <span style="font-size:26px;">🔍</span>
+      <div style="flex:1;">
+        <div style="font-size:14px;font-weight:800;">제품 검색으로 등록</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:3px;line-height:1.5;">제조사·모델명만 입력하면 <b>대분류·종합등급</b>이 자동으로 채워집니다.</div>
+      </div>
+      <span style="font-size:18px;color:var(--muted);">›</span>
+    </button>
+  </div>
+
+  <div class="section-label">등록한 장비 <span id="eqCountBadge" style="font-size:11px;color:var(--muted);font-weight:700;"></span></div>
+  <div id="eqList"><div class="eq-empty">불러오는 중…</div></div>
+
   <!-- 견적서/시방서 업로드 → 자동 정리 -->
-  <div style="margin-top:10px;padding:12px 14px;background:var(--panel-soft);border:1.5px dashed var(--border);border-radius:12px;">
-    <div style="font-size:13px;font-weight:800;margin-bottom:4px;">📄 견적서·시방서로 자동 등록</div>
-    <div style="font-size:11px;color:var(--muted);line-height:1.5;margin-bottom:6px;">엑셀(.xlsx/.csv)·PDF·이미지를 올리면 기자재 항목을 자동 추출합니다. 검토 후 일괄 등록.</div>
-    <div style="font-size:10.5px;color:var(--orange);line-height:1.5;margin-bottom:8px;">⚠️ 주의: 자유양식은 100% 자동인식이 어려워 <b>초안 검토·수정 후 등록</b>하세요. 스캔 이미지는 OCR 환경에서만 인식되며, <b>엑셀·텍스트 PDF</b> 권장.</div>
+  <div id="importBox" style="margin-top:12px;padding:12px 14px;background:var(--panel-soft);border:1.5px dashed var(--border);border-radius:12px;">
+    <div style="font-size:13px;font-weight:800;margin-bottom:4px;">📄 견적서·시방서·도면으로 자동 등록</div>
+    <div style="font-size:11px;color:var(--muted);line-height:1.5;margin-bottom:6px;">엑셀(.xlsx/.csv)·PDF·이미지를 올리면 기자재 항목을 자동 추출하고 평가 DB와 대조해 <b>분류·등급</b>을 부여합니다.</div>
+    <div style="font-size:10.5px;color:var(--orange);line-height:1.5;margin-bottom:8px;">⚠️ 자유양식은 100% 자동인식이 어려워 <b>초안 검토·수정 후 등록</b>하세요. <b>엑셀·텍스트 PDF</b> 권장(스캔 이미지는 OCR 환경 필요).</div>
     <input type="file" id="quoteFile" accept=".xlsx,.xls,.csv,.pdf,.png,.jpg,.jpeg" style="font-size:12px;width:100%;"/>
-    <button class="addbtn ghost" style="min-height:42px;font-size:13px;margin-top:8px;" onclick="_importQuote()">불러오기</button>
+    <button class="addbtn ghost" style="min-height:42px;font-size:13px;margin-top:8px;" onclick="_importQuote()">📤 파일 분석·자동 분류</button>
     <div id="importMsg" style="font-size:12px;font-weight:700;text-align:center;margin-top:8px;min-height:14px;"></div>
     <div id="importPreview"></div>
   </div>
@@ -106,23 +122,35 @@
   <div class="sheet">
     <div class="sheet-body">
     <div style="font-size:17px;font-weight:800;margin-bottom:2px;" id="sheetTitle">시설 기자재 등록</div>
-    <div style="font-size:10.5px;color:var(--muted);margin-bottom:8px;">스마트팜기자재 공종별 분류체계(평가완료 DB) 기준</div>
-    <label class="lbl">공종 분류 — 대분류 *</label>
-    <select class="sel" id="fGubun" onchange="_onGubun()"><option value="">선택하세요</option></select>
-    <label class="lbl">기종명 *</label>
-    <select class="sel" id="fModelType" onchange="_onModelType()"><option value="">대분류를 먼저 선택</option></select>
-    <div id="gongHint" style="display:none;font-size:11px;color:var(--green-dark);background:var(--green-soft);border-radius:8px;padding:7px 10px;margin-top:6px;line-height:1.5;"></div>
-    <div class="row2">
-      <div><label class="lbl">장비 ID *</label><input class="inp" id="fId" placeholder="예: HEAT-01"/></div>
+    <div style="font-size:10.5px;color:var(--blue);font-weight:700;margin-bottom:10px;">① 제품 찾기 › ② 분류·등급 확인 › ③ 등록</div>
+
+    <!-- ① 제품 검색(제조사·모델) — 입력하면 분류·등급 자동 -->
+    <div style="background:var(--blue-soft);border:1.5px solid var(--blue);border-radius:12px;padding:11px 12px;">
+      <div style="font-size:12.5px;font-weight:800;color:var(--blue);margin-bottom:7px;">🔍 제품 검색 <span style="font-size:10px;font-weight:700;color:var(--muted);">제조사·모델만 입력하면 분류·등급 자동</span></div>
+      <div class="row2">
+        <div><label class="lbl" style="margin-top:0;">제조사 *</label><input class="inp" id="fMaker" placeholder="예: 그린플러스" list="makerDL" autocomplete="off" oninput="_onMakerInput()"/></div>
+        <div><label class="lbl" style="margin-top:0;">모델명</label><input class="inp" id="fModel" placeholder="예: HS-8000" list="modelDL" autocomplete="off" oninput="_onModelInput()"/></div>
+      </div>
+      <datalist id="makerDL"></datalist>
+      <datalist id="modelDL"></datalist>
+      <div id="refHint" style="display:none;font-size:11px;color:var(--blue);background:var(--panel);border:1px solid var(--blue);border-radius:8px;padding:7px 10px;margin-top:8px;line-height:1.5;"></div>
+    </div>
+
+    <!-- ② 분류 (검색 시 자동 설정 · 직접 조정 가능) -->
+    <details id="classBox" style="margin-top:10px;border:1.5px solid var(--border);border-radius:12px;padding:10px 12px;">
+      <summary style="font-size:12.5px;font-weight:800;cursor:pointer;list-style:none;display:flex;align-items:center;">🗂️ 분류 <span id="classState" style="font-size:10.5px;font-weight:700;color:var(--muted);margin-left:6px;">검색 시 자동 설정</span><span style="margin-left:auto;">▾</span></summary>
+      <label class="lbl">공종 대분류 *</label>
+      <select class="sel" id="fGubun" onchange="_onGubun()"><option value="">선택하세요</option></select>
+      <label class="lbl">기종명</label>
+      <select class="sel" id="fModelType" onchange="_onModelType()"><option value="">대분류를 먼저 선택</option></select>
+      <div id="gongHint" style="display:none;font-size:11px;color:var(--green-dark);background:var(--green-soft);border-radius:8px;padding:7px 10px;margin-top:6px;line-height:1.5;"></div>
+    </details>
+
+    <!-- ③ 설치 정보 -->
+    <div class="row2" style="margin-top:10px;">
+      <div><label class="lbl">장비 ID <span style="font-size:9.5px;color:var(--muted);">자동</span></label><input class="inp" id="fId" placeholder="자동 생성됨"/></div>
       <div><label class="lbl">설치 위치</label><input class="inp" id="fLoc" placeholder="1동 2구역"/></div>
     </div>
-    <div class="row2">
-      <div><label class="lbl">제조사 *</label><input class="inp" id="fMaker" placeholder="프리바/국산 등" list="makerDL" autocomplete="off" oninput="_onMakerInput()"/></div>
-      <div><label class="lbl">모델</label><input class="inp" id="fModel" list="modelDL" autocomplete="off" oninput="_onModelInput()"/></div>
-    </div>
-    <datalist id="makerDL"></datalist>
-    <datalist id="modelDL"></datalist>
-    <div id="refHint" style="display:none;font-size:11px;color:var(--blue);background:var(--blue-soft);border-radius:8px;padding:7px 10px;margin-top:2px;line-height:1.5;"></div>
     <!-- 이기종 연계 설정: 다음 프로세스(선택) — 기본 등록 후 연동 단계에서 설정 가능 -->
     <details id="interopBox" style="margin-top:10px;border:1.5px solid var(--blue);border-radius:12px;padding:10px 12px;background:var(--blue-soft);">
       <summary style="font-size:13px;font-weight:800;color:var(--blue);cursor:pointer;list-style:none;display:flex;align-items:center;">🔌 이기종 연계 설정 <span style="font-size:10.5px;font-weight:700;color:var(--muted);margin-left:6px;">다음 단계 · 선택</span><span style="margin-left:auto;">▾</span></summary>
@@ -190,6 +218,7 @@ function _onGubun(){
   mt.innerHTML='<option value="">선택하세요</option>'+list.map(m=>`<option value="${m}">${m}</option>`).join('');
   document.getElementById('gongHint').style.display='none';
   _refClear();
+  if(typeof _setClassState==='function') _setClassState(!!g);
 }
 function _onModelType(){ _refClear(); }
 async function _ensureToken(){const s=sessionStorage.getItem('sf_token');if(s)return s;try{const a=sessionStorage.getItem('sf_api')||location.origin;const r=await fetch(`${a}/api/v1/auth/demo-token`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({})});if(r.ok){const d=await r.json();sessionStorage.setItem('sf_token',d.access_token);return d.access_token;}}catch{}return '';}
@@ -260,12 +289,23 @@ function _collectDps(){
 let _items=[], _editId=null;
 function _openAdd(){ _editId=null; _dps=[]; document.getElementById('dpList').innerHTML=''; _onType();
   document.getElementById('sheetTitle').textContent='시설 기자재 등록';
-  ['fId','fLoc','fMaker','fModel','fHost','fPort'].forEach(id=>document.getElementById(id).value='');
+  ['fLoc','fMaker','fModel','fHost','fPort'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('fGubun').value=''; document.getElementById('fModelType').innerHTML='<option value="">대분류를 먼저 선택</option>';
   document.getElementById('gongHint').style.display='none'; _refClear();
+  // 장비 ID 자동 생성(사용자가 작명할 필요 없음 · 수정 가능)
+  document.getElementById('fId').value='EQ-'+Date.now().toString(36).slice(-5).toUpperCase();
+  _setClassState(false);
+  const cb=document.getElementById('classBox'); if(cb) cb.open=false;
   const fid=document.getElementById('fId'); fid.readOnly=false; fid.style.opacity='1';
   document.getElementById('eqMsg').textContent='';
-  document.getElementById('mask').classList.add('open'); }
+  document.getElementById('mask').classList.add('open');
+  setTimeout(()=>document.getElementById('fMaker').focus(),120); }
+// 분류 자동설정 상태 배지
+function _setClassState(done){
+  const s=document.getElementById('classState'); if(!s) return;
+  if(done){ s.textContent='✓ 자동 설정됨'; s.style.color='var(--green-dark)'; }
+  else { s.textContent='검색 시 자동 설정'; s.style.color='var(--muted)'; }
+}
 // ★ 기존 장비 수정 — 값·데이터포인트 로드
 function _openEdit(ix){
   const it=_items[ix]; if(!it) return; _editId=it.device_id;
@@ -345,11 +385,17 @@ function _onModelInput(){
 }
 // 카탈로그 매칭 → 제조사·분류 자동채움 + 종합등급/공종/점수 표시
 function _applyRefHit(hit){
-  _refHit=hit;
   const mk=document.getElementById('fMaker'); if(!mk.value&&hit.maker) mk.value=hit.maker;
-  // 대분류·기종명 자동 정렬(분류 일관성)
-  if(hit.gubun){ const gs=document.getElementById('fGubun'); if(gs.value!==hit.gubun){ gs.value=hit.gubun; _onGubun(); } }
-  if(hit.model_type){ const ms=document.getElementById('fModelType'); ms.value=hit.model_type; }
+  // 대분류·기종명 자동 정렬(분류 일관성) — _onGubun 호출 시 _refClear 가 _refHit 를
+  //   비우므로, model_types 직접 채우고 _refHit 는 마지막에 확정한다.
+  if(hit.gubun){
+    document.getElementById('fGubun').value=hit.gubun;
+    const list=(_facets&&_facets.model_types&&_facets.model_types[hit.gubun])||[];
+    document.getElementById('fModelType').innerHTML='<option value="">선택하세요</option>'+list.map(m=>`<option value="${m}">${m}</option>`).join('');
+  }
+  if(hit.model_type){ document.getElementById('fModelType').value=hit.model_type; }
+  if(hit.gubun) _setClassState(true);
+  _refHit=hit;   // ★ 분류 자동설정 후 확정(이후 _save 가 grade·gong 캡처)
   const g=hit.grade||'-'; const col=GRADE_COLOR[g]||'#64748b';
   const kcIco=hit.kc==='인증'?'✅':(hit.kc?'⚠️':'');
   const h=document.getElementById('refHint'); h.style.display='block';
@@ -449,7 +495,7 @@ async function _save(){
   };
   const msg=document.getElementById('eqMsg');
   if(!body.device_id){ msg.style.color='var(--red)'; msg.textContent='장비 ID를 입력하세요'; return; }
-  if(!body.gubun){ msg.style.color='var(--red)'; msg.textContent='공종 분류(대분류)를 선택하세요'; return; }
+  if(!body.gubun){ const cb=document.getElementById('classBox'); if(cb) cb.open=true; document.getElementById('fGubun').focus(); msg.style.color='var(--red)'; msg.textContent='분류(대분류)를 선택하세요 — 아래 🗂️ 분류 열림'; return; }
   if(!body.maker){ msg.style.color='var(--red)'; msg.textContent='제조사를 입력하세요'; return; }
   const btn=document.getElementById('saveBtn'); btn.disabled=true; btn.textContent='저장 중…';
   try{
@@ -480,17 +526,20 @@ async function _loadList(){
   const items=d.items||[]; _items=items;
   const el=document.getElementById('eqList');
   var _ns=document.getElementById('nextStep');
-  if(!items.length){ el.innerHTML='<div class="eq-empty">등록된 장비가 없습니다. ＋ 장비 추가로 시작하세요.</div>'; document.getElementById('mapSummary').style.display='none'; if(_ns)_ns.style.display='none'; return; }
+  const cb=document.getElementById('eqCountBadge'); if(cb) cb.textContent=items.length?`· ${items.length}대`:'';
+  if(!items.length){ el.innerHTML='<div class="eq-empty">아직 등록한 장비가 없습니다. 위에서 등록 방법을 선택하세요.</div>'; document.getElementById('mapSummary').style.display='none'; if(_ns)_ns.style.display='none'; return; }
   if(_ns){ _ns.style.display='block'; const dn=document.getElementById('eqDoneN'); if(dn) dn.textContent=`장비 ${items.length}대`; }
+  const GC={A:'#16a34a',B:'#65a30d',C:'#ca8a04',D:'#ea580c',E:'#dc2626'};
   el.innerHTML=items.map((it,ix)=>{
     const dps=(it.datapoints||[]);
+    const gb=it.grade?`<span style="font-size:9.5px;font-weight:800;color:#fff;background:${GC[it.grade]||'#64748b'};border-radius:5px;padding:1px 6px;margin-left:4px;">${it.grade}등급</span>`:'';
     return `<div class="eq-card"><div class="eq-head">
-        <span class="eq-ico">${CAT_ICO[it.category]||'📦'}</span>
-        <span class="eq-name">${it.device_id} · ${it.device_type||''}</span>
+        <span class="eq-ico">${GUBUN_ICO[it.gubun]||CAT_ICO[it.category]||'📦'}</span>
+        <span class="eq-name">${it.device_id} · ${it.model_type||it.device_type||''}${gb}</span>
         <span class="eq-proto">${it.protocol||'-'}</span>
         <button class="eq-del" style="background:var(--blue-soft);color:var(--blue);" onclick="_openEdit(${ix})">수정</button>
         <button class="eq-del" onclick="_del('${it.device_id}')">삭제</button></div>
-      <div class="eq-sub">${it.maker||'-'} ${it.model||''} · ${it.location||'위치 미지정'}${it.host?` · ${it.host}${it.port?':'+it.port:''}`:''}</div>
+      <div class="eq-sub">${it.maker||'-'} ${it.model||''} · ${it.gong&&it.gong!=='기타'?it.gong+' · ':''}${it.location||'위치 미지정'}${it.host?` · ${it.host}${it.port?':'+it.port:''}`:''}</div>
       <div style="margin-top:6px;">${dps.map(p=>`<span class="eq-dp">${p.tag}${p.canonical_name?` → ${p.canonical_name}`:''}</span>`).join('')||'<span class="eq-sub">데이터 포인트 없음</span>'}</div>
     </div>`;
   }).join('');
