@@ -105,11 +105,13 @@
 <div class="mask" id="mask" onclick="if(event.target===this)_close()">
   <div class="sheet">
     <div class="sheet-body">
-    <div style="font-size:17px;font-weight:800;margin-bottom:8px;" id="sheetTitle">시설 기자재 등록</div>
-    <label class="lbl">분류</label>
-    <select class="sel" id="fCat" onchange="_onCat()"></select>
-    <label class="lbl">장비 종류</label>
-    <select class="sel" id="fType" onchange="_onType()"></select>
+    <div style="font-size:17px;font-weight:800;margin-bottom:2px;" id="sheetTitle">시설 기자재 등록</div>
+    <div style="font-size:10.5px;color:var(--muted);margin-bottom:8px;">스마트팜기자재 공종별 분류체계(평가완료 DB) 기준</div>
+    <label class="lbl">공종 분류 — 대분류 *</label>
+    <select class="sel" id="fGubun" onchange="_onGubun()"><option value="">선택하세요</option></select>
+    <label class="lbl">기종명 *</label>
+    <select class="sel" id="fModelType" onchange="_onModelType()"><option value="">대분류를 먼저 선택</option></select>
+    <div id="gongHint" style="display:none;font-size:11px;color:var(--green-dark);background:var(--green-soft);border-radius:8px;padding:7px 10px;margin-top:6px;line-height:1.5;"></div>
     <div class="row2">
       <div><label class="lbl">장비 ID *</label><input class="inp" id="fId" placeholder="예: HEAT-01"/></div>
       <div><label class="lbl">설치 위치</label><input class="inp" id="fLoc" placeholder="1동 2구역"/></div>
@@ -125,6 +127,10 @@
     <details id="interopBox" style="margin-top:10px;border:1.5px solid var(--blue);border-radius:12px;padding:10px 12px;background:var(--blue-soft);">
       <summary style="font-size:13px;font-weight:800;color:var(--blue);cursor:pointer;list-style:none;display:flex;align-items:center;">🔌 이기종 연계 설정 <span style="font-size:10.5px;font-weight:700;color:var(--muted);margin-left:6px;">다음 단계 · 선택</span><span style="margin-left:auto;">▾</span></summary>
       <div style="font-size:10.5px;color:var(--muted);margin:8px 0 6px;line-height:1.5;">통신 프로토콜·주소·표준변수 매핑은 <b>장비 등록 후 연동 단계(C8)</b>에서 설정해도 됩니다. 지금 펼쳐서 입력할 수도 있어요.</div>
+      <label class="lbl">기술 분류(표준변수 자동제안)</label>
+      <select class="sel" id="fCat" onchange="_onCat()"></select>
+      <label class="lbl">장비 종류</label>
+      <select class="sel" id="fType" onchange="_onType()"></select>
       <label class="lbl">통신 프로토콜</label>
       <select class="sel" id="fProto"></select>
       <div class="row2">
@@ -157,17 +163,35 @@
 <script src="../components/data.js"></script>
 <script>
 'use strict';
-let _tokenG='', _farmG='farm_001', _schema=null, _dps=[];
+let _tokenG='', _farmG='farm_001', _schema=null, _dps=[], _facets=null;
 const CAT_ICO={env_actuator:'🌡️',irrigation:'💧',sensor:'📡',weather:'🌦️',energy:'⚡',field_irrig:'🚿',vision:'📷',control_comm:'🔌'};
+const GUBUN_ICO={'구동기':'⚙️','측정기':'📡','제어기':'🖥️','농작업기':'🚜','기타':'📦','건축':'🏗️'};
 
 window.addEventListener('DOMContentLoaded', ()=>{
   _farmG=new URLSearchParams(location.search).get('farm')||sessionStorage.getItem('sf_farm_id')||'farm_001';
   _ensureToken().then(async t=>{ _tokenG=t;
     const api=KaasaData.getApiBase();
     _schema=await fetch(`${api}/api/farms/${_farmG}/equipment/schema`,{headers:{Authorization:`Bearer ${t}`}}).then(r=>r.json()).catch(()=>null);
-    _initForm(); _loadList();
+    _facets=await fetch(`${api}/api/reference/catalog/facets`).then(r=>r.json()).catch(()=>null);
+    _initForm(); _initClassification(); _loadList();
   });
 });
+// ★ 공종별 분류(평가완료 카탈로그) — 대분류→기종명 셀렉터
+function _initClassification(){
+  if(!_facets) return;
+  const sel=document.getElementById('fGubun');
+  sel.innerHTML='<option value="">선택하세요</option>'+
+    (_facets.gubuns||[]).map(g=>`<option value="${g}">${GUBUN_ICO[g]||'📦'} ${g}</option>`).join('');
+}
+function _onGubun(){
+  const g=document.getElementById('fGubun').value;
+  const mt=document.getElementById('fModelType');
+  const list=(_facets&&_facets.model_types&&_facets.model_types[g])||[];
+  mt.innerHTML='<option value="">선택하세요</option>'+list.map(m=>`<option value="${m}">${m}</option>`).join('');
+  document.getElementById('gongHint').style.display='none';
+  _refClear();
+}
+function _onModelType(){ _refClear(); }
 async function _ensureToken(){const s=sessionStorage.getItem('sf_token');if(s)return s;try{const a=sessionStorage.getItem('sf_api')||location.origin;const r=await fetch(`${a}/api/v1/auth/demo-token`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({})});if(r.ok){const d=await r.json();sessionStorage.setItem('sf_token',d.access_token);return d.access_token;}}catch{}return '';}
 function onFarmChange(id){sessionStorage.setItem('sf_farm_id',id);location.reload();}
 
@@ -237,6 +261,8 @@ let _items=[], _editId=null;
 function _openAdd(){ _editId=null; _dps=[]; document.getElementById('dpList').innerHTML=''; _onType();
   document.getElementById('sheetTitle').textContent='시설 기자재 등록';
   ['fId','fLoc','fMaker','fModel','fHost','fPort'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('fGubun').value=''; document.getElementById('fModelType').innerHTML='<option value="">대분류를 먼저 선택</option>';
+  document.getElementById('gongHint').style.display='none'; _refClear();
   const fid=document.getElementById('fId'); fid.readOnly=false; fid.style.opacity='1';
   document.getElementById('eqMsg').textContent='';
   document.getElementById('mask').classList.add('open'); }
@@ -246,6 +272,8 @@ function _openEdit(ix){
   document.getElementById('sheetTitle').textContent='기자재 수정';
   if(it.category) document.getElementById('fCat').value=it.category; _onCat();
   if(it.device_type) document.getElementById('fType').value=it.device_type;
+  // 공종 분류 복원
+  if(it.gubun){ document.getElementById('fGubun').value=it.gubun; _onGubun(); if(it.model_type) document.getElementById('fModelType').value=it.model_type; }
   document.getElementById('fId').value=it.device_id||'';
   document.getElementById('fLoc').value=it.location||'';
   document.getElementById('fMaker').value=it.maker||'';
@@ -281,14 +309,17 @@ function _scrollImport(){
   try{ f.click(); }catch(_e){}   // 네이티브 파일 선택창 바로 열기
 }
 
-// ★ 공식 기자재 DB 자동완성 (스마트팜코리아 참조 데이터)
-let _refTimer=null, _refCache=[];
+// ★ 평가완료 카탈로그 자동완성 (종합등급 A~E·공종)
+let _refTimer=null, _refCache=[], _refHit=null;
+const GRADE_COLOR={A:'#16a34a',B:'#65a30d',C:'#ca8a04',D:'#ea580c',E:'#dc2626'};
 function _refDebounce(fn){ clearTimeout(_refTimer); _refTimer=setTimeout(fn,250); }
-async function _refFetch(q){
-  if(!q||q.length<1) return [];
+function _refClear(){ _refHit=null; const h=document.getElementById('refHint'); if(h) h.style.display='none'; }
+async function _catFetch(q){
   try{
     const api=KaasaData.getApiBase();
-    const r=await fetch(`${api}/api/reference/devices?q=${encodeURIComponent(q)}&limit=20`);
+    const gb=encodeURIComponent(document.getElementById('fGubun').value||'');
+    const mt=encodeURIComponent(document.getElementById('fModelType').value||'');
+    const r=await fetch(`${api}/api/reference/catalog?q=${encodeURIComponent(q)}&gubun=${gb}&model_type=${mt}&limit=30`);
     if(!r.ok) return [];
     const d=await r.json(); return d.items||[];
   }catch{ return []; }
@@ -296,30 +327,49 @@ async function _refFetch(q){
 function _onMakerInput(){
   const q=document.getElementById('fMaker').value.trim();
   _refDebounce(async ()=>{
-    const items=await _refFetch(q); _refCache=items;
-    const makers=[...new Set(items.map(x=>x.maker).filter(Boolean))];
-    document.getElementById('makerDL').innerHTML=makers.map(m=>`<option value="${m}">`).join('');
-    const models=items.filter(x=>!q||x.maker===q||x.maker.includes(q));
-    document.getElementById('modelDL').innerHTML=[...new Set(models.map(x=>x.model).filter(Boolean))].map(m=>`<option value="${m}">`).join('');
+    const items=await _catFetch(q); _refCache=items;
+    document.getElementById('makerDL').innerHTML=[...new Set(items.map(x=>x.maker).filter(Boolean))].map(m=>`<option value="${m}">`).join('');
+    document.getElementById('modelDL').innerHTML=[...new Set(items.map(x=>x.form_name).filter(Boolean))].map(m=>`<option value="${m}">`).join('');
+    const hit=items.find(x=>x.maker===q); if(hit&&items.filter(x=>x.maker===q).length===1) _applyRefHit(hit);
   });
 }
 function _onModelInput(){
   const q=document.getElementById('fModel').value.trim();
   _refDebounce(async ()=>{
-    let items=_refCache.filter(x=>x.model&&x.model.includes(q));
-    if(!items.length) items=await _refFetch(q);
-    document.getElementById('modelDL').innerHTML=[...new Set(items.map(x=>x.model).filter(Boolean))].map(m=>`<option value="${m}">`).join('');
-    const hit=items.find(x=>x.model===q);
-    if(hit){ _applyRefHit(hit); }
+    let items=_refCache.filter(x=>x.form_name&&x.form_name.includes(q));
+    if(!items.length) items=await _catFetch(q);
+    document.getElementById('modelDL').innerHTML=[...new Set(items.map(x=>x.form_name).filter(Boolean))].map(m=>`<option value="${m}">`).join('');
+    const hit=items.find(x=>x.form_name===q);
+    if(hit) _applyRefHit(hit);
   });
 }
-// 공식 DB 매칭 → 제조사 자동채움 + 표준장치명/분류/KC 표시
+// 카탈로그 매칭 → 제조사·분류 자동채움 + 종합등급/공종/점수 표시
 function _applyRefHit(hit){
+  _refHit=hit;
   const mk=document.getElementById('fMaker'); if(!mk.value&&hit.maker) mk.value=hit.maker;
+  // 대분류·기종명 자동 정렬(분류 일관성)
+  if(hit.gubun){ const gs=document.getElementById('fGubun'); if(gs.value!==hit.gubun){ gs.value=hit.gubun; _onGubun(); } }
+  if(hit.model_type){ const ms=document.getElementById('fModelType'); ms.value=hit.model_type; }
+  const g=hit.grade||'-'; const col=GRADE_COLOR[g]||'#64748b';
+  const kcIco=hit.kc==='인증'?'✅':(hit.kc?'⚠️':'');
+  const h=document.getElementById('refHint'); h.style.display='block';
+  h.innerHTML=`📚 <b>평가완료 DB 매칭</b> `+
+    `<span style="display:inline-block;font-weight:800;color:#fff;background:${col};border-radius:6px;padding:1px 8px;margin:0 4px;">종합 ${g}등급</span>`+
+    `${hit.score100!=null?`${hit.score100}점 · `:''}공종 <b>${hit.gong||'-'}</b> ${kcIco}`+
+    (hit.price?`<br>💰 참고가 ${hit.price}만원`:'')+
+    `<br><a href="javascript:void(0)" onclick="_showCriteria()" style="color:var(--blue);font-weight:700;">▸ 12항목 평가 상세</a>`;
+}
+// 12항목 점수 펼치기(개선 가이드)
+function _showCriteria(){
+  if(!_refHit||!_refHit.scores) return;
+  const sc=_refHit.scores;
+  const rows=Object.entries(sc).map(([k,v])=>{
+    const bar='●'.repeat(v)+'○'.repeat(5-v);
+    const weak=v<=2?' style="color:var(--red);font-weight:700;"':'';
+    return `<div${weak}>${k}: ${bar} ${v}/5${v<=2?' ⚠ 개선필요':''}</div>`;
+  }).join('');
   const h=document.getElementById('refHint');
-  const kcIco=hit.kc==='인증'?'✅':(hit.kc==='미인증'?'⚠️':'➖');
-  h.style.display='block';
-  h.innerHTML=`📚 <b>공식 DB 매칭</b> · 표준장치명 <b>${hit.std_device||'-'}</b> · 분류 ${hit.category||'-'} · KC ${kcIco}${hit.kc||'-'}`;
+  h.innerHTML+=`<div style="margin-top:6px;font-size:10.5px;color:var(--text);line-height:1.7;border-top:1px dashed var(--border);padding-top:6px;">${rows}</div>`;
 }
 
 // ★ 견적서/시방서 업로드 → 초안 파싱 → 미리보기
@@ -368,16 +418,22 @@ async function _save(){
     device_id:document.getElementById('fId').value.trim(),
     category:document.getElementById('fCat').value,
     device_type:document.getElementById('fType').value,
+    gubun:document.getElementById('fGubun').value,
+    model_type:document.getElementById('fModelType').value,
     location:document.getElementById('fLoc').value.trim(),
     maker:document.getElementById('fMaker').value.trim(),
     model:document.getElementById('fModel').value.trim(),
     protocol:document.getElementById('fProto').value,
     host:document.getElementById('fHost').value.trim(),
     port:parseInt(document.getElementById('fPort').value)||null,
+    grade:(_refHit&&_refHit.grade)||'',
+    gong:(_refHit&&_refHit.gong)||'',
+    score100:(_refHit&&_refHit.score100)||null,
     datapoints:_collectDps(),
   };
   const msg=document.getElementById('eqMsg');
   if(!body.device_id){ msg.style.color='var(--red)'; msg.textContent='장비 ID를 입력하세요'; return; }
+  if(!body.gubun){ msg.style.color='var(--red)'; msg.textContent='공종 분류(대분류)를 선택하세요'; return; }
   if(!body.maker){ msg.style.color='var(--red)'; msg.textContent='제조사를 입력하세요'; return; }
   const btn=document.getElementById('saveBtn'); btn.disabled=true; btn.textContent='저장 중…';
   try{
@@ -389,7 +445,7 @@ async function _save(){
     else if(!r.ok){ throw new Error('HTTP '+r.status); }
     else { msg.style.color='var(--green)'; msg.textContent='✓ 저장됨 — 다음 과정으로 안내합니다'; setTimeout(_afterSave,700); }
   }catch(e){ msg.style.color='var(--orange)'; msg.textContent='저장 실패: '+e.message; }
-  btn.disabled=false; btn.textContent='장비 저장';
+  btn.disabled=false; btn.textContent='✓ 장비 등록';
 }
 // 저장 후: 시트 닫고 목록 갱신 → 다음 과정(종합진단)으로 스크롤·강조
 async function _afterSave(){

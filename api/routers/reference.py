@@ -82,6 +82,29 @@ def catalog(
     return {"count": len(out), "items": out}
 
 
+@lru_cache(maxsize=1)
+def _facets():
+    """카탈로그에서 대분류·기종명 facet 추출(C16 분류 셀렉터용)."""
+    items = _load("equipment_catalog.json")
+    by_gubun = {}
+    for it in items:
+        g = it.get("gubun") or "기타"
+        mt = (it.get("model_type") or "").strip()
+        by_gubun.setdefault(g, set())
+        if mt:
+            by_gubun[g].add(mt)
+    return {
+        "gubuns": list(by_gubun.keys()),
+        "model_types": {g: sorted(v) for g, v in by_gubun.items()},
+    }
+
+
+@router.get("/catalog/facets")
+def catalog_facets():
+    """대분류(구분) 목록 + 대분류별 기종명 목록."""
+    return _facets()
+
+
 @router.get("/meta")
 def meta():
     return {"v1": _load("_meta.json"), "v2": _load("_catalog_meta.json")}
