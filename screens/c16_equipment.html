@@ -71,6 +71,8 @@
     </button>
   </div>
 
+  <div id="gradeSummary" style="display:none;margin-bottom:12px;"></div>
+
   <div class="section-label">등록한 장비 <span id="eqCountBadge" style="font-size:11px;color:var(--muted);font-weight:700;"></span></div>
   <div id="eqList"><div class="eq-empty">불러오는 중…</div></div>
 
@@ -543,6 +545,7 @@ async function _loadList(){
       <div style="margin-top:6px;">${dps.map(p=>`<span class="eq-dp">${p.tag}${p.canonical_name?` → ${p.canonical_name}`:''}</span>`).join('')||'<span class="eq-sub">데이터 포인트 없음</span>'}</div>
     </div>`;
   }).join('');
+  _renderGradeSummary(items);
   // 매핑 요약
   const mappedVars=[...new Set(items.flatMap(i=>(i.datapoints||[]).map(p=>p.canonical_name).filter(Boolean)))];
   const ms=document.getElementById('mapSummary');
@@ -550,6 +553,42 @@ async function _loadList(){
   ms.innerHTML=`<div style="font-size:13px;font-weight:800;">통합 현황</div>
     <div class="eq-sub">장비 ${items.length}대 · 표준변수 매핑 ${mappedVars.length}종</div>
     <div style="margin-top:5px;">${mappedVars.map(v=>`<span class="eq-dp">${v}</span>`).join('')||'<span class="eq-sub">아직 매핑된 표준변수가 없습니다.</span>'}</div>`;
+}
+// ★ 보유 기자재 평가 요약 — 평균 등급·분포·개선 우선순위
+function _renderGradeSummary(items){
+  const el=document.getElementById('gradeSummary'); if(!el) return;
+  const GP={A:5,B:4,C:3,D:2,E:1}, PG={5:'A',4:'B',3:'C',2:'D',1:'E'};
+  const GC={A:'#16a34a',B:'#65a30d',C:'#ca8a04',D:'#ea580c',E:'#dc2626'};
+  const graded=items.filter(i=>i.grade&&GP[i.grade]);
+  if(!graded.length){ el.style.display='none'; return; }
+  const dist={A:0,B:0,C:0,D:0,E:0}; let sum=0;
+  graded.forEach(i=>{ dist[i.grade]++; sum+=GP[i.grade]; });
+  const avgN=sum/graded.length; const avgG=PG[Math.round(avgN)]||'C';
+  // 개선 우선순위: 낮은 등급(D·E) 장비
+  const weak=graded.filter(i=>GP[i.grade]<=2).sort((a,b)=>GP[a.grade]-GP[b.grade]).slice(0,3);
+  const bars=['A','B','C','D','E'].map(g=>{
+    const n=dist[g]; if(!n) return '';
+    const w=Math.round(n/graded.length*100);
+    return `<div style="display:flex;align-items:center;gap:6px;font-size:10.5px;margin-top:3px;">
+      <span style="width:14px;font-weight:800;color:${GC[g]};">${g}</span>
+      <div style="flex:1;background:var(--gray-soft);border-radius:5px;height:11px;overflow:hidden;"><div style="width:${w}%;height:100%;background:${GC[g]};"></div></div>
+      <span style="width:34px;text-align:right;color:var(--muted);">${n}대</span></div>`;
+  }).join('');
+  el.style.display='block';
+  el.innerHTML=`<div class="eq-card" style="border-left:4px solid ${GC[avgG]};">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div style="text-align:center;"><div style="font-size:9.5px;color:var(--muted);font-weight:700;">평균 등급</div>
+        <div style="font-size:26px;font-weight:900;color:${GC[avgG]};line-height:1;">${avgG}</div></div>
+      <div style="flex:1;"><div style="font-size:13px;font-weight:800;">📊 보유 기자재 평가 요약</div>
+        <div style="font-size:10.5px;color:var(--muted);margin-top:2px;">평가완료 ${graded.length}대 · 평균 ${avgN.toFixed(1)}/5점</div></div>
+    </div>
+    <div style="margin-top:8px;">${bars}</div>
+    ${weak.length?`<div style="margin-top:9px;border-top:1px dashed var(--border);padding-top:8px;">
+      <div style="font-size:11px;font-weight:800;color:var(--orange);margin-bottom:4px;">⚠ 개선·교체 우선순위</div>
+      ${weak.map(i=>`<div style="font-size:10.5px;color:var(--text);line-height:1.6;">· <b>${i.model_type||i.device_type||i.device_id}</b> (${i.maker||'-'}) <span style="color:#fff;background:${GC[i.grade]};border-radius:4px;padding:0 5px;font-weight:800;">${i.grade}</span></div>`).join('')}
+    </div>`:''}
+    <button onclick="location.href='c17_diagnosis.html'" style="width:100%;margin-top:10px;padding:10px;background:var(--panel);color:var(--green-dark);border:1.5px solid var(--green);border-radius:9px;font-size:12px;font-weight:800;cursor:pointer;min-height:42px;">🩺 시스템 종합진단에서 자세히 보기 →</button>
+  </div>`;
 }
 async function _del(id){
   if(!confirm(id+' 장비를 삭제할까요?')) return;
