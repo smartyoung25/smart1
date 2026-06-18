@@ -3318,18 +3318,26 @@ def _reclassify_from_catalog(name: str, maker: str, model: str):
     if not (name or maker or model):
         return None
 
+    import re as _re
+
+    def _nk(x):
+        x = _re.sub(r"\(주\)|㈜|주식회사|\(유\)|유한회사|농업회사법인", "", x or "")
+        return _re.sub(r"[\s()·.,/\-_]+", "", x).lower()
+
+    nm_model, nm_maker, nm_name = _nk(model), _nk(maker), _nk(name)
+
     def score(rec):
         s = 0
-        rm, rf, rt = (rec.get("maker") or ""), (rec.get("form_name") or ""), (rec.get("model_type") or "")
-        if model and rf and (model == rf):
+        rm, rf, rt = _nk(rec.get("maker")), _nk(rec.get("form_name")), _nk(rec.get("model_type"))
+        if nm_model and rf and (nm_model == rf):
             s += 6
-        elif model and rf and (model in rf or rf in model):
+        elif nm_model and rf and (nm_model in rf or rf in nm_model):
             s += 3
-        if maker and rm and (maker == rm):
+        if nm_maker and rm and (nm_maker == rm):
             s += 4
-        elif maker and rm and (maker in rm or rm in maker):
+        elif nm_maker and rm and (nm_maker in rm or rm in nm_maker):
             s += 2
-        if name and rt and (name in rt or rt in name):
+        if nm_name and rt and (nm_name in rt or rt in nm_name):
             s += 2
         return s
 
