@@ -83,6 +83,35 @@ def build_criteria(wb):
     return out
 
 
+# 기종명 키워드 → 공종 추론(원본 공종이 '기타/공백'일 때 보강). 순서 = 우선순위.
+_GONG_RULES = [
+    ("개폐", "개폐공사"),
+    ("스크린", "스크린공사"),
+    ("양액", "양액시스템공사"),
+    ("ec", "양액시스템공사"), ("ph", "양액시스템공사"), ("관수", "양액시스템공사"),
+    ("환풍", "공기순환팬공사"), ("순환", "공기순환팬공사"), ("유동", "공기순환팬공사"),
+    ("포그", "기타 설비공사"), ("분무", "기타 설비공사"), ("연무", "기타 설비공사"),
+    ("미스트", "기타 설비공사"), ("훈증", "기타 설비공사"),
+    ("난방", "기타 설비공사"), ("냉방", "기타 설비공사"), ("히트", "기타 설비공사"),
+    ("co2", "기타 설비공사"), ("co₂", "기타 설비공사"), ("보광", "기타 설비공사"),
+    ("가습", "기타 설비공사"), ("제습", "기타 설비공사"),
+    ("cctv", "기타 설비공사"), ("영상", "기타 설비공사"),
+    ("센서", "환경제어공사"), ("측정", "환경제어공사"), ("계측", "환경제어공사"),
+    ("환경제어", "환경제어공사"), ("통신", "환경제어공사"), ("소프트", "환경제어공사"),
+    ("노드", "환경제어공사"), ("링크", "환경제어공사"), ("게이트웨이", "환경제어공사"),
+]
+# 대분류 단위 폴백
+_GONG_BY_GUBUN = {"측정기": "환경제어공사", "제어기": "환경제어공사", "농작업기": "기타"}
+
+
+def _infer_gong(gubun, model_type):
+    s = (model_type or "").lower()
+    for kw, gong in _GONG_RULES:
+        if kw in s:
+            return gong
+    return _GONG_BY_GUBUN.get(gubun, "기타")
+
+
 def build_catalog(wb):
     ws = wb["종합평가"]
     rows = list(ws.iter_rows(values_only=True))
@@ -95,6 +124,7 @@ def build_catalog(wb):
     out = []
     gubun_c, grade_c, gong_c = Counter(), Counter(), Counter()
     makers = set()
+    inferred = 0
     for r in rows[1:]:
         gubun = g(r, "구분")
         mtype = g(r, "기종명")
@@ -118,6 +148,13 @@ def build_catalog(wb):
             "gong": g(r, "공종별 구분"),       # 공종
             "scores": {k: v for k, v in scores.items() if v is not None},
         }
+        # 공종 보강: 원본이 '기타/공백'이면 기종명 키워드로 추론
+        if rec["gong"] in ("기타", ""):
+            ig = _infer_gong(gubun, mtype)
+            if ig and ig != "기타":
+                rec["gong"] = ig
+                rec["gong_inferred"] = True
+                inferred += 1
         out.append(rec)
         if gubun:
             gubun_c[gubun] += 1
@@ -133,6 +170,7 @@ def build_catalog(wb):
         "by_gubun": dict(gubun_c),
         "by_grade": dict(sorted(grade_c.items())),
         "by_gong": dict(gong_c.most_common()),
+        "gong_inferred": inferred,
     }
     return out, stats
 
