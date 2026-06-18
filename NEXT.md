@@ -34,6 +34,8 @@
 
 ## 열린 문제 / 블로커
 - 토마토 M1: ERA5 실측 CSV 미확보 → 재학습 보류
+- **LLM 챗봇**: 코드·키 정상(`.env` ANTHROPIC_API_KEY sk-ant- 108자, anthropic 0.103.1, 모델 claude-sonnet-4-5/haiku-4-5 유효). 단 **Anthropic 계정 크레딧 잔액 부족('credit balance too low')**으로 전 호출 400 실패 → 규칙기반 폴백. 사용자 충전 시 재기동 없이 즉시 전환.
+- **SMTP**: HOST=smtp.gmail.com·PORT=587·FROM 설정됨, 단 **SMTP_USER·SMTP_PASSWORD 빈값** → 메일 발송 불가(데모 링크 폴백). 사용자가 Gmail 주소+앱비번 16자 입력 후 **서버 재기동** 필요.
 - ~~카탈로그 공종 "기타" 2964건~~ ✅ 해결(`cb887d7`, 기종명 키워드 추론 → 336건)
 - watchdog .ps1 편집 시 반드시 UTF-8 **BOM** 유지 (BOM 없으면 PS5.1에서 한글 깨져 죽음)
 
