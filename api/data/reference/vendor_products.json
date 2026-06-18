@@ -1,0 +1,2810 @@
+[
+  {
+    "company": "(주)에스이디",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(주)에스이디",
+    "model": "SED-SF-A1000",
+    "kc": "인증"
+  },
+  {
+    "company": "(주)에스이디",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(주)에스이디",
+    "model": "SED스마트팜",
+    "kc": "미인증"
+  },
+  {
+    "company": "미래씨엔씨",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "미래씨엔씨",
+    "model": "MC-105K",
+    "kc": "인증"
+  },
+  {
+    "company": "주식회사 탄탄코어",
+    "field": "축산",
+    "category": "축산설비",
+    "std_device": "축산방역기",
+    "maker": "주식회사 탄탄코어",
+    "model": "F1",
+    "kc": "인증"
+  },
+  {
+    "company": "주식회사 탄탄코어",
+    "field": "축산",
+    "category": "축산설비",
+    "std_device": "축산방역기",
+    "maker": "주식회사 탄탄코어",
+    "model": "F1",
+    "kc": "인증"
+  },
+  {
+    "company": "주식회사 비바엔에스",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "주식회사 비바엔에스",
+    "model": "잇츠스마트팜",
+    "kc": "인증"
+  },
+  {
+    "company": "주식회사 소하테크",
+    "field": "시설원예, 축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "주식회사 소하테크",
+    "model": "SH-MVP510",
+    "kc": "인증"
+  },
+  {
+    "company": "(주)귿큰",
+    "field": "시설원예, 축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(주)귿큰",
+    "model": "ICTINTERCOP(V1)",
+    "kc": "미인증"
+  },
+  {
+    "company": "(주)디케이에코팜",
+    "field": "축산",
+    "category": "기타·미분류",
+    "std_device": "기타",
+    "maker": "(주)디케이에코팜",
+    "model": "ICT-F-TMR-200",
+    "kc": "인증제외"
+  },
+  {
+    "company": "주식회사 큐빅스",
+    "field": "시설원예, 축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "주식회사 큐빅스",
+    "model": "QSM",
+    "kc": "인증"
+  },
+  {
+    "company": "주식회사 이스케이프시스템",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "주식회사 이스케이프시스템",
+    "model": "eScapedFarms",
+    "kc": "미인증"
+  },
+  {
+    "company": "농업회사법인 주식회사 그린첨단과학온실",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "농업회사법인 주식회사 그린첨단과학온실",
+    "model": "GODS-5000",
+    "kc": "미인증"
+  },
+  {
+    "company": "(주)다온정보기술",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(주)다온정보기술",
+    "model": "DP-VHC100",
+    "kc": "인증"
+  },
+  {
+    "company": "주식회사 대단",
+    "field": "시설원예, 축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "주식회사 대단",
+    "model": "TCZ41",
+    "kc": "미인증"
+  },
+  {
+    "company": "농부이야기",
+    "field": "시설원예, 축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "농부이야기",
+    "model": "K1-SF",
+    "kc": "인증"
+  },
+  {
+    "company": "농부이야기",
+    "field": "시설원예, 축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "농부이야기",
+    "model": "K1-SF",
+    "kc": "인증"
+  },
+  {
+    "company": "농부이야기",
+    "field": "시설원예, 축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "농부이야기",
+    "model": "K1-SF",
+    "kc": "인증"
+  },
+  {
+    "company": "농부이야기",
+    "field": "시설원예, 축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "농부이야기",
+    "model": "K1-SF",
+    "kc": "인증"
+  },
+  {
+    "company": "농부이야기",
+    "field": "시설원예, 축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "농부이야기",
+    "model": "K1-SF",
+    "kc": "인증"
+  },
+  {
+    "company": "농부이야기",
+    "field": "시설원예, 축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "농부이야기",
+    "model": "K1-SF",
+    "kc": "인증"
+  },
+  {
+    "company": "성진산업(주)",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "냉방기",
+    "maker": "성진산업(주)",
+    "model": "SADI-202Y3 / FCDF-020A",
+    "kc": "미인증"
+  },
+  {
+    "company": "성진산업(주)",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "냉방기",
+    "maker": "성진산업(주)",
+    "model": "SADI-152Y3 / FCAF-015A",
+    "kc": "미인증"
+  },
+  {
+    "company": "성진산업(주)",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "냉방기",
+    "maker": "성진산업(주)",
+    "model": "SADI-102Y3 / FCDF-010A",
+    "kc": "미인증"
+  },
+  {
+    "company": "성진산업(주)",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "냉방기",
+    "maker": "성진산업(주)",
+    "model": "SADI-202Y3",
+    "kc": "미인증"
+  },
+  {
+    "company": "성진산업(주)",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "냉방기",
+    "maker": "성진산업(주)",
+    "model": "SADI-152Y3",
+    "kc": "미인증"
+  },
+  {
+    "company": "성진산업(주)",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "냉방기",
+    "maker": "성진산업(주)",
+    "model": "SADI-102Y3",
+    "kc": "미인증"
+  },
+  {
+    "company": "성진산업(주)",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "냉방기",
+    "maker": "성진산업(주)",
+    "model": "SADI-200V3",
+    "kc": "인증제외"
+  },
+  {
+    "company": "성진산업(주)",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "냉방기",
+    "maker": "성진산업(주)",
+    "model": "SADI-150V3",
+    "kc": "인증제외"
+  },
+  {
+    "company": "성진산업(주)",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "냉방기",
+    "maker": "성진산업(주)",
+    "model": "SADI-201V3",
+    "kc": "미인증"
+  },
+  {
+    "company": "주식회사 수경팜스",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "주식회사 수경팜스",
+    "model": "SKDA-2000",
+    "kc": "미인증"
+  },
+  {
+    "company": "주식회사 팀스페이스팜",
+    "field": "시설원예, 축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "주식회사 팀스페이스팜",
+    "model": "SS-22-B",
+    "kc": "미인증"
+  },
+  {
+    "company": "주식회사위젠트",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "악취제거기",
+    "maker": "주식회사위젠트",
+    "model": "WIZ102",
+    "kc": "미인증"
+  },
+  {
+    "company": "(주)대성마리프",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "냉방기",
+    "maker": "(주)대성마리프",
+    "model": "SRP-M150PB",
+    "kc": "인증"
+  },
+  {
+    "company": "(주)대성마리프",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "냉방기",
+    "maker": "(주)대성마리프",
+    "model": "SRP-M150PB",
+    "kc": "인증"
+  },
+  {
+    "company": "맘꽃가든",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "맘꽃가든",
+    "model": "SLOWER-1",
+    "kc": "미인증"
+  },
+  {
+    "company": "케이디솔루션(주)",
+    "field": "시설원예, 축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "케이디솔루션(주)",
+    "model": "KDS-700YFC",
+    "kc": "인증"
+  },
+  {
+    "company": "케이디솔루션(주)",
+    "field": "시설원예, 축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "케이디솔루션(주)",
+    "model": "KDS-20TFD",
+    "kc": "인증제외"
+  },
+  {
+    "company": "케이디솔루션(주)",
+    "field": "시설원예, 축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "케이디솔루션(주)",
+    "model": "KDS-050SF",
+    "kc": "인증제외"
+  },
+  {
+    "company": "케이디솔루션(주)",
+    "field": "시설원예, 축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "케이디솔루션(주)",
+    "model": "KDS-100YF",
+    "kc": "인증제외"
+  },
+  {
+    "company": "우리팜",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "우리팜",
+    "model": "WEFC2022010001",
+    "kc": "미인증"
+  },
+  {
+    "company": "(주)로그인서광",
+    "field": "시설원예, 축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(주)로그인서광",
+    "model": "LSG-CONT3201",
+    "kc": "인증"
+  },
+  {
+    "company": "코리아디지탈(주)",
+    "field": "시설원예, 축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "코리아디지탈(주)",
+    "model": "팜스큐브",
+    "kc": "인증"
+  },
+  {
+    "company": "코리아디지탈(주)",
+    "field": "시설원예, 축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "코리아디지탈(주)",
+    "model": "팜스큐브",
+    "kc": "인증"
+  },
+  {
+    "company": "코리아디지탈(주)",
+    "field": "시설원예, 축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "코리아디지탈(주)",
+    "model": "팜스큐브",
+    "kc": "인증"
+  },
+  {
+    "company": "코리아디지탈(주)",
+    "field": "시설원예, 축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "코리아디지탈(주)",
+    "model": "팜스큐브",
+    "kc": "인증"
+  },
+  {
+    "company": "코리아디지탈(주)",
+    "field": "시설원예, 축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "코리아디지탈(주)",
+    "model": "팜스큐브",
+    "kc": "인증"
+  },
+  {
+    "company": "코리아디지탈(주)",
+    "field": "시설원예, 축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "코리아디지탈(주)",
+    "model": "팜스큐브",
+    "kc": "인증"
+  },
+  {
+    "company": "코리아디지탈(주)",
+    "field": "시설원예, 축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "코리아디지탈(주)",
+    "model": "팜스큐브",
+    "kc": "인증"
+  },
+  {
+    "company": "코리아디지탈(주)",
+    "field": "시설원예, 축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "코리아디지탈(주)",
+    "model": "팜스큐브",
+    "kc": "인증"
+  },
+  {
+    "company": "(유)금화이엔에스",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(유)금화이엔에스",
+    "model": "NEO1000",
+    "kc": "인증"
+  },
+  {
+    "company": "(유)금화이엔에스",
+    "field": "시설원예",
+    "category": "양액·관수",
+    "std_device": "양액기",
+    "maker": "(유)금화이엔에스",
+    "model": "NEO-H",
+    "kc": "인증"
+  },
+  {
+    "company": "(유)금화이엔에스",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(유)금화이엔에스",
+    "model": "NEO1000",
+    "kc": "인증"
+  },
+  {
+    "company": "휴미템",
+    "field": "시설원예, 축산",
+    "category": "제어부(구동기)",
+    "std_device": "환풍기",
+    "maker": "휴미템",
+    "model": "RS-No1",
+    "kc": "인증"
+  },
+  {
+    "company": "휴미템",
+    "field": "시설원예, 축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "휴미템",
+    "model": "RichA1",
+    "kc": "인증"
+  },
+  {
+    "company": "휴미템",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "환풍기",
+    "maker": "휴미템",
+    "model": "HMT-A400",
+    "kc": "인증"
+  },
+  {
+    "company": "휴미템",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "환풍기",
+    "maker": "휴미템",
+    "model": "HMT-A500",
+    "kc": "인증"
+  },
+  {
+    "company": "휴미템",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "휴미템",
+    "model": "RichH2",
+    "kc": "미인증"
+  },
+  {
+    "company": "휴미템",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "휴미템",
+    "model": "RICHS3",
+    "kc": "미인증"
+  },
+  {
+    "company": "그린씨에스(주)",
+    "field": "시설원예",
+    "category": "양액·관수",
+    "std_device": "양액기",
+    "maker": "그린씨에스(주)",
+    "model": "MAGMA1000V20",
+    "kc": "인증"
+  },
+  {
+    "company": "그린씨에스(주)",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "그린씨에스(주)",
+    "model": "MAGMAPLUS-1000",
+    "kc": "인증"
+  },
+  {
+    "company": "그린씨에스(주)",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "그린씨에스(주)",
+    "model": "MAGMAPLUS-1000",
+    "kc": "인증"
+  },
+  {
+    "company": "그린씨에스(주)",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "그린씨에스(주)",
+    "model": "MAGMA-1000",
+    "kc": "인증"
+  },
+  {
+    "company": "그린씨에스(주)",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "그린씨에스(주)",
+    "model": "MAGMA-1000",
+    "kc": "인증"
+  },
+  {
+    "company": "그린씨에스(주)",
+    "field": "시설원예",
+    "category": "양액·관수",
+    "std_device": "양액기",
+    "maker": "그린씨에스(주)",
+    "model": "MAGMA1000V20",
+    "kc": "인증"
+  },
+  {
+    "company": "그린씨에스(주)",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "그린씨에스(주)",
+    "model": "MAGMA-1000",
+    "kc": "인증"
+  },
+  {
+    "company": "(주)한국더원",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(주)한국더원",
+    "model": "HD22",
+    "kc": "미인증"
+  },
+  {
+    "company": "(주)한국더원",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(주)한국더원",
+    "model": "HD22",
+    "kc": "미인증"
+  },
+  {
+    "company": "(주)보람",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(주)보람",
+    "model": "IOT-1004",
+    "kc": "인증"
+  },
+  {
+    "company": "(주)보람",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(주)보람",
+    "model": "IOT-1004",
+    "kc": "인증"
+  },
+  {
+    "company": "코리아데이타코퍼레이션(주)",
+    "field": "시설원예, 축산",
+    "category": "제어부(구동기)",
+    "std_device": "냉방기",
+    "maker": "코리아데이타코퍼레이션(주)",
+    "model": "ASCU-150",
+    "kc": "인증제외"
+  },
+  {
+    "company": "코리아데이타코퍼레이션(주)",
+    "field": "시설원예, 축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "코리아데이타코퍼레이션(주)",
+    "model": "KDC-100YF",
+    "kc": "인증제외"
+  },
+  {
+    "company": "코리아데이타코퍼레이션(주)",
+    "field": "시설원예, 축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "코리아데이타코퍼레이션(주)",
+    "model": "KDC-20TFD",
+    "kc": "인증제외"
+  },
+  {
+    "company": "우림전기",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "우림전기",
+    "model": "URSF-01",
+    "kc": "인증"
+  },
+  {
+    "company": "농업회사법인(주)힐링시스템",
+    "field": "축산",
+    "category": "축산설비",
+    "std_device": "축산급이기",
+    "maker": "농업회사법인(주)힐링시스템",
+    "model": "HL70",
+    "kc": "인증"
+  },
+  {
+    "company": "농업회사법인(주)힐링시스템",
+    "field": "축산",
+    "category": "축산설비",
+    "std_device": "축산급이기",
+    "maker": "농업회사법인(주)힐링시스템",
+    "model": "HL70",
+    "kc": "인증"
+  },
+  {
+    "company": "농업회사법인(주)힐링시스템",
+    "field": "축산",
+    "category": "축산설비",
+    "std_device": "사료빈관리기",
+    "maker": "농업회사법인(주)힐링시스템",
+    "model": "HL65",
+    "kc": "인증"
+  },
+  {
+    "company": "농업회사법인(주)힐링시스템",
+    "field": "축산",
+    "category": "축산설비",
+    "std_device": "사료빈관리기",
+    "maker": "농업회사법인(주)힐링시스템",
+    "model": "HL65",
+    "kc": "인증"
+  },
+  {
+    "company": "주식회사아이온텍",
+    "field": "축산",
+    "category": "축산설비",
+    "std_device": "사료빈관리기",
+    "maker": "주식회사아이온텍",
+    "model": "ION-L190",
+    "kc": "인증"
+  },
+  {
+    "company": "주식회사아이온텍",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "주식회사아이온텍",
+    "model": "EMD-1000 / ROOFONOFF-EMD-1000",
+    "kc": "인증"
+  },
+  {
+    "company": "주식회사아이온텍",
+    "field": "축산",
+    "category": "축산설비",
+    "std_device": "축산급이기",
+    "maker": "주식회사아이온텍",
+    "model": "LFS-120",
+    "kc": "인증"
+  },
+  {
+    "company": "주식회사아이온텍",
+    "field": "축산",
+    "category": "축산설비",
+    "std_device": "축산급이기",
+    "maker": "주식회사아이온텍",
+    "model": "LFS-120",
+    "kc": "인증"
+  },
+  {
+    "company": "주식회사아이온텍",
+    "field": "축산",
+    "category": "감지부(센서)",
+    "std_device": "축산용체중기",
+    "maker": "주식회사아이온텍",
+    "model": "SC-500",
+    "kc": "인증"
+  },
+  {
+    "company": "주식회사아이온텍",
+    "field": "축산",
+    "category": "축산설비",
+    "std_device": "출하돈선별기",
+    "maker": "주식회사아이온텍",
+    "model": "SC-300",
+    "kc": "인증"
+  },
+  {
+    "company": "주식회사아이온텍",
+    "field": "축산",
+    "category": "축산설비",
+    "std_device": "축산급이기",
+    "maker": "주식회사아이온텍",
+    "model": "LFS-100",
+    "kc": "인증"
+  },
+  {
+    "company": "주식회사아이온텍",
+    "field": "축산",
+    "category": "축산설비",
+    "std_device": "사료빈관리기",
+    "maker": "주식회사아이온텍",
+    "model": "ION-L190",
+    "kc": "인증"
+  },
+  {
+    "company": "주식회사아이온텍",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "주식회사아이온텍",
+    "model": "EMD-1000",
+    "kc": "인증"
+  },
+  {
+    "company": "주식회사아이온텍",
+    "field": "축산",
+    "category": "축산설비",
+    "std_device": "축산급이기",
+    "maker": "주식회사아이온텍",
+    "model": "BFC-700",
+    "kc": "인증"
+  },
+  {
+    "company": "(주)성진시스템",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(주)성진시스템",
+    "model": "SJ-SMFAR-08(양계)",
+    "kc": "인증"
+  },
+  {
+    "company": "(주)성진시스템",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(주)성진시스템",
+    "model": "SJ-SMFAR-08(양돈)",
+    "kc": "인증"
+  },
+  {
+    "company": "(주)성진시스템",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(주)성진시스템",
+    "model": "SJ-SMFAR-08(대동물)",
+    "kc": "인증"
+  },
+  {
+    "company": "(주)성진시스템",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(주)성진시스템",
+    "model": "SJ-SMFAR-08(원예)",
+    "kc": "인증"
+  },
+  {
+    "company": "케이에이치에스주식회사",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "악취제거기",
+    "maker": "케이에이치에스주식회사",
+    "model": "KHS-20HP",
+    "kc": "인증제외"
+  },
+  {
+    "company": "케이에이치에스주식회사",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "악취제거기",
+    "maker": "케이에이치에스주식회사",
+    "model": "KHS-30HP",
+    "kc": "인증제외"
+  },
+  {
+    "company": "글로벌스마트솔루션 주식회사",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "글로벌스마트솔루션 주식회사",
+    "model": "GSS-EGF201",
+    "kc": "인증"
+  },
+  {
+    "company": "(주)온더버스",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(주)온더버스",
+    "model": "ON-1000",
+    "kc": "인증"
+  },
+  {
+    "company": "주식회사 디오비에스",
+    "field": "시설원예, 축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "주식회사 디오비에스",
+    "model": "RF-4528PL",
+    "kc": "인증"
+  },
+  {
+    "company": "신영자동화",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "신영자동화",
+    "model": "SY3A00",
+    "kc": "인증"
+  },
+  {
+    "company": "신영자동화",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "신영자동화",
+    "model": "SY3A00",
+    "kc": "인증"
+  },
+  {
+    "company": "신영자동화",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "신영자동화",
+    "model": "SY3A00",
+    "kc": "인증"
+  },
+  {
+    "company": "신영자동화",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "신영자동화",
+    "model": "SY3A00",
+    "kc": "인증"
+  },
+  {
+    "company": "노아랩",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "노아랩",
+    "model": "NDI4O4M",
+    "kc": "미인증"
+  },
+  {
+    "company": "주식회사 우주",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "주식회사 우주",
+    "model": "SUN-V02",
+    "kc": "인증"
+  },
+  {
+    "company": "주식회사 우주",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "주식회사 우주",
+    "model": "SUN-V02",
+    "kc": "인증"
+  },
+  {
+    "company": "주식회사 우주",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "주식회사 우주",
+    "model": "SUN-V02",
+    "kc": "인증"
+  },
+  {
+    "company": "주식회사 엔스텝",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "주식회사 엔스텝",
+    "model": "NSFM-0832",
+    "kc": "인증"
+  },
+  {
+    "company": "주식회사 이원온실산업",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "주식회사 이원온실산업",
+    "model": "ewonia3000",
+    "kc": "인증"
+  },
+  {
+    "company": "(주)텔라움",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(주)텔라움",
+    "model": "전원관리시스템",
+    "kc": "인증"
+  },
+  {
+    "company": "메를로랩",
+    "field": "시설원예, 축산",
+    "category": "기타·미분류",
+    "std_device": "기타",
+    "maker": "메를로랩",
+    "model": "스마트RGB전구",
+    "kc": "인증"
+  },
+  {
+    "company": "메를로랩",
+    "field": "시설원예, 축산",
+    "category": "기타·미분류",
+    "std_device": "기타",
+    "maker": "메를로랩",
+    "model": "스마트2Color전구",
+    "kc": "인증"
+  },
+  {
+    "company": "메를로랩",
+    "field": "시설원예, 축산",
+    "category": "기타·미분류",
+    "std_device": "기타",
+    "maker": "메를로랩",
+    "model": "스마트RGB투광등",
+    "kc": "인증"
+  },
+  {
+    "company": "메를로랩",
+    "field": "시설원예, 축산",
+    "category": "기타·미분류",
+    "std_device": "기타",
+    "maker": "메를로랩",
+    "model": "IotDC공장등",
+    "kc": "인증제외"
+  },
+  {
+    "company": "주식회사 와치캠",
+    "field": "시설원예, 축산",
+    "category": "기타·미분류",
+    "std_device": "기타",
+    "maker": "주식회사 와치캠",
+    "model": "WAP-100-V2",
+    "kc": "인증"
+  },
+  {
+    "company": "주식회사 와치캠",
+    "field": "시설원예, 축산",
+    "category": "기타·미분류",
+    "std_device": "기타",
+    "maker": "주식회사 와치캠",
+    "model": "WPH-600P",
+    "kc": "인증"
+  },
+  {
+    "company": "예손건드릴",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "안개분무시스템",
+    "maker": "예손건드릴",
+    "model": "YESON-V200",
+    "kc": "인증"
+  },
+  {
+    "company": "예손건드릴",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "안개분무시스템",
+    "maker": "예손건드릴",
+    "model": "YESON-V200",
+    "kc": "인증"
+  },
+  {
+    "company": "(주)다함",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(주)다함",
+    "model": "다함팜",
+    "kc": "미인증"
+  },
+  {
+    "company": "SI ENG",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "SI ENG",
+    "model": "SHA-MAIN",
+    "kc": "인증"
+  },
+  {
+    "company": "제트텍",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "제트텍",
+    "model": "ZFARM",
+    "kc": "인증"
+  },
+  {
+    "company": "제트텍",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "제트텍",
+    "model": "ZFARM",
+    "kc": "인증"
+  },
+  {
+    "company": "제트텍",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "제트텍",
+    "model": "ZFARM",
+    "kc": "인증"
+  },
+  {
+    "company": "제트텍",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "제트텍",
+    "model": "ZFARM",
+    "kc": "인증"
+  },
+  {
+    "company": "제트텍",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "제트텍",
+    "model": "ZFARM",
+    "kc": "인증"
+  },
+  {
+    "company": "제트텍",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "제트텍",
+    "model": "ZFARM",
+    "kc": "인증"
+  },
+  {
+    "company": "제트텍",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "제트텍",
+    "model": "ZFARM / ZFARM",
+    "kc": "인증"
+  },
+  {
+    "company": "제트텍",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "제트텍",
+    "model": "ZFARM",
+    "kc": "인증"
+  },
+  {
+    "company": "제트텍",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "제트텍",
+    "model": "ZFARM / ZFARM",
+    "kc": "인증"
+  },
+  {
+    "company": "제트텍",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "제트텍",
+    "model": "ZFARM / (주)시지아이",
+    "kc": "인증"
+  },
+  {
+    "company": "제이에이(JA)테크",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "제이에이(JA)테크",
+    "model": "TSC-2000",
+    "kc": "인증제외"
+  },
+  {
+    "company": "제이에이(JA)테크",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "제이에이(JA)테크",
+    "model": "TSC-2000",
+    "kc": "인증제외"
+  },
+  {
+    "company": "제이에이(JA)테크",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "제이에이(JA)테크",
+    "model": "TSC-2000",
+    "kc": "인증제외"
+  },
+  {
+    "company": "제이에이(JA)테크",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "제이에이(JA)테크",
+    "model": "TSC-2000",
+    "kc": "인증제외"
+  },
+  {
+    "company": "제이에이(JA)테크",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "제이에이(JA)테크",
+    "model": "TSC-2000-2",
+    "kc": "인증제외"
+  },
+  {
+    "company": "제이에이(JA)테크",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "제이에이(JA)테크",
+    "model": "TSC-2000-1",
+    "kc": "인증제외"
+  },
+  {
+    "company": "제이에이(JA)테크",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "제이에이(JA)테크",
+    "model": "TSC-3000",
+    "kc": "인증제외"
+  },
+  {
+    "company": "제이에이(JA)테크",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "제이에이(JA)테크",
+    "model": "TSC-2000",
+    "kc": "인증제외"
+  },
+  {
+    "company": "그린랩스",
+    "field": "시설원예",
+    "category": "양액·관수",
+    "std_device": "양액기",
+    "maker": "그린랩스",
+    "model": "SMART-G2A",
+    "kc": "미인증"
+  },
+  {
+    "company": "그린랩스",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "그린랩스",
+    "model": "GLP-100",
+    "kc": "인증"
+  },
+  {
+    "company": "주식회사에어텍",
+    "field": "시설원예, 축산",
+    "category": "제어부(구동기)",
+    "std_device": "냉방기",
+    "maker": "주식회사에어텍",
+    "model": "ASCU-H100",
+    "kc": "인증제외"
+  },
+  {
+    "company": "주식회사에어텍",
+    "field": "시설원예, 축산",
+    "category": "제어부(구동기)",
+    "std_device": "냉방기",
+    "maker": "주식회사에어텍",
+    "model": "ASCU-150",
+    "kc": "인증제외"
+  },
+  {
+    "company": "주식회사에어텍",
+    "field": "시설원예, 축산",
+    "category": "제어부(구동기)",
+    "std_device": "냉방기",
+    "maker": "주식회사에어텍",
+    "model": "ASCU-100",
+    "kc": "인증제외"
+  },
+  {
+    "company": "다스텍(주)",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "다스텍(주)",
+    "model": "본다우스(축산)",
+    "kc": "인증"
+  },
+  {
+    "company": "다스텍(주)",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "다스텍(주)",
+    "model": "본다우스",
+    "kc": "인증"
+  },
+  {
+    "company": "케이앤디글로벌",
+    "field": "시설원예, 축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "케이앤디글로벌",
+    "model": "i-1100 / i-1100",
+    "kc": "인증"
+  },
+  {
+    "company": "케이앤디글로벌",
+    "field": "시설원예, 축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "케이앤디글로벌",
+    "model": "i-1100",
+    "kc": "인증"
+  },
+  {
+    "company": "케이앤디글로벌",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "악취제거기",
+    "maker": "케이앤디글로벌",
+    "model": "i-1000",
+    "kc": "인증"
+  },
+  {
+    "company": "케이앤디글로벌",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "악취제거기",
+    "maker": "케이앤디글로벌",
+    "model": "i-1000",
+    "kc": "인증"
+  },
+  {
+    "company": "케이앤디글로벌",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "악취제거기",
+    "maker": "케이앤디글로벌",
+    "model": "i-1000",
+    "kc": "인증"
+  },
+  {
+    "company": "덕화개발",
+    "field": "축산",
+    "category": "기타·미분류",
+    "std_device": "기타",
+    "maker": "덕화개발",
+    "model": "DH-01-S",
+    "kc": "인증제외"
+  },
+  {
+    "company": "인프로",
+    "field": "축산",
+    "category": "감지부(센서)",
+    "std_device": "생체정보수집기",
+    "maker": "인프로",
+    "model": "INPILL / INPILL",
+    "kc": "인증"
+  },
+  {
+    "company": "인프로",
+    "field": "축산",
+    "category": "감지부(센서)",
+    "std_device": "축산용체중기",
+    "maker": "인프로",
+    "model": "BroilerScale / BroilerScale",
+    "kc": "인증"
+  },
+  {
+    "company": "인프로",
+    "field": "축산",
+    "category": "감지부(센서)",
+    "std_device": "축산용체중기",
+    "maker": "인프로",
+    "model": "BroilerScale",
+    "kc": "인증"
+  },
+  {
+    "company": "인프로",
+    "field": "축산",
+    "category": "감지부(센서)",
+    "std_device": "생체정보수집기",
+    "maker": "인프로",
+    "model": "INPILL",
+    "kc": "인증"
+  },
+  {
+    "company": "인프로",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "인프로",
+    "model": "IPR-IF-T01",
+    "kc": "인증"
+  },
+  {
+    "company": "인프로",
+    "field": "시설원예, 축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "인프로",
+    "model": "IPR-IF-T03",
+    "kc": "인증"
+  },
+  {
+    "company": "인프로",
+    "field": "시설원예, 축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "인프로",
+    "model": "IPR-IF-T03",
+    "kc": "인증"
+  },
+  {
+    "company": "삼영종합기기(주)",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "냉방기",
+    "maker": "삼영종합기기(주)",
+    "model": "PAU003M-B13A",
+    "kc": "인증제외"
+  },
+  {
+    "company": "삼영종합기기(주)",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "냉방기",
+    "maker": "삼영종합기기(주)",
+    "model": "PAU003M-B13A",
+    "kc": "인증제외"
+  },
+  {
+    "company": "아미텔",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "아미텔",
+    "model": "PECS-301",
+    "kc": "미인증"
+  },
+  {
+    "company": "아미텔",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "아미텔",
+    "model": "PECS-301",
+    "kc": "미인증"
+  },
+  {
+    "company": "주식회사 솔레노이드시스템",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "주식회사 솔레노이드시스템",
+    "model": "MAC-IT",
+    "kc": "미인증"
+  },
+  {
+    "company": "주식회사 솔레노이드시스템",
+    "field": "시설원예",
+    "category": "양액·관수",
+    "std_device": "양액기",
+    "maker": "주식회사 솔레노이드시스템",
+    "model": "SNSV6-TOUCH-IT",
+    "kc": "미인증"
+  },
+  {
+    "company": "신한에이텍(주)",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "신한에이텍(주)",
+    "model": "GK-3000",
+    "kc": "인증제외"
+  },
+  {
+    "company": "이레ENG",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "이레ENG",
+    "model": "버섯재배사자동제어시스템JR-500",
+    "kc": "미인증"
+  },
+  {
+    "company": "주식회사 동성코코팬",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "환풍기",
+    "maker": "주식회사 동성코코팬",
+    "model": "COCO-1000A",
+    "kc": "인증"
+  },
+  {
+    "company": "주식회사 동성코코팬",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "환풍기",
+    "maker": "주식회사 동성코코팬",
+    "model": "COCO-500D",
+    "kc": "인증"
+  },
+  {
+    "company": "주식회사 동성코코팬",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "환풍기",
+    "maker": "주식회사 동성코코팬",
+    "model": "COCO-1000A",
+    "kc": "인증"
+  },
+  {
+    "company": "주식회사 동성코코팬",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "환풍기",
+    "maker": "주식회사 동성코코팬",
+    "model": "COCO-500A",
+    "kc": "인증"
+  },
+  {
+    "company": "주식회사 동성코코팬",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "환풍기",
+    "maker": "주식회사 동성코코팬",
+    "model": "COCO-400D",
+    "kc": "인증"
+  },
+  {
+    "company": "주식회사 동성코코팬",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "환풍기",
+    "maker": "주식회사 동성코코팬",
+    "model": "COCO-600C",
+    "kc": "인증"
+  },
+  {
+    "company": "주식회사 동성코코팬",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "환풍기",
+    "maker": "주식회사 동성코코팬",
+    "model": "COCO-500C",
+    "kc": "인증"
+  },
+  {
+    "company": "주식회사 동성코코팬",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "환풍기",
+    "maker": "주식회사 동성코코팬",
+    "model": "COCO-400C",
+    "kc": "인증"
+  },
+  {
+    "company": "주식회사 동성코코팬",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "환풍기",
+    "maker": "주식회사 동성코코팬",
+    "model": "COCO-400A",
+    "kc": "인증"
+  },
+  {
+    "company": "주식회사 동성코코팬",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "환풍기",
+    "maker": "주식회사 동성코코팬",
+    "model": "COCO-600D",
+    "kc": "인증"
+  },
+  {
+    "company": "(주)경농",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(주)경농",
+    "model": "KN-SI-CI-001",
+    "kc": "인증"
+  },
+  {
+    "company": "(주)경농",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "안개분무시스템",
+    "maker": "(주)경농",
+    "model": "KN-SI-CO-001",
+    "kc": "인증"
+  },
+  {
+    "company": "(주)경농",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(주)경농",
+    "model": "COMPASS4S",
+    "kc": "미인증"
+  },
+  {
+    "company": "(주)경농",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(주)경농",
+    "model": "COMPASS4S",
+    "kc": "미인증"
+  },
+  {
+    "company": "아이오크롭스(주)",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "아이오크롭스(주)",
+    "model": "팜인원",
+    "kc": "인증"
+  },
+  {
+    "company": "에프에스",
+    "field": "축산",
+    "category": "축산설비",
+    "std_device": "축산급이기",
+    "maker": "에프에스",
+    "model": "AceFeed-FS00",
+    "kc": "인증"
+  },
+  {
+    "company": "에프에스",
+    "field": "축산",
+    "category": "축산설비",
+    "std_device": "원유냉각기",
+    "maker": "에프에스",
+    "model": "MCooler-FS",
+    "kc": "인증"
+  },
+  {
+    "company": "에프에스",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "안개분무시스템",
+    "maker": "에프에스",
+    "model": "AceFog-FS0",
+    "kc": "인증"
+  },
+  {
+    "company": "에프에스",
+    "field": "축산",
+    "category": "축산설비",
+    "std_device": "축산급이기",
+    "maker": "에프에스",
+    "model": "AceFeed-FS00",
+    "kc": "인증"
+  },
+  {
+    "company": "에프에스",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "안개분무시스템",
+    "maker": "에프에스",
+    "model": "AceFog-FS0",
+    "kc": "인증"
+  },
+  {
+    "company": "에프에스",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "환풍기",
+    "maker": "에프에스",
+    "model": "AceFan-FS000",
+    "kc": "인증"
+  },
+  {
+    "company": "에프에스",
+    "field": "축산",
+    "category": "축산설비",
+    "std_device": "축산급이기",
+    "maker": "에프에스",
+    "model": "AceFeed-FS00",
+    "kc": "인증"
+  },
+  {
+    "company": "에프에스",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "환풍기",
+    "maker": "에프에스",
+    "model": "AceFan-FS000",
+    "kc": "인증"
+  },
+  {
+    "company": "에프에스",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "안개분무시스템",
+    "maker": "에프에스",
+    "model": "AceFog-FS0",
+    "kc": "인증"
+  },
+  {
+    "company": "에프에스",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "환풍기",
+    "maker": "에프에스",
+    "model": "AceFan-FS000",
+    "kc": "인증"
+  },
+  {
+    "company": "(주)샘스",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "냉방기",
+    "maker": "(주)샘스",
+    "model": "HAP-U200CS",
+    "kc": "미인증"
+  },
+  {
+    "company": "(주)샘스",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(주)샘스",
+    "model": "SMU300",
+    "kc": "미인증"
+  },
+  {
+    "company": "(주)나래트랜드",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(주)나래트랜드",
+    "model": "반딧불이-복합환경제어시스템",
+    "kc": "인증"
+  },
+  {
+    "company": "(주)나래트랜드",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(주)나래트랜드",
+    "model": "반딧불이-스마트팜원격제어시스템",
+    "kc": "미인증"
+  },
+  {
+    "company": "(주)나래트랜드",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(주)나래트랜드",
+    "model": "반딧불이-스마트팜원격제어시스템",
+    "kc": "미인증"
+  },
+  {
+    "company": "(주)나래트랜드",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(주)나래트랜드",
+    "model": "반딧불이-복합환경제어시스템",
+    "kc": "인증"
+  },
+  {
+    "company": "(주)나래트랜드",
+    "field": "축산",
+    "category": "기타·미분류",
+    "std_device": "기타",
+    "maker": "(주)나래트랜드",
+    "model": "반딧불이-스마트축사시스템",
+    "kc": "미인증"
+  },
+  {
+    "company": "(주)나래트랜드",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(주)나래트랜드",
+    "model": "반딧불이-스마트팜원격제어시스템",
+    "kc": "미인증"
+  },
+  {
+    "company": "(주)나래트랜드",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(주)나래트랜드",
+    "model": "반딧불이-복합환경제어시스템",
+    "kc": "인증"
+  },
+  {
+    "company": "(주)나래트랜드",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(주)나래트랜드",
+    "model": "반딧불이-복합환경제어시스템",
+    "kc": "인증"
+  },
+  {
+    "company": "(주)나래트랜드",
+    "field": "축산",
+    "category": "기타·미분류",
+    "std_device": "기타",
+    "maker": "(주)나래트랜드",
+    "model": "반딧불이-스마트축사시스템",
+    "kc": "미인증"
+  },
+  {
+    "company": "(주)나래트랜드",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(주)나래트랜드",
+    "model": "반딧불이-스마트팜원격제어시스템",
+    "kc": "미인증"
+  },
+  {
+    "company": "씨에스와이",
+    "field": "축산",
+    "category": "기타·미분류",
+    "std_device": "기타",
+    "maker": "씨에스와이",
+    "model": "반딧불이-스마트축사시스템",
+    "kc": "미인증"
+  },
+  {
+    "company": "씨에스와이",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "씨에스와이",
+    "model": "반딧불이-복합환경제어시스템",
+    "kc": "인증"
+  },
+  {
+    "company": "씨에스와이",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "씨에스와이",
+    "model": "반딧불이-스마트팜원격제어시스템",
+    "kc": "미인증"
+  },
+  {
+    "company": "(주)나래IoT연구소",
+    "field": "축산",
+    "category": "기타·미분류",
+    "std_device": "기타",
+    "maker": "(주)나래IoT연구소",
+    "model": "반딧불이-스마트축사시스템",
+    "kc": "미인증"
+  },
+  {
+    "company": "(주)나래IoT연구소",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(주)나래IoT연구소",
+    "model": "반딧불이-복합환경제어시스템",
+    "kc": "인증"
+  },
+  {
+    "company": "(주)나래IoT연구소",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(주)나래IoT연구소",
+    "model": "반딧불이-스마트원격제어시스템",
+    "kc": "미인증"
+  },
+  {
+    "company": "(주)농정사이버",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(주)농정사이버",
+    "model": "nj2015",
+    "kc": "인증제외"
+  },
+  {
+    "company": "(주)텔레비트",
+    "field": "시설원예, 축산",
+    "category": "기타·미분류",
+    "std_device": "기타",
+    "maker": "(주)텔레비트",
+    "model": "MN-40",
+    "kc": "인증"
+  },
+  {
+    "company": "(주)피이플렉스",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "악취제거기",
+    "maker": "(주)피이플렉스",
+    "model": "탈취설비",
+    "kc": "인증"
+  },
+  {
+    "company": "(주)피이플렉스",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(주)피이플렉스",
+    "model": "안개분무시스템",
+    "kc": "인증"
+  },
+  {
+    "company": "주식회사 동부그린테크",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "안개분무시스템",
+    "maker": "주식회사 동부그린테크",
+    "model": "포그시스템",
+    "kc": "인증제외"
+  },
+  {
+    "company": "(주)코리아에너시스",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(주)코리아에너시스",
+    "model": "NGP-109",
+    "kc": "인증"
+  },
+  {
+    "company": "(주)이화글로벌",
+    "field": "시설원예, 축산",
+    "category": "제어부(구동기)",
+    "std_device": "냉방기",
+    "maker": "(주)이화글로벌",
+    "model": "CPV-Q2906KX",
+    "kc": "인증"
+  },
+  {
+    "company": "(주)이화글로벌",
+    "field": "시설원예, 축산",
+    "category": "제어부(구동기)",
+    "std_device": "냉방기",
+    "maker": "(주)이화글로벌",
+    "model": "CPV-Q2906KX",
+    "kc": "인증"
+  },
+  {
+    "company": "(주)이화글로벌",
+    "field": "시설원예, 축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(주)이화글로벌",
+    "model": "ET-0808",
+    "kc": "인증"
+  },
+  {
+    "company": "(주)이화글로벌",
+    "field": "시설원예, 축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(주)이화글로벌",
+    "model": "ET-0808",
+    "kc": "인증"
+  },
+  {
+    "company": "(주)이화글로벌",
+    "field": "시설원예, 축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(주)이화글로벌",
+    "model": "ET-0808",
+    "kc": "인증"
+  },
+  {
+    "company": "(주)이화글로벌",
+    "field": "시설원예, 축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(주)이화글로벌",
+    "model": "ET-0808",
+    "kc": "인증"
+  },
+  {
+    "company": "대영지에스주식회사",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "대영지에스주식회사",
+    "model": "CX-500",
+    "kc": "미인증"
+  },
+  {
+    "company": "대영지에스주식회사",
+    "field": "시설원예",
+    "category": "양액·관수",
+    "std_device": "양액기",
+    "maker": "대영지에스주식회사",
+    "model": "FertiMix",
+    "kc": "미인증"
+  },
+  {
+    "company": "(주)유샘인스트루먼",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(주)유샘인스트루먼",
+    "model": "ZF-3C",
+    "kc": "인증"
+  },
+  {
+    "company": "주식회사 대흥금속",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "냉방기",
+    "maker": "주식회사 대흥금속",
+    "model": "LCU-015A",
+    "kc": "인증제외"
+  },
+  {
+    "company": "주식회사 대흥금속",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "냉방기",
+    "maker": "주식회사 대흥금속",
+    "model": "LCU-010A",
+    "kc": "인증제외"
+  },
+  {
+    "company": "(주)그랜드",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(주)그랜드",
+    "model": "GsmartFarm복합환경제어기",
+    "kc": "인증"
+  },
+  {
+    "company": "주식회사 케이에프농업개발",
+    "field": "시설원예",
+    "category": "양액·관수",
+    "std_device": "양액기",
+    "maker": "주식회사 케이에프농업개발",
+    "model": "KF3",
+    "kc": "인증제외"
+  },
+  {
+    "company": "주식회사 케이에프농업개발",
+    "field": "시설원예",
+    "category": "양액·관수",
+    "std_device": "양액기",
+    "maker": "주식회사 케이에프농업개발",
+    "model": "KF5",
+    "kc": "인증제외"
+  },
+  {
+    "company": "주식회사 케이에프농업개발",
+    "field": "시설원예",
+    "category": "양액·관수",
+    "std_device": "양액기",
+    "maker": "주식회사 케이에프농업개발",
+    "model": "KF9",
+    "kc": "인증제외"
+  },
+  {
+    "company": "주식회사 케이에프농업개발",
+    "field": "시설원예",
+    "category": "양액·관수",
+    "std_device": "양액기",
+    "maker": "주식회사 케이에프농업개발",
+    "model": "KF7",
+    "kc": "인증제외"
+  },
+  {
+    "company": "주식회사 케이에프농업개발",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "주식회사 케이에프농업개발",
+    "model": "KF-3700",
+    "kc": "인증제외"
+  },
+  {
+    "company": "주식회사 엔엔케이",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "주식회사 엔엔케이",
+    "model": "Ground-One",
+    "kc": "인증"
+  },
+  {
+    "company": "지엔에스코리아",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "지엔에스코리아",
+    "model": "SK-200외",
+    "kc": "인증제외"
+  },
+  {
+    "company": "경인이엔지(주)",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "냉방기",
+    "maker": "경인이엔지(주)",
+    "model": "KAC-PK300",
+    "kc": "인증제외"
+  },
+  {
+    "company": "경인이엔지(주)",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "냉방기",
+    "maker": "경인이엔지(주)",
+    "model": "KAC-PK500",
+    "kc": "인증제외"
+  },
+  {
+    "company": "경인이엔지(주)",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "냉방기",
+    "maker": "경인이엔지(주)",
+    "model": "KAC-PK400",
+    "kc": "인증제외"
+  },
+  {
+    "company": "경인이엔지(주)",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "냉방기",
+    "maker": "경인이엔지(주)",
+    "model": "KAC-PK300",
+    "kc": "인증제외"
+  },
+  {
+    "company": "경인이엔지(주)",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "냉방기",
+    "maker": "경인이엔지(주)",
+    "model": "KAC-PK250",
+    "kc": "인증제외"
+  },
+  {
+    "company": "경인이엔지(주)",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "냉방기",
+    "maker": "경인이엔지(주)",
+    "model": "KAC-PK200",
+    "kc": "인증제외"
+  },
+  {
+    "company": "경인이엔지(주)",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "냉방기",
+    "maker": "경인이엔지(주)",
+    "model": "KAC-PK150",
+    "kc": "인증제외"
+  },
+  {
+    "company": "경인이엔지(주)",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "냉방기",
+    "maker": "경인이엔지(주)",
+    "model": "KAC-PK500",
+    "kc": "인증제외"
+  },
+  {
+    "company": "경인이엔지(주)",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "냉방기",
+    "maker": "경인이엔지(주)",
+    "model": "KAC-PK400",
+    "kc": "인증제외"
+  },
+  {
+    "company": "경인이엔지(주)",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "냉방기",
+    "maker": "경인이엔지(주)",
+    "model": "KAC-PK300",
+    "kc": "인증제외"
+  },
+  {
+    "company": "(주)텔팜",
+    "field": "시설원예, 축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(주)텔팜",
+    "model": "TF-1001",
+    "kc": "인증"
+  },
+  {
+    "company": "(주)텔팜",
+    "field": "시설원예, 축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(주)텔팜",
+    "model": "TF-1001",
+    "kc": "인증"
+  },
+  {
+    "company": "(주)텔팜",
+    "field": "시설원예, 축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(주)텔팜",
+    "model": "TF-1001",
+    "kc": "인증"
+  },
+  {
+    "company": "(주)텔팜",
+    "field": "시설원예, 축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(주)텔팜",
+    "model": "TF-1001",
+    "kc": "인증"
+  },
+  {
+    "company": "(주)텔팜",
+    "field": "시설원예, 축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(주)텔팜",
+    "model": "TF-1001",
+    "kc": "인증"
+  },
+  {
+    "company": "(주)파머스올농업회사법인",
+    "field": "축산",
+    "category": "양액·관수",
+    "std_device": "자동급수기",
+    "maker": "(주)파머스올농업회사법인",
+    "model": "HP-1900",
+    "kc": "미인증"
+  },
+  {
+    "company": "(주)파머스올농업회사법인",
+    "field": "시설원예, 축산",
+    "category": "기타·미분류",
+    "std_device": "",
+    "maker": "(주)파머스올농업회사법인",
+    "model": "HA-500",
+    "kc": "인증"
+  },
+  {
+    "company": "(주)파머스올농업회사법인",
+    "field": "시설원예, 축산",
+    "category": "기타·미분류",
+    "std_device": "",
+    "maker": "(주)파머스올농업회사법인",
+    "model": "HA-1500",
+    "kc": "인증"
+  },
+  {
+    "company": "문터스코리아(주)",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "문터스코리아(주)",
+    "model": "TRIO20",
+    "kc": "인증"
+  },
+  {
+    "company": "문터스코리아(주)",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "문터스코리아(주)",
+    "model": "TRIO20",
+    "kc": "인증"
+  },
+  {
+    "company": "문터스코리아(주)",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "문터스코리아(주)",
+    "model": "ROTEMPRO",
+    "kc": "인증"
+  },
+  {
+    "company": "문터스코리아(주)",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "악취제거기",
+    "maker": "문터스코리아(주)",
+    "model": "LAVAMATIC",
+    "kc": "미인증"
+  },
+  {
+    "company": "문터스코리아(주)",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "악취제거기",
+    "maker": "문터스코리아(주)",
+    "model": "LAVAMATIC",
+    "kc": "미인증"
+  },
+  {
+    "company": "문터스코리아(주)",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "문터스코리아(주)",
+    "model": "TRIO20",
+    "kc": "인증"
+  },
+  {
+    "company": "문터스코리아(주)",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "문터스코리아(주)",
+    "model": "TRIO20",
+    "kc": "인증"
+  },
+  {
+    "company": "문터스코리아(주)",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "문터스코리아(주)",
+    "model": "ROTEMPRO",
+    "kc": "인증"
+  },
+  {
+    "company": "문터스코리아(주)",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "문터스코리아(주)",
+    "model": "ROTEMPRO",
+    "kc": "인증"
+  },
+  {
+    "company": "문터스코리아(주)",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "악취제거기",
+    "maker": "문터스코리아(주)",
+    "model": "LAVAMATIC",
+    "kc": "미인증"
+  },
+  {
+    "company": "주식회사 하나로수경",
+    "field": "시설원예",
+    "category": "양액·관수",
+    "std_device": "양액기",
+    "maker": "주식회사 하나로수경",
+    "model": "HS-8000",
+    "kc": "인증"
+  },
+  {
+    "company": "주식회사 하나로수경",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "주식회사 하나로수경",
+    "model": "내부감지기-IH01",
+    "kc": "미인증"
+  },
+  {
+    "company": "주식회사 하나로수경",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "주식회사 하나로수경",
+    "model": "외부감지기-OH01",
+    "kc": "미인증"
+  },
+  {
+    "company": "주식회사 하나로수경",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "주식회사 하나로수경",
+    "model": "하나로하이팜",
+    "kc": "인증"
+  },
+  {
+    "company": "(주) 비엔씨하이텍",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(주) 비엔씨하이텍",
+    "model": "BCS-H",
+    "kc": "인증"
+  },
+  {
+    "company": "(주) 비엔씨하이텍",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "안개분무시스템",
+    "maker": "(주) 비엔씨하이텍",
+    "model": "BCS-L",
+    "kc": "인증"
+  },
+  {
+    "company": "(주)이레아이에스",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(주)이레아이에스",
+    "model": "RMFarm",
+    "kc": "인증"
+  },
+  {
+    "company": "동서그린",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "안개분무시스템",
+    "maker": "동서그린",
+    "model": "DS-1000(축산)",
+    "kc": "인증"
+  },
+  {
+    "company": "동서그린",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "안개분무시스템",
+    "maker": "동서그린",
+    "model": "DS-1000(축산)",
+    "kc": "인증"
+  },
+  {
+    "company": "동서그린",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "안개분무시스템",
+    "maker": "동서그린",
+    "model": "DS-1000(축산) / JUS-1000",
+    "kc": "인증"
+  },
+  {
+    "company": "동서그린",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "동서그린",
+    "model": "DS-F200",
+    "kc": "인증"
+  },
+  {
+    "company": "동서그린",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "안개분무시스템",
+    "maker": "동서그린",
+    "model": "DS-1000(축산)",
+    "kc": "인증"
+  },
+  {
+    "company": "동서그린",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "안개분무시스템",
+    "maker": "동서그린",
+    "model": "DS-1000(축산)",
+    "kc": "인증"
+  },
+  {
+    "company": "동서그린",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "동서그린",
+    "model": "DS-2000",
+    "kc": "인증"
+  },
+  {
+    "company": "(주)청오엔지니어링",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(주)청오엔지니어링",
+    "model": "COFF-3000",
+    "kc": "인증"
+  },
+  {
+    "company": "(주)청오엔지니어링",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(주)청오엔지니어링",
+    "model": "COFF-3000",
+    "kc": "인증"
+  },
+  {
+    "company": "(주)청오엔지니어링",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(주)청오엔지니어링",
+    "model": "COFF-3000",
+    "kc": "인증"
+  },
+  {
+    "company": "(주)청오엔지니어링",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(주)청오엔지니어링",
+    "model": "COFF-3000",
+    "kc": "인증"
+  },
+  {
+    "company": "(주)청오엔지니어링",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(주)청오엔지니어링",
+    "model": "COFF-3000",
+    "kc": "인증"
+  },
+  {
+    "company": "(주)청오엔지니어링",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(주)청오엔지니어링",
+    "model": "COFF-3000",
+    "kc": "인증"
+  },
+  {
+    "company": "(주)청오엔지니어링",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(주)청오엔지니어링",
+    "model": "COFF-3000",
+    "kc": "인증"
+  },
+  {
+    "company": "(주)청오엔지니어링",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(주)청오엔지니어링",
+    "model": "COFF-3000",
+    "kc": "인증"
+  },
+  {
+    "company": "(주)청오엔지니어링",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(주)청오엔지니어링",
+    "model": "COFF-3000",
+    "kc": "인증"
+  },
+  {
+    "company": "삼일엔지니어링",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "삼일엔지니어링",
+    "model": "SIWP-1000",
+    "kc": "인증"
+  },
+  {
+    "company": "(주)팜패스",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(주)팜패스",
+    "model": "팜내비 / 팜내비",
+    "kc": "인증"
+  },
+  {
+    "company": "(주)팜패스",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(주)팜패스",
+    "model": "팜내비",
+    "kc": "인증"
+  },
+  {
+    "company": "(주)팜패스",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(주)팜패스",
+    "model": "팜내비",
+    "kc": "인증"
+  },
+  {
+    "company": "(주)팜패스",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(주)팜패스",
+    "model": "팜내비",
+    "kc": "인증"
+  },
+  {
+    "company": "스마트코리아 딤넷",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "스마트코리아 딤넷",
+    "model": "스마트컨트롤러",
+    "kc": "인증"
+  },
+  {
+    "company": "주식회사 현진테크",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "주식회사 현진테크",
+    "model": "SFV-VHJ100",
+    "kc": "인증"
+  },
+  {
+    "company": "(주)유비엔",
+    "field": "시설원예",
+    "category": "기타·미분류",
+    "std_device": "기타",
+    "maker": "(주)유비엔",
+    "model": "팜링크",
+    "kc": "인증"
+  },
+  {
+    "company": "과학시스템(주)",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "환풍기",
+    "maker": "과학시스템(주)",
+    "model": "EM36(CT3)",
+    "kc": "인증"
+  },
+  {
+    "company": "과학시스템(주)",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "환풍기",
+    "maker": "과학시스템(주)",
+    "model": "EM50(CT3)",
+    "kc": "인증"
+  },
+  {
+    "company": "과학시스템(주)",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "환풍기",
+    "maker": "과학시스템(주)",
+    "model": "KI50(CT3)",
+    "kc": "인증"
+  },
+  {
+    "company": "과학시스템(주)",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "냉방기",
+    "maker": "과학시스템(주)",
+    "model": "KI쿨링패드",
+    "kc": "인증"
+  },
+  {
+    "company": "과학시스템(주)",
+    "field": "축산",
+    "category": "양액·관수",
+    "std_device": "자동급수기",
+    "maker": "과학시스템(주)",
+    "model": "급수시스템",
+    "kc": "인증"
+  },
+  {
+    "company": "과학시스템(주)",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "환풍기",
+    "maker": "과학시스템(주)",
+    "model": "유러스3실링휀",
+    "kc": "인증"
+  },
+  {
+    "company": "과학시스템(주)",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "환풍기",
+    "maker": "과학시스템(주)",
+    "model": "KI콘휀",
+    "kc": "인증"
+  },
+  {
+    "company": "과학시스템(주)",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "냉방기",
+    "maker": "과학시스템(주)",
+    "model": "KI쿨링패드",
+    "kc": "인증"
+  },
+  {
+    "company": "과학시스템(주)",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "냉방기",
+    "maker": "과학시스템(주)",
+    "model": "KI쿨링패드",
+    "kc": "인증"
+  },
+  {
+    "company": "과학시스템(주)",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "환풍기",
+    "maker": "과학시스템(주)",
+    "model": "중형멀티휀",
+    "kc": "인증"
+  },
+  {
+    "company": "농업회사법인 주식회사 원스프링",
+    "field": "축산",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "농업회사법인 주식회사 원스프링",
+    "model": "PG-OMS-S4",
+    "kc": "인증"
+  },
+  {
+    "company": "(주)다온알에스",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(주)다온알에스",
+    "model": "다오니",
+    "kc": "인증"
+  },
+  {
+    "company": "(주)우성하이텍",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(주)우성하이텍",
+    "model": "FS-50",
+    "kc": "인증"
+  },
+  {
+    "company": "(주)우성하이텍",
+    "field": "시설원예",
+    "category": "양액·관수",
+    "std_device": "양액기",
+    "maker": "(주)우성하이텍",
+    "model": "WIN-9000S",
+    "kc": "인증"
+  },
+  {
+    "company": "(주)우성하이텍",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(주)우성하이텍",
+    "model": "FS-50",
+    "kc": "인증"
+  },
+  {
+    "company": "(주)우성하이텍",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(주)우성하이텍",
+    "model": "FS-50",
+    "kc": "인증"
+  },
+  {
+    "company": "(주)우성하이텍",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(주)우성하이텍",
+    "model": "FS-50",
+    "kc": "인증"
+  },
+  {
+    "company": "(주)우성하이텍",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(주)우성하이텍",
+    "model": "FS-50",
+    "kc": "인증"
+  },
+  {
+    "company": "(주)우성하이텍",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(주)우성하이텍",
+    "model": "FS-50",
+    "kc": "인증"
+  },
+  {
+    "company": "(주)우성하이텍",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(주)우성하이텍",
+    "model": "FS-50",
+    "kc": "인증"
+  },
+  {
+    "company": "(주)우성하이텍",
+    "field": "시설원예",
+    "category": "양액·관수",
+    "std_device": "양액기",
+    "maker": "(주)우성하이텍",
+    "model": "WIN-9000S",
+    "kc": "인증"
+  },
+  {
+    "company": "(주)우성하이텍",
+    "field": "시설원예",
+    "category": "제어부(구동기)",
+    "std_device": "환경제어기",
+    "maker": "(주)우성하이텍",
+    "model": "FS-50",
+    "kc": "인증"
+  }
+]
