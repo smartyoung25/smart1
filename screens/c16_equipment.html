@@ -384,19 +384,34 @@ async function _importQuote(){
     const r=await fetch(`${api}/api/farms/${_farmG}/equipment/import`,{method:'POST',headers:{Authorization:`Bearer ${_tokenG}`},body:fd});
     const d=await r.json();
     _draft=(d.items||[]).map(x=>({...x}));
-    msg.style.color=_draft.length?'var(--green)':'var(--orange)'; msg.textContent=d.note||'';
+    const rc=d.reclassified||0;
+    msg.style.color=_draft.length?'var(--green)':'var(--orange)';
+    msg.textContent=(d.note||'')+(_draft.length?` · 자동 재분류 ${rc}/${_draft.length}건`:'');
     _renderDraft();
   }catch(e){ msg.style.color='var(--red)'; msg.textContent='업로드 실패: '+e.message; }
+}
+const GRADE_COL2={A:'#16a34a',B:'#65a30d',C:'#ca8a04',D:'#ea580c',E:'#dc2626'};
+function _gradeBadge(it){
+  if(!it.grade) return '<span style="font-size:9.5px;color:var(--muted);">미매칭</span>';
+  const col=GRADE_COL2[it.grade]||'#64748b';
+  return `<span style="font-size:9.5px;font-weight:800;color:#fff;background:${col};border-radius:5px;padding:1px 6px;">${it.grade}</span>`+
+    (it.gong&&it.gong!=='기타'?`<span style="font-size:9px;color:var(--muted);margin-left:3px;">${it.gong}</span>`:'');
 }
 function _renderDraft(){
   const el=document.getElementById('importPreview');
   if(!_draft.length){ el.innerHTML=''; return; }
-  el.innerHTML=`<div style="font-size:12px;font-weight:800;margin:10px 0 6px;">파싱 초안 ${_draft.length}건 (검토·수정 후 등록)</div>`+
-    _draft.map((it,i)=>`<div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;">
-      <input class="inp" style="flex:2;" value="${(it.device_type||'').replace(/"/g,'&quot;')}" oninput="_draft[${i}].device_type=this.value" placeholder="품명"/>
-      <input class="inp" style="flex:1.3;" value="${(it.maker||'').replace(/"/g,'&quot;')}" oninput="_draft[${i}].maker=this.value" placeholder="제조사"/>
-      <input class="inp" style="flex:1;" value="${(it.protocol||'').replace(/"/g,'&quot;')}" oninput="_draft[${i}].protocol=this.value" placeholder="프로토콜"/>
-      <button class="eq-del" onclick="_draft.splice(${i},1);_renderDraft()">×</button></div>`).join('')+
+  const rc=_draft.filter(x=>x.grade).length;
+  el.innerHTML=`<div style="font-size:12px;font-weight:800;margin:10px 0 4px;">파싱 초안 ${_draft.length}건 · 자동 재분류 ${rc}건 (검토·수정 후 등록)</div>`+
+    `<div style="font-size:10px;color:var(--muted);margin-bottom:6px;">업로드 문서를 평가완료 DB와 매칭해 대분류·종합등급·공종을 자동 부여했습니다.</div>`+
+    _draft.map((it,i)=>`<div style="border:1px solid var(--border);border-radius:8px;padding:7px;margin-bottom:6px;">
+      <div style="display:flex;gap:6px;align-items:center;">
+        <input class="inp" style="flex:2;" value="${(it.device_type||'').replace(/"/g,'&quot;')}" oninput="_draft[${i}].device_type=this.value" placeholder="품명"/>
+        <input class="inp" style="flex:1.3;" value="${(it.maker||'').replace(/"/g,'&quot;')}" oninput="_draft[${i}].maker=this.value" placeholder="제조사"/>
+        <button class="eq-del" onclick="_draft.splice(${i},1);_renderDraft()">×</button></div>
+      <div style="margin-top:4px;display:flex;align-items:center;gap:6px;">
+        <span style="font-size:9.5px;color:var(--muted);">${it.gubun||'대분류 미상'}${it.model_type?' · '+it.model_type:''}</span>
+        ${_gradeBadge(it)}</div>
+    </div>`).join('')+
     `<button class="addbtn" style="min-height:44px;margin-top:6px;" onclick="_bulkRegister()">초안 ${_draft.length}건 일괄 등록</button>`;
 }
 async function _bulkRegister(){
@@ -406,6 +421,7 @@ async function _bulkRegister(){
   for(let i=0;i<_draft.length;i++){ const d=_draft[i];
     const dt=(d.device_type||'').trim(); if(!dt) continue;
     const body={device_id:`IMP-${Date.now().toString(36)}-${i}`, category:d.category||'', device_type:dt,
+      gubun:d.gubun||'', model_type:d.model_type||'', grade:d.grade||'', gong:d.gong||'', score100:d.score100||null,
       maker:d.maker||'', model:d.model||'', protocol:d.protocol||'', datapoints:[]};
     try{ const r=await fetch(`${api}/api/farms/${_farmG}/equipment`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${_tokenG}`},body:JSON.stringify(body)}); if(r.ok||r.status===403) ok++; }catch(e){}
   }
