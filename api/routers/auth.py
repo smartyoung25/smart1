@@ -46,6 +46,7 @@ class TokenResponse(BaseModel):
     tier: str = "basic"
     chat_quota_max: int = 0
     onboarding_required: bool = False   # 최초 로그인 온보딩 필요 여부
+    farm_id: str = ""                   # 계정 농장 ID(가입 시 백엔드 발급) — 프론트 흐름 일관성
 
 
 class RegisterRequest(BaseModel):
@@ -169,6 +170,7 @@ def _build_token_response(user: dict, onboarding_required: bool = False) -> Toke
         tier=tier,
         chat_quota_max=chat_quota_max,
         onboarding_required=onboarding_required,
+        farm_id=farm_id,
     )
 
 
@@ -430,7 +432,9 @@ async def save_onboarding(
     from api.services.persistence import save_onboarding as _save
 
     user_id = token_user.get("user_id") or 0
-    farm_id = req.farm_id or token_user.get("farm_id") or ""
+    # JWT의 farm_id 를 권위값으로 사용(클라이언트가 보낸 farm_id 가 어긋나도 계정 농장에 저장).
+    #   토큰에 farm_id 가 없을 때만(예: 일부 데모) 요청값으로 폴백.
+    farm_id = token_user.get("farm_id") or req.farm_id or ""
 
     if not user_id:
         raise HTTPException(status_code=400, detail="user_id를 JWT에서 확인할 수 없습니다.")

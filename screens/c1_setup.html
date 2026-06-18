@@ -185,8 +185,9 @@ const PAINS=['수확량 증대','품질 향상','에너지 절감','병해 예�
 window.addEventListener('DOMContentLoaded', ()=>{
   _ensureToken();
   _renderOpts();
-  // 자동 농장 ID
-  form.farm_id=_genFarmId();
+  // 농장 ID: 가입 시 백엔드가 발급한 ID(sf_farm_id) 우선 — 없을 때만 생성(순수 데모)
+  //   ※ 새로 생성하면 JWT의 farm_id 와 어긋나 온보딩이 다른 농장에 저장되는 단락 발생
+  form.farm_id=sessionStorage.getItem('sf_farm_id')||_genFarmId();
   document.getElementById('fFarmIdView').textContent=form.farm_id;
   _loadRegions();
   _showStep(1);
