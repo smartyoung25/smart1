@@ -23,6 +23,7 @@ from api.routers.billing import farm_router as billing_farm_router, admin_router
 from api.routers.data_collection import router as data_collection_router
 from api.routers.telemetry import router as telemetry_router
 from api.routers.federated import router as federated_router
+from api.routers.reference import router as reference_router
 from api.middleware.auth import JWTMiddleware
 
 # ── Rate limiter ──────────────────────────────────────────────────────────────
@@ -117,6 +118,8 @@ app.include_router(billing_admin_router, prefix="/api/admin")
 app.include_router(data_collection_router)
 app.include_router(telemetry_router)
 app.include_router(federated_router)
+# 기자재·시공업체 공식 참조 데이터(읽기 전용)
+app.include_router(reference_router)
 
 
 @app.on_event("startup")

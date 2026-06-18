@@ -114,9 +114,12 @@
       <div><label class="lbl">설치 위치</label><input class="inp" id="fLoc" placeholder="1동 2구역"/></div>
     </div>
     <div class="row2">
-      <div><label class="lbl">제조사 *</label><input class="inp" id="fMaker" placeholder="프리바/국산 등"/></div>
-      <div><label class="lbl">모델</label><input class="inp" id="fModel"/></div>
+      <div><label class="lbl">제조사 *</label><input class="inp" id="fMaker" placeholder="프리바/국산 등" list="makerDL" autocomplete="off" oninput="_onMakerInput()"/></div>
+      <div><label class="lbl">모델</label><input class="inp" id="fModel" list="modelDL" autocomplete="off" oninput="_onModelInput()"/></div>
     </div>
+    <datalist id="makerDL"></datalist>
+    <datalist id="modelDL"></datalist>
+    <div id="refHint" style="display:none;font-size:11px;color:var(--blue);background:var(--blue-soft);border-radius:8px;padding:7px 10px;margin-top:2px;line-height:1.5;"></div>
     <!-- 이기종 연계 설정: 다음 프로세스(선택) — 기본 등록 후 연동 단계에서 설정 가능 -->
     <details id="interopBox" style="margin-top:10px;border:1.5px solid var(--blue);border-radius:12px;padding:10px 12px;background:var(--blue-soft);">
       <summary style="font-size:13px;font-weight:800;color:var(--blue);cursor:pointer;list-style:none;display:flex;align-items:center;">🔌 이기종 연계 설정 <span style="font-size:10.5px;font-weight:700;color:var(--muted);margin-left:6px;">다음 단계 · 선택</span><span style="margin-left:auto;">▾</span></summary>
@@ -275,6 +278,47 @@ function _scrollImport(){
   box.style.transition='box-shadow .3s'; box.style.boxShadow='0 0 0 3px var(--green-soft)';
   setTimeout(()=>{ box.style.boxShadow='none'; }, 1600);
   try{ f.click(); }catch(_e){}   // 네이티브 파일 선택창 바로 열기
+}
+
+// ★ 공식 기자재 DB 자동완성 (스마트팜코리아 참조 데이터)
+let _refTimer=null, _refCache=[];
+function _refDebounce(fn){ clearTimeout(_refTimer); _refTimer=setTimeout(fn,250); }
+async function _refFetch(q){
+  if(!q||q.length<1) return [];
+  try{
+    const api=KaasaData.getApiBase();
+    const r=await fetch(`${api}/api/reference/devices?q=${encodeURIComponent(q)}&limit=20`);
+    if(!r.ok) return [];
+    const d=await r.json(); return d.items||[];
+  }catch{ return []; }
+}
+function _onMakerInput(){
+  const q=document.getElementById('fMaker').value.trim();
+  _refDebounce(async ()=>{
+    const items=await _refFetch(q); _refCache=items;
+    const makers=[...new Set(items.map(x=>x.maker).filter(Boolean))];
+    document.getElementById('makerDL').innerHTML=makers.map(m=>`<option value="${m}">`).join('');
+    const models=items.filter(x=>!q||x.maker===q||x.maker.includes(q));
+    document.getElementById('modelDL').innerHTML=[...new Set(models.map(x=>x.model).filter(Boolean))].map(m=>`<option value="${m}">`).join('');
+  });
+}
+function _onModelInput(){
+  const q=document.getElementById('fModel').value.trim();
+  _refDebounce(async ()=>{
+    let items=_refCache.filter(x=>x.model&&x.model.includes(q));
+    if(!items.length) items=await _refFetch(q);
+    document.getElementById('modelDL').innerHTML=[...new Set(items.map(x=>x.model).filter(Boolean))].map(m=>`<option value="${m}">`).join('');
+    const hit=items.find(x=>x.model===q);
+    if(hit){ _applyRefHit(hit); }
+  });
+}
+// 공식 DB 매칭 → 제조사 자동채움 + 표준장치명/분류/KC 표시
+function _applyRefHit(hit){
+  const mk=document.getElementById('fMaker'); if(!mk.value&&hit.maker) mk.value=hit.maker;
+  const h=document.getElementById('refHint');
+  const kcIco=hit.kc==='인증'?'✅':(hit.kc==='미인증'?'⚠️':'➖');
+  h.style.display='block';
+  h.innerHTML=`📚 <b>공식 DB 매칭</b> · 표준장치명 <b>${hit.std_device||'-'}</b> · 분류 ${hit.category||'-'} · KC ${kcIco}${hit.kc||'-'}`;
 }
 
 // ★ 견적서/시방서 업로드 → 초안 파싱 → 미리보기
