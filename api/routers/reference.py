@@ -42,9 +42,49 @@ def taxonomy():
     return {"categories": _load("equipment_taxonomy.json")}
 
 
+@router.get("/taxonomy2")
+def taxonomy2():
+    """공종별 분류체계 v2 (건축/기자재 3계층)."""
+    return {"groups": _load("equipment_taxonomy_v2.json")}
+
+
+@router.get("/criteria")
+def criteria():
+    """12항목 5등급 평가기준."""
+    return {"criteria": _load("evaluation_criteria.json")}
+
+
+@router.get("/catalog")
+def catalog(
+    q: str = Query("", description="업체/형식명/기종명 부분일치"),
+    gubun: str = Query("", description="대분류(구동기/측정기/제어기/농작업기/기타)"),
+    model_type: str = Query("", description="기종명"),
+    grade: str = Query("", description="종합등급(A~E)"),
+    limit: int = Query(30, ge=1, le=200),
+):
+    """평가완료 제품 카탈로그 검색 — C16 자동완성·등급조회용."""
+    items = _load("equipment_catalog.json")
+    out = []
+    for it in items:
+        if gubun and it.get("gubun") != gubun:
+            continue
+        if model_type and model_type not in (it.get("model_type") or ""):
+            continue
+        if grade and it.get("grade") != grade:
+            continue
+        if q and not (_match(it.get("maker", ""), q)
+                      or _match(it.get("form_name", ""), q)
+                      or _match(it.get("model_type", ""), q)):
+            continue
+        out.append(it)
+        if len(out) >= limit:
+            break
+    return {"count": len(out), "items": out}
+
+
 @router.get("/meta")
 def meta():
-    return _load("_meta.json")
+    return {"v1": _load("_meta.json"), "v2": _load("_catalog_meta.json")}
 
 
 @router.get("/devices")
