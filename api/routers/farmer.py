@@ -3277,7 +3277,77 @@ async def import_equipment_doc(farm_id: str, file: UploadFile = File(...)):
         raise HTTPException(status_code=413, detail="파일이 너무 큽니다(최대 8MB).")
     result = _imp.parse(file.filename or "", content)
     result["farm_id"] = farm_id
+    # ★ 자동 재분류: 파싱된 초안 항목을 평가완료 카탈로그와 매칭 → 공종분류·등급 부여
+    items = result.get("items") or result.get("draft") or []
+    matched = 0
+    for it in items:
+        cls = _reclassify_from_catalog(
+            (it.get("name") or it.get("item") or it.get("device_type") or ""),
+            it.get("maker") or "", it.get("model") or it.get("form_name") or "")
+        if cls:
+            it.update(cls)
+            matched += 1
+    result["reclassified"] = matched
+    result["total_items"] = len(items)
     return result
+
+
+# ── 평가완료 카탈로그 매칭(자동 재분류) ──────────────────────────────────────
+_CATALOG_CACHE = None
+
+
+def _load_catalog():
+    global _CATALOG_CACHE
+    if _CATALOG_CACHE is None:
+        import json as _json
+        from pathlib import Path as _P
+        p = _P(__file__).resolve().parents[1] / "data" / "reference" / "equipment_catalog.json"
+        try:
+            _CATALOG_CACHE = _json.loads(p.read_text(encoding="utf-8"))
+        except Exception:
+            _CATALOG_CACHE = []
+    return _CATALOG_CACHE
+
+
+def _reclassify_from_catalog(name: str, maker: str, model: str):
+    """초안 항목명/제조사/모델 → 카탈로그 최적 매칭 → 분류·등급 dict 반환."""
+    cat = _load_catalog()
+    if not cat:
+        return None
+    name, maker, model = (name or "").strip(), (maker or "").strip(), (model or "").strip()
+    if not (name or maker or model):
+        return None
+
+    def score(rec):
+        s = 0
+        rm, rf, rt = (rec.get("maker") or ""), (rec.get("form_name") or ""), (rec.get("model_type") or "")
+        if model and rf and (model == rf):
+            s += 6
+        elif model and rf and (model in rf or rf in model):
+            s += 3
+        if maker and rm and (maker == rm):
+            s += 4
+        elif maker and rm and (maker in rm or rm in maker):
+            s += 2
+        if name and rt and (name in rt or rt in name):
+            s += 2
+        return s
+
+    best, best_s = None, 0
+    for rec in cat:
+        s = score(rec)
+        if s > best_s:
+            best, best_s = rec, s
+    if not best or best_s < 3:   # 약한 매칭은 무시(오분류 방지)
+        return None
+    return {
+        "gubun": best.get("gubun", ""),
+        "model_type": best.get("model_type", ""),
+        "grade": best.get("grade", ""),
+        "gong": best.get("gong", ""),
+        "score100": best.get("score100"),
+        "match_confidence": best_s,
+    }
 
 
 @router.get("/equipment/schema", summary="기자재 분류·통합 입력 스키마 반환")
@@ -3307,6 +3377,11 @@ class EquipmentItem(BaseModel):
     device_id:    str = Field(..., max_length=64)
     category:     str = Field("", max_length=32)
     device_type:  str = Field("", max_length=64)
+    gubun:        str = Field("", max_length=32)    # 공종 대분류(구동기/측정기/제어기/농작업기/기타)
+    model_type:   str = Field("", max_length=64)    # 기종명
+    grade:        str = Field("", max_length=4)     # 종합등급 A~E
+    gong:         str = Field("", max_length=40)    # 공종별 구분
+    score100:     Optional[float] = None            # 환산점수(100)
     location:     str = Field("", max_length=64)
     maker:        str = Field("", max_length=64)
     model:        str = Field("", max_length=64)
