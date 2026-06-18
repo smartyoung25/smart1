@@ -1,0 +1,18 @@
+{
+  "source": "스마트팜코리아_DB(231025)_기자재정보_시공업체리스트_250117.xlsx",
+  "source_version": "250117",
+  "official_standard": "스마트팜 ICT 기자재 표준(농식품부/TTA) — 표준 장치명 기준",
+  "counts": {
+    "vendor_products": 312,
+    "vendors": 623,
+    "construction_companies": 97,
+    "taxonomy_categories": 5
+  },
+  "category_product_count": {
+    "제어부(구동기)": 259,
+    "축산설비": 17,
+    "기타·미분류": 16,
+    "양액·관수": 15,
+    "감지부(센서)": 5
+  }
+}
