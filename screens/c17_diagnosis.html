@@ -229,7 +229,7 @@ async function _load(token){
       <div class="dec-dom">${p.domain} · 영역점수 ${p.domain_score}</div>
       <div class="dec-detail">${p.detail||''}</div>
       <div class="dec-btns">
-        <button class="dec-go" onclick="location.href='${(p.target||'').startsWith('/')?p.target:p.target}'">조치하러 가기 →</button>
+        ${p.target?`<button class="dec-go" onclick="location.href='${p.target}'">조치하러 가기 →</button>`:''}
         ${p.record?`<button class="dec-log" onclick="_logDec(${i})">기록</button>`:''}
       </div>
     </div>`).join('') : '<div style="text-align:center;padding:16px;color:var(--green);font-size:13px;">✅ 우선 처방할 항목이 없습니다 — 6대 영역이 안정적입니다.</div>';
@@ -244,7 +244,7 @@ async function _load(token){
       <div class="rec-head"><span class="rec-title">${r.title}</span><span class="rec-prio ${r.priority}">${r.priority}</span></div>
       <div class="rec-detail">${r.detail}</div>
       <div class="rec-meta"><span class="rec-tag">💡 ${r.roi}</span><span class="rec-tag" style="background:var(--gray-soft);color:var(--muted);">노력 ${r.effort}</span></div>
-      <button class="rec-btn" onclick="location.href='${r.target}'">개선하러 가기 →</button>
+      ${r.target?`<button class="rec-btn" onclick="location.href='${r.target}'">개선하러 가기 →</button>`:''}
     </div>`).join('') : '<div style="text-align:center;padding:18px;color:var(--green);font-size:13px;">✅ 즉시 개선할 항목이 없습니다 — 시스템이 잘 운영되고 있습니다.</div>';
 }
 </script>
