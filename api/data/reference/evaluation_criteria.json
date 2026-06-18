@@ -1,0 +1,123 @@
+[
+  {
+    "item": "자동화 수준",
+    "grades": {
+      "1등급": "수동 작동만 가능",
+      "2등급": "기초 자동화만 존재",
+      "3등급": "주요 공정 자동, 나머지 수동",
+      "4등급": "대부분 자동화, 일부 수동 보완",
+      "5등급": "작업 전과정 완전 자동화"
+    },
+    "source": "https://www.smartfarm.go.kr/portal/techdata/view.do?nttId=5295"
+  },
+  {
+    "item": "ICT 연동성",
+    "grades": {
+      "1등급": "연동 불가 독립형",
+      "2등급": "통신 기능 제한적",
+      "3등급": "제한적 연동(동일사)",
+      "4등급": "외부 시스템 일부 연동",
+      "5등급": "클라우드 및 앱 완전 연동"
+    },
+    "source": "https://www.smartfarm.go.kr/portal/techdata/view.do?nttId=5272"
+  },
+  {
+    "item": "정밀제어 가능성",
+    "grades": {
+      "1등급": "정밀제어 불가",
+      "2등급": "기초 온/습도 조절만 가능",
+      "3등급": "제어 범위 제한적",
+      "4등급": "주요 요소 제어 가능",
+      "5등급": "환경요소 정밀제어(센서 기반)"
+    },
+    "source": "https://www.smartfarm.go.kr/portal/techdata/view.do?nttId=5271"
+  },
+  {
+    "item": "초기 설치 비용",
+    "grades": {
+      "1등급": "1000만원 이상",
+      "2등급": "500~1000만원",
+      "3등급": "300~500만원",
+      "4등급": "100~300만원",
+      "5등급": "100만원 이하"
+    },
+    "source": "https://www.smartfarm.go.kr/portal/support/policy/view.do?nttId=5066"
+  },
+  {
+    "item": "유지관리 비용",
+    "grades": {
+      "1등급": "유지비 매우 높음",
+      "2등급": "유지비 높음",
+      "3등급": "유지비 보통",
+      "4등급": "유지비 낮음",
+      "5등급": "유지비 매우 적음"
+    },
+    "source": "https://www.smartfarm.go.kr/portal/techdata/view.do?nttId=5307"
+  },
+  {
+    "item": "설치의 용이성",
+    "grades": {
+      "1등급": "설치 매우 어려움",
+      "2등급": "전문가 필요",
+      "3등급": "일반적 설치",
+      "4등급": "설치 매우 간편",
+      "5등급": "비전문가 설치 가능"
+    },
+    "source": "https://www.smartfarm.go.kr/portal/techdata/view.do?nttId=5294"
+  },
+  {
+    "item": "유지보수 편의성",
+    "grades": {
+      "1등급": "사후관리 거의 불가",
+      "2등급": "수리 어려움",
+      "3등급": "일반적 유지보수",
+      "4등급": "수리 쉬움",
+      "5등급": "원격진단 및 간편 수리"
+    },
+    "source": "https://www.smartfarm.go.kr/portal/techdata/view.do?nttId=5294"
+  },
+  {
+    "item": "타 시스템과 호환성",
+    "grades": {
+      "1등급": "호환 불가",
+      "2등급": "제한적 통신규격",
+      "3등급": "동일사 위주 호환",
+      "4등급": "대부분 호환",
+      "5등급": "표준 프로토콜 완전 호환"
+    },
+    "source": "https://www.smartfarm.go.kr/portal/board/view.do?boardId=NEW_BOARD_0000000177"
+  },
+  {
+    "item": "모듈화 및 업그레이드 가능성",
+    "grades": {
+      "1등급": "업그레이드 불가",
+      "2등급": "단순 교체만 가능",
+      "3등급": "고장부품 교체 가능",
+      "4등급": "모듈 일부 교체 가능",
+      "5등급": "모듈 교체 및 업그레이드 자유"
+    },
+    "source": "https://www.smartfarm.go.kr/portal/support/policy/view.do?nttId=5109"
+  },
+  {
+    "item": "인터페이스(UI)",
+    "grades": {
+      "1등급": "조작부 미비",
+      "2등급": "복잡한 UI",
+      "3등급": "기초 LCD 표시",
+      "4등급": "컬러화면 및 버튼식",
+      "5등급": "직관적 터치 UI"
+    },
+    "source": "https://www.lsis.com/product/view.do?idx=59"
+  },
+  {
+    "item": "교육/지원 서비스",
+    "grades": {
+      "1등급": "지원 없음",
+      "2등급": "교육 부족, 자가해결 필요",
+      "3등급": "기초 매뉴얼 제공",
+      "4등급": "매뉴얼 + 전화지원",
+      "5등급": "24시간 A/S 및 교육"
+    },
+    "source": "https://www.rda.go.kr/board/board.do?board_id=to00000050"
+  }
+]
