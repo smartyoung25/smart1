@@ -1,4 +1,4 @@
-# ============================================================
+﻿# ============================================================
 #  KAASA smartfarmingsight — 자동복구 watchdog
 #  uvicorn(API 8000) + cloudflared(named tunnel) 가 죽으면 자동 재기동.
 #  시스템 서비스 미사용. 작업 스케줄러(로그온 시) 로 기동 권장.
@@ -51,6 +51,11 @@ function Start-Api {
     catch { Log "uvicorn 재기동 실패: $_" }
 }
 
+function Stop-Tunnel {
+    # 좀비/끊긴 cloudflared 정리 — 새 인스턴스가 'credentials already in use'로 실패하는 것 방지
+    Get-Process cloudflared -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+}
+
 function Start-Tunnel {
     # RedirectStandardError 제거 — tunnel.log 파일잠금으로 Start-Process 실패하던 문제 방지
     $tunArgs = @("tunnel","--config",$CFG,"run",$TUN)
@@ -58,9 +63,33 @@ function Start-Tunnel {
     catch { Log "cloudflared 재기동 실패: $_" }
 }
 
+# 외부 연결성 검증: 공개 도메인 /health 가 200 이면 터널 정상.
+#   프로세스 존재 체크만으로는 'cloudflared 는 살아있으나 edge 연결이 끊긴' 상태(530)를 못 잡음.
+function Test-Tunnel {
+    try { (Invoke-WebRequest "https://farmingsight.org/health" -UseBasicParsing -TimeoutSec 8).StatusCode -eq 200 }
+    catch { $false }
+}
+
 Log "watchdog 시작"
+$tunFail = 0
 while ($true) {
     if (-not (Test-Api)) { Start-Api; Start-Sleep -Seconds 6 }
-    if (-not (Get-Process cloudflared -ErrorAction SilentlyContinue)) { Start-Tunnel; Start-Sleep -Seconds 6 }
+
+    $proc = [bool](Get-Process cloudflared -ErrorAction SilentlyContinue)
+    if (-not $proc) {
+        # 프로세스 자체가 없음 → 즉시 기동
+        Start-Tunnel; $tunFail = 0; Start-Sleep -Seconds 8
+    }
+    elseif (Test-Api) {
+        # 로컬은 정상인데 공개 도메인이 안 열리면 터널 연결만 끊긴 것 → 강제 재기동
+        if (-not (Test-Tunnel)) {
+            $tunFail++
+            Log "터널 외부 연결 실패 ($tunFail/2) — 로컬 정상, edge 미연결"
+            if ($tunFail -ge 2) {
+                Log "터널 강제 재기동(좀비 정리 후)"
+                Stop-Tunnel; Start-Sleep -Seconds 3; Start-Tunnel; $tunFail = 0; Start-Sleep -Seconds 8
+            }
+        } else { $tunFail = 0 }
+    }
     Start-Sleep -Seconds 30
 }
