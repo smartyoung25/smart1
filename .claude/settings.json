@@ -37,5 +37,16 @@
             }
         ]
     },
-    "includeGitInstructions": false
+    "includeGitInstructions": false,
+    "permissions": {
+        "allow": [
+            "Bash(git status*)",
+            "Bash(git log*)",
+            "Read(C:\\smart_farm\\NEXT.md)",
+            "Edit(C:\\smart_farm\\NEXT.md)"
+        ]
+    },
+    "enabledPlugins": {
+        "smartfarm-consulting-report@anthropic-skills": false
+    }
 }
