@@ -30,7 +30,7 @@
                 "hooks": [
                     {
                         "type": "command",
-                        "command": "powershell -NoProfile -Command \"$hash = git -C 'C:/smart_farm' log --oneline -1 2>$null; if ($hash) { $f = 'C:/smart_farm/NEXT.md'; $c = Get-Content $f -Raw -Encoding UTF8; $c2 = $c -replace '(?m)^(> 생성: [^/]+/ )마지막 커밋: `[^`n]+', \"`${1}마지막 커밋: $hash\"; if ($c2 -ne $c) { [System.IO.File]::WriteAllText($f, $c2, [System.Text.UTF8Encoding]::new($false)) } }\"",
+                        "command": "powershell -NoProfile -File C:/smart_farm/.claude/update_next.ps1",
                         "timeout": 15
                     }
                 ]
