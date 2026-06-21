@@ -64,7 +64,7 @@ window.addEventListener('DOMContentLoaded',()=>{
   const farmId=new URLSearchParams(location.search).get('farm')||sessionStorage.getItem('sf_farm_id')||'farm_001';
   _farmG=farmId;
   _renderSpray(); _renderPests();
-  _ensureToken().then(t=>{_tokenG=t;KaasaData.init({farmId,token:t,onStatus:_ws});_loadDisease(t,farmId);_refreshRecent();});
+  _ensureToken().then(t=>{if(!t){KaasaData.showConnectError&&KaasaData.showConnectError('⚠ 서버 연결 실패 — 새로고침 후 다시 시도');return;}_tokenG=t;KaasaData.init({farmId,token:t,onStatus:_ws});_loadDisease(t,farmId);_refreshRecent();});
 });
 function _refreshRecent(){ if(window.RecordSheet) RecordSheet.renderRecent(document.getElementById('recentRec'),_farmG,_tokenG,{kinds:['disease_check'],limit:5}); }
 

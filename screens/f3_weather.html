@@ -27,7 +27,7 @@
 <header class="sf-header">
   <div style="display:flex;align-items:center;gap:6px;"><span class="ws-dot" id="wsDot"></span><span style="font-size:12px;color:rgba(255,255,255,.8)" id="wsLabel">연결 중…</span></div>
   <span style="font-size:15px;font-weight:800;color:#fff;">F3 기상·재해</span>
-  <span style="width:40px;"></span>
+  <span style="font-size:13px;font-weight:700;color:rgba(255,255,255,.85);cursor:pointer;" onclick="location.href='f1_field.html'">노지 ›</span>
 </header>
 <main class="sf-main" style="padding:14px;max-width:480px;margin:0 auto;">
   <div class="f3-kpi-row">
@@ -77,7 +77,7 @@ window.addEventListener('DOMContentLoaded',()=>{
   const farmId=new URLSearchParams(location.search).get('farm')||sessionStorage.getItem('sf_farm_id')||'farm_001';
   _farmG=farmId;
   _renderWork();
-  _ensureToken().then(t=>{_tokenG=t;KaasaData.init({farmId,token:t,onStatus:_ws});_loadWeather(t,farmId);_refreshRecent();_loadExtended(t,farmId);_loadClim(t,farmId);});
+  _ensureToken().then(t=>{if(!t){KaasaData.showConnectError&&KaasaData.showConnectError('⚠ 서버 연결 실패 — 새로고침 후 다시 시도');return;}_tokenG=t;KaasaData.init({farmId,token:t,onStatus:_ws});_loadWeather(t,farmId);_refreshRecent();_loadExtended(t,farmId);_loadClim(t,farmId);});
 });
 const _WICON={0:'☀️',1:'🌤️',2:'⛅',3:'☁️',45:'🌫️',51:'🌦️',61:'🌧️',63:'🌧️',65:'⛈️',71:'🌨️',80:'🌦️',95:'⛈️'};
 // 16일 기온 밴드 + 강수 바 차트

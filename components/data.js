@@ -303,6 +303,16 @@ const KaasaData = (() => {
     _ws.onclose   = () => { _emit('wsStatus', 'reconnecting'); _scheduleRetry(); };
   }
   function _scheduleRetry() {
+    if (typeof document !== 'undefined' && document.hidden) {
+      // 화면 숨김 상태: 재연결 보류 (배터리·데이터 절약)
+      const _onVisible = () => {
+        document.removeEventListener('visibilitychange', _onVisible);
+        _wsRetryDelay = 2000;
+        wsConnect();
+      };
+      document.addEventListener('visibilitychange', _onVisible);
+      return;
+    }
     _wsTimer = setTimeout(wsConnect, _wsRetryDelay);
     _wsRetryDelay = Math.min(_wsRetryDelay * 2, 30_000);
   }
@@ -784,6 +794,13 @@ const KaasaData = (() => {
     getSensorValue, getLatestPriva, getFarmId, getApiBase,
     // 유틸
     fmt1, fmt0, fmtPct,
+    // 연결 오류 배너 표시 (서버 미응답·토큰 발급 실패 시 호출)
+    showConnectError: (msg) => {
+      const el = _ensureNetBanner();
+      el.style.background = '#b45309'; el.style.color = '#fff';
+      el.textContent = msg || '⚠ 서버 연결 실패 — 새로고침 후 다시 시도하세요';
+      el.style.transform = 'translateY(0)';
+    },
     // 내부 접근 (디버그용)
     _latestEnv: () => _latestEnv
   };

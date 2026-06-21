@@ -57,7 +57,7 @@ window.addEventListener('DOMContentLoaded',()=>{
   _farmG=new URLSearchParams(location.search).get('farm')||sessionStorage.getItem('sf_farm_id')||'farm_001';
   document.getElementById('layerTabs').innerHTML=LAYERS.map(l=>`<div class="layer-tab ${l===_layer?'active':''}" onclick="_sel('${l}',this)">${l}</div>`).join('');
   _renderMap(); _renderCheck();
-  _ensureToken().then(t=>{ _tokenG=t; if(window.KaasaData) KaasaData.init({farmId:_farmG,token:t,onStatus:()=>{}}); _refreshRecent(); _loadSoil(t); });
+  _ensureToken().then(t=>{if(!t){KaasaData.showConnectError&&KaasaData.showConnectError('⚠ 서버 연결 실패 — 새로고침 후 다시 시도');return;} _tokenG=t; if(window.KaasaData) KaasaData.init({farmId:_farmG,token:t,onStatus:()=>{}}); _refreshRecent(); _loadSoil(t); });
 });
 // 토양수분(0~100%) → 식생활력 NDVI 프록시(0.30~0.88)로 매핑
 async function _loadSoil(token){

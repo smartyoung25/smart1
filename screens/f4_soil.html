@@ -106,7 +106,7 @@ window.addEventListener('DOMContentLoaded', ()=>{
   const farmId=new URLSearchParams(location.search).get('farm')||sessionStorage.getItem('sf_farm_id')||'farm_001';
   _farmG=farmId;
   _renderMoisture(); _renderPriority();
-  _ensureToken().then(token=>{ _tokenG=token; KaasaData.init({farmId,token,onStatus:_onWsStatus}); _loadSoil(token,farmId); _loadEtc(token,farmId); _refreshRecent(); });
+  _ensureToken().then(token=>{if(!token){KaasaData.showConnectError&&KaasaData.showConnectError('⚠ 서버 연결 실패 — 새로고침 후 다시 시도');return;} _tokenG=token; KaasaData.init({farmId,token,onStatus:_onWsStatus}); _loadSoil(token,farmId); _loadEtc(token,farmId); _refreshRecent(); });
 });
 function _refreshRecent(){ if(window.RecordSheet) RecordSheet.renderRecent(document.getElementById('recentRec'),_farmG,_tokenG,{kinds:['irrigation'],limit:5}); }
 

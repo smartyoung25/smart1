@@ -77,6 +77,7 @@ async function _ensureToken(){
 async function _loadParcels(farmId){
   try{
     const token=await _ensureToken();
+    if(!token){KaasaData.showConnectError&&KaasaData.showConnectError('⚠ 서버 연결 실패 — 새로고침 후 다시 시도');return;}
     const api=sessionStorage.getItem('sf_api')||location.origin;
     const r=await fetch(`${api}/api/farms/${farmId}/field/parcels`,{headers:{Authorization:`Bearer ${token}`}});
     if(!r.ok) return;

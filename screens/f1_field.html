@@ -171,7 +171,7 @@ window.addEventListener('DOMContentLoaded', ()=>{
   const farmId=new URLSearchParams(location.search).get('farm')||sessionStorage.getItem('sf_farm_id')||'farm_001';
   _farmG=farmId;
   _updateHero(); _renderMap(); _buildTodos();
-  _ensureToken().then(token=>{ _tokenG=token; KaasaData.init({farmId,token,onStatus:_onWsStatus}); _loadWeather(token,farmId); });
+  _ensureToken().then(token=>{ if(!token){KaasaData.showConnectError&&KaasaData.showConnectError('⚠ 서버 연결 실패 — 새로고침 후 다시 시도');return;} _tokenG=token; KaasaData.init({farmId,token,onStatus:_onWsStatus}); _loadWeather(token,farmId); });
 });
 function _renderDecisions(wx, hazards, clusterAlerts){
   const el=document.getElementById('decisionDeck');
@@ -226,8 +226,6 @@ async function _loadWeather(token, farmId){
     if(el&&et0!=null) el.textContent=`${Number(et0).toFixed(1)}mm`;
     document.getElementById('fdSub').textContent=`기상: ${wf.source||'KMA'} · ET₀ ${et0!=null?Number(et0).toFixed(1)+'mm':'—'}`;
   }
-  // 재해 위험은 풍속/강우 기반 — 데이터 부족 시 정상
-  document.getElementById('kpiRisk').textContent='낮음';
   // ★ 오늘의 결정: 7일 요약(증발산·강우·기온) + 16일 장기 재해예보 병합
   const s = (wf && wf.summary_7d) || {};
   let hazards = [];
@@ -238,7 +236,17 @@ async function _loadWeather(token, farmId){
       const sub = document.getElementById('fdSub');
       if (sub) sub.textContent += ` · 16일 재해 ${ext.hazards.length}건`;
     }
-  } catch(e){}
+    // 재해 위험도: API 응답 우선, 폴백 '낮음'
+    const riskEl = document.getElementById('kpiRisk');
+    if (riskEl) {
+      const level = ext?.hazard_level ?? (hazards.length > 0 ? '높음' : '낮음');
+      riskEl.textContent = level;
+      riskEl.style.color = level==='높음'?'var(--red)':level==='중간'?'var(--orange)':'var(--green)';
+    }
+  } catch(e){
+    const riskEl = document.getElementById('kpiRisk');
+    if (riskEl) riskEl.textContent = '낮음';
+  }
   // 클러스터 작황 이상알림(위성·기상 무센서)
   let clusterAlerts = [];
   try {
