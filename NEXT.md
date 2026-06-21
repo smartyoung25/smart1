@@ -1,31 +1,46 @@
 # NEXT — 다음 세션 시작점
-> 생성: 2026-06-18 / 마지막 커밋: `a83ca9e` Stop hook 권한 설정 + SMART1 스킬 비활성화
-> 최근: IP Insight 진단 리뷰 (P1~P4 우선순위 정의)
+> 생성: 2026-06-21 / 마지막 커밋: `cf4557d` 노지 f1~f8 프로세스 안정성 개선
 
 ## 현재 상태 (1줄)
-IP Insight 구조 진단 완료. P1 온도/청킹, P2 수치 검증, P3 결제, P4 신뢰성 우선순위 정의. 구현 미시작.
+프로세스 안정성 수정 완료 (토큰 실패 배너·WS visibility 가드·f3 네비·kpiRisk 동적화). 노지 PPT 제작 중.
 
-## 이번 세션 목표
-[x] IP Insight 구조 진단 및 P1~P4 우선순위 매핑 완료
+## 이번 세션 완료
+[x] 프로세스 안정성 진단 및 수정 (cf4557d)
+  - f1~f8 `_ensureToken()` 실패 시 amber 배너 표시
+  - `data.js` `showConnectError()` 공개 메서드 추가
+  - `data.js` WebSocket 화면 숨김 중 재연결 보류 (배터리 절약)
+  - `f3_weather.html` 헤더 `노지 ›` back 링크 추가
+  - `f1_field.html` kpiRisk 하드코딩 → API hazard_level 동적 바인딩
 
-## 다음 작업 (구현 순)
-### P1 (즉시 — 일관성 + 청킹)
-- [ ] `base_agent.py:80` — Anthropic `temperature=0` + `system_fingerprint`
-- [ ] `pcml_agent.py:636` — 8K토큰 슬라이딩 윈도우 청킹
+## 다음 작업 (우선순위 순)
 
-### P2 (단기 — 정확성 + 파일)
-- [ ] `report_pipeline.py:244` — 수치 검증 (PQE ±5점, 청구항 수)
-- [ ] `/ip/upload-file` — PDF/HWP 업로드 (pdfminer.six, hwpx)
+### 즉시
+- [ ] 노지 스마트팜 PPT 완성 — f1~f8 스크린샷 + 특장점 (pptxgenjs)
 
-### P3 (결제 — 별도 스프린트)
-- [ ] Toss Payments: initiate → confirm → refund
-- [ ] idempotency_key, 크레딧 지급 트랜잭션, 환불 정책
+### 단기
+- [ ] `api/routers/auth.py:393` — send_email() 실패 시 HTTP 502 반환
+- [ ] IP Insight FTO 보고서 자동생성 (`C:\IPinsight` — G1 탭 다운로드 버튼)
+- [ ] IP Insight G6 가치평가 DCF 슬라이더 + Plotly 차트
 
-### P4 (신뢰성)
-- [ ] 점수 근거 텍스트 노출
-- [ ] Groq 429 지수 백오프 (tenacity)
+### 사용자 액션 필요 (Claude 불가)
+- ERA5 실측 CSV 확보 → 토마토 M1 재학습
+- Let's Encrypt 인증서 교체 (서버 관리자 권한)
+- `.env` SMTP_USER·SMTP_PASSWORD·CoolSMS·Slack Webhook 설정
+
+## 서버 실행
+```powershell
+# smart_farm
+PYTHONPATH=C:\smart_farm PUBLIC_DEMO=1 python -m uvicorn api.main:app --port 8000
+cloudflared tunnel --config deploy/cloudflare/config.yml run kaasa-smartos
+
+# IP Insight (별도)
+cd C:\IPinsight ; $env:PYTHONIOENCODING="utf-8"
+python -m uvicorn api.main:app --port 8001 --reload
+python -m streamlit run frontend/app.py --server.port 8503
+```
 
 ## 주의사항
-- IP Insight 구현 시 P1 온도/청킹 우선
-- 긴 특허(30page+) PCML 누락 → 청크 병합 필수
-- 결제 오류 패턴 3가지: 이중 확인, 크레딧 지급, 정책 명문화
+- SW 캐시 v16 — 화면 변경 시 `base.css` 또는 `data.js` CACHE_VERSION bump 필수
+- `PUBLIC_DEMO=1` 환경: `/api/admin/*` 전부 403
+- IP Insight pytest: 반드시 `cd C:\IPinsight`에서 실행 (smart_farm pytest.ini 간섭)
+- PCML `release_status`: releasable | internal_only | blocked (`partial` 아님)
