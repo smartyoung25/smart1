@@ -1,5 +1,5 @@
 """M1 생육 예측 – autoregressive + 시계열 분할 버전"""
-import sys, os, gc, pickle, json, warnings
+import sys, os, gc, pickle, json, warnings, shutil
 import numpy as np, pandas as pd
 from sklearn.metrics import r2_score, mean_absolute_error
 import xgboost as xgb, lightgbm as lgb
@@ -12,8 +12,14 @@ ARTS = str(_ROOT / "models" / "artifacts")
 CROP_DIR = {"딸기":"strawberry","방울토마토":"cherry_tomato","완숙토마토":"tomato",
             "참외":"melon","파프리카":"paprika"}
 
-art_dir = f"{ARTS}/{CROP_DIR.get(crop,crop)}"
+art_dir  = f"{ARTS}/{CROP_DIR.get(crop,crop)}"
+cand_dir = f"{art_dir}/candidate"
 os.makedirs(art_dir, exist_ok=True)
+
+# stale 파일 방지: candidate/ 를 쓰기 전 완전 삭제
+if os.path.exists(cand_dir):
+    shutil.rmtree(cand_dir)
+os.makedirs(cand_dir)
 
 df = pd.read_parquet(f"{DATA}/m1_{crop}.parquet")
 df["date"] = pd.to_datetime(df["date"])
@@ -105,10 +111,11 @@ for tgt in TGT_ALL:
 
 meta = {"crop":crop,"crop_en":CROP_DIR.get(crop,crop),
         "feat_cols":FEAT_COLS,"targets":results}
+# pkl은 art_dir 직접 저장, meta는 candidate/ 로 출력 (model_gate.py 연동)
 with open(f"{art_dir}/m1_growth_model.pkl","wb") as f:
     pickle.dump({"models":models,"meta":meta},f)
-with open(f"{art_dir}/m1_meta.json","w",encoding="utf-8") as f:
+with open(f"{cand_dir}/m1_meta.json","w",encoding="utf-8") as f:
     json.dump(meta,f,ensure_ascii=False,indent=2)
 
 g = sum(1 for v in results.values() if v["gate_pass"])
-print(f"  저장: {art_dir}/m1_growth_model.pkl | 게이트 {g}/{len(results)} 통과")
+print(f"  저장: {art_dir}/m1_growth_model.pkl | candidate/m1_meta.json | 게이트 {g}/{len(results)} 통과")

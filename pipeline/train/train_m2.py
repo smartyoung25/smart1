@@ -3,8 +3,11 @@
 Uses walk-forward CV (same as v2/v3) to minimise mean MAPE across folds.
 Searches over XGBoost + LightGBM params jointly, then retrains final ensemble.
 Outputs to models/artifacts/{crop_en}/candidate/ for model gate.
+
+[방어 코드 추가] candidate/ 디렉토리를 쓰기 전 완전 삭제 후 재생성.
+  - stale m1_meta.json 등 이전 학습 잔여 파일이 gate를 오염시키는 것을 방지.
 """
-import sys, os, gc, pickle, json, warnings
+import sys, os, gc, pickle, json, warnings, shutil
 import numpy as np, pandas as pd
 import optuna
 from sklearn.metrics import mean_absolute_percentage_error, r2_score
@@ -22,7 +25,11 @@ CROP_DIR = {"딸기":"strawberry","방울토마토":"cherry_tomato","완숙토�
             "참외":"melon","파프리카":"paprika"}
 art_dir  = f"{ARTS}/{CROP_DIR.get(crop,crop)}"
 cand_dir = f"{art_dir}/candidate"
-os.makedirs(cand_dir, exist_ok=True)
+
+# stale 파일 방지: candidate/ 디렉토리를 항상 새로 만듦
+if os.path.exists(cand_dir):
+    shutil.rmtree(cand_dir)
+os.makedirs(cand_dir)
 
 BASE_TEMP    = {"딸기":5.0,"방울토마토":10.0,"완숙토마토":10.0,"참외":10.0,"파프리카":10.0}
 OPT_TEMP_MAX = {"딸기":25.0,"방울토마토":30.0,"완숙토마토":30.0,"참외":30.0,"파프리카":28.0}

@@ -19,6 +19,7 @@ import json
 import logging
 import shutil
 import sys
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -49,6 +50,16 @@ _M1_R2_MIN_IMPROVEMENT   = 0.02
 
 def _crop_dir(crop_ko: str) -> Path:
     return ARTIFACTS / _CROP_EN.get(crop_ko, crop_ko)
+
+
+_CANDIDATE_MAX_AGE_SEC = 1800  # 30분 초과 candidate 파일은 stale로 간주
+
+
+def _is_fresh(path: Path, max_age_sec: int = _CANDIDATE_MAX_AGE_SEC) -> bool:
+    """파일이 max_age_sec 이내에 생성/수정됐는지 확인."""
+    if not path.exists():
+        return False
+    return (time.time() - path.stat().st_mtime) < max_age_sec
 
 
 def _load_meta(meta_path: Path) -> dict:
@@ -118,6 +129,12 @@ def _log_deploy(crop: str, decision: str, old_metrics: dict, new_metrics: dict, 
         "reason": reason,
         "old_metrics": old_metrics,
         "new_metrics": new_metrics,
+        "candidate_mtime": {
+            p.name: datetime.fromtimestamp(p.stat().st_mtime).isoformat()
+            for p in [ARTIFACTS / _CROP_EN.get(crop, crop) / "candidate" / n
+                      for n in ("m2_meta.json", "m1_meta.json")]
+            if p.exists()
+        },
     })
     DEPLOY_LOG.write_text(json.dumps(history, ensure_ascii=False, indent=2), encoding="utf-8")
 
@@ -137,12 +154,22 @@ def evaluate_and_deploy(crop_ko: str, candidate_dir: Path, dry_run: bool = False
     current_m2 = _load_meta(crop_dir / "m2_meta.json")
     current_m1 = _load_meta(crop_dir / "m1_meta.json")
 
-    # 신규 메타 로드
-    new_m2 = _load_meta(candidate_dir / "m2_meta.json")
-    new_m1 = _load_meta(candidate_dir / "m1_meta.json")
+    # 신규 메타 로드 — 30분 이내 생성 파일만 신뢰 (stale 파일 오염 방지)
+    m2_path = candidate_dir / "m2_meta.json"
+    m1_path = candidate_dir / "m1_meta.json"
+
+    if m2_path.exists() and not _is_fresh(m2_path):
+        age_min = (time.time() - m2_path.stat().st_mtime) / 60
+        logger.warning("[%s] candidate/m2_meta.json이 %.0f분 경과 — stale 파일 무시", crop_ko, age_min)
+    if m1_path.exists() and not _is_fresh(m1_path):
+        age_min = (time.time() - m1_path.stat().st_mtime) / 60
+        logger.warning("[%s] candidate/m1_meta.json이 %.0f분 경과 — stale 파일 무시", crop_ko, age_min)
+
+    new_m2 = _load_meta(m2_path) if _is_fresh(m2_path) else {}
+    new_m1 = _load_meta(m1_path) if _is_fresh(m1_path) else {}
 
     if not new_m2 and not new_m1:
-        logger.warning("[%s] candidate에 meta 파일 없음 — 배포 불가", crop_ko)
+        logger.warning("[%s] candidate에 유효한(30분 이내) meta 파일 없음 — 배포 불가", crop_ko)
         return "no_candidate"
 
     # ── M2 MAPE 비교 ──────────────────────────────────────────────────────
