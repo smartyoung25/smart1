@@ -32,7 +32,7 @@ CROP_DIR = {
 }
 _ERA5_EN = {
     "감귤":"citrus","마늘":"garlic","무":"radish","양파":"onion",
-    "배추":"napa_cabbage","양배추":"winter_radish","콩":"soybean",
+    "배추":"napa_cabbage","양배추":"cabbage","콩":"soybean",
     "고추":"red_pepper","가지":"eggplant",
     "딸기":"strawberry","방울토마토":"cherry_tomato","완숙토마토":"tomato",
     "참외":"korean_melon","파프리카":"paprika","오이":"cucumber",

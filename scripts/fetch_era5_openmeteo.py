@@ -128,13 +128,22 @@ _GDD_BASE_MAP = {"감귤": 13.0, "마늘": 4.0, "양파": 4.5,
 _GDD_BASE = 5.0
 
 
-def _fetch(lat, lon, start, end):
+def _fetch(lat, lon, start, end, retries=5):
     url = (f"https://archive-api.open-meteo.com/v1/archive?latitude={lat}&longitude={lon}"
            f"&start_date={start}-01-01&end_date={end}-12-31"
            "&daily=temperature_2m_mean,shortwave_radiation_sum,precipitation_sum"
            "&timezone=Asia%2FSeoul")
-    with urllib.request.urlopen(url, timeout=60) as r:
-        return json.loads(r.read()).get("daily", {})
+    for attempt in range(retries):
+        try:
+            with urllib.request.urlopen(url, timeout=60) as r:
+                return json.loads(r.read()).get("daily", {})
+        except Exception as e:
+            if attempt < retries - 1:
+                wait = 30 * (2 ** attempt)
+                print(f"  재시도 {attempt+1}/{retries} ({wait}s 대기): {e}")
+                time.sleep(wait)
+            else:
+                raise
 
 
 def main(argv=None):
@@ -162,7 +171,7 @@ def main(argv=None):
                 d["t"].append(tv); d["gdd"] += max(0.0, tv - gdd_base)
             if sv is not None: d["s"].append(sv)
             if rv is not None: d["r"].append(rv)
-        time.sleep(0.3)  # API 예의
+        time.sleep(2.0)  # API 예의 (rate limit 방지)
         print(f"  수신: {name} ({lat},{lon})")
 
     out = {}
