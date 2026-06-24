@@ -75,7 +75,7 @@ def _run_script(script: Path, crop: str, extra_args: list[str] | None = None) ->
         logger.warning("스크립트 없음: %s -- 건너뜀", script)
         return {"status": "skipped", "reason": "script not found"}
 
-    cmd = [sys.executable, str(script), "--crop", crop] + (extra_args or [])
+    cmd = [sys.executable, str(script), crop] + (extra_args or [])
     logger.info("  실행: %s", " ".join(cmd))
     try:
         result = subprocess.run(

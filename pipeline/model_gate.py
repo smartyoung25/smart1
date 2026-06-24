@@ -90,7 +90,11 @@ def _archive_current(crop_dir: Path, generation: int = 1) -> None:
         shutil.rmtree(prev1)
     prev1.mkdir(parents=True, exist_ok=True)
     for f in crop_dir.iterdir():
-        if f.name != "prev":
+        if f.name in ("prev", "candidate"):
+            continue
+        if f.is_dir():
+            shutil.copytree(f, prev1 / f.name)
+        else:
             shutil.copy2(f, prev1 / f.name)
     logger.info("  현행 모델 백업: %s", prev1)
 

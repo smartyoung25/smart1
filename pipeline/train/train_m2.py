@@ -82,6 +82,11 @@ df = env_s.merge(prod_s, on=grp_key, how="inner")
 df = df.merge(farm[["farm_id","crop","season","plant_area_m2"]].drop_duplicates(),
               on=["farm_id","crop","season"], how="left")
 df = df[(df["yield_kg"]>0) & df["yield_kg"].notna()]
+
+if len(df) < 10:
+    print(f"[M2] {crop}: 유효 학습 행 {len(df)}개 — 최소 10행 미충족, 건너뜀")
+    sys.exit(1)
+
 lo, hi = df["yield_kg"].quantile([0.02,0.98])
 df = df[(df["yield_kg"]>=lo) & (df["yield_kg"]<=hi)].copy()
 

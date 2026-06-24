@@ -31,7 +31,15 @@ gr["date"] = pd.to_datetime(gr["date"])
 gr_cols = ["farm_id","crop","season","year","date"] + [c for c in M1_TGTS if c in gr.columns]
 gr = gr[gr_cols]
 
-# 3. 병합
+# 3. 빈 데이터 가드
+if env.empty:
+    print(f"[prep_m1] {crop}: env_daily.parquet에 해당 작물 데이터 없음 — 건너뜀")
+    sys.exit(1)
+if gr.empty:
+    print(f"[prep_m1] {crop}: growth_daily.parquet에 해당 작물 데이터 없음 — 건너뜀")
+    sys.exit(1)
+
+# 4. 병합
 JOIN = ["farm_id","crop","season","year","date"]
 df = env.merge(gr, on=JOIN, how="left")
 df = df.sort_values(["farm_id","season","year","date"])
