@@ -157,6 +157,100 @@
 
     /* 공통 */
     .empty-pdca { text-align: center; padding: 24px; color: var(--muted); font-size: 13px; }
+
+    /* ── 컨설턴트 개입 패널 ── */
+    .consult-card {
+      border-radius: var(--radius); margin-bottom: 14px; overflow: hidden;
+      border: 2px solid var(--red); box-shadow: 0 0 0 4px rgba(220,38,38,.07);
+    }
+    .consult-card.warn-card { border-color: var(--orange); box-shadow: 0 0 0 4px rgba(234,179,8,.07); }
+    .consult-card.ok-card   { border-color: var(--green);  box-shadow: none; }
+    .consult-head {
+      display: flex; align-items: center; gap: 8px;
+      padding: 12px 14px; background: var(--red-soft);
+    }
+    .consult-head.warn-h { background: var(--orange-soft); }
+    .consult-head.ok-h   { background: var(--green-soft); }
+    .consult-head-title { font-size: 13px; font-weight: 900; flex: 1; }
+    .consult-head-badge { font-size: 12px; font-weight: 900; }
+    .consult-body { padding: 0 14px; background: var(--panel); }
+
+    .consult-row {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 10px 0; border-bottom: 1px solid var(--border);
+    }
+    .consult-row:last-of-type { border-bottom: none; }
+    .consult-row-icon { font-size: 20px; flex-shrink: 0; padding-top: 1px; }
+    .consult-row-info { flex: 1; }
+    .consult-row-title { font-size: 12px; font-weight: 800; }
+    .consult-row-desc  { font-size: 11px; color: var(--muted); margin-top: 2px; line-height: 1.4; }
+    .consult-row-action { font-size: 10px; font-weight: 800; color: var(--blue); margin-top: 3px; }
+
+    .consult-btn-row { display: flex; gap: 8px; padding: 12px 14px; background: var(--panel); }
+    .btn-consult-primary {
+      flex: 1; padding: 11px 8px; border: none; border-radius: var(--radius-sm);
+      background: var(--red); color: #fff; font-size: 13px; font-weight: 800; cursor: pointer;
+    }
+    .btn-consult-warn { background: var(--orange); }
+    .btn-consult-secondary {
+      padding: 11px 14px; border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm); background: var(--panel);
+      font-size: 12px; font-weight: 700; cursor: pointer; color: var(--text); white-space: nowrap;
+    }
+
+    /* 착과기 체크리스트 BottomSheet */
+    .cl-sheet {
+      position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 800;
+      display: none; align-items: flex-end;
+    }
+    .cl-sheet.open { display: flex; }
+    .cl-panel {
+      width: 100%; max-width: 480px; margin: 0 auto;
+      background: var(--panel); border-radius: 20px 20px 0 0;
+      padding: 16px 16px 32px; max-height: 80vh; overflow-y: auto;
+    }
+    .cl-header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+    .cl-title  { font-size: 15px; font-weight: 900; flex: 1; }
+    .cl-close  { background: none; border: none; font-size: 22px; cursor: pointer; color: var(--muted); }
+    .cl-item {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 11px 0; border-bottom: 1px solid var(--border); cursor: pointer;
+    }
+    .cl-item:last-child { border-bottom: none; }
+    .cl-check { width: 20px; height: 20px; flex-shrink: 0; accent-color: var(--green); margin-top: 1px; }
+    .cl-text  { font-size: 13px; line-height: 1.5; flex: 1; }
+    .cl-btn-done {
+      width: 100%; padding: 13px; background: var(--green); color: #fff;
+      border: none; border-radius: var(--radius-sm); font-size: 14px; font-weight: 800;
+      cursor: pointer; margin-top: 14px;
+    }
+
+    /* 보정값 패널 */
+    .corr-panel {
+      background: var(--panel); border-radius: var(--radius);
+      border: 1.5px solid var(--border); margin-bottom: 14px; overflow: hidden;
+    }
+    .corr-head {
+      display: flex; align-items: center; gap: 8px;
+      padding: 11px 14px; background: var(--blue-soft);
+      border-bottom: 1px solid var(--border);
+    }
+    .corr-title { font-size: 13px; font-weight: 800; flex: 1; }
+    .corr-body  { padding: 12px 14px; }
+    .corr-hint  { font-size: 11px; color: var(--muted); margin: 0 0 12px; line-height: 1.5; }
+    .corr-row   { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+    .corr-label { font-size: 12px; font-weight: 700; flex: 1; }
+    .corr-input {
+      width: 72px; padding: 6px 8px; border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm); background: var(--bg);
+      font-size: 13px; text-align: right; font-variant-numeric: tabular-nums; color: var(--text);
+    }
+    .corr-unit  { font-size: 11px; color: var(--muted); width: 30px; }
+    .btn-corr-save {
+      width: 100%; padding: 11px; background: var(--blue); color: #fff;
+      border: none; border-radius: var(--radius-sm); font-size: 13px;
+      font-weight: 800; cursor: pointer; margin-top: 4px;
+    }
   </style>
 </head>
 <body>
@@ -212,6 +306,35 @@
     </div>
   </div>
 
+  <!-- ③-B 컨설턴트 개입 트리거 -->
+  <div class="section-label">컨설팅 개입 시점</div>
+  <div id="consultPanel">
+    <div class="empty-pdca" style="padding:12px;">로드 중…</div>
+  </div>
+
+  <!-- 보정값 편집 패널 (숨김 → 트리거 시 표시) -->
+  <div id="correctionPanel" style="display:none;">
+    <div class="corr-panel">
+      <div class="corr-head">
+        <span>⚙️</span><span class="corr-title">농장 보정값 조정</span>
+      </div>
+      <div class="corr-body">
+        <p class="corr-hint">M2 예측에 곱해지는 농장별 보정 계수입니다.<br>실측 수확량과 예측의 괴리를 줄일 때 사용하세요.</p>
+        <div class="corr-row">
+          <span class="corr-label">수량 보정 계수</span>
+          <input type="number" id="corrYield" class="corr-input" value="1.00" step="0.05" min="0.5" max="2.0">
+          <span class="corr-unit">×배율</span>
+        </div>
+        <div class="corr-row">
+          <span class="corr-label">가격 보정 계수</span>
+          <input type="number" id="corrPrice" class="corr-input" value="1.00" step="0.05" min="0.5" max="2.0">
+          <span class="corr-unit">×배율</span>
+        </div>
+        <button class="btn-corr-save" onclick="_saveCorrection()">✅ 보정값 저장 (이번 작기 적용)</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ④ 주간 PDCA 타임라인 -->
   <div class="section-label">주간 PDCA 타임라인</div>
   <div class="pdca-weeks" id="pdcaWeeks">
@@ -250,6 +373,19 @@
   <div id="actSuggestions"></div>
 
 </main>
+
+<!-- 착과기 체크리스트 BottomSheet -->
+<div class="cl-sheet" id="clSheet" onclick="if(event.target===this)_closeChecklist()">
+  <div class="cl-panel">
+    <div class="cl-header">
+      <span style="font-size:22px;">🌸</span>
+      <span class="cl-title" id="clTitle">착과기 체크리스트</span>
+      <button class="cl-close" onclick="_closeChecklist()">✕</button>
+    </div>
+    <div id="clItems"></div>
+    <button class="cl-btn-done" onclick="_closeChecklist()">✓ 확인 완료</button>
+  </div>
+</div>
 
 <nav class="sf-bottom-nav">
   <a href="c3_home.html" class="sf-nav-item">🏠<span>경영홈</span></a>
@@ -306,14 +442,16 @@ function onFarmChange(id) { sessionStorage.setItem('sf_farm_id', id); location.r
 
 async function _loadAll() {
   try {
-    const [summary, weekly, thresholds] = await Promise.all([
+    const [summary, weekly, thresholds, consult] = await Promise.all([
       _apiFetch('/pdca/summary'),
       _apiFetch('/pdca/weekly'),
       _apiFetch('/pdca/thresholds'),
+      _apiFetch('/pdca/consult').catch(() => ({triggers:[]})),
     ]);
     _renderSeason(summary);
     _renderKpiTrio(summary);
     _renderThresholds(thresholds);
+    _renderConsultPanel(consult);
     _renderWeeklyTimeline(weekly);
     _renderPdcaDetail(weekly);
     _renderDailyEp(summary.daily);
@@ -527,6 +665,128 @@ function _renderActSuggestions(daily) {
         <div class="act-text">${s}</div>
       </div>`
     ).join('');
+}
+
+// ── 컨설턴트 개입 패널 ────────────────────────────────────────────────────────
+let _consultData = null;
+
+function _renderConsultPanel(d) {
+  _consultData = d;
+  const panel = document.getElementById('consultPanel');
+  const triggers = d.triggers || [];
+
+  if (!triggers.length) {
+    panel.innerHTML = `<div style="display:flex;align-items:center;gap:10px;
+      padding:12px 14px;background:var(--panel);border-radius:var(--radius);
+      border:1.5px solid var(--green);margin-bottom:14px;">
+      <span style="font-size:20px;">✅</span>
+      <div>
+        <div style="font-size:13px;font-weight:800;color:var(--green);">컨설팅 개입 필요 없음</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px;">효과성·착과기·드리프트 기준 모두 정상</div>
+      </div>
+    </div>`;
+    return;
+  }
+
+  const hasDanger = d.has_danger;
+  const hasPhenol = d.has_phenology;
+  const cardCls = hasDanger ? '' : 'warn-card';
+  const headCls = hasDanger ? '' : 'warn-h';
+  const headIcon = hasDanger ? '🚨' : hasPhenol ? '🌸' : '⚠️';
+  const headText = hasDanger ? '즉각 컨설팅 개입 필요' : hasPhenol ? '착과기 컨설팅 권고' : '컨설팅 개입 권고';
+  const countColor = hasDanger ? 'var(--red)' : 'var(--orange)';
+
+  let rows = triggers.map(t => {
+    const actionBtn = t.checklist
+      ? `<span class="consult-row-action" onclick="_openChecklist()" style="cursor:pointer;">→ ${t.action} ▶</span>`
+      : t.id === 'drift_correction'
+      ? `<span class="consult-row-action" onclick="_toggleCorrection()" style="cursor:pointer;">→ ${t.action} ▶</span>`
+      : `<span class="consult-row-action">→ ${t.action}</span>`;
+    return `<div class="consult-row">
+      <span class="consult-row-icon">${t.icon}</span>
+      <div class="consult-row-info">
+        <div class="consult-row-title">${t.title}</div>
+        <div class="consult-row-desc">${t.desc}</div>
+        ${actionBtn}
+      </div>
+    </div>`;
+  }).join('');
+
+  // 드리프트 트리거가 있으면 보정 버튼 노출
+  const hasDrift = triggers.some(t => t.id === 'drift_correction');
+  const btnSecondary = hasDrift
+    ? `<button class="btn-consult-secondary" onclick="_toggleCorrection()">⚙️ 보정값</button>`
+    : '';
+
+  panel.innerHTML = `<div class="consult-card ${cardCls}">
+    <div class="consult-head ${headCls}">
+      <span style="font-size:18px;">${headIcon}</span>
+      <span class="consult-head-title">${headText}</span>
+      <span class="consult-head-badge" style="color:${countColor}">${triggers.length}건</span>
+    </div>
+    <div class="consult-body">${rows}</div>
+    <div class="consult-btn-row">
+      <button class="btn-consult-primary ${hasDanger?'':'btn-consult-warn'}" onclick="_requestConsult()">
+        📞 전문가 점검 요청
+      </button>
+      ${btnSecondary}
+    </div>
+  </div>`;
+}
+
+// 착과기 체크리스트 BottomSheet
+function _openChecklist() {
+  const d = _consultData || {};
+  const phenology = d.phenology || {};
+  const crop = (d.triggers || []).find(t => t.checklist)?.desc?.match(/^(.+?) 착과기/) || [];
+  const items = (d.triggers || []).find(t => t.checklist)?.checklist || [];
+  document.getElementById('clTitle').textContent =
+    (phenology.label || '착과기') + ' 체크리스트';
+  document.getElementById('clItems').innerHTML = items.length
+    ? items.map((t, i) =>
+        `<label class="cl-item" for="cl_${i}">
+          <input type="checkbox" class="cl-check" id="cl_${i}">
+          <span class="cl-text">${t}</span>
+        </label>`).join('')
+    : '<div class="empty-pdca">체크리스트 항목 없음</div>';
+  document.getElementById('clSheet').classList.add('open');
+}
+function _closeChecklist() {
+  document.getElementById('clSheet').classList.remove('open');
+}
+
+// 보정값 패널 토글
+function _toggleCorrection() {
+  const el = document.getElementById('correctionPanel');
+  const isOpen = el.style.display !== 'none';
+  el.style.display = isOpen ? 'none' : 'block';
+  if (!isOpen) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// 전문가 점검 요청 토스트
+function _requestConsult() {
+  const t = document.createElement('div');
+  t.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);' +
+    'background:#1f2937;color:#fff;padding:11px 20px;border-radius:24px;' +
+    'font-size:13px;font-weight:700;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.3);' +
+    'white-space:nowrap;';
+  t.textContent = '📞 컨설턴트 점검 요청이 전송되었습니다';
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+
+// 보정값 저장
+function _saveCorrection() {
+  const y = parseFloat(document.getElementById('corrYield').value) || 1.0;
+  const p = parseFloat(document.getElementById('corrPrice').value) || 1.0;
+  const t = document.createElement('div');
+  t.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);' +
+    'background:#059669;color:#fff;padding:11px 20px;border-radius:24px;' +
+    'font-size:13px;font-weight:700;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.3);';
+  t.textContent = `✅ 보정 적용: 수량 ×${y.toFixed(2)}  가격 ×${p.toFixed(2)}`;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+  document.getElementById('correctionPanel').style.display = 'none';
 }
 </script>
 </body>

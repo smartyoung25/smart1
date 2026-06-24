@@ -480,3 +480,185 @@ def _score_status(score: float) -> str:
     if score >= 0.7: return "ok"
     if score >= 0.5: return "warn"
     return "danger"
+
+
+# ── 컨설턴트 개입 트리거 ──────────────────────────────────────────────────────
+
+# 작목별 착과기 진입 주차 (정식 기준)
+_FRUIT_SET_WEEK: Dict[str, int] = {
+    "딸기": 5, "방울토마토": 6, "완숙토마토": 6,
+    "파프리카": 7, "참외": 5, "오이": 4,
+}
+
+# 착과기 체크리스트 (작목별)
+FRUIT_SET_CHECKLIST: Dict[str, List[str]] = {
+    "딸기": [
+        "EC 2.8 → 3.2 dS/m 상향 (착과 촉진)",
+        "야간온도 12 → 10°C 하향 (화아 자극)",
+        "관수량 10% 감량 (근권 건조 유도)",
+        "통풍 강화 — 내부 습도 85% 미만 유지",
+        "적엽 — 하위 노화 잎 2~3매 제거",
+    ],
+    "방울토마토": [
+        "EC 3.0 → 3.5 dS/m 상향",
+        "전동 진동기 또는 인공 수분 보조",
+        "VPD 0.8 → 1.0 kPa 상향",
+        "관수 횟수 1~2회 감량",
+        "CO₂ 800~1,000 ppm 유지",
+    ],
+    "완숙토마토": [
+        "EC 3.0 → 3.5 dS/m",
+        "VPD 1.0 kPa 목표",
+        "착과 호르몬 처리 검토 (저일조 시)",
+        "1회 급액량 증가·빈도 감량",
+        "1화방 착과 확인 후 유인 조정",
+    ],
+    "참외": [
+        "주간온도 28 → 30°C 상향",
+        "야간온도 16 → 18°C 유지",
+        "EC 2.5 → 3.0 dS/m",
+        "수분 곤충 방사 타이밍 확인",
+        "자방 비대 관찰 — 착과절 표시",
+    ],
+    "파프리카": [
+        "EC 3.0 → 3.5 dS/m",
+        "야간 18°C 유지 (저온 착과 불량 방지)",
+        "착과 부위 주변 적심 검토",
+        "관수 일몰 전 종료 (야간 습도 억제)",
+        "꽃 수정 상태 매일 점검",
+    ],
+    "오이": [
+        "EC 2.5 → 3.0 dS/m",
+        "주간 VPD 1.0~1.2 kPa",
+        "적엽 — 착과절 아래 잎 제거",
+        "관수 빈도 유지, 1회량 조절",
+    ],
+}
+
+
+def _phenology_stage(crop: str, weeks_done: int) -> Dict:
+    """착과기·비대기·수확기 등 생육 시기 단계 반환."""
+    fw = _FRUIT_SET_WEEK.get(crop, 6)
+    days_until_fruit = (fw - weeks_done) * 7
+
+    if 0 <= days_until_fruit <= 3:
+        stage = "pre_fruit_set"
+        label = f"착과기 진입 D-{days_until_fruit}"
+        urgent = True
+    elif -7 <= days_until_fruit < 0:
+        stage = "fruit_set"
+        label = "착과기 진행 중"
+        urgent = False
+    elif weeks_done < fw - 1:
+        stage = "vegetative"
+        label = "영양생장기"
+        urgent = False
+    else:
+        stage = "ripening"
+        label = "과실 비대·수확기"
+        urgent = False
+
+    return {
+        "stage": stage,
+        "label": label,
+        "weeks_done": weeks_done,
+        "fruit_set_week": fw,
+        "days_until_fruit_set": days_until_fruit,
+        "urgent": urgent,
+        "checklist": FRUIT_SET_CHECKLIST.get(crop, []) if stage in ("pre_fruit_set",) else [],
+    }
+
+
+def _drift_summary_all() -> Dict:
+    """전체 5작목 드리프트 현황 집계."""
+    crops_all = ["딸기", "방울토마토", "완숙토마토", "참외", "파프리카"]
+    red, yellow, green = [], [], []
+    try:
+        from api.services.drift_monitor import compute_drift, summary_badge
+        for c in crops_all:
+            try:
+                stats = compute_drift(c)
+                badge = summary_badge(stats)
+                level = badge.get("level", "green")
+                if level == "red":    red.append(c)
+                elif level == "yellow": yellow.append(c)
+                else:                   green.append(c)
+            except Exception:
+                green.append(c)
+    except Exception:
+        pass
+    return {
+        "red_count": len(red),
+        "yellow_count": len(yellow),
+        "red_crops": red,
+        "yellow_crops": yellow,
+        "needs_correction": len(red) >= 2,
+    }
+
+
+def consult_triggers(farm_id: str) -> Dict:
+    """컨설턴트 개입 트리거 목록 반환."""
+    meta = _farm_meta(farm_id)
+    crop = meta.get("crop_ko") or meta.get("crop") or "딸기"
+    td = meta.get("transplant_date")
+    days = _days_since(td)
+    weeks_done = days // 7
+
+    eff = calc_effectiveness(farm_id, crop, td)
+    phenology = _phenology_stage(crop, weeks_done)
+    drift = _drift_summary_all()
+
+    triggers = []
+
+    # 트리거 1: 효과성 위험 (< 40%)
+    if eff["score"] < 0.4:
+        triggers.append({
+            "id": "effectiveness_danger",
+            "severity": "danger",
+            "icon": "📉",
+            "title": f"효과성 위험 — {eff['pct']}%",
+            "desc": "수량 진척 × EP 준수율이 40% 미만입니다. 즉각 점검이 필요합니다.",
+            "action": "전문가 원격 점검 요청",
+        })
+    elif eff["score"] < 0.6:
+        triggers.append({
+            "id": "effectiveness_warn",
+            "severity": "warn",
+            "icon": "⚠️",
+            "title": f"효과성 주의 — {eff['pct']}%",
+            "desc": "효과성이 60% 미만입니다. 2주 연속 하강 시 전문가 점검을 권고합니다.",
+            "action": "추세 모니터링 강화",
+        })
+
+    # 트리거 2: 착과기 D-3 이내
+    if phenology["urgent"]:
+        triggers.append({
+            "id": "pre_fruit_set",
+            "severity": "phenology",
+            "icon": "🌸",
+            "title": phenology["label"],
+            "desc": f"{crop} 착과기 진입 직전입니다. EC·관수·온도 체크리스트를 즉시 확인하세요.",
+            "action": "착과기 체크리스트 확인",
+            "checklist": phenology["checklist"],
+        })
+
+    # 트리거 3: 드리프트 🔴 2작목 이상
+    if drift["needs_correction"]:
+        triggers.append({
+            "id": "drift_correction",
+            "severity": "warn",
+            "icon": "🔬",
+            "title": f"예측 정확도 저하 ({drift['red_count']}개 작목 🔴)",
+            "desc": f"드리프트 감지: {', '.join(drift['red_crops'])} — 농장 보정값 수동 조정이 필요합니다.",
+            "action": "보정값 조정",
+        })
+
+    return {
+        "triggers": triggers,
+        "trigger_count": len(triggers),
+        "has_danger": any(t["severity"] == "danger" for t in triggers),
+        "has_phenology": any(t["severity"] == "phenology" for t in triggers),
+        "drift": drift,
+        "phenology": phenology,
+        "effectiveness_pct": eff["pct"],
+    }

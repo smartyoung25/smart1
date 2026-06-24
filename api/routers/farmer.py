@@ -4291,3 +4291,11 @@ def get_pdca_thresholds(farm_id: str):
         "alerts": alerts,
         "thresholds": _pdca.THRESHOLDS,
     }
+
+
+@router.get("/pdca/consult", summary="컨설턴트 개입 트리거 목록")
+def get_pdca_consult(farm_id: str):
+    """효과성·착과기·드리프트 3대 트리거 기반 컨설턴트 개입 시점 반환."""
+    _require_farm(farm_id)
+    from api.services import pdca as _pdca
+    return {"farm_id": farm_id, **_pdca.consult_triggers(farm_id)}
