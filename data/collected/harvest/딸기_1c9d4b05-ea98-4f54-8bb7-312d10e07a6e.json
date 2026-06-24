@@ -1,0 +1,16 @@
+{
+  "id": "1c9d4b05-ea98-4f54-8bb7-312d10e07a6e",
+  "farm_id": "farm_001",
+  "crop_ko": "딸기",
+  "harvest_date": "2026-05-10",
+  "recorded_at": "2026-05-29T04:27:57.683501+00:00",
+  "source": "api",
+  "yield_kg_m2": 3.2,
+  "area_m2": 500.0,
+  "total_yield_kg": 1600.0,
+  "planting_date": "2025-10-01",
+  "growing_days": 221,
+  "season_avg_temp": null,
+  "season_avg_humidity": null,
+  "notes": null
+}
