@@ -29,16 +29,30 @@ _OUT_DIR = _ROOT / "api" / "data" / "real"
 
 # ── 작목 코드표: en 키 + 이름 매칭 키워드 ─────────────────────────────────────
 CROP_META = {
+    # ── 기존 온실 6종 ───────────────────────────────────────────────────────
     "딸기":     {"en": "strawberry",    "keywords": ["딸기"]},
     "방울토마토": {"en": "cherry_tomato", "keywords": ["방울토마토", "방울 토마토"]},
     "완숙토마토": {"en": "tomato",        "keywords": ["완숙토마토", "완숙 토마토", "토마토"]},
     "참외":     {"en": "korean_melon",  "keywords": ["참외"]},
     "파프리카":  {"en": "paprika",       "keywords": ["파프리카"]},
     "오이":     {"en": "cucumber",      "keywords": ["오이"]},
+    # ── 추가 노지·제주 8종 ─────────────────────────────────────────────────
+    "콩":       {"en": "soybean",       "keywords": ["콩", "대두"]},
+    "무":       {"en": "radish",        "keywords": ["무"]},
+    "배추":     {"en": "cabbage",       "keywords": ["배추", "알배기배추"]},
+    "마늘":     {"en": "garlic",        "keywords": ["마늘", "깐마늘"]},
+    "양파":     {"en": "onion",         "keywords": ["양파"]},
+    "고추":     {"en": "pepper",        "keywords": ["고추", "풋고추", "붉은고추", "고춧가루"]},
+    "가지":     {"en": "eggplant",      "keywords": ["가지"]},
+    "감귤":     {"en": "citrus",        "keywords": ["감귤", "한라봉", "천혜향"]},
 }
 
-# 완숙토마토를 방울보다 먼저 매칭하기 위한 순서
-_MATCH_ORDER = ["방울토마토", "완숙토마토", "딸기", "참외", "파프리카", "오이"]
+# 매칭 순서: 긴 이름 우선 (방울토마토 > 토마토, 알배기배추 > 배추)
+_MATCH_ORDER = [
+    "방울토마토", "완숙토마토", "배추",
+    "딸기", "참외", "파프리카", "오이",
+    "마늘", "양파", "고추", "무", "콩", "가지", "감귤",
+]
 
 _KAMIS_BASE = "https://www.kamis.or.kr/service/price/xml.do"
 
@@ -99,7 +113,7 @@ def _fetch_all_crops() -> dict[str, list[dict]]:
     today = date.today().isoformat()
     result: dict[str, list[dict]] = {k: [] for k in CROP_META}
 
-    for cat_code in ("200", "400"):   # 채소 + 과일
+    for cat_code in ("200", "400", "300"):  # 채소 + 과일 + 특용작물(마늘·양파·고추 포함)
         for it in _fetch_category(cat_code):
             if not isinstance(it, dict):
                 continue

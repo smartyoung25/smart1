@@ -24,8 +24,24 @@ N_TRIALS = int(sys.argv[2]) if len(sys.argv) > 2 else 60
 _ROOT = __import__("pathlib").Path(__file__).parent.parent.parent  # C:\smart_farm
 OUT  = str(_ROOT / "outputs" / "etl")
 ARTS = str(_ROOT / "models" / "artifacts")
-CROP_DIR = {"딸기":"strawberry","방울토마토":"cherry_tomato","완숙토마토":"tomato",
-            "참외":"melon","파프리카":"paprika"}
+CROP_DIR = {
+    # ── 온실 6종 (기학습) ──────────────────────────────────────────
+    "딸기":       "strawberry",
+    "방울토마토":  "cherry_tomato",
+    "완숙토마토":  "tomato",
+    "참외":       "melon",
+    "파프리카":    "paprika",
+    "오이":       "cucumber",
+    # ── 노지·제주 추가 8종 ─────────────────────────────────────────
+    "콩":         "soybean",
+    "무":         "radish",
+    "배추":       "cabbage",
+    "마늘":       "garlic",
+    "양파":       "onion",
+    "고추":       "pepper",
+    "가지":       "eggplant",
+    "감귤":       "citrus",
+}
 art_dir  = f"{ARTS}/{CROP_DIR.get(crop,crop)}"
 cand_dir = f"{art_dir}/candidate"
 
@@ -34,16 +50,38 @@ if os.path.exists(cand_dir):
     shutil.rmtree(cand_dir)
 os.makedirs(cand_dir)
 
-BASE_TEMP    = {"딸기":5.0,"방울토마토":10.0,"완숙토마토":10.0,"참외":10.0,"파프리카":10.0}
-OPT_TEMP_MAX = {"딸기":25.0,"방울토마토":30.0,"완숙토마토":30.0,"참외":30.0,"파프리카":28.0}
+BASE_TEMP = {
+    # 온실
+    "딸기":5.0, "방울토마토":10.0, "완숙토마토":10.0, "참외":10.0, "파프리카":10.0, "오이":10.0,
+    # 노지
+    "콩":10.0, "무":5.0, "배추":5.0, "마늘":3.0, "양파":5.0, "고추":10.0, "가지":10.0,
+    # 제주노지
+    "감귤":13.0,
+}
+OPT_TEMP_MAX = {
+    # 온실
+    "딸기":25.0, "방울토마토":30.0, "완숙토마토":30.0, "참외":30.0, "파프리카":28.0, "오이":30.0,
+    # 노지
+    "콩":30.0, "무":20.0, "배추":20.0, "마늘":22.0, "양파":22.0, "고추":30.0, "가지":32.0,
+    # 제주노지
+    "감귤":25.0,
+}
 base_temp    = BASE_TEMP.get(crop, 10.0)
 opt_temp_max = OPT_TEMP_MAX.get(crop, 30.0)
 
 print(f"\n[M2-v4b ERA5] {crop}  trials={N_TRIALS}")
 
 # ── ERA5 연간 기상 피처 로드 ─────────────────────────────────────────────────
-_ERA5_CROP_EN = {"딸기":"strawberry","방울토마토":"cherry_tomato","완숙토마토":"tomato",
-                 "참외":"korean_melon","파프리카":"paprika"}
+_ERA5_CROP_EN = {
+    # 온실
+    "딸기":"strawberry", "방울토마토":"cherry_tomato", "완숙토마토":"tomato",
+    "참외":"korean_melon", "파프리카":"paprika", "오이":"cucumber",
+    # 노지
+    "콩":"soybean", "무":"radish", "배추":"cabbage",
+    "마늘":"garlic", "양파":"onion", "고추":"pepper", "가지":"eggplant",
+    # 제주노지
+    "감귤":"citrus",
+}
 
 def _load_era5_annual(crop_ko):
     """api/data/real/era5_{crop_en}_monthly.json → 연간 집계 DataFrame.
