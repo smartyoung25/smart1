@@ -1,11 +1,12 @@
-"""M2 v4 - Optuna hyperparameter tuning.
+"""M2 v4b - Optuna + ERA5 연간 외부기상 피처 추가.
 
-Uses walk-forward CV (same as v2/v3) to minimise mean MAPE across folds.
-Searches over XGBoost + LightGBM params jointly, then retrains final ensemble.
-Outputs to models/artifacts/{crop_en}/candidate/ for model gate.
+v4 대비 변경:
+  - api/data/real/era5_{crop_en}_monthly.json 읽어 연간 집계 피처 4개 추가
+    era5_t_ext (연평균 외기온), era5_solar (연평균 일사),
+    era5_rain (연 강수 합계), era5_gdd (연 생육도일 합계)
+  - 연간 기후 변동 신호 부재가 딸기/완숙/방울 MAPE 55%대의 주요 원인
 
-[방어 코드 추가] candidate/ 디렉토리를 쓰기 전 완전 삭제 후 재생성.
-  - stale m1_meta.json 등 이전 학습 잔여 파일이 gate를 오염시키는 것을 방지.
+[방어 코드] candidate/ 디렉토리를 쓰기 전 완전 삭제 후 재생성.
 """
 import sys, os, gc, pickle, json, warnings, shutil
 import numpy as np, pandas as pd
@@ -36,7 +37,43 @@ OPT_TEMP_MAX = {"딸기":25.0,"방울토마토":30.0,"완숙토마토":30.0,"참
 base_temp    = BASE_TEMP.get(crop, 10.0)
 opt_temp_max = OPT_TEMP_MAX.get(crop, 30.0)
 
-print(f"\n[M2-v4 Optuna] {crop}  trials={N_TRIALS}")
+print(f"\n[M2-v4b ERA5] {crop}  trials={N_TRIALS}")
+
+# ── ERA5 연간 기상 피처 로드 ─────────────────────────────────────────────────
+_ERA5_CROP_EN = {"딸기":"strawberry","방울토마토":"cherry_tomato","완숙토마토":"tomato",
+                 "참외":"korean_melon","파프리카":"paprika"}
+
+def _load_era5_annual(crop_ko):
+    """api/data/real/era5_{crop_en}_monthly.json → 연간 집계 DataFrame.
+    컬럼: year, era5_t_ext, era5_solar, era5_rain, era5_gdd
+    """
+    crop_en = _ERA5_CROP_EN.get(crop_ko, crop_ko)
+    p = _ROOT / "api" / "data" / "real" / f"era5_{crop_en}_monthly.json"
+    if not p.exists():
+        return None
+    try:
+        monthly = json.loads(p.read_text(encoding="utf-8")).get("monthly", {})
+    except Exception:
+        return None
+    if not monthly:
+        return None
+
+    yr_acc = {}
+    for key, v in monthly.items():
+        yr = int(key.split("-")[0])
+        acc = yr_acc.setdefault(yr, {"t": [], "s": [], "r": 0.0, "gdd": 0.0})
+        if v.get("t_ext") is not None:   acc["t"].append(v["t_ext"])
+        if v.get("solar_mj") is not None: acc["s"].append(v["solar_mj"])
+        if v.get("rain_mm") is not None:  acc["r"] += v["rain_mm"]
+        acc["gdd"] += v.get("gdd", 0.0)
+
+    rows = [{"year": yr,
+             "era5_t_ext":   round(sum(a["t"]) / len(a["t"]), 3) if a["t"] else np.nan,
+             "era5_solar":   round(sum(a["s"]) / len(a["s"]), 3) if a["s"] else np.nan,
+             "era5_rain":    round(a["r"], 1),
+             "era5_gdd":     round(a["gdd"], 1)}
+            for yr, a in sorted(yr_acc.items())]
+    return pd.DataFrame(rows)
 
 # ── Data loading (identical to v3) ───────────────────────────────────────────
 env  = pd.read_parquet(f"{OUT}/env_daily.parquet",  filters=[("crop","=",crop)])
@@ -108,6 +145,16 @@ df["log_area"]         = np.log1p(df["plant_area_m2"].fillna(df["plant_area_m2"]
 df["gdd_per_day"]      = df["gdd_recomputed"] / df["days"].clip(lower=1)
 df["cold_day_frac"]    = df["cold_day_count"] / df["days"].clip(lower=1)
 df["heat_stress_frac"] = df["heat_stress_days"] / df["days"].clip(lower=1)
+
+# ERA5 연간 기상 피처 병합 (연간 기후 변동 신호 추가)
+era5 = _load_era5_annual(crop)
+if era5 is not None:
+    df = df.merge(era5, on="year", how="left")
+    n_era5_matched = df["era5_t_ext"].notna().sum()
+    print(f"  ERA5 피처 병합: {n_era5_matched}/{len(df)}행 매칭 "
+          f"(연도 {sorted(era5['year'].tolist())})")
+else:
+    print("  ERA5 JSON 없음 — 외부기상 피처 미포함")
 
 EXCL = ["farm_id","crop","season","yield_kg","revenue_krw",
         "log_yield","log_yield_ratio","yield_ratio"]
@@ -241,7 +288,7 @@ pkg = {"xgb": xm_f, "lgb": lm_f,
        "farm_yield_mean": farm_mean_map,
        "best_params": best, "model_type": model_type}
 meta = {"crop": crop, "crop_en": CROP_DIR.get(crop,crop),
-        "version": "v4_optuna",
+        "version": "v4b_era5",
         "target": best_tgt, "feat_cols": FEAT,
         "mape": round(best_cv_mape,2), "train_r2": round(tr_r2_final,4),
         "gate_pass": bool(best_cv_mape<=25), "n_season": int(len(df)),
