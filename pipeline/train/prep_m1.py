@@ -76,7 +76,15 @@ if irr_cols_avail:
 else:
     print("  ⚠️  관수 피처 없음 — 환경 피처만으로 학습 (관수시스템 연동 시 자동 추가됨)")
 
-# 5. lag / rolling (환경 피처 + 관수 피처)
+# 5. 교호 피처 추가 (Plant Empowerment: VPD × 일사 상호작용)
+if "vpd_kpa" in df.columns and "solar_rad_mean" in df.columns:
+    df["vpd_x_solar"] = df["vpd_kpa"] * df["solar_rad_mean"]
+if "vpd_kpa" in df.columns and "temp_internal_mean" in df.columns:
+    df["vpd_x_temp"]  = df["vpd_kpa"] * df["temp_internal_mean"]
+if "co2_ppm_mean" in df.columns and "solar_rad_mean" in df.columns:
+    df["co2_x_solar"] = df["co2_ppm_mean"] * df["solar_rad_mean"]
+
+# 5b. lag / rolling (환경 피처 + 관수 피처)
 grp = df.groupby(["farm_id","season","year"])
 all_feat_base = ENV_BASE + [c for c in IRR_BASE if c in df.columns]
 for col in all_feat_base:

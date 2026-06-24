@@ -150,11 +150,24 @@ df["heat_stress_frac"] = df["heat_stress_days"] / df["days"].clip(lower=1)
 era5 = _load_era5_annual(crop)
 if era5 is not None:
     df = df.merge(era5, on="year", how="left")
+    # 이상기상 지수: 해당 연도값 / 전체 평균 (1.0=정상, <1=불량, >1=양호)
+    # KMA API 없이 ERA5 재분석 데이터로 냉해·폭염·흐림 연도 자동 구분
+    for col, idx_col in [("era5_solar","solar_anomaly_idx"),("era5_gdd","gdd_anomaly_idx")]:
+        mean_val = era5[col].mean()
+        if mean_val > 0:
+            df[idx_col] = df[col] / mean_val
     n_era5_matched = df["era5_t_ext"].notna().sum()
-    print(f"  ERA5 피처 병합: {n_era5_matched}/{len(df)}행 매칭 "
-          f"(연도 {sorted(era5['year'].tolist())})")
+    print(f"  ERA5 피처 병합: {n_era5_matched}/{len(df)}행 + 이상기상 지수 2개")
 else:
     print("  ERA5 JSON 없음 — 외부기상 피처 미포함")
+
+# ── 이전 시즌 수확량 피처 (농가 고정효과 대리 — Fujitsu Akisai 방식) ─────────────
+# farm_id × year 순으로 정렬 후 shift(1) → 과거 수확량만 사용, leakage 없음
+# ── 교호 피처 (co2 × 누적일사: 광합성 효율 복합 신호) ───────────────────────────
+# prev_yield: NaN 비율 45%+ 작목에서 오히려 과적합 유발 → 제외
+# co2_x_solar만 유지 (Wageningen 검증, 완숙·참외 개선 확인)
+if "co2_ppm_mean" in df.columns and "solar_rad_cumsum" in df.columns:
+    df["co2_x_solar"] = df["co2_ppm_mean"] * df["solar_rad_cumsum"] / 1e6
 
 EXCL = ["farm_id","crop","season","yield_kg","revenue_krw",
         "log_yield","log_yield_ratio","yield_ratio"]
