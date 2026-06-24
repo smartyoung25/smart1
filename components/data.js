@@ -273,6 +273,30 @@ const KaasaData = (() => {
     return PERIODS[4];              // P5 (15:00~19:00 일몰)
   }
 
+  // ── PDCA 임계값 기준 (api/services/pdca.py THRESHOLDS와 동기화) ──────────────
+  const PDCA_THRESHOLDS = {
+    temp_internal: { warn: [16, 30], crit: [12, 35], unit: '°C',   label: '내부 온도' },
+    vpd:           { warn: [0.4, 1.5], crit: [0.2, 2.0], unit: 'kPa', label: 'VPD' },
+    co2_ppm:       { warn: [400, 1500], crit: [300, 2000], unit: 'ppm', label: 'CO₂' },
+    ec_feed:       { warn: [2.0, 4.0], crit: [1.5, 4.5], unit: 'dS/m', label: '급액 EC' },
+    drain_pct:     { warn: [15, 40], crit: [10, 50], unit: '%',    label: '배액률' },
+    humidity_int:  { warn: [60, 90], crit: [50, 95], unit: '%',    label: '내부 습도' },
+    effectiveness: { warn: 0.6, crit: 0.4 },
+    efficiency:    { warn: 0.5, crit: 0.3 },
+  };
+
+  function checkPdcaThreshold(field, value) {
+    const cfg = PDCA_THRESHOLDS[field]; if (!cfg || value == null) return 'ok';
+    if (Array.isArray(cfg.crit)) {
+      if (value < cfg.crit[0] || value > cfg.crit[1]) return 'danger';
+      if (value < cfg.warn[0] || value > cfg.warn[1]) return 'warn';
+    } else {
+      if (value < cfg.crit) return 'danger';
+      if (value < cfg.warn) return 'warn';
+    }
+    return 'ok';
+  }
+
   // ── 배액률 상태 판별 ────────────────────────────────────────────────────────
   function getDrainStatus(drainPct, period) {
     const t = period?.targets?.drainPct;
@@ -827,6 +851,7 @@ const KaasaData = (() => {
     // Period
     PERIODS, getCurrentPeriod, getDrainStatus,
     ENV_PERIODS, getCurrentEnvPeriod,
+    PDCA_THRESHOLDS, checkPdcaThreshold,
     // 프리바 관수 시작 조건·구조
     IRRIGATION_START, getStartConditions, IRRIGATION_STRUCTURE,
     // 전역 메뉴 드로어

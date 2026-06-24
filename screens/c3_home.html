@@ -215,6 +215,25 @@
     </div>
   </div>
 
+  <!-- PDCA 운영관리 진입 카드 -->
+  <div class="section-label">PDCA 운영관리</div>
+  <a href="c25_pdca.html" style="text-decoration:none;display:block;margin-bottom:14px;">
+    <div style="background:var(--panel);border:1.5px solid var(--border);border-radius:var(--radius);
+                padding:14px;box-shadow:var(--shadow);display:flex;align-items:center;gap:12px;">
+      <div style="font-size:28px;flex-shrink:0;">🔄</div>
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:800;margin-bottom:4px;">적기적작 PDCA 운영관리</div>
+        <div style="font-size:11px;color:var(--muted);line-height:1.5;">효과성·효율성·성장가능성 3대 지수 · 일별/주간/작기 Plan-Do-Check-Act</div>
+        <div style="display:flex;gap:8px;margin-top:8px;" id="pdcaMiniKpi">
+          <span style="font-size:10px;padding:2px 8px;background:var(--gray-soft);border-radius:8px;font-weight:700;">효과성 —%</span>
+          <span style="font-size:10px;padding:2px 8px;background:var(--gray-soft);border-radius:8px;font-weight:700;">효율성 —%</span>
+          <span style="font-size:10px;padding:2px 8px;background:var(--gray-soft);border-radius:8px;font-weight:700;">성장 —%</span>
+        </div>
+      </div>
+      <div style="font-size:18px;color:var(--muted);">›</div>
+    </div>
+  </a>
+
   <!-- 우수농가 대비 + 연결 실데이터 (실데이터 주입 반영) -->
   <div class="section-label" style="display:flex;align-items:center;justify-content:space-between;">
     <span>우수농가 대비 <span class="trust-badge trust-model" style="font-size:9px;">🔵 벤치마크</span></span>
@@ -387,8 +406,36 @@ window.addEventListener('DOMContentLoaded', () => {
     _loadDataConn(token, farmId);
     _loadFieldSummary(token, farmId);
     _loadMarketSummary(token, farmId);
+    setTimeout(() => _loadPdcaMini(token, farmId), 800);
   });
 });
+
+// PDCA 미니 KPI 배지 로더
+async function _loadPdcaMini(token, farmId) {
+  try {
+    const api = KaasaData.getApiBase();
+    const d = await fetch(`${api}/api/farms/${farmId}/pdca/summary`, {
+      headers: {Authorization:`Bearer ${token}`}
+    }).then(r => r.json());
+    const el = document.getElementById('pdcaMiniKpi');
+    if (!el) return;
+    const eff  = d.effectiveness  || {};
+    const efci = d.efficiency     || {};
+    const gp   = d.growth_potential || {};
+    const cls  = s => s === 'ok' ? 'var(--green-soft)' : s === 'warn' ? 'var(--orange-soft)' : 'var(--red-soft)';
+    const col  = s => s === 'ok' ? 'var(--green)' : s === 'warn' ? 'var(--orange)' : 'var(--red)';
+    el.innerHTML = [
+      {label:'효과성', pct: eff.pct, st: eff.status},
+      {label:'효율성', pct: efci.pct, st: efci.status},
+      {label:'성장',   pct: gp.pct,  st: gp.status},
+    ].map(k =>
+      `<span style="font-size:10px;padding:2px 8px;border-radius:8px;font-weight:800;
+              background:${cls(k.st)};color:${col(k.st)}">
+        ${k.label} ${Math.round(k.pct||0)}%
+      </span>`
+    ).join('');
+  } catch(e) {}
+}
 
 // 노지 요약 (클러스터 작황 + 기상)
 async function _loadFieldSummary(token, farmId){

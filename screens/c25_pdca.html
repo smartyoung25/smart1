@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <title>C25 — PDCA 운영관리 | KAASA smartfarmingsight</title>
+  <meta name="description" content="적기적작 PDCA 경영관리 — 효과성·효율성·성장가능성 3대 지수, 일별·주간·작기별 Plan-Do-Check-Act 운영관리, 위험 임계값 알림."/>
+  <link rel="canonical" href="https://farmingsight.org/screens/c25_pdca.html"/>
+  <link rel="stylesheet" href="../components/base.css"/>
+  <style>
+    /* ── C25 전용 스타일 ── */
+
+    /* 작기 헤더 스트립 */
+    .season-strip {
+      background: linear-gradient(135deg, var(--green) 0%, #0a7d5a 100%);
+      border-radius: var(--radius); padding: 14px 16px; margin-bottom: 14px;
+      color: #fff; display: flex; align-items: center; gap: 12px;
+    }
+    .season-icon   { font-size: 28px; flex-shrink: 0; }
+    .season-info   { flex: 1; }
+    .season-crop   { font-size: 16px; font-weight: 900; }
+    .season-meta   { font-size: 11px; opacity: .85; margin-top: 3px; }
+    .season-prog   { width: 100%; height: 5px; background: rgba(255,255,255,.3); border-radius: 3px; margin-top: 8px; overflow: hidden; }
+    .season-prog-fill { height: 100%; background: rgba(255,255,255,.9); border-radius: 3px; transition: width .6s; }
+
+    /* 3대 지수 게이지 */
+    .kpi-trio { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
+    .kpi-gauge-card {
+      background: var(--panel); border-radius: var(--radius);
+      border: 1.5px solid var(--border); padding: 14px 10px 12px;
+      text-align: center; box-shadow: var(--shadow);
+    }
+    .kpi-gauge-card.ok     { border-color: var(--green); }
+    .kpi-gauge-card.warn   { border-color: var(--orange); }
+    .kpi-gauge-card.danger { border-color: var(--red); box-shadow: 0 0 0 3px rgba(220,38,38,.1); }
+
+    .gauge-semi-wrap { position: relative; width: 80px; height: 44px; margin: 0 auto 6px; overflow: hidden; }
+    .gauge-semi-bg   { width: 80px; height: 80px; border-radius: 50%; background: conic-gradient(var(--gray-soft) 180deg, transparent 180deg); position: absolute; top: 0; }
+    .gauge-semi-fill {
+      width: 80px; height: 80px; border-radius: 50%;
+      position: absolute; top: 0;
+      transition: background .5s;
+    }
+    .gauge-semi-cover {
+      width: 56px; height: 28px; background: var(--panel);
+      border-radius: 0 0 28px 28px; position: absolute; bottom: 0; left: 12px;
+    }
+    .gauge-pct { font-size: 22px; font-weight: 900; line-height: 1; margin-bottom: 3px; font-variant-numeric: tabular-nums; }
+    .gauge-pct.ok     { color: var(--green); }
+    .gauge-pct.warn   { color: var(--orange); }
+    .gauge-pct.danger { color: var(--red); }
+    .gauge-label { font-size: 10px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
+    .gauge-sub   { font-size: 10px; color: var(--muted); margin-top: 4px; line-height: 1.4; }
+
+    /* 임계값 알림 패널 */
+    .threshold-card {
+      background: var(--panel); border-radius: var(--radius);
+      border: 1.5px solid var(--border); margin-bottom: 14px; overflow: hidden;
+    }
+    .threshold-head {
+      display: flex; align-items: center; gap: 8px;
+      padding: 11px 14px; background: var(--red-soft);
+      border-bottom: 1px solid var(--border);
+    }
+    .threshold-head.warn-head { background: var(--orange-soft); }
+    .threshold-head.ok-head   { background: var(--green-soft); }
+    .threshold-title { font-size: 13px; font-weight: 800; flex: 1; }
+    .threshold-count { font-size: 12px; font-weight: 900; }
+    .threshold-count.danger { color: var(--red); }
+    .threshold-count.warn   { color: var(--orange); }
+    .threshold-count.ok     { color: var(--green); }
+
+    .alert-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 14px; border-bottom: 1px solid var(--border);
+    }
+    .alert-row:last-child { border-bottom: none; }
+    .alert-sev { font-size: 16px; flex-shrink: 0; }
+    .alert-main { flex: 1; }
+    .alert-field { font-size: 12px; font-weight: 800; }
+    .alert-action { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .alert-val { text-align: right; flex-shrink: 0; }
+    .alert-val-num { font-size: 14px; font-weight: 900; font-variant-numeric: tabular-nums; }
+    .alert-val-num.danger { color: var(--red); }
+    .alert-val-num.warn   { color: var(--orange); }
+    .alert-val-unit { font-size: 10px; color: var(--muted); }
+
+    /* 주간 PDCA 타임라인 */
+    .pdca-weeks { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 14px; }
+    .week-cell {
+      background: var(--panel); border-radius: var(--radius-sm);
+      border: 1.5px solid var(--border); padding: 8px 6px; text-align: center;
+    }
+    .week-cell.current { border-color: var(--blue); background: var(--blue-soft); }
+    .week-cell.ok      { border-color: var(--green); }
+    .week-cell.warn    { border-color: var(--orange); }
+    .week-cell.danger  { border-color: var(--red); }
+    .week-label { font-size: 10px; font-weight: 800; color: var(--muted); }
+    .week-score { font-size: 18px; font-weight: 900; margin: 4px 0 2px; font-variant-numeric: tabular-nums; }
+    .week-score.ok     { color: var(--green); }
+    .week-score.warn   { color: var(--orange); }
+    .week-score.danger { color: var(--red); }
+    .week-pdca { display: flex; gap: 2px; justify-content: center; }
+    .pdca-dot { width: 6px; height: 6px; border-radius: 50%; }
+    .pdca-dot.P { background: var(--blue); }
+    .pdca-dot.D { background: var(--green); }
+    .pdca-dot.C { background: var(--orange); }
+    .pdca-dot.A { background: var(--purple, #7C3AED); }
+
+    /* 이번 주 PDCA 상세 */
+    .pdca-detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+    .pdca-step-card {
+      background: var(--panel); border-radius: var(--radius-sm);
+      border: 1.5px solid var(--border); padding: 12px; overflow: hidden;
+    }
+    .pdca-step-head {
+      display: flex; align-items: center; gap: 6px; margin-bottom: 8px;
+    }
+    .pdca-step-badge {
+      font-size: 11px; font-weight: 900; width: 22px; height: 22px;
+      border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .pdca-step-badge.P { background: var(--blue-soft); color: var(--blue); }
+    .pdca-step-badge.D { background: var(--green-soft); color: var(--green); }
+    .pdca-step-badge.C { background: var(--orange-soft); color: var(--orange); }
+    .pdca-step-badge.A { background: #F5F3FF; color: #7C3AED; }
+    .pdca-step-title { font-size: 12px; font-weight: 800; }
+    .pdca-step-body { font-size: 11px; color: var(--text); line-height: 1.5; }
+    .pdca-step-body li { margin-bottom: 3px; padding-left: 2px; }
+
+    /* 일일 체크 */
+    .daily-ep-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; margin-bottom: 10px; }
+    .daily-ep-cell {
+      background: var(--panel); border-radius: var(--radius-sm);
+      border: 1.5px solid var(--border); padding: 6px 3px; text-align: center;
+    }
+    .daily-ep-cell.ok     { border-color: var(--green); background: var(--green-soft); }
+    .daily-ep-cell.warn   { border-color: var(--orange); }
+    .daily-ep-cell.danger { border-color: var(--red); }
+    .daily-ep-id   { font-size: 9px; font-weight: 900; }
+    .daily-ep-icon { font-size: 12px; }
+    .daily-ep-st   { font-size: 8px; font-weight: 700; }
+    .daily-ep-st.ok     { color: var(--green); }
+    .daily-ep-st.warn   { color: var(--orange); }
+    .daily-ep-st.danger { color: var(--red); }
+
+    /* Act 제안 */
+    .act-item {
+      display: flex; gap: 10px; padding: 10px 12px;
+      background: var(--panel); border-radius: var(--radius-sm);
+      margin-bottom: 6px; border-left: 4px solid var(--blue);
+      box-shadow: var(--shadow);
+    }
+    .act-no { font-size: 13px; font-weight: 900; color: var(--blue); flex-shrink: 0; width: 18px; }
+    .act-text { font-size: 12px; line-height: 1.5; }
+
+    /* 공통 */
+    .empty-pdca { text-align: center; padding: 24px; color: var(--muted); font-size: 13px; }
+  </style>
+</head>
+<body>
+
+<header class="sf-header">
+  <button class="sf-back" onclick="history.back()">←</button>
+  <span style="font-size:15px;font-weight:800;color:#fff;letter-spacing:-.3px">C25 PDCA 운영관리</span>
+  <select id="farmSel" aria-label="농장 선택" onchange="onFarmChange(this.value)"
+          style="font-size:12px;background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:8px;padding:4px 8px;cursor:pointer;outline:none;">
+    <option value="farm_001">farm_001</option>
+  </select>
+</header>
+
+<main class="sf-main" style="padding:14px;max-width:480px;margin:0 auto;">
+
+  <!-- ① 작기 헤더 스트립 -->
+  <div class="season-strip" id="seasonStrip">
+    <div class="season-icon" id="seasonIcon">🌱</div>
+    <div class="season-info">
+      <div class="season-crop" id="seasonCrop">로드 중…</div>
+      <div class="season-meta" id="seasonMeta">—</div>
+      <div class="season-prog"><div class="season-prog-fill" id="seasonProgFill" style="width:0%"></div></div>
+    </div>
+  </div>
+
+  <!-- ② 3대 지수 게이지 -->
+  <div class="section-label">적기적작 3대 지수</div>
+  <div class="kpi-trio" id="kpiTrio">
+    <div class="kpi-gauge-card" id="kpiEff">
+      <div class="gauge-pct" id="effPct">—</div>
+      <div class="gauge-label">효과성</div>
+      <div class="gauge-sub" id="effSub">수량 진척 × EP 준수</div>
+    </div>
+    <div class="kpi-gauge-card" id="kpiEfci">
+      <div class="gauge-pct" id="efciPct">—</div>
+      <div class="gauge-label">효율성</div>
+      <div class="gauge-sub" id="efciSub">수익 / 총비용</div>
+    </div>
+    <div class="kpi-gauge-card" id="kpiGp">
+      <div class="gauge-pct" id="gpPct">—</div>
+      <div class="gauge-label">성장가능성</div>
+      <div class="gauge-sub" id="gpSub">추세 × 위험도</div>
+    </div>
+  </div>
+
+  <!-- ③ 위험 임계값 알림 -->
+  <div class="section-label">위험 임계값 알림</div>
+  <div class="threshold-card" id="thresholdPanel">
+    <div class="threshold-head ok-head">
+      <span>✅</span>
+      <span class="threshold-title">전체 환경값 정상 범위</span>
+      <span class="threshold-count ok" id="alertCount">0건</span>
+    </div>
+  </div>
+
+  <!-- ④ 주간 PDCA 타임라인 -->
+  <div class="section-label">주간 PDCA 타임라인</div>
+  <div class="pdca-weeks" id="pdcaWeeks">
+    <div class="week-cell"><div class="week-label">W—</div><div class="week-score">—</div></div>
+    <div class="week-cell"><div class="week-label">W—</div><div class="week-score">—</div></div>
+    <div class="week-cell"><div class="week-label">W—</div><div class="week-score">—</div></div>
+    <div class="week-cell current"><div class="week-label">이번 주</div><div class="week-score">—</div></div>
+  </div>
+
+  <!-- ⑤ 이번 주 PDCA 상세 -->
+  <div class="section-label">이번 주 PDCA 상세</div>
+  <div class="pdca-detail-grid" id="pdcaDetail">
+    <div class="pdca-step-card">
+      <div class="pdca-step-head"><span class="pdca-step-badge P">P</span><span class="pdca-step-title">Plan — 계획</span></div>
+      <div class="pdca-step-body" id="stepPlan">로드 중…</div>
+    </div>
+    <div class="pdca-step-card">
+      <div class="pdca-step-head"><span class="pdca-step-badge D">D</span><span class="pdca-step-title">Do — 실행</span></div>
+      <div class="pdca-step-body" id="stepDo">로드 중…</div>
+    </div>
+    <div class="pdca-step-card">
+      <div class="pdca-step-head"><span class="pdca-step-badge C">C</span><span class="pdca-step-title">Check — 점검</span></div>
+      <div class="pdca-step-body" id="stepCheck">로드 중…</div>
+    </div>
+    <div class="pdca-step-card">
+      <div class="pdca-step-head"><span class="pdca-step-badge A">A</span><span class="pdca-step-title">Act — 조치</span></div>
+      <div class="pdca-step-body" id="stepAct">로드 중…</div>
+    </div>
+  </div>
+
+  <!-- ⑥ 오늘 EP별 준수 현황 + Act 제안 -->
+  <div class="section-label">일일 체크 (오늘)</div>
+  <div class="daily-ep-row" id="dailyEpRow">
+    <!-- JS 렌더링 -->
+  </div>
+  <div id="actSuggestions"></div>
+
+</main>
+
+<nav class="sf-bottom-nav">
+  <a href="c3_home.html" class="sf-nav-item">🏠<span>경영홈</span></a>
+  <a href="c14_report.html" class="sf-nav-item">📋<span>리포트</span></a>
+  <a href="c25_pdca.html" class="sf-nav-item active">🔄<span>PDCA</span></a>
+  <a href="c9_benchmark.html" class="sf-nav-item">📊<span>벤치마크</span></a>
+  <a href="c13_chat.html" class="sf-nav-item">🤖<span>AI비서</span></a>
+</nav>
+
+<script src="../components/data.js"></script>
+<script>
+'use strict';
+
+const _EP_ICONS = {EP1:'🌙',EP2:'🌅',EP3:'☀️',EP4:'🌤️',EP5:'🌇',EP6:'🌆'};
+const _CROP_ICONS = {'딸기':'🍓','방울토마토':'🍅','완숙토마토':'🍅','파프리카':'🫑','오이':'🥒','참외':'🍈'};
+let _farmId = 'farm_001', _token = null, _api = '';
+
+async function _ensureToken() {
+  const s = sessionStorage.getItem('sf_token');
+  if (s) return s;
+  _api = sessionStorage.getItem('sf_api') || (location.protocol !== 'file:' ? location.origin : 'http://localhost:8000');
+  const r = await fetch(`${_api}/api/v1/auth/demo-token`, {
+    method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({}),
+  });
+  if (r.ok) { const d = await r.json(); sessionStorage.setItem('sf_token', d.access_token); return d.access_token; }
+  return null;
+}
+function _hdr() { return {Authorization:`Bearer ${_token}`, 'Content-Type':'application/json'}; }
+function _apiFetch(path) {
+  const base = _api || sessionStorage.getItem('sf_api') || location.origin;
+  return fetch(`${base}/api/farms/${_farmId}${path}`, {headers: _hdr()}).then(r => r.json());
+}
+function _scoreClass(score) {
+  if (score >= 70) return 'ok';
+  if (score >= 50) return 'warn';
+  return 'danger';
+}
+function _scoreEmoji(status) { return {ok:'✅',warn:'⚠️',danger:'🔴'}[status] || '—'; }
+
+// ── 초기화 ────────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  _farmId = new URLSearchParams(location.search).get('farm')
+         || sessionStorage.getItem('sf_farm_id') || 'farm_001';
+  _api = sessionStorage.getItem('sf_api') || (location.protocol !== 'file:' ? location.origin : 'http://localhost:8000');
+
+  _renderEpRowSkeleton();
+  _ensureToken().then(tok => {
+    _token = tok;
+    _loadAll();
+  });
+});
+
+function onFarmChange(id) { sessionStorage.setItem('sf_farm_id', id); location.reload(); }
+
+async function _loadAll() {
+  try {
+    const [summary, weekly, thresholds] = await Promise.all([
+      _apiFetch('/pdca/summary'),
+      _apiFetch('/pdca/weekly'),
+      _apiFetch('/pdca/thresholds'),
+    ]);
+    _renderSeason(summary);
+    _renderKpiTrio(summary);
+    _renderThresholds(thresholds);
+    _renderWeeklyTimeline(weekly);
+    _renderPdcaDetail(weekly);
+    _renderDailyEp(summary.daily);
+    _renderActSuggestions(summary.daily);
+  } catch(e) {
+    document.getElementById('seasonCrop').textContent = '데이터 로드 실패';
+    console.error('PDCA 로드 실패:', e);
+  }
+}
+
+// ① 작기 스트립
+function _renderSeason(d) {
+  const s = d.season || {};
+  const crop = d.crop || s.crop || '—';
+  const icon = _CROP_ICONS[crop] || '🌱';
+  const prog = s.progress_pct || 0;
+  const wk = s.weeks_done || 0;
+  const wkTotal = s.weeks_total || '?';
+  const td = s.transplant_date || d.transplant_date || '미설정';
+  document.getElementById('seasonIcon').textContent = icon;
+  document.getElementById('seasonCrop').textContent = crop;
+  document.getElementById('seasonMeta').textContent =
+    `정식일 ${td} · ${wk}/${wkTotal}주차 경과 · 진척 ${prog}%`;
+  document.getElementById('seasonProgFill').style.width = prog + '%';
+}
+
+// ② 3대 지수 게이지
+function _renderKpiTrio(d) {
+  const eff  = d.effectiveness  || {};
+  const efci = d.efficiency     || {};
+  const gp   = d.growth_potential || {};
+
+  _setGauge('kpiEff',  'effPct',  'effSub',  eff.pct,
+    `수량진척 ${Math.round((eff.yield_progress||0)*100)}% · EP준수 ${Math.round((eff.ep_compliance||0)*100)}%`);
+  _setGauge('kpiEfci', 'efciPct', 'efciSub', efci.pct,
+    `수익비 ${(efci.revenue_cost_ratio||0).toFixed(2)} · 벤치 ${efci.benchmark_pct||'—'}%ile`);
+  _setGauge('kpiGp',   'gpPct',   'gpSub',   gp.pct,
+    `추세 ${Math.round((gp.trend_score||0)*100)}% · 위험 −${Math.round((gp.drift_penalty||0)*100)}%`);
+}
+function _setGauge(cardId, pctId, subId, pct, subText) {
+  pct = Math.round(pct || 0);
+  const cls = _scoreClass(pct);
+  const card = document.getElementById(cardId);
+  const pctEl = document.getElementById(pctId);
+  const subEl = document.getElementById(subId);
+  card.className = `kpi-gauge-card ${cls}`;
+  pctEl.className = `gauge-pct ${cls}`;
+  pctEl.textContent = pct + '%';
+  if (subEl) subEl.textContent = subText;
+}
+
+// ③ 임계값 알림
+function _renderThresholds(d) {
+  const panel = document.getElementById('thresholdPanel');
+  const alerts = d.alerts || [];
+  const danger = d.danger_count || 0;
+  const warn   = d.warn_count || 0;
+  const total  = d.alert_count || 0;
+
+  let headCls = total === 0 ? 'ok-head' : danger > 0 ? '' : 'warn-head';
+  let headIcon = total === 0 ? '✅' : danger > 0 ? '🔴' : '⚠️';
+  let headText = total === 0 ? '전체 환경값 정상 범위' :
+                 danger > 0  ? `위험 경보 ${danger}건 / 주의 ${warn}건` :
+                               `주의 경보 ${warn}건`;
+  let countCls = total === 0 ? 'ok' : danger > 0 ? 'danger' : 'warn';
+
+  let h = `<div class="threshold-head ${headCls}">
+    <span>${headIcon}</span>
+    <span class="threshold-title">${headText}</span>
+    <span class="threshold-count ${countCls}" id="alertCount">${total}건</span>
+  </div>`;
+
+  if (alerts.length === 0) {
+    h += `<div class="alert-row"><span style="color:var(--green);font-size:13px;">✓</span>
+      <div class="alert-main"><div class="alert-field">임계값 초과 없음</div>
+      <div class="alert-action">모든 환경 변수가 정상 운영 범위 내에 있습니다.</div></div></div>`;
+  } else {
+    alerts.forEach(a => {
+      const icon = a.severity === 'danger' ? '🔴' : '⚠️';
+      h += `<div class="alert-row">
+        <span class="alert-sev">${icon}</span>
+        <div class="alert-main">
+          <div class="alert-field">${a.label} ${a.direction}</div>
+          <div class="alert-action">${a.action}</div>
+        </div>
+        <div class="alert-val">
+          <div class="alert-val-num ${a.severity}">${a.value}</div>
+          <div class="alert-val-unit">${a.unit}</div>
+        </div>
+      </div>`;
+    });
+  }
+  panel.innerHTML = h;
+}
+
+// ④ 주간 타임라인
+function _renderWeeklyTimeline(d) {
+  const weeks = (d.weeks || []).slice(-4);
+  const el = document.getElementById('pdcaWeeks');
+  if (!weeks.length) { el.innerHTML = '<div class="empty-pdca">주간 데이터 로드 중…</div>'; return; }
+  el.innerHTML = weeks.map((w, i) => {
+    const isCur = i === weeks.length - 1;
+    const check = w.check || {};
+    const overall = Math.round((check.overall_score || 0) * 100);
+    const cls = isCur ? 'current' : _scoreClass(overall);
+    return `<div class="week-cell ${cls}">
+      <div class="week-label">${isCur ? '이번 주' : 'W' + w.week_num}</div>
+      <div class="week-score ${cls}">${overall || '—'}${overall ? '%' : ''}</div>
+      <div class="week-pdca">
+        <div class="pdca-dot P" title="Plan"></div>
+        <div class="pdca-dot D" title="Do"></div>
+        <div class="pdca-dot ${overall >= 50 ? 'C' : ''}" title="Check"></div>
+        <div class="pdca-dot ${overall >= 70 ? 'A' : ''}" title="Act"></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ⑤ PDCA 상세 (이번 주)
+function _renderPdcaDetail(d) {
+  const weeks = d.weeks || [];
+  const cur = weeks[weeks.length - 1] || {};
+  const plan = cur.plan || {};
+  const doW = cur.do || {};
+  const check = cur.check || {};
+  const act = cur.act || {};
+  const eff = check.effectiveness || {};
+  const efci = check.efficiency || {};
+  const gp = check.growth_potential || {};
+
+  document.getElementById('stepPlan').innerHTML =
+    `<ul style="margin:0;padding-left:14px;">
+      <li>${plan.summary || '—'}</li>
+      <li>${plan.ep_focus || 'EP 전략표 준수'}</li>
+    </ul>`;
+
+  document.getElementById('stepDo').innerHTML =
+    `<ul style="margin:0;padding-left:14px;">
+      <li>EP 준수율 <b>${doW.ep_compliance_pct || '—'}%</b></li>
+      <li>모니터링 <b>${doW.days_monitored || '—'}일</b></li>
+    </ul>`;
+
+  document.getElementById('stepCheck').innerHTML =
+    `<ul style="margin:0;padding-left:14px;">
+      <li>효과성 <b style="color:var(--${eff.status||'muted'})">${eff.pct||'—'}%</b></li>
+      <li>효율성 <b style="color:var(--${efci.status||'muted'})">${efci.pct||'—'}%</b></li>
+      <li>성장가능성 <b style="color:var(--${gp.status||'muted'})">${gp.pct||'—'}%</b></li>
+    </ul>`;
+
+  const actions = (act.next_week_actions || ['다음 주 EP 전략 유지']);
+  document.getElementById('stepAct').innerHTML =
+    `<ul style="margin:0;padding-left:14px;">${actions.map(a=>`<li>${a}</li>`).join('')}</ul>`;
+}
+
+// ⑥ 일일 EP 준수 현황
+const _EP_LIST = [
+  {id:'EP1',icon:'🌙',name:'야간'},
+  {id:'EP2',icon:'🌅',name:'새벽'},
+  {id:'EP3',icon:'☀️', name:'오전'},
+  {id:'EP4',icon:'🌤️',name:'정오'},
+  {id:'EP5',icon:'🌇',name:'오후'},
+  {id:'EP6',icon:'🌆',name:'초저녁'},
+];
+function _renderEpRowSkeleton() {
+  const el = document.getElementById('dailyEpRow');
+  const now = new Date().getHours();
+  el.innerHTML = _EP_LIST.map(ep => {
+    const isCur = _isCurrentEp(ep.id, now);
+    return `<div class="daily-ep-cell${isCur?' ok':''}">
+      <div class="daily-ep-id" style="${isCur?'color:var(--green)':''}">${ep.id}</div>
+      <div class="daily-ep-icon">${ep.icon}</div>
+      <div class="daily-ep-st ${isCur?'ok':''}">진행 중</div>
+    </div>`;
+  }).join('');
+}
+function _isCurrentEp(id, h) {
+  const map = {EP1:(h>=20||h<4),EP2:(h>=4&&h<6),EP3:(h>=6&&h<12),EP4:(h>=12&&h<15),EP5:(h>=15&&h<18),EP6:(h>=18&&h<20)};
+  return map[id] || false;
+}
+function _renderDailyEp(daily) {
+  if (!daily) return;
+  const plan = daily.plan || {};
+  const curEp = plan.ep || '';
+  const check = daily.check || {};
+  const alertFields = new Set((check.alerts || []).map(a => a.field));
+  const now = new Date().getHours();
+
+  document.getElementById('dailyEpRow').innerHTML = _EP_LIST.map(ep => {
+    const isCur = ep.id === curEp || _isCurrentEp(ep.id, now);
+    const isPast = _epHour(ep.id) < now && !isCur;
+    const st = isCur ? 'ok' : isPast ? (alertFields.size > 0 ? 'warn' : 'ok') : '';
+    const stText = isCur ? '진행 중' : isPast ? (st === 'warn' ? '주의' : '완료') : '예정';
+    return `<div class="daily-ep-cell ${st}">
+      <div class="daily-ep-id">${ep.id}</div>
+      <div class="daily-ep-icon">${ep.icon}</div>
+      <div class="daily-ep-st ${st}">${stText}</div>
+    </div>`;
+  }).join('');
+}
+function _epHour(id) {
+  return {EP1:20,EP2:4,EP3:6,EP4:12,EP5:15,EP6:18}[id] || 0;
+}
+
+function _renderActSuggestions(daily) {
+  const act = (daily && daily.act) || {};
+  const suggs = act.suggestions || ['현재 환경 양호 — 전략표 목표 유지'];
+  document.getElementById('actSuggestions').innerHTML =
+    suggs.map((s, i) =>
+      `<div class="act-item">
+        <div class="act-no">${i+1}</div>
+        <div class="act-text">${s}</div>
+      </div>`
+    ).join('');
+}
+</script>
+</body>
+</html>
