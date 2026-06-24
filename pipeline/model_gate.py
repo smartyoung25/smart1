@@ -43,7 +43,7 @@ _CROP_EN = {
     "딸기": "strawberry", "방울토마토": "cherry_tomato",
     "완숙토마토": "tomato", "참외": "melon", "파프리카": "paprika", "오이": "cucumber",
     # 노지
-    "콩": "soybean", "무": "radish", "배추": "cabbage",
+    "콩": "soybean", "무": "radish", "배추": "cabbage", "양배추": "headed_cabbage",
     "마늘": "garlic", "양파": "onion", "고추": "pepper", "가지": "eggplant",
     # 제주노지
     "감귤": "citrus",
