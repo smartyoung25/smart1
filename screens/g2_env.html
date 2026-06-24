@@ -133,6 +133,62 @@
       font-size: 10px; font-weight: 800; color: var(--text);
     }
 
+    /* ── EP 타임라인 ── */
+    .ep-timeline-wrap {
+      margin-bottom: 14px;
+    }
+    .ep-timeline {
+      display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; margin-bottom: 8px;
+    }
+    .ep-cell {
+      border-radius: var(--radius-sm); padding: 7px 4px 6px;
+      text-align: center; cursor: default;
+      border: 1.5px solid transparent;
+      transition: all .2s;
+      background: var(--panel);
+      border-color: var(--border);
+    }
+    .ep-cell.active {
+      border-color: var(--green); background: var(--green-soft);
+      box-shadow: 0 0 0 2px rgba(31,122,77,.18);
+    }
+    .ep-cell-id   { font-size: 10px; font-weight: 900; letter-spacing: .3px; }
+    .ep-cell-icon { font-size: 14px; display: block; line-height: 1.3; }
+    .ep-cell-name { font-size: 8.5px; color: var(--muted); font-weight: 700; }
+
+    /* EP 현재 구간 상세 카드 */
+    .ep-detail-card {
+      background: var(--panel); border-radius: var(--radius);
+      border: 1.5px solid var(--border); padding: 12px 14px;
+      box-shadow: var(--shadow); margin-bottom: 14px;
+    }
+    .ep-detail-head {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
+    }
+    .ep-detail-badge {
+      font-size: 11px; font-weight: 900; padding: 3px 10px;
+      border-radius: 12px; background: var(--green-soft); color: var(--green);
+    }
+    .ep-detail-name { font-size: 14px; font-weight: 800; flex: 1; }
+    .ep-detail-desc { font-size: 11px; color: var(--muted); margin-bottom: 10px; line-height: 1.5; }
+
+    /* EP 목표값 vs 실측값 비교 행 */
+    .ep-target-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+    }
+    .ep-target-item {
+      background: var(--panel-soft); border-radius: var(--radius-sm);
+      padding: 8px 10px; border: 1px solid var(--border);
+    }
+    .ep-target-label { font-size: 9px; font-weight: 700; color: var(--muted); text-transform: uppercase; margin-bottom: 3px; }
+    .ep-target-val   { font-size: 18px; font-weight: 900; line-height: 1; }
+    .ep-target-unit  { font-size: 10px; font-weight: 400; }
+    .ep-target-meas  { font-size: 10px; color: var(--muted); margin-top: 2px; }
+    .ep-target-diff  { font-size: 10px; font-weight: 700; margin-top: 1px; }
+    .ep-target-diff.ok     { color: var(--green); }
+    .ep-target-diff.warn   { color: var(--orange); }
+    .ep-target-diff.danger { color: var(--red); }
+
     /* WS 상태 점 */
     .ws-dot { width:8px; height:8px; border-radius:50%; background:var(--muted); display:inline-block; }
     .ws-dot.connected { background:var(--green); box-shadow:0 0 0 3px rgba(31,122,77,.2); }
@@ -185,6 +241,42 @@
   <div id="deviceAlert"></div>
   <!-- 데이터 경보 배너 -->
   <div class="alert-strip" id="alertStrip"></div>
+
+  <!-- ══ EP 환경 Period 타임라인 ══ -->
+  <div class="ep-timeline-wrap">
+    <div class="section-label">환경 구간 (EP) <span class="trust-badge trust-live" id="epBadge">EP—</span></div>
+    <div class="ep-timeline" id="epTimeline">
+      <!-- JS로 렌더링 -->
+    </div>
+    <!-- EP 현재 구간 목표값 카드 -->
+    <div class="ep-detail-card" id="epDetailCard" style="display:none">
+      <div class="ep-detail-head">
+        <span class="ep-detail-badge" id="epDetailBadge">EP1</span>
+        <span class="ep-detail-name" id="epDetailName">야간</span>
+      </div>
+      <div class="ep-detail-desc" id="epDetailDesc">—</div>
+      <div class="ep-target-grid">
+        <div class="ep-target-item">
+          <div class="ep-target-label">목표 온도</div>
+          <div class="ep-target-val" id="epTargetTemp">—<span class="ep-target-unit"> °C</span></div>
+          <div class="ep-target-meas" id="epMeasTemp">실측 —</div>
+          <div class="ep-target-diff" id="epDiffTemp">—</div>
+        </div>
+        <div class="ep-target-item">
+          <div class="ep-target-label">목표 VPD</div>
+          <div class="ep-target-val" id="epTargetVpd">—<span class="ep-target-unit"> kPa</span></div>
+          <div class="ep-target-meas" id="epMeasVpd">실측 —</div>
+          <div class="ep-target-diff" id="epDiffVpd">—</div>
+        </div>
+        <div class="ep-target-item">
+          <div class="ep-target-label">목표 CO₂</div>
+          <div class="ep-target-val" id="epTargetCo2">—<span class="ep-target-unit"> ppm</span></div>
+          <div class="ep-target-meas" id="epMeasCo2">실측 —</div>
+          <div class="ep-target-diff" id="epDiffCo2">—</div>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- 실내 환경 KPI -->
   <div class="section-label">실내 환경 (실시간) <span class="trust-badge trust-live" id="envSrcBadge">🟢 실측</span></div>
@@ -1131,9 +1223,111 @@ async function _cpLoadActive(){
         if(!window._lastTempPost || now-window._lastTempPost>600000){ window._lastTempPost=now;
           fetch(`${api}/api/farms/${farm}/environment/climate-plan/daily-temp`,{method:'POST',headers:_cpH(),body:JSON.stringify({temp:e.temp_internal})}).catch(()=>{}); } } }catch(_){}
     _cpRender(); // 활성 셀 강조 반영
+    _renderEpTimeline(_cpActive); // EP 타임라인 갱신
   }catch(e){}
 }
 function _cpSetMode(m){ if(m===_cpMode)return; _cpMode=m; _cpLoad(); }
+
+// ── EP 타임라인 렌더링 ─────────────────────────────────────────────────────────
+const _EP_DEFS = [
+  {id:'EP1',name:'야간',  icon:'🌙',from:20,to:4,  color:'#1D4ED8'},
+  {id:'EP2',name:'새벽',  icon:'🌅',from:4, to:6,  color:'#D97706'},
+  {id:'EP3',name:'오전',  icon:'☀️', from:6, to:12, color:'#059669'},
+  {id:'EP4',name:'정오',  icon:'🌤️',from:12,to:15, color:'#DC2626'},
+  {id:'EP5',name:'오후',  icon:'🌇',from:15,to:18, color:'#7C3AED'},
+  {id:'EP6',name:'초저녁',icon:'🌆',from:18,to:20, color:'#0369A1'},
+];
+const _EP_DESCS = {
+  EP1:'HNT 야간온도 유지 · CO₂ 자연 감소 · 건조 dry-down',
+  EP2:'승온 준비 · 환기 개방 시작',
+  EP3:'광연동 승온 실행 · CO₂ 최고 농도 유지',
+  EP4:'고일사·고온 VPD 관리 · 환기 최대',
+  EP5:'온도 완만 강하 · 환기 축소 · CO₂ 감량',
+  EP6:'야간 목표 전환 준비 · 마지막 환기',
+};
+
+function _currentEpId(){
+  const h = new Date().getHours();
+  if (h >= 20 || h < 4)  return 'EP1';
+  if (h < 6)             return 'EP2';
+  if (h < 12)            return 'EP3';
+  if (h < 15)            return 'EP4';
+  if (h < 18)            return 'EP5';
+  return 'EP6';
+}
+
+function _renderEpTimeline(active){
+  const tl = document.getElementById('epTimeline'); if(!tl) return;
+  const epId = (active && active.ep_id) || _currentEpId();
+  const epName = (active && active.ep_name) || (_EP_DEFS.find(e=>e.id===epId)||{}).name || '';
+
+  // 타임라인 셀
+  tl.innerHTML = _EP_DEFS.map(ep=>{
+    const isCur = ep.id === epId;
+    return `<div class="ep-cell${isCur?' active':''}" title="${_EP_DESCS[ep.id]||''}">
+      <div class="ep-cell-id" style="color:${ep.color}">${ep.id}</div>
+      <span class="ep-cell-icon">${ep.icon}</span>
+      <div class="ep-cell-name">${ep.name}</div>
+    </div>`;
+  }).join('');
+
+  // 배지
+  const badge = document.getElementById('epBadge');
+  if(badge){ badge.textContent = `${epId} ${epName}`; badge.style.background='var(--green-soft)'; badge.style.color='var(--green)'; }
+
+  // 상세 카드
+  const card = document.getElementById('epDetailCard'); if(!card) return;
+  card.style.display = '';
+  document.getElementById('epDetailBadge').textContent = epId;
+  document.getElementById('epDetailName').textContent = epName;
+  document.getElementById('epDetailDesc').textContent = _EP_DESCS[epId] || '';
+
+  // 목표값 (API active에서)
+  const t = (active && active.target) || {};
+  const measEl = (id, val, unit) => val != null ? `실측 ${val}${unit}` : '실측 —';
+
+  // 목표 온도
+  const tgtTemp = t.temp_adj ?? t.temp;
+  document.getElementById('epTargetTemp').innerHTML = tgtTemp != null ? `${tgtTemp}<span class="ep-target-unit"> °C</span>` : '—';
+  // 실측은 KaasaData에서 가져옴
+  let meas = null;
+  try{ const env=(window.KaasaData&&KaasaData._latestEnv&&KaasaData._latestEnv())||null; if(env) meas=env; }catch(_){}
+  const mTemp = meas && meas.temp_internal != null ? meas.temp_internal : null;
+  document.getElementById('epMeasTemp').textContent = mTemp != null ? `실측 ${mTemp.toFixed(1)}°C` : '실측 —';
+  if(tgtTemp != null && mTemp != null){
+    const diff = (mTemp - tgtTemp).toFixed(1);
+    const cls = Math.abs(diff) <= 1 ? 'ok' : Math.abs(diff) <= 3 ? 'warn' : 'danger';
+    const el = document.getElementById('epDiffTemp');
+    el.textContent = `편차 ${diff > 0 ? '+' : ''}${diff}°C`;
+    el.className = `ep-target-diff ${cls}`;
+  } else { document.getElementById('epDiffTemp').textContent = ''; }
+
+  // 목표 VPD
+  const tgtVpd = t.vpd;
+  document.getElementById('epTargetVpd').innerHTML = tgtVpd != null ? `${tgtVpd}<span class="ep-target-unit"> kPa</span>` : '—';
+  const mVpd = meas && meas.vpd != null ? meas.vpd : null;
+  document.getElementById('epMeasVpd').textContent = mVpd != null ? `실측 ${mVpd.toFixed(2)} kPa` : '실측 —';
+  if(tgtVpd != null && mVpd != null){
+    const diff = (mVpd - tgtVpd).toFixed(2);
+    const cls = Math.abs(diff) <= 0.1 ? 'ok' : Math.abs(diff) <= 0.3 ? 'warn' : 'danger';
+    const el = document.getElementById('epDiffVpd');
+    el.textContent = `편차 ${diff > 0 ? '+' : ''}${diff}`;
+    el.className = `ep-target-diff ${cls}`;
+  } else { document.getElementById('epDiffVpd').textContent = ''; }
+
+  // 목표 CO₂
+  const tgtCo2 = t.co2;
+  document.getElementById('epTargetCo2').innerHTML = tgtCo2 != null ? `${tgtCo2}<span class="ep-target-unit"> ppm</span>` : '—';
+  const mCo2 = meas && meas.co2_ppm != null ? meas.co2_ppm : null;
+  document.getElementById('epMeasCo2').textContent = mCo2 != null ? `실측 ${Math.round(mCo2)} ppm` : '실측 —';
+  if(tgtCo2 != null && mCo2 != null){
+    const diff = Math.round(mCo2 - tgtCo2);
+    const cls = Math.abs(diff) <= 50 ? 'ok' : Math.abs(diff) <= 150 ? 'warn' : 'danger';
+    const el = document.getElementById('epDiffCo2');
+    el.textContent = `편차 ${diff > 0 ? '+' : ''}${diff} ppm`;
+    el.className = `ep-target-diff ${cls}`;
+  } else { document.getElementById('epDiffCo2').textContent = ''; }
+}
 function _cpDateChange(){ if(_cpPlan){ _cpPlan.transplant_date=document.getElementById('cpDate').value; } _cpLoadActivePreview(); }
 async function _cpLoadActivePreview(){
   // 저장 전이라도 정식일 변경 즉시 미리보기: 임시 저장 없이 클라이언트 계산은 생략, 저장 후 정확.
@@ -1152,7 +1346,11 @@ async function _cpSave(){
   }catch(e){ msg.style.color='var(--red)'; msg.textContent='네트워크 오류'; }
 }
 // G2 로드 시 전략표 초기화 (기존 init 흐름과 독립)
-window.addEventListener('DOMContentLoaded',()=>{ setTimeout(_cpLoad, 600); setTimeout(_loadAdvFreq, 900); });
+window.addEventListener('DOMContentLoaded',()=>{
+  _renderEpTimeline(null);          // EP 타임라인 즉시 표시 (시각 기반)
+  setTimeout(_cpLoad, 600);         // 전략표 + EP 목표값 (active API)
+  setTimeout(_loadAdvFreq, 900);
+});
 
 // ★ AI 권고 빈도 — /journal/advisory 에서 환경변수별 권고 횟수 집계
 const _ADV_KO={temp_internal:'온도',humidity_int:'습도',co2_ppm:'CO₂',soil_temp:'지온',ec_dsm:'EC',vpd:'VPD',solar_rad:'일사'};

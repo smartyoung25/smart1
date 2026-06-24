@@ -80,6 +80,103 @@ def current_period_key(hour: int, periods: list | None = None) -> str:
     return "day"
 
 
+# ── 환경관리 EP1~EP6 구간 정의 ────────────────────────────────────────────────
+# 관수 P1~P6과 대칭되는 환경 Period. 기존 4구간(night/dawn/day/prenight)에
+# 매핑(period_map)되어 전략표 목표값을 재사용한다.
+ENV_PERIODS = [
+    {"id": "EP1", "label": "EP1", "name": "야간",
+     "from": 20, "to": 4,
+     "period_map": "night",
+     "icon": "🌙",
+     "desc": "HNT 야간온도 유지 · CO₂ 자연 감소 · 건조 dry-down",
+     "targets": {"temp_key": "야간 최저 유지", "vpd_guide": "0.3~0.6 kPa", "co2_guide": "자연(400~600 ppm)"}},
+    {"id": "EP2", "label": "EP2", "name": "새벽",
+     "from": 4, "to": 6,
+     "period_map": "dawn",
+     "icon": "🌅",
+     "desc": "승온 준비 · 환기 개방 시작",
+     "targets": {"temp_key": "서서히 승온", "vpd_guide": "0.4~0.7 kPa", "co2_guide": "CO₂ 공급 시작"}},
+    {"id": "EP3", "label": "EP3", "name": "오전",
+     "from": 6, "to": 12,
+     "period_map": "day",
+     "icon": "☀️",
+     "desc": "광연동 승온 실행 · CO₂ 최고 농도 유지",
+     "targets": {"temp_key": "광연동 +Δ℃", "vpd_guide": "0.8~1.2 kPa", "co2_guide": "800~1200 ppm"}},
+    {"id": "EP4", "label": "EP4", "name": "정오",
+     "from": 12, "to": 15,
+     "period_map": "day",
+     "icon": "🌤️",
+     "desc": "고일사·고온 VPD 관리 · 환기 최대",
+     "targets": {"temp_key": "VPD 상한 주의", "vpd_guide": "1.0~1.4 kPa", "co2_guide": "환기 시 자연 감소"}},
+    {"id": "EP5", "label": "EP5", "name": "오후",
+     "from": 15, "to": 18,
+     "period_map": "prenight",
+     "icon": "🌇",
+     "desc": "온도 완만 강하 · 환기 축소 · CO₂ 감량",
+     "targets": {"temp_key": "완만 강하", "vpd_guide": "0.6~1.0 kPa", "co2_guide": "서서히 감량"}},
+    {"id": "EP6", "label": "EP6", "name": "초저녁",
+     "from": 18, "to": 20,
+     "period_map": "night",
+     "icon": "🌆",
+     "desc": "야간 목표 전환 준비 · 마지막 환기",
+     "targets": {"temp_key": "야간 목표로 강하", "vpd_guide": "0.4~0.7 kPa", "co2_guide": "공급 중단"}},
+]
+
+# EP 시각 기반 동적 경계 보정 (일출·일몰 연동)
+def env_periods_for_sun(sunrise: float, sunset: float) -> list:
+    """일출·일몰로 EP 경계 동적 산출."""
+    sr = max(3.0, min(sunrise, 8.0))
+    ss = max(16.0, min(sunset, 22.0))
+    ep2_start = max(3, int(sr) - 2)
+    ep5_end   = max(int(ss) - 2, 15)
+    ep6_end   = min(int(ss), 20)
+    result = []
+    for ep in ENV_PERIODS:
+        ep = dict(ep)
+        if ep["id"] == "EP1":
+            ep["from"] = ep6_end; ep["to"] = ep2_start
+        elif ep["id"] == "EP2":
+            ep["from"] = ep2_start; ep["to"] = int(sr)
+        elif ep["id"] == "EP3":
+            ep["from"] = int(sr); ep["to"] = 12
+        elif ep["id"] == "EP5":
+            ep["from"] = 15; ep["to"] = ep5_end
+        elif ep["id"] == "EP6":
+            ep["from"] = ep5_end; ep["to"] = ep6_end
+        result.append(ep)
+    return result
+
+
+def current_env_period(hour: int, sunrise: float | None = None,
+                        sunset: float | None = None) -> dict:
+    """현재 시각 → 해당 ENV_PERIOD dict 반환."""
+    eps = env_periods_for_sun(sunrise, sunset) if (sunrise and sunset) else ENV_PERIODS
+    for ep in eps:
+        f, t = ep["from"], ep["to"]
+        if f < t:
+            if f <= hour < t:
+                return ep
+        else:
+            if hour >= f or hour < t:
+                return ep
+    return ENV_PERIODS[0]
+
+
+def ep_targets(farm_id: str, crop: str, stage_key: str, ep_id: str) -> dict:
+    """EP ID → 기존 4구간 전략표 목표값 반환."""
+    ep = next((e for e in ENV_PERIODS if e["id"] == ep_id), ENV_PERIODS[0])
+    pkey = ep["period_map"]
+    plan = load_plan(farm_id, crop)
+    segs = plan.get("segments", [])
+    seg = next((s for s in segs if s["key"] == stage_key), segs[0] if segs else {})
+    cell = (seg or {}).get("periods", {}).get(pkey, {})
+    return {
+        "ep_id": ep_id, "period_map": pkey,
+        "temp": cell.get("temp"), "rh": cell.get("rh"), "co2": cell.get("co2"),
+        "vpd": vpd(cell["temp"], cell["rh"]) if cell.get("temp") and cell.get("rh") else None,
+    }
+
+
 # ── ② 일출·일몰 기준 동적 구간 경계 (기상 API) ────────────────────────────────
 def _sun_path(lat: float, lon: float) -> Path:
     d = Path(__file__).resolve().parents[1] / "data" / "sun_times"
@@ -424,12 +521,17 @@ def active_setpoint(farm_id: str, crop: str = "딸기", hour: int | None = None,
     ti_corr = ti["correction"]
     temp_integrated = round(adj_temp + ti_corr, 1) if (adj_temp is not None and ti_corr) else adj_temp
 
+    # EP 판정 (일출·일몰 동적 보정 포함)
+    ep = current_env_period(hour, sunrise, sunset)
+
     return {
         "farm_id": farm_id, "crop": crop,
         "weeks_since_transplant": wk,
         "stage_key": skey, "stage_label": (seg or {}).get("label"),
         "period_key": pkey,
         "period_label": next((p["label"] for p in periods_used if p["key"] == pkey), pkey),
+        "ep_id": ep["id"], "ep_name": ep["name"], "ep_desc": ep["desc"],
+        "env_periods": ENV_PERIODS,
         "target": {"temp": temp, "rh": rh, "co2": co2,
                    "temp_adj": temp_integrated, "light_boost": boost,
                    "temp_base": adj_temp, "integration_corr": ti_corr,

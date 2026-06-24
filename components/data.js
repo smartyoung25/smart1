@@ -212,6 +212,51 @@ const KaasaData = (() => {
     }
   };
 
+  // ── 환경관리 EP1~EP6 Period 정의 ─────────────────────────────────────────────
+  const ENV_PERIODS = [
+    { id:'EP1', label:'EP1', name:'야간',   from:20, to:4,  periodMap:'night',
+      icon:'🌙', color:'#1D4ED8', soft:'#EFF6FF',
+      desc:'HNT 야간온도 유지 · CO₂ 자연 감소 · 건조 dry-down' },
+    { id:'EP2', label:'EP2', name:'새벽',   from:4,  to:6,  periodMap:'dawn',
+      icon:'🌅', color:'#D97706', soft:'#FFFBEB',
+      desc:'승온 준비 · 환기 개방 시작' },
+    { id:'EP3', label:'EP3', name:'오전',   from:6,  to:12, periodMap:'day',
+      icon:'☀️', color:'#059669', soft:'#ECFDF5',
+      desc:'광연동 승온 실행 · CO₂ 최고 농도 유지' },
+    { id:'EP4', label:'EP4', name:'정오',   from:12, to:15, periodMap:'day',
+      icon:'🌤️', color:'#DC2626', soft:'#FEF2F2',
+      desc:'고일사·고온 VPD 관리 · 환기 최대' },
+    { id:'EP5', label:'EP5', name:'오후',   from:15, to:18, periodMap:'prenight',
+      icon:'🌇', color:'#7C3AED', soft:'#F5F3FF',
+      desc:'온도 완만 강하 · 환기 축소 · CO₂ 감량' },
+    { id:'EP6', label:'EP6', name:'초저녁', from:18, to:20, periodMap:'night',
+      icon:'🌆', color:'#0369A1', soft:'#F0F9FF',
+      desc:'야간 목표 전환 준비 · 마지막 환기' },
+  ];
+
+  function getCurrentEnvPeriod(now, sunrise, sunset) {
+    const d  = now || new Date();
+    const hm = d.getHours() + d.getMinutes() / 60;
+    // 동적 경계 보정 (일출·일몰 제공 시)
+    const sr = (sunrise && sunset) ? Math.max(3, sunrise - 2) : null;
+    const eps = ENV_PERIODS.map(ep => {
+      if (!sr) return ep;
+      const e = Object.assign({}, ep);
+      if (ep.id === 'EP1') { e.from = Math.min(sunset, 20); e.to = sr; }
+      if (ep.id === 'EP2') { e.from = sr; e.to = Math.round(sunrise); }
+      if (ep.id === 'EP3') { e.from = Math.round(sunrise); e.to = 12; }
+      if (ep.id === 'EP5') { e.from = 15; e.to = Math.max(Math.round(sunset) - 2, 15); }
+      if (ep.id === 'EP6') { e.from = Math.max(Math.round(sunset) - 2, 15); e.to = Math.min(Math.round(sunset), 20); }
+      return e;
+    });
+    for (const ep of eps) {
+      const f = ep.from, t = ep.to;
+      if (f < t) { if (hm >= f && hm < t) return ep; }
+      else        { if (hm >= f || hm < t) return ep; }
+    }
+    return ENV_PERIODS[0];
+  }
+
   // ── 현재 Period 판별 ────────────────────────────────────────────────────────
   function getCurrentPeriod(now) {
     const d   = now || new Date();
@@ -781,6 +826,7 @@ const KaasaData = (() => {
     on, off,
     // Period
     PERIODS, getCurrentPeriod, getDrainStatus,
+    ENV_PERIODS, getCurrentEnvPeriod,
     // 프리바 관수 시작 조건·구조
     IRRIGATION_START, getStartConditions, IRRIGATION_STRUCTURE,
     // 전역 메뉴 드로어
