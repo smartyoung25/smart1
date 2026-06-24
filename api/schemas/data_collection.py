@@ -6,7 +6,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime
-from typing import Optional
+from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -37,6 +37,9 @@ class GrowthRecord(BaseModel):
 
     source: str = Field("api", description="데이터 출처 ('api' | 'iot_auto' | 'manual')")
     notes: Optional[str] = Field(None, max_length=500, description="비고")
+    expert_label: Optional[Literal["ok", "bad", "outlier"]] = Field(
+        None, description="전문가 레이블 — 'ok': 정상 / 'bad': 이상(학습 제외) / 'outlier': 이상치(주의)"
+    )
 
 
 class GrowthRecordResponse(BaseModel):
@@ -46,6 +49,14 @@ class GrowthRecordResponse(BaseModel):
     record_id: Optional[str] = None
     total_count: int = 0           # 해당 농장·작목 누적 수신 건수
     retrain_triggered: bool = False
+
+
+class ExpertLabelRequest(BaseModel):
+    """PATCH /api/data/growth/{record_id}/label — 전문가 레이블 설정."""
+    expert_label: Literal["ok", "bad", "outlier"] = Field(
+        ..., description="레이블: 'ok'=정상 / 'bad'=이상(학습 제외) / 'outlier'=이상치"
+    )
+    reason: Optional[str] = Field(None, max_length=200, description="레이블 사유 (선택)")
 
 
 # ── 수확량 실측값 ─────────────────────────────────────────────────────────────

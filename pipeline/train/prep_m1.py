@@ -1,12 +1,29 @@
-"""M1 피처 준비 – 작물별 분리 처리 (메모리 절약)"""
-import sys, gc, warnings
+"""M1 피처 준비 – 작물별 분리 처리 (메모리 절약)
+expert_label='bad' 행을 학습 전 제거하여 데이터 품질 향상.
+"""
+import sys, gc, warnings, json
 import pandas as pd, numpy as np
+from pathlib import Path
 warnings.filterwarnings("ignore")
 
 crop = sys.argv[1]
-_ROOT = __import__("pathlib").Path(__file__).parent.parent.parent  # C:\smart_farm
+_ROOT = Path(__file__).parent.parent.parent  # C:\smart_farm
 OUT  = str(_ROOT / "outputs" / "etl")
 DATA = str(_ROOT / "engine" / "data")
+
+# ── expert_label='bad' 차단 목록 로드 ──────────────────────────────────────────
+_GROWTH_JSON_DIR = _ROOT / "data" / "collected" / "growth"
+_bad_keys: set[tuple] = set()  # (farm_id, crop_ko, recorded_date)
+if _GROWTH_JSON_DIR.exists():
+    for _fp in _GROWTH_JSON_DIR.glob("*.json"):
+        try:
+            _d = json.loads(_fp.read_text(encoding="utf-8"))
+            if _d.get("expert_label") == "bad" and _d.get("crop_ko") == crop:
+                _bad_keys.add((_d["farm_id"], _d.get("recorded_date", "")[:10]))
+        except Exception:
+            pass
+if _bad_keys:
+    print(f"  expert_label='bad' 차단: {len(_bad_keys)}건")
 
 ENV_BASE = ["temp_internal_mean","temp_internal_max","temp_internal_min",
             "humidity_int_mean","co2_ppm_mean","solar_rad_mean","solar_rad_sum",
@@ -75,6 +92,16 @@ gc.collect()
 tgt_cols = [c for c in M1_TGTS if c in df.columns]
 mask = df[tgt_cols].notna().any(axis=1)
 m1 = df[mask].copy()
+
+# 7. expert_label='bad' 행 제거
+if _bad_keys:
+    bad_mask = m1.apply(
+        lambda r: (r["farm_id"], str(r["date"])[:10]) in _bad_keys, axis=1
+    )
+    n_removed = bad_mask.sum()
+    if n_removed:
+        m1 = m1[~bad_mask].copy()
+        print(f"  expert_label='bad' 제거: {n_removed}행")
 
 print(f"{crop}: 전체{len(df):,}행 → M1학습{len(m1):,}행 | 컬럼{len(m1.columns)}개")
 print(f"  target 분포: " + " | ".join(f"{c}:{m1[c].notna().sum()}" for c in tgt_cols))

@@ -26,6 +26,7 @@ from api.middleware.auth import require_auth
 from api.schemas.data_collection import (
     GrowthRecord,
     GrowthRecordResponse,
+    ExpertLabelRequest,
     HarvestRecord,
     HarvestRecordResponse,
     DataStatusResponse,
@@ -515,6 +516,106 @@ def get_growth_history(
         reverse=True,
     )
     return {"farm_id": farm_id, "records": records[:limit], "total": len(records)}
+
+
+@router.patch("/growth/{record_id}/label", summary="생육 기록 전문가 레이블 설정")
+def label_growth_record(
+    record_id: str,
+    body: ExpertLabelRequest,
+    user: dict = Depends(require_auth),
+) -> dict:
+    """전문가가 개별 생육 측정 기록에 레이블을 설정합니다.
+
+    - 'bad': M1 재학습 시 해당 행 제외
+    - 'outlier': 주의 마킹 (기본 제외 안 함, 향후 엔진 확장 가능)
+    - 'ok': 정상 (기본값)
+    - admin/manager 전용 (일반 농가 계정 불허)
+    """
+    role = (user or {}).get("role", "")
+    if role not in ("admin", "manager", "superadmin"):
+        raise HTTPException(status_code=403, detail="전문가 레이블은 admin/manager만 설정할 수 있습니다.")
+
+    # record_id 일치 JSON 파일 탐색
+    target_path: Optional[Path] = None
+    target_data: dict = {}
+    if _GROWTH_DIR.exists():
+        for fpath in _GROWTH_DIR.glob("*.json"):
+            try:
+                data = json.loads(fpath.read_text(encoding="utf-8"))
+                if data.get("id") == record_id:
+                    target_path = fpath
+                    target_data = data
+                    break
+            except Exception:
+                continue
+
+    if target_path is None:
+        raise HTTPException(status_code=404, detail=f"생육 기록을 찾을 수 없습니다: {record_id}")
+
+    prev_label = target_data.get("expert_label")
+    target_data["expert_label"] = body.expert_label
+    if body.reason:
+        target_data["expert_label_reason"] = body.reason
+    target_data["expert_labeled_at"] = datetime.now(timezone.utc).isoformat()
+    target_data["expert_labeled_by"] = user.get("username", "unknown")
+
+    target_path.write_text(json.dumps(target_data, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    logger.info(
+        "[data_collection] expert_label 설정: record=%s label=%s -> %s by=%s",
+        record_id, prev_label, body.expert_label, user.get("username"),
+    )
+    return {
+        "record_id": record_id,
+        "farm_id": target_data.get("farm_id"),
+        "crop_ko": target_data.get("crop_ko"),
+        "recorded_date": target_data.get("recorded_date"),
+        "expert_label": body.expert_label,
+        "prev_label": prev_label,
+        "message_ko": f"레이블 설정 완료: {body.expert_label}" + (f" (사유: {body.reason})" if body.reason else ""),
+    }
+
+
+@router.get("/growth/labels", summary="전문가 레이블 현황 조회")
+def get_label_summary(
+    crop_ko: Optional[str] = Query(None, description="작목 필터 (없으면 전체)"),
+    user: dict = Depends(require_auth),
+) -> dict:
+    """전문가 레이블이 설정된 생육 기록 현황을 반환합니다. admin/manager 전용."""
+    role = (user or {}).get("role", "")
+    if role not in ("admin", "manager", "superadmin"):
+        raise HTTPException(status_code=403, detail="admin/manager만 조회할 수 있습니다.")
+
+    summary: dict[str, dict] = {}  # crop -> {ok, bad, outlier, unlabeled}
+    labeled_records: list[dict] = []
+
+    if _GROWTH_DIR.exists():
+        for fpath in _GROWTH_DIR.glob("*.json"):
+            try:
+                data = json.loads(fpath.read_text(encoding="utf-8"))
+            except Exception:
+                continue
+            crop = data.get("crop_ko", "unknown")
+            if crop_ko and crop != crop_ko:
+                continue
+            lbl = data.get("expert_label") or "unlabeled"
+            if crop not in summary:
+                summary[crop] = {"ok": 0, "bad": 0, "outlier": 0, "unlabeled": 0}
+            summary[crop][lbl] = summary[crop].get(lbl, 0) + 1
+            if lbl != "unlabeled":
+                labeled_records.append({
+                    "id": data.get("id"),
+                    "farm_id": data.get("farm_id"),
+                    "crop_ko": crop,
+                    "recorded_date": data.get("recorded_date"),
+                    "expert_label": lbl,
+                    "expert_label_reason": data.get("expert_label_reason"),
+                    "expert_labeled_by": data.get("expert_labeled_by"),
+                    "expert_labeled_at": data.get("expert_labeled_at"),
+                })
+
+    labeled_records.sort(key=lambda r: r.get("expert_labeled_at") or "", reverse=True)
+    return {"summary": summary, "labeled": labeled_records, "total_labeled": len(labeled_records)}
 
 
 @router.get("/harvest", summary="수확량 기록 이력 조회")
