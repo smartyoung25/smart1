@@ -17,3 +17,51 @@ api/data/telemetry/
 out/*.pptx
 out/*.docx
 out/*.xlsx
+출력/
+out/
+
+# 로컬 DB
+*.db
+*.db-journal
+smartfarm.db
+smartfarm_dev.db
+
+# 빌드·캐시
+outputs/etl/
+outputs/
+.cache/
+.coverage*
+.coveragerc
+node_modules/
+frontend/node_modules/
+env/
+
+# 임시 파일
+tmp_*.py
+tmp_*.png
+tmp_*.jpg
+check_ids.py
+cols_check.txt
+pdf_extract*.txt
+
+# 백업·아카이브
+backups/
+_backup_*/
+_docx_extract/
+*.zip
+
+# 도구 메타
+.mcp.json
+.codex/
+.code-review-graph/
+.superpowers/
+logs/
+
+# 오피스 파일 (루트)
+*.docx
+*.xlsx
+*.pptx
+
+# 기초자료 폴더
+기초자료/
+기초자료.zip

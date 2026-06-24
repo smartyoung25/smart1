@@ -1,0 +1,26 @@
+{
+  "user_id": 76,
+  "farm_id": "farm_ch60pg",
+  "farm_name": "논산햇살농장",
+  "crop_ko": "딸기",
+  "facility_type": "연동온실",
+  "area_m2": null,
+  "cultivation_method": "배지경",
+  "cultivation_detail": "펄라이트",
+  "irrigation_method": "",
+  "region": "충청남도 논산시",
+  "sido": "충청남도",
+  "sigungu": "논산시",
+  "emd": "ㅇㅇㅇ",
+  "address_detail": "",
+  "season_start": "2026-06-19",
+  "season_end": "2026-06-19",
+  "growing_year": 1,
+  "pain_points": [
+    "수확량 증대"
+  ],
+  "kpi_yield_kg": null,
+  "kpi_revenue_wan": null,
+  "kpi_energy_save": null,
+  "kpi_drain_rate": null
+}

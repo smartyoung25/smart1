@@ -1,7 +1,7 @@
 {
   "farm_id": "farm_001",
-  "updated_at": "2026-06-18",
+  "updated_at": "2026-06-21",
   "i_action_lm2": 0.0,
   "drain_actual_pct_last": null,
-  "drain_target_pct": 22.0
+  "drain_target_pct": 22.5
 }

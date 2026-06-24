@@ -1,0 +1,21 @@
+{
+  "id": "6722a243-717c-47cb-a55a-6b7ffff31276",
+  "farm_id": "farm_002",
+  "crop_ko": "방울토마토",
+  "recorded_date": "2026-03-20",
+  "recorded_at": "2026-05-28T02:52:29.958704+00:00",
+  "source": "api",
+  "temp_internal": null,
+  "humidity_int": null,
+  "co2_ppm": null,
+  "solar_rad": null,
+  "ec_dsm": null,
+  "soil_temp": null,
+  "vpd_kpa": null,
+  "plant_height_cm": null,
+  "leaf_count": null,
+  "fruit_count": null,
+  "stem_diameter_mm": null,
+  "chlorophyll_spad": null,
+  "notes": null
+}

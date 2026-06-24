@@ -1,0 +1,26 @@
+{
+  "user_id": 75,
+  "farm_id": "farm_0pqxq3",
+  "farm_name": "논산햇살농장",
+  "crop_ko": "방울토마토",
+  "facility_type": "연동온실",
+  "area_m2": null,
+  "cultivation_method": "배지경",
+  "cultivation_detail": "코코피트",
+  "irrigation_method": "",
+  "region": "충청북도 음성군",
+  "sido": "충청북도",
+  "sigungu": "음성군",
+  "emd": "ㅇㅇ",
+  "address_detail": "",
+  "season_start": "2026-06-24",
+  "season_end": "",
+  "growing_year": 1,
+  "pain_points": [
+    "인건비 절감"
+  ],
+  "kpi_yield_kg": null,
+  "kpi_revenue_wan": null,
+  "kpi_energy_save": null,
+  "kpi_drain_rate": null
+}

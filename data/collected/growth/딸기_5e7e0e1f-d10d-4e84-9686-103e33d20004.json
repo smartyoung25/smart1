@@ -1,0 +1,21 @@
+{
+  "id": "5e7e0e1f-d10d-4e84-9686-103e33d20004",
+  "farm_id": "farm_001",
+  "crop_ko": "딸기",
+  "recorded_date": "2026-03-15",
+  "recorded_at": "2026-05-28T05:26:46.044309+00:00",
+  "source": "iot_auto",
+  "temp_internal": 22.5,
+  "humidity_int": 75.0,
+  "co2_ppm": 800.0,
+  "solar_rad": 350.0,
+  "ec_dsm": null,
+  "soil_temp": null,
+  "vpd_kpa": 0.6814,
+  "plant_height_cm": 25.0,
+  "leaf_count": 12,
+  "fruit_count": null,
+  "stem_diameter_mm": null,
+  "chlorophyll_spad": null,
+  "notes": null
+}
