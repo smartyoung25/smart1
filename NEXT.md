@@ -28,8 +28,11 @@ ERA5 v4b 시도 완료 (gate 미달, v4 유지). 알고리즘 개선 한계 → 
 ## 다음 작업 (우선순위 순)
 
 ### 즉시 (알고리즘·시스템 개선)
-- [ ] expert_label 필드 growth JSON 추가 → M1 학습 데이터 품질 향상 채널 구축
-  (전문가가 이상 성장 데이터 마킹 → 학습 시 제외하여 M1 R² 향상)
+- [x] expert_label 인프라 구축 완료 (63bb711)
+  - PATCH /api/data/growth/{id}/label (admin/manager 전용)
+  - GET  /api/data/growth/labels (레이블 현황)
+  - prep_m1.py: bad 행 자동 필터링 (M1 재학습 시 적용)
+  - 다음 M1 재학습 전 admin이 이상 생육 기록 'bad' 마킹 권장
 - [ ] 2022+ 실수확 데이터 확보 시 → 딸기/완숙/방울 M2 재학습 (분포 이동 근본 해결)
 
 ### 단기
