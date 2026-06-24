@@ -416,7 +416,8 @@ async function _ensureToken() {
 function _hdr() { return {Authorization:`Bearer ${_token}`, 'Content-Type':'application/json'}; }
 function _apiFetch(path) {
   const base = _api || sessionStorage.getItem('sf_api') || location.origin;
-  return fetch(`${base}/api/farms/${_farmId}${path}`, {headers: _hdr()}).then(r => r.json());
+  return fetch(`${base}/api/farms/${_farmId}${path}`, {headers: _hdr()})
+    .then(r => { if (!r.ok) throw new Error(`${path} ${r.status}`); return r.json(); });
 }
 function _scoreClass(score) {
   if (score >= 70) return 'ok';
@@ -444,6 +445,10 @@ window.addEventListener('DOMContentLoaded', () => {
 function onFarmChange(id) { sessionStorage.setItem('sf_farm_id', id); location.reload(); }
 
 async function _loadAll() {
+  if (!_token) {
+    document.getElementById('seasonCrop').textContent = '인증 필요 — 재로그인';
+    return;
+  }
   try {
     const [summary, weekly, thresholds, consult] = await Promise.all([
       _apiFetch('/pdca/summary'),
@@ -460,7 +465,13 @@ async function _loadAll() {
     _renderDailyEp(summary.daily);
     _renderActSuggestions(summary.daily);
   } catch(e) {
-    document.getElementById('seasonCrop').textContent = '데이터 로드 실패';
+    const errHtml = '<span style="color:var(--warn)">데이터 로드 실패</span>';
+    ['seasonCrop','consultPanel','stepPlan','stepDo','stepCheck','stepAct'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = errHtml;
+    });
+    const wk = document.getElementById('pdcaWeeks');
+    if (wk) wk.innerHTML = '<div class="empty-pdca">데이터를 불러올 수 없습니다</div>';
     console.error('PDCA 로드 실패:', e);
   }
 }
