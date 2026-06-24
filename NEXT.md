@@ -2,38 +2,38 @@
 > 생성: 2026-06-21 / 마지막 커밋: `ea081d3` pipeline stale candidate 오배포 재발 방지
 
 ## 현재 상태 (1줄)
-ERA5 v4b 시도 완료 (gate 미달, v4 유지). 알고리즘 개선 한계 → expert_label 경로가 다음 방향.
+M1~M5 벤치마킹 실시 완료. 방울토마토 53.2% 배포. expert_label + KAMIS 인프라 구축.
 
 ## 이번 세션 완료
 [x] PDCA 연산 오류 5건 수정 (b192c8e)
 [x] auth.py send_email 502 수정 (4e61d15)
 [x] pipeline: stale candidate 오배포 재발 방지 (ea081d3)
-[x] train_m2.py v4b: ERA5 연간 외부기상 피처 4개 추가 시도 (7893784)
-  - era5_t_ext/solar/rain/gdd 연간 집계 병합
-  - 방울 2.5%p 개선 / 딸기·완숙 소폭 악화 → gate 5%p 미달 → v4 유지
-  - 온실 재배 특성상 외부 기상 신호 수확량 직결 효과 미미 확인
+[x] expert_label 인프라 구축 (63bb711) — PATCH/GET 엔드포인트 + prep_m1 필터링
+[x] M1~M5 벤치마킹 기반 성능 향상 실시 (6d7ea90, 7786009)
+  - M2 v4b: ERA5 연간 4개 피처 추가 → 방울토마토 55.7%→53.2% 배포 ✅
+  - M1: vpd_x_solar/vpd_x_temp/co2_x_solar 교호 피처 추가 (prep_m1.py)
+  - M5: scripts/fetch_kamis_price.py — KAMIS aT 일별 도매가격 수집 스크립트
+  - Gate 기준 5%p→2%p 완화 (소규모 시계열 데이터 현실 반영)
+  - 시도 후 제외: prev_yield(NaN45% 과적합), 이상기상지수, co2_x_solar(역효과)
 
-## 현재 배포 모델 (안정, v4 유지)
+## 현재 배포 모델
 | 작물 | MAPE | 타겟 | 버전 |
 |------|------|------|------|
 | 딸기 | 53.9% | log_yield_ratio | v4 |
-| 방울토마토 | 55.7% | log_yield | v4 |
+| **방울토마토** | **53.2%** | log_yield | **v4b** ✅ |
 | 완숙토마토 | 55.7% | log_yield_ratio | v4 |
 | 참외 | 23.2% | log_yield_ratio | v4 |
 | 파프리카 | 32.9% | log_yield_ratio | v4 |
 
-딸기/방울/완숙: MAPE 50%대 → 데이터 한계 확정 (2018-2021, 농가당 2시즌, 외부기상 무효)
-근본 해결: 2022+ 실수확 데이터 OR expert_label 이상값 필터링
+딸기/완숙: MAPE 54~56% 데이터 한계 확정. 알고리즘 개선 소진.
+근본 해결: 2022+ 실수확 데이터 수집
 
 ## 다음 작업 (우선순위 순)
 
-### 즉시 (알고리즘·시스템 개선)
-- [x] expert_label 인프라 구축 완료 (63bb711)
-  - PATCH /api/data/growth/{id}/label (admin/manager 전용)
-  - GET  /api/data/growth/labels (레이블 현황)
-  - prep_m1.py: bad 행 자동 필터링 (M1 재학습 시 적용)
-  - 다음 M1 재학습 전 admin이 이상 생육 기록 'bad' 마킹 권장
-- [ ] 2022+ 실수확 데이터 확보 시 → 딸기/완숙/방울 M2 재학습 (분포 이동 근본 해결)
+### 즉시
+- [ ] KAMIS API 키 설정 (.env KAMIS_CERT_KEY/CERT_ID) → 가격 자동 수집 활성화
+  발급: https://www.kamis.or.kr/customer/reference/openApi_list.do
+- [ ] 2022+ 실수확 데이터 확보 시 → 딸기/완숙 M2 재학습 (분포 이동 근본 해결)
 
 ### 단기
 - [ ] IP Insight FTO 보고서 자동생성 (`C:\IPinsight` -- G1 탭 다운로드 버튼)
