@@ -1,7 +1,7 @@
 {
   "crop": "파프리카",
   "crop_en": "paprika",
-  "version": "v4_optuna",
+  "version": "v4b_era5",
   "target": "log_yield_ratio",
   "feat_cols": [
     "year",
@@ -41,22 +41,26 @@
     "log_area",
     "gdd_per_day",
     "cold_day_frac",
-    "heat_stress_frac"
+    "heat_stress_frac",
+    "era5_t_ext",
+    "era5_solar",
+    "era5_rain",
+    "era5_gdd"
   ],
-  "mape": 32.91,
-  "train_r2": 0.8852,
+  "mape": 33.53,
+  "train_r2": 0.9456,
   "gate_pass": false,
   "n_season": 134,
   "best_params": {
     "model_type": "ensemble",
-    "max_depth": 3,
-    "learning_rate": 0.04334012101116891,
-    "n_estimators": 86,
-    "subsample": 0.6041608514356871,
-    "colsample_bytree": 0.950282411405463,
-    "reg_alpha": 0.06072965254047036,
-    "reg_lambda": 0.21520371944406916,
-    "min_child_weight": 14
+    "max_depth": 6,
+    "learning_rate": 0.07121513088488199,
+    "n_estimators": 162,
+    "subsample": 0.9940568042495767,
+    "colsample_bytree": 0.7973449279404845,
+    "reg_alpha": 0.14015527759670643,
+    "reg_lambda": 3.3471835209004017,
+    "min_child_weight": 20
   },
   "model_type": "ensemble",
   "n_trials": 60

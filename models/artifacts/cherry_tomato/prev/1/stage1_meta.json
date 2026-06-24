@@ -1,0 +1,32 @@
+{
+  "crop_ko": "방울토마토",
+  "crop_en": "cherry_tomato",
+  "stage": 1,
+  "model_type": "ridge_stage1",
+  "feature_count": 48,
+  "target_cols": [
+    "growth_초장",
+    "growth_생장길이",
+    "growth_엽수",
+    "growth_엽장",
+    "growth_엽폭",
+    "growth_줄기굵기",
+    "growth_화방별꽃수",
+    "growth_화방별개화수",
+    "growth_화방별착과수"
+  ],
+  "n_train": 1005,
+  "cv_r2_mean": -0.174,
+  "cv_r2_std": 0.27,
+  "cv_r2_min": -0.64,
+  "fold_scores": [
+    -0.054,
+    0.003,
+    -0.64,
+    -0.005
+  ],
+  "train_rmse": 38.211,
+  "train_mae": 13.244,
+  "gate_passed": true,
+  "env_to_growth_lag": 2
+}

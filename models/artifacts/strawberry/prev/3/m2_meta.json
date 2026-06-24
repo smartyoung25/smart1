@@ -1,7 +1,6 @@
 {
   "crop": "딸기",
   "crop_en": "strawberry",
-  "version": "v4_optuna",
   "target": "log_yield_ratio",
   "feat_cols": [
     "year",
@@ -25,39 +24,16 @@
     "gdd_cumsum_std",
     "gdd_max",
     "days",
-    "gdd_recomputed",
-    "cold_day_count",
-    "heat_stress_days",
-    "temp_std_daily",
-    "temp_range_mean",
-    "solar_rad_cumsum",
-    "co2_ppm_std",
     "ship_days",
     "plant_area_m2",
     "farm_yield_mean",
     "farm_yield_std",
     "farm_n",
     "season_num",
-    "log_area",
-    "gdd_per_day",
-    "cold_day_frac",
-    "heat_stress_frac"
+    "log_area"
   ],
-  "mape": 53.93,
-  "train_r2": 0.9138,
+  "mape": 57.6,
+  "train_r2": 0.8322,
   "gate_pass": false,
-  "n_season": 290,
-  "best_params": {
-    "model_type": "lgb",
-    "max_depth": 6,
-    "learning_rate": 0.1821767059797949,
-    "n_estimators": 43,
-    "subsample": 0.5172456150709002,
-    "colsample_bytree": 0.8263406001124906,
-    "reg_alpha": 0.012158522578222555,
-    "reg_lambda": 6.132579935813959,
-    "min_child_weight": 24
-  },
-  "model_type": "lgb",
-  "n_trials": 60
+  "n_season": 290
 }

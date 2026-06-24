@@ -1,7 +1,6 @@
 {
   "crop": "방울토마토",
   "crop_en": "cherry_tomato",
-  "version": "v4_optuna",
   "target": "log_yield",
   "feat_cols": [
     "year",
@@ -25,39 +24,16 @@
     "gdd_cumsum_std",
     "gdd_max",
     "days",
-    "gdd_recomputed",
-    "cold_day_count",
-    "heat_stress_days",
-    "temp_std_daily",
-    "temp_range_mean",
-    "solar_rad_cumsum",
-    "co2_ppm_std",
     "ship_days",
     "plant_area_m2",
     "farm_yield_mean",
     "farm_yield_std",
     "farm_n",
     "season_num",
-    "log_area",
-    "gdd_per_day",
-    "cold_day_frac",
-    "heat_stress_frac"
+    "log_area"
   ],
-  "mape": 55.73,
-  "train_r2": 0.9922,
+  "mape": 73.41,
+  "train_r2": 0.8341,
   "gate_pass": false,
-  "n_season": 116,
-  "best_params": {
-    "model_type": "xgb",
-    "max_depth": 2,
-    "learning_rate": 0.16975207340901316,
-    "n_estimators": 197,
-    "subsample": 0.929244550091643,
-    "colsample_bytree": 0.6467820174609593,
-    "reg_alpha": 0.0261899051139388,
-    "reg_lambda": 0.36895195759559474,
-    "min_child_weight": 11
-  },
-  "model_type": "xgb",
-  "n_trials": 60
+  "n_season": 116
 }
