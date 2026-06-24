@@ -1,8 +1,8 @@
 # NEXT — 다음 세션 시작점
-> 생성: 2026-06-21 / 마지막 커밋: `3d51073` c25_pdca 로드 중 고착 수정
+> 생성: 2026-06-21 / 마지막 커밋: `ae2bd60` KAMIS 가격 수집 + 수확 기록
 
 ## 현재 상태 (1줄)
-M2 v4c leakage 수정 완료. PDCA 화면 로딩 버그 수정. SW 캐시 v65.
+KAMIS 가격 수집 완료(5종/매일 실행 누적). 딸기는 비수기(6월) 거래 없음 — 12월 이후 자동 수집.
 
 ## 이번 세션 완료
 [x] 운영 데이터 동기화 + gitignore 보강 (fc8a489)
@@ -34,8 +34,6 @@ M2 v4c leakage 수정 완료. PDCA 화면 로딩 버그 수정. SW 캐시 v65.
 ## 다음 작업 (우선순위 순)
 
 ### 사용자 액션 필요 (Claude 불가)
-- **KAMIS API 키** `.env` `KAMIS_CERT_KEY` / `KAMIS_CERT_ID` 설정
-  발급: https://www.kamis.or.kr/customer/reference/openApi_list.do
 - **2022+ 실수확 데이터** 확보 → 딸기/완숙 M2 재학습 (근본 해결)
 - Let's Encrypt 인증서 교체 (서버 관리자 권한)
 - `.env` SMTP_USER/SMTP_PASSWORD/CoolSMS/Slack Webhook 설정
@@ -43,6 +41,8 @@ M2 v4c leakage 수정 완료. PDCA 화면 로딩 버그 수정. SW 캐시 v65.
 ### 단기 (Claude 수행 가능)
 - [ ] IP Insight G1 탭 — FTO 보고서 자동생성 다운로드 버튼
 - [ ] IP Insight G6 — 가치평가 DCF 슬라이더 + Plotly 차트
+- [ ] KAMIS 가격 수집 자동화 — Windows 작업 스케줄러 등록 (매일 06:00)
+  `python scripts/fetch_kamis_price.py --all`
 
 ## 서버 실행
 ```powershell
