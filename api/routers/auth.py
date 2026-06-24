@@ -398,9 +398,13 @@ async def password_forgot(req: PasswordForgotRequest):
 
     resp = dict(generic)
     if not ok:
-        # 이메일 서버 미설정(데모) — 정직하게 재설정 링크를 직접 반환
-        resp["demo_reset_link"] = link
-        resp["note"] = "이메일 서버 미설정(데모): 위 링크로 직접 재설정하세요. (운영 시 SMTP_* 환경변수 주입하면 자동 메일 발송)"
+        if not mailer.is_configured():
+            # 데모 모드: SMTP 미설정 → 링크 직접 반환 (운영 전 안내)
+            resp["demo_reset_link"] = link
+            resp["note"] = "이메일 서버 미설정(데모): 위 링크로 직접 재설정하세요. (운영 시 SMTP_* 환경변수 주입하면 자동 메일 발송)"
+        else:
+            # SMTP 설정됐지만 발송 실패 → 502 (클라이언트에게 명확한 오류 전달)
+            raise HTTPException(status_code=502, detail=f"이메일 발송에 실패했습니다. 잠시 후 다시 시도하세요. ({_msg})")
     return resp
 
 
