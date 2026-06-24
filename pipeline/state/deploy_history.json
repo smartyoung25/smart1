@@ -340,5 +340,65 @@
     "candidate_mtime": {
       "m2_meta.json": "2026-06-24T18:53:56.013870"
     }
+  },
+  {
+    "timestamp": "2026-06-24T21:31:06.983070",
+    "crop": "딸기",
+    "decision": "force_baseline_v4c",
+    "reason": "leakage 수정 후 기준선 재설정: 53.9%→102.4%",
+    "old_metrics": {
+      "m2_mape": 53.93
+    },
+    "new_metrics": {
+      "m2_mape": 102.41
+    }
+  },
+  {
+    "timestamp": "2026-06-24T21:31:07.098778",
+    "crop": "방울토마토",
+    "decision": "force_baseline_v4c",
+    "reason": "leakage 수정 후 기준선 재설정: 53.2%→70.6%",
+    "old_metrics": {
+      "m2_mape": 53.21
+    },
+    "new_metrics": {
+      "m2_mape": 70.59
+    }
+  },
+  {
+    "timestamp": "2026-06-24T21:31:07.181753",
+    "crop": "완숙토마토",
+    "decision": "force_baseline_v4c",
+    "reason": "leakage 수정 후 기준선 재설정: 55.7%→137.5%",
+    "old_metrics": {
+      "m2_mape": 55.72
+    },
+    "new_metrics": {
+      "m2_mape": 137.54
+    }
+  },
+  {
+    "timestamp": "2026-06-24T21:31:07.270147",
+    "crop": "참외",
+    "decision": "force_baseline_v4c",
+    "reason": "leakage 수정 후 기준선 재설정: 23.2%→27.3%",
+    "old_metrics": {
+      "m2_mape": 23.24
+    },
+    "new_metrics": {
+      "m2_mape": 27.28
+    }
+  },
+  {
+    "timestamp": "2026-06-24T21:31:07.371201",
+    "crop": "파프리카",
+    "decision": "force_baseline_v4c",
+    "reason": "leakage 수정 후 기준선 재설정: 32.9%→68.6%",
+    "old_metrics": {
+      "m2_mape": 32.91
+    },
+    "new_metrics": {
+      "m2_mape": 68.63
+    }
   }
 ]

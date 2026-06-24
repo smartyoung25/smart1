@@ -1,10 +1,12 @@
-"""M2 v4b - Optuna + ERA5 연간 외부기상 피처 추가.
+"""M2 v4c - farm_yield_mean CV leakage 수정 + 상관 피처 자동 제거.
 
-v4 대비 변경:
-  - api/data/real/era5_{crop_en}_monthly.json 읽어 연간 집계 피처 4개 추가
-    era5_t_ext (연평균 외기온), era5_solar (연평균 일사),
-    era5_rain (연 강수 합계), era5_gdd (연 생육도일 합계)
-  - 연간 기후 변동 신호 부재가 딸기/완숙/방울 MAPE 55%대의 주요 원인
+v4b 대비 변경:
+  [버그수정] farm_yield_mean을 전체 데이터 기준(full-data) → expanding window
+    (이전 시즌 누적 평균)으로 교체. CV 검증 세트의 미래 수확량 leakage 제거.
+  [버그수정] _quick_mape / objective CV 루프에서 va["farm_yield_mean"]을
+    훈련 데이터 기준 평균으로 재계산 (역산 시 leakage 방지).
+  [개선] 상관도 |r| > 0.95 피처 자동 제거 — 42개 → ~25~30개 수준.
+    gdd_recomputed vs gdd_cumsum 계열, cold_day_count vs cold_day_frac 등 제거.
 
 [방어 코드] candidate/ 디렉토리를 쓰기 전 완전 삭제 후 재생성.
 """
@@ -134,9 +136,25 @@ if len(df) < 10:
 lo, hi = df["yield_kg"].quantile([0.02,0.98])
 df = df[(df["yield_kg"]>=lo) & (df["yield_kg"]<=hi)].copy()
 
-farm_hist = df.groupby("farm_id")["yield_kg"].agg(
-    farm_yield_mean="mean", farm_yield_std="std", farm_n="count").reset_index()
-df = df.merge(farm_hist, on="farm_id", how="left")
+# farm_yield_mean: expanding window (이전 시즌 누적 평균만 사용, CV leakage 방지)
+# 전체 평균 기반 full-data 버전은 추론 시 farm_mean_map으로만 사용
+_global_mean = df["yield_kg"].mean()
+df = df.sort_values(["farm_id", "year"]).copy()
+df["farm_yield_mean"] = (
+    df.groupby("farm_id")["yield_kg"]
+      .transform(lambda x: x.expanding().mean().shift(1))
+      .fillna(_global_mean)
+)
+df["farm_yield_std"] = (
+    df.groupby("farm_id")["yield_kg"]
+      .transform(lambda x: x.expanding().std().shift(1))
+      .fillna(0.0)
+)
+df["farm_n"] = (
+    df.groupby("farm_id")["yield_kg"]
+      .transform(lambda x: x.expanding().count().shift(1))
+      .fillna(0)
+)
 df["yield_ratio"]      = df["yield_kg"] / df["farm_yield_mean"].clip(lower=1)
 df["log_yield"]        = np.log1p(df["yield_kg"])
 df["log_yield_ratio"]  = np.log1p(df["yield_ratio"])
@@ -164,9 +182,22 @@ else:
 
 EXCL = ["farm_id","crop","season","yield_kg","revenue_krw",
         "log_yield","log_yield_ratio","yield_ratio"]
-FEAT = [c for c in df.columns if c not in EXCL
-        and df[c].dtype in [np.float64,np.float32,np.int64,np.int32]]
-print(f"  시즌 {len(df)} | 농가 {df['farm_id'].nunique()} | 피처 {len(FEAT)}")
+FEAT_ALL = [c for c in df.columns if c not in EXCL
+            and df[c].dtype in [np.float64,np.float32,np.int64,np.int32]]
+
+# 상관 피처 자동 제거: |r| > 0.95인 쌍에서 후순위 제거 (과적합 방지)
+_corr = df[FEAT_ALL].corr().abs()
+_drop = set()
+for i, ci in enumerate(FEAT_ALL):
+    if ci in _drop: continue
+    for cj in FEAT_ALL[i+1:]:
+        if cj in _drop: continue
+        if _corr.loc[ci, cj] > 0.95:
+            _drop.add(cj)
+FEAT = [c for c in FEAT_ALL if c not in _drop]
+if _drop:
+    print(f"  상관 피처 제거 ({len(_drop)}개): {sorted(_drop)}")
+print(f"  시즌 {len(df)} | 농가 {df['farm_id'].nunique()} | 피처 {len(FEAT_ALL)}→{len(FEAT)}")
 
 years = sorted(df["year"].unique())
 
@@ -174,15 +205,20 @@ years = sorted(df["year"].unique())
 def _quick_mape(tgt_key, params):
     mapes = []
     for i in range(2, len(years)):
-        tr = df[df["year"].isin(years[:i])]
-        va = df[df["year"]==years[i]]
+        tr = df[df["year"].isin(years[:i])].copy()
+        va = df[df["year"]==years[i]].copy()
         if len(va) < 3: continue
+        _tr_farm_mean = tr.groupby("farm_id")["yield_kg"].mean()
+        _glob = tr["yield_kg"].mean()
+        if "farm_yield_mean" in FEAT:
+            va["farm_yield_mean"] = va["farm_id"].map(_tr_farm_mean).fillna(_glob).values
+        _va_mean_cv = va["farm_id"].map(_tr_farm_mean).fillna(_glob).values
         med = tr[FEAT].median()
         m = xgb.XGBRegressor(**params, verbosity=0, n_jobs=2)
         m.fit(tr[FEAT].fillna(med), tr[tgt_key].values)
         pred_log = m.predict(va[FEAT].fillna(med))
         if tgt_key == "log_yield_ratio":
-            pred_kg = np.expm1(pred_log) * va["farm_yield_mean"].values
+            pred_kg = np.expm1(pred_log) * _va_mean_cv
         else:
             pred_kg = np.expm1(np.maximum(pred_log,0))
         mapes.append(mean_absolute_percentage_error(va["yield_kg"].values, np.maximum(pred_kg,1))*100)
@@ -209,13 +245,26 @@ def objective(trial):
 
     mapes = []
     for i in range(2, len(years)):
-        tr = df[df["year"].isin(years[:i])]
-        va = df[df["year"]==years[i]]
+        tr = df[df["year"].isin(years[:i])].copy()
+        va = df[df["year"]==years[i]].copy()
         if len(va) < 3: continue
+
+        # farm_yield_mean: 훈련 데이터 기준으로 재계산 (CV leakage 방지)
+        _tr_farm_mean = tr.groupby("farm_id")["yield_kg"].mean()
+        _glob = tr["yield_kg"].mean()
+        if "farm_yield_mean" in FEAT:
+            fi = FEAT.index("farm_yield_mean")
+            _va_fm = va["farm_id"].map(_tr_farm_mean).fillna(_glob).values
+            va = va.copy()
+            va["farm_yield_mean"] = _va_fm
+
         med = tr[FEAT].median()
         Xtr = tr[FEAT].fillna(med).values
         ytr = tr[best_tgt].values
         Xva = va[FEAT].fillna(med).values
+
+        # CV 역산용 farm_yield_mean (훈련 기준)
+        _va_mean_cv = va["farm_id"].map(_tr_farm_mean).fillna(_glob).values
 
         if model_type in ("xgb", "ensemble"):
             xm = xgb.XGBRegressor(
@@ -243,7 +292,7 @@ def objective(trial):
         else:                     pred_log = 0.5*pred_x + 0.5*pred_l
 
         if best_tgt == "log_yield_ratio":
-            pred_kg = np.expm1(pred_log) * va["farm_yield_mean"].values
+            pred_kg = np.expm1(pred_log) * _va_mean_cv
         else:
             pred_kg = np.expm1(np.maximum(pred_log,0))
         mapes.append(mean_absolute_percentage_error(va["yield_kg"].values, np.maximum(pred_kg,1))*100)
@@ -294,7 +343,7 @@ pkg = {"xgb": xm_f, "lgb": lm_f,
        "farm_yield_mean": farm_mean_map,
        "best_params": best, "model_type": model_type}
 meta = {"crop": crop, "crop_en": CROP_DIR.get(crop,crop),
-        "version": "v4b_era5",
+        "version": "v4c_leak_fix",
         "target": best_tgt, "feat_cols": FEAT,
         "mape": round(best_cv_mape,2), "train_r2": round(tr_r2_final,4),
         "gate_pass": bool(best_cv_mape<=25), "n_season": int(len(df)),

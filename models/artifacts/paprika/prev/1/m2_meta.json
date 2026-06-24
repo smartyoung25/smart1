@@ -43,21 +43,21 @@
     "cold_day_frac",
     "heat_stress_frac"
   ],
-  "mape": 36.47,
-  "train_r2": 0.8703,
+  "mape": 32.91,
+  "train_r2": 0.8852,
   "gate_pass": false,
-  "n_season": 140,
+  "n_season": 134,
   "best_params": {
-    "model_type": "xgb",
+    "model_type": "ensemble",
     "max_depth": 3,
-    "learning_rate": 0.08052672853613183,
-    "n_estimators": 78,
-    "subsample": 0.5710081321139735,
-    "colsample_bytree": 0.7962328976384846,
-    "reg_alpha": 0.02414628305110745,
-    "reg_lambda": 5.440231833453994,
+    "learning_rate": 0.04334012101116891,
+    "n_estimators": 86,
+    "subsample": 0.6041608514356871,
+    "colsample_bytree": 0.950282411405463,
+    "reg_alpha": 0.06072965254047036,
+    "reg_lambda": 0.21520371944406916,
     "min_child_weight": 14
   },
-  "model_type": "xgb",
+  "model_type": "ensemble",
   "n_trials": 60
 }
