@@ -4252,13 +4252,15 @@ def get_pdca_summary(farm_id: str):
     meta = _FARM_META.get(farm_id, {}) or {}
     crop = meta.get("crop_ko") or meta.get("crop") or "딸기"
     td = meta.get("transplant_date")
+    season = _pdca.pdca_season(farm_id)
     return {
         "farm_id": farm_id,
         "crop": crop,
         "transplant_date": td,
-        "effectiveness":    _pdca.calc_effectiveness(farm_id, crop, td),
-        "efficiency":       _pdca.calc_efficiency(farm_id),
-        "growth_potential": _pdca.calc_growth_potential(farm_id, crop),
+        "effectiveness":    season["effectiveness"],
+        "efficiency":       season["efficiency"],
+        "growth_potential": season["growth_potential"],
+        "season":           season,
         "daily":            _pdca.pdca_daily(farm_id),
     }
 

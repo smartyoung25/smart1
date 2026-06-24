@@ -1,4 +1,4 @@
-"""PDCA 경영관리 엔진 — 적기적작 효과성·효율성·성장가능성 3대 지수
+﻿"""PDCA 경영관리 엔진 — 적기적작 효과성·효율성·성장가능성 3대 지수
 
 계산 체계:
   효과성   = (수량 진척률) × (EP 환경 준수율)          0.0~1.0
@@ -420,7 +420,7 @@ def pdca_weekly(farm_id: str, week_offset: int = 0) -> Dict:
             "effectiveness": eff,
             "efficiency": effi,
             "growth_potential": gp,
-            "overall_score": round((eff["score"] + effi["score"] + gp["score"] / 100) / 3, 3),
+            "overall_score": round((eff["score"] + effi["score"] + gp["score"]) / 3, 3),
         },
         "act": _weekly_act(eff, effi, gp),
     }
@@ -432,7 +432,7 @@ def _weekly_act(eff: Dict, effi: Dict, gp: Dict) -> Dict:
         actions.append("효과성 부족 — EP 준수율 점검, 전략표 온도·VPD 목표 재검토")
     if effi["score"] < 0.5:
         actions.append("효율성 저하 — 에너지·노동 비용 항목 점검, 최적 작업 시간대 재배치")
-    if gp["score"] < 50:
+    if gp["score"] < 0.5:
         actions.append("성장가능성 하락 — 드리프트 경보 작목 재학습 또는 폴백 모델 확인")
     if not actions:
         actions.append("전체 지수 양호 — 다음 주 EP5·EP6 건조 dry-back 목표 강화")
@@ -464,7 +464,7 @@ def pdca_season(farm_id: str) -> Dict:
         "effectiveness": eff,
         "efficiency": effi,
         "growth_potential": gp,
-        "overall_grade": _overall_grade(eff["score"], effi["score"], gp["score"] / 100),
+        "overall_grade": _overall_grade(eff["score"], effi["score"], gp["score"]),
     }
 
 

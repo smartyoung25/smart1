@@ -424,6 +424,9 @@ function _scoreClass(score) {
   return 'danger';
 }
 function _scoreEmoji(status) { return {ok:'✅',warn:'⚠️',danger:'🔴'}[status] || '—'; }
+function _statusColor(status) {
+  return {ok:'var(--green)',warn:'var(--orange)',danger:'var(--red)'}[status] || 'var(--muted)';
+}
 
 // ── 초기화 ────────────────────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
@@ -596,9 +599,9 @@ function _renderPdcaDetail(d) {
 
   document.getElementById('stepCheck').innerHTML =
     `<ul style="margin:0;padding-left:14px;">
-      <li>효과성 <b style="color:var(--${eff.status||'muted'})">${eff.pct||'—'}%</b></li>
-      <li>효율성 <b style="color:var(--${efci.status||'muted'})">${efci.pct||'—'}%</b></li>
-      <li>성장가능성 <b style="color:var(--${gp.status||'muted'})">${gp.pct||'—'}%</b></li>
+      <li>효과성 <b style="color:${_statusColor(eff.status)}">${eff.pct||'—'}%</b></li>
+      <li>효율성 <b style="color:${_statusColor(efci.status)}">${efci.pct||'—'}%</b></li>
+      <li>성장가능성 <b style="color:${_statusColor(gp.status)}">${gp.pct||'—'}%</b></li>
     </ul>`;
 
   const actions = (act.next_week_actions || ['다음 주 EP 전략 유지']);
