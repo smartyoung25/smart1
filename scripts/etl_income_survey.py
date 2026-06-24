@@ -77,21 +77,38 @@ def load_parquets(in_dir: Path) -> pd.DataFrame:
 
 
 def transform(raw: pd.DataFrame) -> pd.DataFrame:
-    needed = ["frm_id", "crpnm", "yr", "prdv_qty_kg_ea", "srvar_tot_sqm", "totrev_amt_wn"]
+    needed = ["frm_id", "crpnm", "yr", "prdv_qty_kg_ea", "totrev_amt_wn"]
     missing = [c for c in needed if c not in raw.columns]
     if missing:
         raise ValueError(f"필수 컬럼 없음: {missing}")
 
-    df = raw[needed + (["inc_amt_wn"] if "inc_amt_wn" in raw.columns else [])].copy()
+    extra = []
+    if "inc_amt_wn" in raw.columns:
+        extra.append("inc_amt_wn")
+    if "ctynm" in raw.columns:
+        extra.append("ctynm")
+    if "dtnm" in raw.columns:
+        extra.append("dtnm")
+    # srvar_tot_sqm 없으면 stdar_py(표준면적 평) 폴백
+    area_src = "srvar_tot_sqm" if "srvar_tot_sqm" in raw.columns else None
+    if "stdar_py" in raw.columns:
+        extra.append("stdar_py")
+    if area_src:
+        extra.append(area_src)
+
+    df = raw[needed + extra].copy()
     df = df.rename(columns={
         "frm_id":           "farm_id",
         "crpnm":            "crpnm_raw",
         "yr":               "year",
         "prdv_qty_kg_ea":   "yield_kg",
-        "srvar_tot_sqm":    "area_sqm",
         "totrev_amt_wn":    "revenue_krw",
         "inc_amt_wn":       "income_krw",
     })
+    if area_src:
+        df = df.rename(columns={area_src: "area_sqm"})
+    else:
+        df["area_sqm"] = float("nan")
 
     # 작물 매핑
     df["crop"] = df["crpnm_raw"].apply(_map_crop)
@@ -100,6 +117,15 @@ def transform(raw: pd.DataFrame) -> pd.DataFrame:
     # 수치 변환
     for col in ["yield_kg", "area_sqm", "revenue_krw"]:
         df[col] = pd.to_numeric(df[col], errors="coerce")
+
+    # srvar_tot_sqm 없는 구형 파일(2007~2015)은 면적 정보 없음
+    # stdar_py=300평(990㎡)는 표준 조사단위이지 실제 경작면적이 아님
+    # → 전체 경작지 생산량을 990㎡로 나누면 yield_per_10a가 3배+ 과대 추정됨
+    # 따라서 srvar_tot_sqm(실면적) 있는 행만 유효로 처리
+    df["_has_real_area"] = area_src is not None
+    if "stdar_py" in df.columns:
+        # stdar_py 폴백은 계산에 사용하지 않고 area_sqm=NaN 유지
+        pass
 
     # 유효 행 필터
     df = df[df["yield_kg"] > 0].copy()
@@ -115,6 +141,9 @@ def transform(raw: pd.DataFrame) -> pd.DataFrame:
                 "yield_per_10a", "revenue_krw"]
     if "income_krw" in df.columns:
         out_cols.append("income_krw")
+    for loc_col in ["ctynm", "dtnm"]:
+        if loc_col in df.columns:
+            out_cols.append(loc_col)
 
     return df[out_cols].reset_index(drop=True)
 

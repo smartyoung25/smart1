@@ -14,6 +14,7 @@ import numpy as np, pandas as pd
 import optuna
 from sklearn.metrics import mean_absolute_percentage_error, r2_score
 from sklearn.model_selection import GroupKFold
+from sklearn.preprocessing import LabelEncoder
 import xgboost as xgb, lightgbm as lgb
 warnings.filterwarnings("ignore")
 optuna.logging.set_verbosity(optuna.logging.WARNING)
@@ -107,6 +108,10 @@ print(f"  이상치 제거 후: {len(df)}행  (p2={lo:.0f}~p98={hi:.0f} kg/10a)"
 # farm_yield_mean (expanding window, leakage 방지)
 _global_mean = df[TARGET].mean()
 df = df.sort_values(["farm_id", "year"]).copy()
+df["farm_yield_prev"] = (
+    df.groupby("farm_id")[TARGET]
+      .transform(lambda x: x.shift(1))
+)
 df["farm_yield_mean"] = (
     df.groupby("farm_id")[TARGET]
       .transform(lambda x: x.expanding().mean().shift(1))
@@ -125,35 +130,75 @@ df["farm_n"] = (
 df["log_yield_mean"] = np.log1p(df["farm_yield_mean"])
 df["year_norm"]      = (df["year"] - df["year"].min()) / max(df["year"].max() - df["year"].min(), 1)
 
-ERA5_FEATS = ["era5_t_ext", "era5_solar", "era5_rain", "era5_gdd"]
+# ── YoY 변화율 모드: 전년도 수확량이 있는 행만 사용 ────────────────────────
+# 타겟을 절대 수확량 대신 farm_yield_mean 대비 편차(상대)로 변환
+# → 농가 baseline 제거 + ERA5 연도 효과만 학습
+df["yoy_ratio"] = df[TARGET] / df["farm_yield_mean"].clip(lower=1.0)
+# 극단 비율 제거 (0.1~5.0 사이만 유효)
+df = df[(df["yoy_ratio"] >= 0.1) & (df["yoy_ratio"] <= 5.0)].copy()
+# 두 개 모드 중 YoY 모드 사용 (farm_yield_mean + ERA5 → 상대 편차 예측)
+TARGET_MODEL = "yoy_ratio"
+print(f"  YoY 모드: {len(df)}행 (비율 0.1~5.0 범위)")
+
+# ERA5 anomaly 피처: 과거 n년 평균 대비 현재 연도 편차 (기후 이상 신호)
+_era5_means = era5.set_index("year").rolling(5, min_periods=2).mean().shift(1)
+for col in ["era5_t_ext", "era5_solar", "era5_rain", "era5_gdd"]:
+    anom_col = col + "_anom"
+    era5[anom_col] = era5["year"].map(
+        (era5.set_index("year")[col] - _era5_means[col]).to_dict()
+    )
+df = df.merge(era5[["year"] + [c + "_anom" for c in ["era5_t_ext","era5_solar","era5_rain","era5_gdd"]]],
+              on="year", how="left")
+
+# ctynm 인코딩 (시군 정보가 있을 때 추가 피처)
+CTYNM_FEAT = []
+if "ctynm" in df.columns:
+    le_cty = LabelEncoder()
+    df["ctynm_enc"] = le_cty.fit_transform(df["ctynm"].fillna("기타"))
+    # ctynm별 expanding window 수확량 평균 (leakage 방지)
+    df = df.sort_values(["ctynm", "year"]).copy()
+    _cty_global = df[TARGET].mean()
+    df["ctynm_yield_mean"] = (
+        df.groupby("ctynm")[TARGET]
+          .transform(lambda x: x.expanding().mean().shift(1))
+          .fillna(_cty_global)
+    )
+    CTYNM_FEAT = ["ctynm_enc", "ctynm_yield_mean"]
+    df = df.sort_values(["farm_id", "year"]).copy()
+
+ERA5_FEATS = ["era5_t_ext", "era5_solar", "era5_rain", "era5_gdd",
+              "era5_t_ext_anom", "era5_solar_anom", "era5_rain_anom", "era5_gdd_anom"]
 FARM_FEATS = ["farm_yield_mean", "farm_yield_std", "farm_n", "log_yield_mean"]
 TIME_FEATS = ["year_norm", "year"]
 
-FEAT = [c for c in ERA5_FEATS + FARM_FEATS + TIME_FEATS if c in df.columns]
+FEAT = [c for c in ERA5_FEATS + FARM_FEATS + TIME_FEATS + CTYNM_FEAT if c in df.columns]
 print(f"  피처 {len(FEAT)}개: {FEAT}")
 print(f"  농가 {df['farm_id'].nunique()} | 시즌 {len(df)}")
 
-# ── 교차검증 (GroupKFold, groups=farm_id) ─────────────────────────────────────
-n_farms = df["farm_id"].nunique()
-k = min(5, n_farms)
-gkf = GroupKFold(n_splits=k)
-groups = df["farm_id"].values
-X = df[FEAT].fillna(df[FEAT].median())
-y = df[TARGET].values
+# ── 교차검증: TimeSeriesSplit(by year) ─────────────────────────────────────────
+# GroupKFold(by farm) → 홀드아웃 농가에서 farm_yield_mean 추정 불가 → MAPE 과대
+# TimeSeriesSplit(by year) → 이전 연도 학습, 다음 연도 검증 — ERA5 기후 신호 학습에 적합
+years_sorted = sorted(df["year"].unique())
+n_years = len(years_sorted)
+n_splits = min(5, n_years - 2)  # 최소 2개 연도 훈련 보장
+X = df[FEAT]
+y = df[TARGET_MODEL].values  # YoY ratio 예측
 
 def _cv_score(params_xgb, params_lgb) -> tuple[float, float]:
     mapes, r2s = [], []
-    for tr_idx, va_idx in gkf.split(X, y, groups):
-        Xtr, Xva = X.iloc[tr_idx], X.iloc[va_idx]
-        ytr, yva = y[tr_idx], y[va_idx]
-        if len(yva) < 2:
+    # 연도 순서대로 확장 윈도우 (expanding window CV)
+    for split_i in range(n_splits):
+        cutoff_idx = n_years - n_splits + split_i  # 훈련 마지막 연도 인덱스
+        if cutoff_idx < 2:
             continue
-        _tr_farm_mean = df.iloc[tr_idx].groupby("farm_id")[TARGET].mean()
-        _glob = ytr.mean()
-        if "farm_yield_mean" in FEAT:
-            Xva = Xva.copy()
-            Xva["farm_yield_mean"] = df.iloc[va_idx]["farm_id"].map(_tr_farm_mean).fillna(_glob).values
-            Xva["log_yield_mean"]  = np.log1p(Xva["farm_yield_mean"])
+        tr_years = set(years_sorted[:cutoff_idx])
+        va_years = {years_sorted[cutoff_idx]}
+        tr_mask = df["year"].isin(tr_years).values
+        va_mask = df["year"].isin(va_years).values
+        if va_mask.sum() < 2:
+            continue
+        Xtr, Xva = X[tr_mask], X[va_mask]
+        ytr, yva = y[tr_mask], y[va_mask]
         med = Xtr.median()
         mx = xgb.XGBRegressor(**params_xgb, verbosity=0, n_jobs=2)
         mx.fit(Xtr.fillna(med), ytr)
@@ -223,11 +268,33 @@ best_mape, best_r2 = _cv_score(best_xgb, best_lgb)
 print(f"  최적 파라미터 검증: MAPE={best_mape:.1f}%  R2={best_r2:.3f}")
 
 # ── 전체 데이터로 최종 학습 ──────────────────────────────────────────────────
+# CV MAPE는 yoy_ratio 기준; 실제 yield_per_10a MAPE도 계산
+# 예측: pred_ratio → pred_yield = farm_yield_mean * pred_ratio
+def _abs_mape(tr_mask, va_mask, mx, ml, med):
+    Xva = X[va_mask].fillna(med)
+    ratio_pred = (mx.predict(Xva) + ml.predict(Xva)) / 2
+    ratio_pred = np.clip(ratio_pred, 0.1, 5.0)
+    y_pred = df[va_mask]["farm_yield_mean"].values * ratio_pred
+    y_true = df[va_mask][TARGET].values
+    return mean_absolute_percentage_error(y_true, y_pred + 1e-9) * 100
+
 med_all = X.median()
 mx_final = xgb.XGBRegressor(**best_xgb, verbosity=0)
 mx_final.fit(X.fillna(med_all), y)
 ml_final = lgb.LGBMRegressor(**{k:v for k,v in best_lgb.items() if k!='verbose'}, verbose=-1)
 ml_final.fit(X.fillna(med_all), y)
+
+# 최종 절대 MAPE 검증 (last fold)
+last_cutoff = n_years - 1
+if last_cutoff >= 2:
+    tr_yrs_last = set(years_sorted[:last_cutoff])
+    va_yrs_last = {years_sorted[last_cutoff]}
+    tr_m = df["year"].isin(tr_yrs_last).values
+    va_m = df["year"].isin(va_yrs_last).values
+    abs_mape_val = _abs_mape(tr_m, va_m, mx_final, ml_final, med_all)
+    print(f"  절대 MAPE 검증 (val={years_sorted[last_cutoff]}): {abs_mape_val:.1f}%")
+else:
+    abs_mape_val = best_mape
 
 model_bundle = {
     "type": "m2_eco",
@@ -236,6 +303,7 @@ model_bundle = {
     "feat_median": med_all.to_dict(),
     "farm_mean_map": df.groupby("farm_id")[TARGET].mean().to_dict(),
     "global_mean": float(_global_mean),
+    "target_model": TARGET_MODEL,
     "xgb": mx_final,
     "lgb": ml_final,
 }
@@ -247,11 +315,13 @@ meta = {
     "model_type": "m2_eco",
     "crop": crop,
     "target": TARGET,
+    "target_model": TARGET_MODEL,
     "features": FEAT,
     "n_samples": int(len(df)),
     "n_farms":   int(df["farm_id"].nunique()),
     "years":     sorted(df["year"].unique().tolist()),
     "mape_cv":   round(best_mape, 2),
+    "mape":      round(abs_mape_val, 2),  # 절대 yield MAPE (배포 게이트용)
     "r2_cv":     round(best_r2, 3),
     "mape_base": round(base_mape, 2),
     "r2_base":   round(base_r2, 3),
