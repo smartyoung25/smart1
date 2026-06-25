@@ -159,6 +159,14 @@ html, body {
 .con-card .t { font-size: 15px; font-weight: 800; }
 .con-card .d { font-size: 12px; color: var(--muted); line-height: 1.5; }
 
+/* 대시보드 하이라이트 카드 내부 행 */
+.dash-hl-row { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 5px 0; border-top: 1px solid var(--border); font-size: 12.5px; margin-top: 4px; }
+.dash-hl-row:first-of-type { border-top: none; margin-top: 8px; }
+.dash-hl-name { font-weight: 700; }
+.dash-hl-val { font-weight: 800; white-space: nowrap; }
+.dash-hl-sub { font-weight: 600; color: var(--muted); font-size: 11px; }
+.dash-hl-foot { margin-top: 8px; font-size: 11.5px; color: var(--muted); }
+
 /* ── skip link (접근성) ── */
 .con-skip {
   position: absolute; left: -999px; top: 8px; z-index: 999;
