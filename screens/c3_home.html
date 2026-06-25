@@ -165,6 +165,16 @@
     <div><span class="hero-period-badge" id="heroPeriod">⏳ Period 확인 중…</span></div>
   </div>
 
+  <!-- 온보딩 미완성 넛지 배너 (프로필 미완성 시 자동 표시) -->
+  <div id="onboardingNudge" style="display:none;align-items:center;gap:10px;padding:12px 14px;background:var(--orange-soft,#fff7ed);border:2px solid var(--orange);border-radius:12px;margin-bottom:12px;cursor:pointer;" onclick="location.href='c1_setup.html'">
+    <span style="font-size:22px;flex-shrink:0;">📋</span>
+    <div style="flex:1;">
+      <div style="font-size:13px;font-weight:800;color:var(--orange-dark,#92400e);">농장 프로필 입력을 완료하세요</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:2px;" id="nudgeDesc">작물·시설·경영 정보가 있어야 AI 분석이 작동합니다.</div>
+      <div id="nudgeProgress" style="margin-top:6px;display:flex;gap:4px;flex-wrap:wrap;"></div>
+    </div>
+    <span style="font-size:13px;font-weight:800;color:var(--orange);white-space:nowrap;">계속 입력 ›</span>
+  </div>
   <!-- 기기/연결 상태 알림 (데이터 알림과 분리) -->
   <div id="deviceAlert"></div>
   <!-- 데이터 경보 배너 -->
@@ -386,6 +396,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
   _updateHero();
   _buildTodos();
+  _checkOnboardingNudge();   // 프로필 미완성 시 넛지 표시
   if (window.DeviceAlert) DeviceAlert.mount('deviceAlert');
 
   _farmG = farmId;
@@ -581,6 +592,54 @@ function _updateHero() {
     P5: 'EC 상향 조정 · 마지막 급액 확인',
   };
   document.getElementById('heroSub').textContent = tips[p.id] || '오늘 온실 현황을 확인하세요';
+}
+
+// ── 온보딩 미완성 넛지 ────────────────────────────────────────────────────────
+function _checkOnboardingNudge() {
+  const nudge = document.getElementById('onboardingNudge');
+  if (!nudge) return;
+
+  // 1) 로컬 프로필 확인
+  let profile = {};
+  try { profile = JSON.parse(localStorage.getItem('sf_profile') || '{}'); } catch(e) {}
+
+  // 2) 초안 확인
+  let draft = null;
+  try { draft = JSON.parse(localStorage.getItem('sf_onboarding_draft') || 'null'); } catch(e) {}
+
+  // 완성 조건: crop_ko + facility_type + area_m2 + season_start 모두 있음
+  const complete = profile.crop_ko && profile.facility_type && profile.area_m2 && profile.season_start;
+  if (complete) { nudge.style.display = 'none'; return; }
+
+  // 미완성 항목 파악
+  const checks = [
+    { key:'farm_name',     label:'농장명',    done:!!profile.farm_name },
+    { key:'crop_ko',       label:'작물',      done:!!profile.crop_ko },
+    { key:'facility_type', label:'시설유형',  done:!!profile.facility_type },
+    { key:'area_m2',       label:'재배면적',  done:!!profile.area_m2 },
+    { key:'season_start',  label:'작기',      done:!!profile.season_start },
+  ];
+  const doneCount = checks.filter(c => c.done).length;
+
+  // 넛지 표시
+  nudge.style.display = 'flex';
+  const descEl = document.getElementById('nudgeDesc');
+  if (descEl) {
+    if (draft && draft.form && draft.form.farm_name) {
+      const ago = Math.round((Date.now() - draft.ts) / 60000);
+      descEl.textContent = `이전 입력(${ago < 1 ? '방금' : ago + '분 전'})이 저장되어 있습니다. 이어서 입력하세요.`;
+    } else {
+      descEl.textContent = `${doneCount}/5 항목 완료 · 작물·시설·경영 정보가 있어야 AI 분석이 작동합니다.`;
+    }
+  }
+
+  // 진행 칩 표시
+  const progEl = document.getElementById('nudgeProgress');
+  if (progEl) {
+    progEl.innerHTML = checks.map(c =>
+      `<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:${c.done ? 'var(--green)' : 'var(--gray-soft)'};color:${c.done ? '#fff' : 'var(--muted)'};">${c.done ? '✓' : '○'} ${c.label}</span>`
+    ).join('');
+  }
 }
 
 // ── To-do 리스트 (Period 기반) ─────────────────────────────────────────────

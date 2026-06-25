@@ -68,6 +68,21 @@
     .cost-row { display:flex; align-items:center; gap:8px; margin-bottom:6px; }
     .cost-row .cost-label { font-size:11.5px; font-weight:700; flex:0 0 108px; color:var(--text); line-height:1.3; }
     .cost-row .wiz-input { flex:1; min-height:42px; font-size:14px; padding:9px 11px; }
+    /* 초안 복원 배너 */
+    .draft-banner { display:none; align-items:center; gap:10px; padding:11px 14px; background:var(--blue-soft,#eff6ff); border-bottom:2px solid var(--blue); font-size:12px; }
+    .draft-banner.show { display:flex; }
+    .draft-banner .db-text { flex:1; line-height:1.5; }
+    /* 단계 도트 진행표시 */
+    .step-dots { display:flex; gap:4px; margin-top:5px; }
+    .step-dot { width:8px; height:8px; border-radius:50%; background:var(--gray-soft); transition:.3s; }
+    .step-dot.done { background:var(--green); }
+    .step-dot.cur  { background:var(--blue); transform:scale(1.35); }
+    /* 인라인 에러 */
+    .wiz-err { font-size:12.5px; font-weight:700; color:var(--red); background:var(--red-soft,#fef2f2); padding:9px 12px; border-radius:9px; border:1.5px solid var(--red); margin:8px 0 0; display:none; }
+    .wiz-err.show { display:block; }
+    /* 단계 힌트 (contextual tip) */
+    .step-hint { font-size:11.5px; color:var(--blue-dark,#1e3a8a); background:var(--blue-soft,#eff6ff); padding:9px 12px; border-radius:9px; border:1.5px solid var(--blue); margin-bottom:14px; line-height:1.5; display:none; }
+    .step-hint.show { display:block; }
   </style>
 </head>
 <body>
@@ -78,12 +93,31 @@
   <span style="width:40px;"></span>
 </header>
 
+<!-- 초안 복원 배너 (이전 입력 감지 시 표시) -->
+<div id="draftBanner" class="draft-banner">
+  <span style="font-size:18px;flex-shrink:0;">📋</span>
+  <div class="db-text"><b>이전 입력이 저장되어 있습니다.</b><br>
+    <span style="color:var(--muted);font-size:11px;"><span id="draftAgo">—</span> 전 · <span id="draftStep">—</span>까지 입력됨</span>
+  </div>
+  <button onclick="_resumeDraft()" style="padding:7px 11px;background:var(--blue);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap;min-height:36px;">이어서 ›</button>
+  <button onclick="_discardDraft()" style="padding:7px 9px;background:var(--panel);color:var(--muted);border:1.5px solid var(--border);border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;min-height:36px;">처음부터</button>
+</div>
+
 <div class="wiz-progress">
   <div class="wiz-bar-wrap"><div class="wiz-bar-fill" id="wizBar" style="width:14%"></div></div>
-  <div class="wiz-step-label"><span id="wizStepName">기본 정보</span><span id="wizStepNum">1 / 7</span></div>
+  <div class="wiz-step-label">
+    <span id="wizStepName">기본 정보</span>
+    <span style="display:flex;gap:8px;align-items:center;">
+      <span id="draftSaved" style="font-size:9px;color:var(--muted);transition:opacity .5s;"></span>
+      <span id="wizStepNum">1 / 8</span>
+    </span>
+  </div>
+  <div class="step-dots" id="stepDots"></div>
 </div>
 
 <main class="wiz-body">
+  <div id="stepHint" class="step-hint"></div>
+  <div id="wizErr" class="wiz-err"></div>
 
   <!-- Step 1: 기본 정보 -->
   <div class="wiz-step active" data-step="1">
@@ -245,8 +279,9 @@
 
 </main>
 
-<div class="wiz-footer">
+<div class="wiz-footer" style="flex-wrap:wrap;gap:8px;">
   <button class="wiz-btn prev" id="btnPrev" onclick="_prev()" disabled>이전</button>
+  <button class="wiz-btn" id="btnSaveDraft" onclick="_manualSaveDraft()" style="flex:0 0 auto;padding:0 12px;background:var(--panel);color:var(--muted);border:1.5px solid var(--border);font-size:12px;font-weight:700;">💾 저장</button>
   <button class="wiz-btn" id="btnSkip" onclick="_skipToConfirm()" style="display:none;flex:0 0 auto;padding:0 14px;background:var(--gray-soft);color:var(--muted);border:1.5px solid var(--border);font-size:13px;">건너뛰기 ›</button>
   <button class="wiz-btn next" id="btnNext" onclick="_next()">다음</button>
 </div>
@@ -333,11 +368,14 @@ const PAINS=['수확량 증대','품질 향상','에너지 절감','병해 예�
 window.addEventListener('DOMContentLoaded', ()=>{
   _ensureToken();
   _renderOpts();
-  _renderCostInputGroups();   // 경영비 13항목 입력 필드 동적 생성
+  _renderCostInputGroups();
   form.farm_id=sessionStorage.getItem('sf_farm_id')||_genFarmId();
   document.getElementById('fFarmIdView').textContent=form.farm_id;
   _loadRegions();
+  _renderStepDots();
+  _restoreDraft();     // 이전 초안 감지 → 배너 표시
   _showStep(1);
+  _showStepHint();     // 첫 단계 힌트
 });
 
 // 행정구역 시도→시군구 로드
@@ -376,15 +414,15 @@ async function _ensureToken(){
 }
 
 function _renderOpts(){
-  document.getElementById('cropGrid').innerHTML=CROPS.map(([c,i])=>`<div class="opt-card" onclick="_selCrop('${c}',this)"><span class="opt-ico">${i}</span>${c}</div>`).join('');
-  document.getElementById('irrigGrid').innerHTML=IRRIGS.map(([c,i])=>`<div class="opt-card" onclick="_selIrrig('${c}',this)"><span class="opt-ico">${i}</span>${c}</div>`).join('');
+  document.getElementById('cropGrid').innerHTML=CROPS.map(([c,i])=>`<div class="opt-card" data-crop="${c}" onclick="_selCrop('${c}',this)"><span class="opt-ico">${i}</span>${c}</div>`).join('');
+  document.getElementById('irrigGrid').innerHTML=IRRIGS.map(([c,i])=>`<div class="opt-card" data-irr="${c}" onclick="_selIrrig('${c}',this)"><span class="opt-ico">${i}</span>${c}</div>`).join('');
   _renderStep3(); _renderMethods();
-  document.getElementById('painChips').innerHTML=PAINS.map(p=>`<div class="chip" onclick="_togglePain('${p}',this)">${p}</div>`).join('');
+  document.getElementById('painChips').innerHTML=PAINS.map(p=>`<div class="chip" data-pain="${p}" onclick="_togglePain('${p}',this)">${p}</div>`).join('');
 }
 // ★ 온실/노지에 따라 재배방식 목록 조건부 렌더 (하이어라키)
 function _renderMethods(){
   const list = _isField()? METHODS_FIELD : METHODS_GH;
-  document.getElementById('methodGrid').innerHTML=list.map(([c,i])=>`<div class="opt-card${form.cultivation_method===c?' sel':''}" onclick="_selMethod('${c}',this)"><span class="opt-ico">${i}</span>${c}</div>`).join('');
+  document.getElementById('methodGrid').innerHTML=list.map(([c,i])=>`<div class="opt-card${form.cultivation_method===c?' sel':''}" data-method="${c}" onclick="_selMethod('${c}',this)"><span class="opt-ico">${i}</span>${c}</div>`).join('');
   document.getElementById('methodInfo').style.display=_isField()?'none':'';
   // 현재 선택이 목록에 없으면 기본값 보정
   if(!list.some(m=>m[0]===form.cultivation_method)){ form.cultivation_method=list[0][0]; form.cultivation_detail=''; }
@@ -423,7 +461,7 @@ function _selIrrig(c,el){ form.irrigation_method=c; document.querySelectorAll('#
 function _renderStep3(){
   document.getElementById('step3Title').textContent = '시설·재배환경 유형';
   document.getElementById('step3Desc').textContent  = '온실 또는 노지 재배환경을 선택하세요. (노지 선택 시 관개방식 입력)';
-  document.getElementById('facilityGrid').innerHTML = FACILITIES.map(([c,i,t])=>`<div class="opt-card${form.facility_type===c?' sel':''}" onclick="_selFacility('${c}',this)"><span class="opt-ico">${i}</span>${c}${t==='field'?' <span style="font-size:9px;color:var(--green-dark);">노지</span>':''}</div>`).join('');
+  document.getElementById('facilityGrid').innerHTML = FACILITIES.map(([c,i,t])=>`<div class="opt-card${form.facility_type===c?' sel':''}" data-fac="${c}" onclick="_selFacility('${c}',this)"><span class="opt-ico">${i}</span>${c}${t==='field'?' <span style="font-size:9px;color:var(--green-dark);">노지</span>':''}</div>`).join('');
   document.getElementById('irrigBlock').style.display = (form.facility_type && FIELD_FAC.has(form.facility_type))?'block':'none';
 }
 function _selMethod(c,el){
@@ -451,8 +489,9 @@ function _showStep(n){
   // 건너뛰기 버튼: 비컨설팅 농가가 Step 3~7에 있을 때 표시
   const skipBtn=document.getElementById('btnSkip');
   if(skipBtn) skipBtn.style.display = (!_consulting && n>=3 && n<=7) ? '' : 'none';
-  // Step별 배지 갱신
+  // Step별 배지·도트 갱신
   _updateBadges();
+  _renderStepDots();
   if(n===4) _renderMethods();   // 시설(Step3) 선택 반영해 재배방식 재렌더
   if(n===6) _applyFeatsToPains();
   if(n===TOTAL) _renderSummary();
@@ -575,6 +614,124 @@ function _calcErpPreview(){
 // 건너뛰기: Step 3~7 → 바로 확인(Step 8)으로 이동
 function _skipToConfirm(){ _collectStep(); _showStep(TOTAL); }
 
+// ── 초안 자동 저장/복원 ──────────────────────────────────────────────────────
+function _autoSaveDraft(){
+  _collectStep();
+  try{
+    localStorage.setItem('sf_onboarding_draft',JSON.stringify({step:_step,form,ts:Date.now()}));
+    const el=document.getElementById('draftSaved');
+    if(el){ el.textContent='저장됨 '+new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'}); el.style.opacity='1'; setTimeout(()=>el.style.opacity='.4',2500); }
+  }catch(e){}
+}
+
+function _manualSaveDraft(){
+  _autoSaveDraft();
+  const btn=document.getElementById('btnSaveDraft');
+  if(btn){ const orig=btn.textContent; btn.textContent='✓ 저장됨'; setTimeout(()=>btn.textContent=orig,1800); }
+}
+
+function _restoreDraft(){
+  let d; try{ d=JSON.parse(localStorage.getItem('sf_onboarding_draft')||'null'); }catch(e){ return; }
+  if(!d||!d.form||!d.form.farm_name) return;
+  // 24시간 초과 draft는 무시
+  if(Date.now()-d.ts > 86400000){ localStorage.removeItem('sf_onboarding_draft'); return; }
+  window._draft=d;
+  const banner=document.getElementById('draftBanner'); if(!banner) return;
+  banner.classList.add('show');
+  const ago=Math.round((Date.now()-d.ts)/60000);
+  const agoEl=document.getElementById('draftAgo'); if(agoEl) agoEl.textContent=ago<1?'방금':ago+'분';
+  const stepEl=document.getElementById('draftStep'); if(stepEl) stepEl.textContent=STEP_NAMES[(d.step||1)-1]+'(Step '+(d.step||1)+')';
+}
+
+function _resumeDraft(){
+  const d=window._draft; if(!d) return;
+  Object.assign(form,d.form);
+  _consulting=!!d.form.consulting_requested;
+  document.getElementById('draftBanner').classList.remove('show');
+  // 입력 필드 복원 (비동기: 지역 로드 후)
+  _restoreFormUI();
+  _showStep(d.step||1);
+}
+
+function _discardDraft(){
+  localStorage.removeItem('sf_onboarding_draft');
+  window._draft=null;
+  const banner=document.getElementById('draftBanner'); if(banner) banner.classList.remove('show');
+}
+
+function _restoreFormUI(){
+  // 텍스트 입력
+  const _v=(id,val)=>{ const e=document.getElementById(id); if(e&&val!=null) e.value=val; };
+  _v('fFarmName',form.farm_name); _v('fEmd',form.emd); _v('fAddr',form.address_detail);
+  _v('fArea',form.area_m2); _v('fKpiYield',form.kpi_yield_per_10a);
+  _v('fStart',form.season_start); _v('fEnd',form.season_end); _v('fYear',form.growing_year);
+  _v('fRevMain',form.revenue_main_wan); _v('fRevSub',form.revenue_sub_wan);
+  _v('fLaborPersons',form.self_labor_persons); _v('fLaborDays',form.self_labor_days);
+  _v('fLaborWage',form.self_labor_wage_wan); _v('fCapSvc',form.capital_service_wan);
+  // 시도→시군구 (비동기 로드 의존)
+  if(form.sido){
+    const s=document.getElementById('fSido'); if(s) s.value=form.sido; _onSido();
+    setTimeout(()=>{ const g=document.getElementById('fSigungu'); if(g&&form.sigungu) g.value=form.sigungu; },300);
+  }
+  // 선택 카드
+  document.querySelectorAll('.opt-card[data-crop]').forEach(c=>c.classList.toggle('sel',c.dataset.crop===form.crop_ko));
+  document.querySelectorAll('.opt-card[data-fac]').forEach(c=>c.classList.toggle('sel',c.dataset.fac===form.facility_type));
+  document.querySelectorAll('.opt-card[data-method]').forEach(c=>c.classList.toggle('sel',c.dataset.method===form.cultivation_method));
+  document.querySelectorAll('.opt-card[data-irr]').forEach(c=>c.classList.toggle('sel',c.dataset.irr===form.irrigation_method));
+  // 멀티 칩
+  document.querySelectorAll('.chip[data-pain]').forEach(c=>c.classList.toggle('sel',(form.pain_points||[]).includes(c.dataset.pain)));
+  // 경영비 13항목
+  _CA_GROUPS_INPUT.forEach(grp=>grp.items.forEach(it=>{
+    const el=document.getElementById('fCost_'+it.id);
+    if(el&&form['cost_'+it.id+'_wan']) el.value=form['cost_'+it.id+'_wan'];
+  }));
+  // 컨설팅 토글 복원
+  if(_consulting) _onConsulting(true);
+}
+
+// 단계 도트 렌더
+function _renderStepDots(){
+  const el=document.getElementById('stepDots'); if(!el) return;
+  el.innerHTML=Array.from({length:TOTAL},(_,i)=>{
+    const n=i+1;
+    const cls=n<_step?'step-dot done':n===_step?'step-dot cur':'step-dot';
+    return `<div class="${cls}" title="${STEP_NAMES[i]}"></div>`;
+  }).join('');
+}
+
+// 단계별 컨텍스트 힌트
+const _STEP_HINTS={
+  1:'🏡 농장명과 재배 지역을 입력하면 지역 기상·시세 데이터가 자동 연동됩니다.',
+  2:'🌱 작물을 선택하면 해당 작물에 맞는 환경·수확량 기준이 자동 적용됩니다.',
+  3:'🏠 시설 유형을 선택하면 재배방식·관수 추천이 달라집니다. 노지는 관개방식까지 선택하세요.',
+  4:'📐 재배 면적(㎡)을 입력하면 수확량을 단위면적(10a)당으로 환산해 줍니다.',
+  5:'📅 작기(파종~수확 기간)를 정확히 입력할수록 AI 수확량 예측 정밀도가 높아집니다.',
+  6:'🎯 개선 목표와 목표 수확량을 설정하면 맞춤 처방·권고를 받을 수 있습니다.',
+  7:'💰 경영비는 항목별로 입력할수록 소득률·순수익 분석이 정확해집니다. 모르면 비워두세요.',
+  8:'✅ 거의 다 왔어요! 내용을 확인하고 저장하세요. 저장 후에도 언제든 수정 가능합니다.',
+};
+function _showStepHint(){
+  const el=document.getElementById('stepHint'); if(!el) return;
+  const msg=_STEP_HINTS[_step]||'';
+  el.textContent=msg; el.className='step-hint'+(msg?' show':'');
+}
+
+// 인라인 검증 (alert 대체)
+function _validateInline(){
+  const el=document.getElementById('wizErr'); if(el){ el.textContent=''; el.classList.remove('show'); }
+  const err=msg=>{
+    if(el){ el.textContent='⚠ '+msg; el.classList.add('show'); el.scrollIntoView({behavior:'smooth',block:'nearest'}); }
+    return false;
+  };
+  if(_step===1&&!form.farm_name) return err('농장명을 입력하세요');
+  if(_step===2&&!form.crop_ko) return err('작물을 선택하세요');
+  if(_consulting){
+    if(_step===3&&!form.facility_type) return err('시설 유형을 선택하세요 (컨설팅 필수)');
+    if(_step===7&&!form.revenue_main_wan) return err('주산물 판매액을 입력하세요 (컨설팅 필수)');
+  }
+  return true;
+}
+
 function _collectStep(){
   if(_step===1){
     form.farm_name=document.getElementById('fFarmName').value.trim();
@@ -630,28 +787,20 @@ document.addEventListener('input',e=>{
   }
 });
 
-function _validate(){
-  if(_step===1 && !form.farm_name){ alert('농장명을 입력하세요'); return false; }
-  if(_step===2 && !form.crop_ko){ alert('작물을 선택하세요'); return false; }
-  // Step 3~7: 컨설팅 신청 시 필수 검증
-  if(_consulting){
-    if(_step===3 && !form.facility_type){ alert('시설 유형을 선택하세요 (컨설팅 필수)'); return false; }
-    if(_step===3 && _isField() && !form.irrigation_method){ alert('관개 방식을 선택하세요'); return false; }
-    if(_step===7 && !form.revenue_main_wan){ alert('주산물 판매액을 입력하세요 (컨설팅 필수)'); return false; }
-  } else {
-    // 비컨설팅: Step3 시설유형은 선택이지만 기존 로직 유지 (선택이므로 통과)
-    // (Step 3 미선택 시 _isField()가 작물 기반 추정값을 사용)
-  }
-  return true;
-}
+function _validate(){ return _validateInline(); }
 
 function _next(){
   _collectStep();
-  if(!_validate()) return;
-  if(_step<TOTAL){ _showStep(_step+1); }
+  if(!_validateInline()) return;
+  _autoSaveDraft();
+  if(_step<TOTAL){ _showStep(_step+1); _showStepHint(); }
   else { _save(); }
 }
-function _prev(){ if(_step>1) _showStep(_step-1); }
+function _prev(){
+  _collectStep();
+  _autoSaveDraft();
+  if(_step>1){ _showStep(_step-1); _showStepHint(); }
+}
 
 function _renderSummary(){
   const _loc=[form.sido,form.sigungu,form.emd].filter(Boolean).join(' ')||form.region||'—';
@@ -739,6 +888,7 @@ async function _save(){
     if(r.ok){
       res.style.color='var(--green)'; res.innerHTML='✓ 농장 프로필 저장 완료!';
       sessionStorage.setItem('sf_farm_id', form.farm_id);
+      localStorage.removeItem('sf_onboarding_draft');   // 저장 성공 시 초안 삭제
       _postSaveCTA();
     } else {
       const t=await r.text();

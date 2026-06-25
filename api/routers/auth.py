@@ -93,26 +93,52 @@ class PasswordResetRequest(BaseModel):
 
 class OnboardingRequest(BaseModel):
     farm_id: str = ""
-    farm_name: str = ""                       # 사람이 읽는 농장명(표시용)
+    farm_name: str = ""
     crop_ko: str = ""
     facility_type: str = ""
     area_m2: Optional[float] = None
     cultivation_method: str = "토경"
-    cultivation_detail: str = ""              # 양액 세부(담액/NFT/암면/코코 등)
-    irrigation_method: str = ""               # 노지 관개방식(이전엔 저장 누락)
+    cultivation_detail: str = ""
+    irrigation_method: str = ""
     region: str = ""
     sido: str = ""
     sigungu: str = ""
-    emd: str = ""                             # 읍면동
+    emd: str = ""
     address_detail: str = ""
     season_start: str = ""
     season_end: str = ""
     growing_year: int = 1
     pain_points: List[str] = []
     kpi_yield_kg: Optional[float] = None
+    kpi_yield_per_10a: Optional[float] = None
     kpi_revenue_wan: Optional[float] = None
     kpi_energy_save: Optional[float] = None
     kpi_drain_rate: Optional[float] = None
+    # 컨설팅 의향
+    consulting_requested: bool = False
+    # 총수입 (농가조사표 기준)
+    revenue_main_wan: Optional[float] = None   # 주산물 판매액
+    revenue_sub_wan: Optional[float] = None    # 부산물·보조금
+    # 경영비 13항목
+    cost_seed_wan: Optional[float] = None
+    cost_fertilizer_wan: Optional[float] = None
+    cost_pesticide_wan: Optional[float] = None
+    cost_energy_wan: Optional[float] = None
+    cost_material_wan: Optional[float] = None
+    cost_small_tool_wan: Optional[float] = None
+    cost_depr_equip_wan: Optional[float] = None
+    cost_depr_fac_wan: Optional[float] = None
+    cost_repair_wan: Optional[float] = None
+    cost_other_cost_wan: Optional[float] = None
+    cost_labor_hired_wan: Optional[float] = None
+    cost_rent_wan: Optional[float] = None
+    cost_consign_wan: Optional[float] = None
+    # 자가노동비·자본용역비
+    self_labor_persons: Optional[float] = None
+    self_labor_days: Optional[float] = None
+    self_labor_wage_wan: Optional[float] = None
+    self_labor_cost_wan: Optional[float] = None
+    capital_service_wan: Optional[float] = None
 
 
 # ── 내부 유틸 ─────────────────────────────────────────────────────────────────
