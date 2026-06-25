@@ -76,7 +76,10 @@
         '<td class="cc-num cc-sev-' + sev + '">' + (a.vigor != null ? a.vigor : '–') + '</td>' +
         '<td class="cc-num">' + (a.diag != null ? a.diag + '점' : '–') + '</td>' +
         '<td class="cc-det">' + esc(a.detail) + '</td>' +
-        '<td><button class="cc-drill" data-fid="' + esc(a.farm_id) + '">진단 →</button></td>' +
+        '<td class="cc-drill-cell">' +
+          '<button class="cc-drill cc-drill-sat" data-fid="' + esc(a.farm_id) + '" title="위성 작황 상세">🛰️ 위성</button>' +
+          '<button class="cc-drill" data-fid="' + esc(a.farm_id) + '">진단 →</button>' +
+        '</td>' +
         '</tr>';
     }).join('');
     if (!rows) rows = '<tr><td colspan="6" class="cc-empty" style="color:var(--green)">✅ 이상 농가 없음</td></tr>';
@@ -137,7 +140,14 @@
       btns[i].addEventListener('click', function () {
         var fid = this.getAttribute('data-fid');
         try { sessionStorage.setItem('sf_farm_id', fid); } catch (e) {}
-        window.open('/screens/c17_diagnosis.html?farm=' + encodeURIComponent(fid), '_blank');
+        if (this.classList.contains('cc-drill-sat')) {
+          // 콘솔 내 위성 작황 상세로 드릴다운(풀폭)
+          if (window.ConsoleSatellite) window.ConsoleSatellite.setFarm(fid);
+          location.hash = '#satellite';
+        } else {
+          // 개별 진단(c17)은 새 탭
+          window.open('/screens/c17_diagnosis.html?farm=' + encodeURIComponent(fid), '_blank');
+        }
       });
     }
   }
