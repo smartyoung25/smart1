@@ -1,8 +1,15 @@
 # NEXT — 다음 세션 시작점
-> 마지막 커밋: 1562123 (2026-06-25) · origin 동기화됨
+> 마지막 커밋: 3489892 (2026-06-26) · origin 동기화됨
 
 ## 현재 상태 (1줄)
-PC 관리자 콘솔 완성 + 데이터품질 3단계 + farmer.py P2-C(pdca 추가분리).
+코드리뷰 9건 수정 완료(P0보안~P3) + PC콘솔 + 데이터품질 + farmer.py P2-C(5모듈).
+
+## 코드리뷰 작업지시서 처리 완료 (커밋 3489892)
+[x] P0-1 보안: admin 쓰기 불변식 복원(deny-list→전면차단), demo토큰 누출 차단
+[x] P1-2 parcels_jeju NaN→null / P1-3 콘솔필터 공백 / P1-4 위성 null NDVI 블랭크
+[x] P2-5,6 pdca 드리프트 부활(level→alert 키) + NaN 가드
+[x] P3-7 whatif 부분매칭 / P3-8 undefined점 / P3-9 None[:10] 가드
+→ CODE_REVIEW_WORKORDER.md 9건 전부 [x], 런타임 검증·푸시 완료
 
 ## P2-C farmer.py 분리 진행 (4300→3226줄)
 [x] Step1: farmer_state.py + farmer_irrigation.py (커밋 157a6d7)
