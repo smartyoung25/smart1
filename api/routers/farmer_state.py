@@ -127,6 +127,14 @@ router = APIRouter(
 )
 
 
+def _equipment_path(farm_id: str):
+    """농가 기자재 인벤토리 JSON 경로. farmer_equipment·get_system_diagnosis 공용."""
+    from pathlib import Path as _P
+    d = _P(__file__).resolve().parents[1] / "data" / "equipment"
+    d.mkdir(parents=True, exist_ok=True)
+    return d / f"{farm_id}.json"
+
+
 def _require_farm(farm_id: str) -> dict[str, Any]:
     meta = _FARM_META.get(farm_id)
     if meta is None:
