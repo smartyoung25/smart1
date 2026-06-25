@@ -10,8 +10,17 @@ PC 관리자 콘솔 신설(Step1~4 완료) — admin/manager 풀폭 콘솔 + 역
 [x] Step3: c0_signup _login() admin/manager→/console 분기 (a6a0134)
 [x] Step4: 사이드바 해시라우팅 + iframe 임베드(c20/f8/c9/c6/c20_report) (a6a0134)
     ★ 핵심수정: base.css main{max-width:600px} 오염을 .con-main 풀폭 override로 차단
-[ ] Step5(선택): 광역화면 ?embed=1 시 자체 헤더/탭바 숨김 (현재 ?embed=1 URL만 부착, 숨김 미구현)
-[ ] Step6(ui-ux-pro-max): c20_cluster_admin PC 풀폭 전용뷰 승격 (현재 iframe 480px 좌측표시)
+[x] Step6: 클러스터 관제 PC 풀폭 네이티브 뷰 승격 (커밋 ec6e198)
+    · console_cluster.js: KPI6열 + 지역/작목 2열 데이터테이블 + 이상농가 풀폭테이블
+    · 실데이터 검증: 농가732·이상228 / 풀폭1200px / 콘솔에러0
+[ ] Step5(선택): 광역화면(f8/c9/c6/c20_report iframe) ?embed=1 시 자체 헤더/탭바 숨김
+    (현재 satellite/benchmark/model/report는 여전히 iframe 480px 좌측표시 — cluster만 풀폭 승격됨)
+[ ] (후속) f8 위성작황·c9 벤치마킹도 풀폭 네이티브 승격 검토
+
+## ⚠️ 발견된 별개 이슈 (백엔드, 콘솔과 무관)
+- farm_registry 지역명 정규화 누락: cluster_overview 집계에 "충남"·"충청남도", "충북"·"충청북도",
+  빈값 "—"가 별도 행으로 중복 집계됨. 모바일 C20·콘솔 양쪽에 동일 노출.
+  → api/services/cluster_overview.py 또는 등록 시 시도명 정규화 필요(_CANON 매핑 재사용 가능).
 - 스킬: .claude/skills/ui-ux-pro-max-skill/ 설치됨(gitignore). 검색CLI 실행은 보안차단 → 데이터 직접 읽기로 활용
 - 검증서버: 별도 포트 8001 (운영 8000 비건드림). launch.json "uvi-preview"
 
