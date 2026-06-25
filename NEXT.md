@@ -20,11 +20,19 @@ PC 관리자 콘솔 신설(Step1~4 완료) — admin/manager 풀폭 콘솔 + 역
     · console_model.js: KPI6열 + 파이프라인5 + M2게이트/드리프트 2열 + M1~M5매트릭스 + M1표20
     · system/model-performance(전역) 사용 — 관리자 콘솔에 본질적 적합
 
-## 콘솔 사이드바 현황
-- 대시보드 / 클러스터 관제 / 위성 작황 / AI 학습·모델 → ✅ 풀폭 네이티브
-- 벤치마킹(c9) → iframe 480px 잔존. **단 c9는 per-farm(내농장 vs 우수농가)** —
-  관리자 top-level 메뉴로는 약함. 선택: ①per-farm 드릴다운으로 승격 ②사이드바서 제거 ③유지
+[x] 벤치마킹 메뉴 제거 → 위성 뷰에 흡수 (커밋 1a63a3c)
+    · c9는 per-farm이라 별도 메뉴 부적합 → 위성 드릴 맥락에 "우수농가 대비" 카드로 통합
+    · 마지막 480px iframe 제거. 드릴다운 시 해당농가 NDVI+벤치마킹 한 화면
+
+## 콘솔 사이드바 현황 (정리 완료)
+- 대시보드 / 클러스터 관제 / 위성 작황(+벤치마킹) / AI 학습·모델 → ✅ 풀폭 네이티브
 - 관제 보고서(c20_report) → iframe 794px A4, 적정(유지)
+- ✅ 480px 모바일 iframe 전부 제거됨. 콘솔 전 메뉴 풀폭/적정폭.
+
+## 콘솔 잔여(선택)
+[ ] QA 테스트 시드 정리(farm_recfill75208·fullcheck75230·dashcheck75277) — 현재 미상버킷 무해
+[ ] 관제 보고서 단축 — 현재 c20_report iframe(A4), 필요시 콘솔 헤더 정리
+[ ] launch.json "uvi-preview"(포트8001) — 검증 전용. 운영은 8000 워치독
 
 ## ✅ 해결: 클러스터 집계 시도명 정규화 (커밋 98f82d8)
 - api/services/region_canon.py 신규(정규화 단일소스) → cluster_overview·main.py 공용
