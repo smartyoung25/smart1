@@ -16,9 +16,15 @@ PC 관리자 콘솔 신설(Step1~4 완료) — admin/manager 풀폭 콘솔 + 역
 [x] 위성 작황 풀폭 네이티브 승격 + 클러스터→위성 드릴다운 (커밋 b0757df)
     · console_satellite.js: KPI6열 + NDVI히트맵 + 필지표 2열 + 이상알림 풀폭표
     · F8은 per-farm 상세 → 클러스터 이상농가 🛰️클릭으로 콘솔 내 드릴다운(동선완결)
-[ ] (후속) c9 벤치마킹·c6 AI학습도 풀폭 네이티브 승격 검토 (현재 iframe 480px)
-[ ] Step5(선택): 남은 iframe(benchmark/model/report) ?embed=1 헤더 숨김
-    — 단 화면 자체 max-width:480px라 헤더만 숨겨도 좁음. 네이티브 승격이 정답.
+[x] AI 학습·모델 풀폭 네이티브 승격 (커밋 2f713e4)
+    · console_model.js: KPI6열 + 파이프라인5 + M2게이트/드리프트 2열 + M1~M5매트릭스 + M1표20
+    · system/model-performance(전역) 사용 — 관리자 콘솔에 본질적 적합
+
+## 콘솔 사이드바 현황
+- 대시보드 / 클러스터 관제 / 위성 작황 / AI 학습·모델 → ✅ 풀폭 네이티브
+- 벤치마킹(c9) → iframe 480px 잔존. **단 c9는 per-farm(내농장 vs 우수농가)** —
+  관리자 top-level 메뉴로는 약함. 선택: ①per-farm 드릴다운으로 승격 ②사이드바서 제거 ③유지
+- 관제 보고서(c20_report) → iframe 794px A4, 적정(유지)
 
 ## ✅ 해결: 클러스터 집계 시도명 정규화 (커밋 98f82d8)
 - api/services/region_canon.py 신규(정규화 단일소스) → cluster_overview·main.py 공용
