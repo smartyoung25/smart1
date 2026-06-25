@@ -129,31 +129,71 @@ def retrain_crop(crop: str) -> dict:
     # Step 3: M2 학습 (env+prod 조인 → 시즌 집계는 train_m2 내부에서 수행)
     results["train_m2"] = _run_script(TRAIN_M2_SCRIPT, crop)
 
+    # Step 4: 모델 게이트 — candidate/ → canonical/ 승격 (MAPE 개선 시만)
+    _gate_result = "skipped"
+    if results["train_m2"]["status"] == "ok" and crop_en:
+        try:
+            from pipeline.model_gate import evaluate_and_deploy
+            cand_dir = ROOT / "models" / "artifacts" / crop_en / "candidate"
+            _gate_result = evaluate_and_deploy(crop, candidate_dir=cand_dir)
+            results["model_gate"] = _gate_result
+            logger.info("  [gate] %s model_gate → %s", crop, _gate_result)
+        except Exception as _mge:
+            logger.warning("  [gate] model_gate 실행 실패(무시): %s", _mge)
+            results["model_gate"] = f"error: {_mge}"
+
     ok_count = sum(1 for v in results.values() if v["status"] == "ok")
     duration = time.monotonic() - t0
     # M2 학습 성공이 핵심 게이트 (prep/M1 실패는 경고만)
     success  = results["train_m2"]["status"] == "ok"
-    logger.info("=== %s 재학습 완료: %d/3 성공 ===", crop, ok_count)
+    logger.info("=== %s 재학습 완료: %d/3 성공 (gate=%s) ===", crop, ok_count, _gate_result)
 
     # ── 버전 레지스트리 등록 ──────────────────────────────────────────────────────
+    # candidate/m2_meta.json에서 실제 MAPE를 읽어 게이트 판정
+    # (train_m2.py는 pipeline_meta.json이 아닌 candidate/m2_meta.json에 저장하므로 직접 읽음)
+    _cand_mape: float | None = None
+    _cand_r2:   float | None = None
+    if crop_en and success:
+        try:
+            import json as _j
+            _cand_path = ROOT / "models" / "artifacts" / crop_en / "candidate" / "m2_meta.json"
+            if _cand_path.exists():
+                _cm = _j.loads(_cand_path.read_text(encoding="utf-8"))
+                _cand_mape = float(_cm.get("mape", 999.0))
+                _cand_r2   = float(_cm.get("cv_r2_mean", _cm.get("train_r2", -1.0)))
+                logger.info("  [gate] %s candidate MAPE=%.1f%% cv_R²=%.3f", crop, _cand_mape, _cand_r2)
+        except Exception as _ge:
+            logger.warning("  [gate] candidate 메타 읽기 실패: %s", _ge)
+
+    # model_gate가 "deployed"를 반환해야만 registry 활성화
+    # (canonical 파일이 실제로 갱신된 경우에만 새 버전을 active로 등록)
+    _gate = _gate_result == "deployed"
+
     if crop_en:
         if success:
             new_ver = register_version(
                 crop_en=crop_en,
-                gate_passed=True,
+                mape_stage2=_cand_mape,
+                cv_r2=_cand_r2,
+                gate_passed=_gate,
                 triggered_by="retrain_trigger",
                 snapshot_version=snap_version,
             )
             results["registry_version"] = new_ver
-            logger.info("  [registry] %s 신규 버전 v%d 등록·활성화", crop, new_ver)
+            if _gate:
+                logger.info("  [registry] %s 신규 버전 v%d 등록·활성화 (MAPE=%.1f%%)",
+                            crop, new_ver, _cand_mape or 0)
+            else:
+                logger.info("  [registry] %s 신규 버전 v%d 등록 (게이트 미달, 비활성)", crop, new_ver)
 
-            # 신규 버전 활성화 후 API 서버의 모델 캐시 무효화
-            try:
-                from api.services.model_loader import clear_model_cache
-                cleared = clear_model_cache()
-                logger.info("  [cache] 모델 캐시 초기화: %s", cleared)
-            except Exception as _ce:
-                logger.warning("  [cache] 캐시 초기화 실패(무시): %s", _ce)
+            # canonical 갱신된 경우에만 API 서버의 모델 캐시 무효화
+            if _gate:
+                try:
+                    from api.services.model_loader import clear_model_cache
+                    cleared = clear_model_cache()
+                    logger.info("  [cache] 모델 캐시 초기화: %s", cleared)
+                except Exception as _ce:
+                    logger.warning("  [cache] 캐시 초기화 실패(무시): %s", _ce)
 
             # 오래된 스냅샷 정리 (최근 5개 유지)
             removed = cleanup_old_snapshots(crop_en, keep_n=5)
@@ -168,7 +208,8 @@ def retrain_crop(crop: str) -> dict:
                 snapshot_version=snap_version,
             )
             if snap_version:
-                logger.warning("  [registry] %s 재학습 실패 — v%d로 자동 롤백", crop, snap_version)
+                logger.warning("  [registry] %s 재학습 실패(MAPE=%.1f%%) — v%d로 자동 롤백",
+                               crop, _cand_mape or 999, snap_version)
                 rb_ok = rollback(crop_en, target_version=snap_version)
                 results["rollback"] = "ok" if rb_ok else "failed"
             else:
