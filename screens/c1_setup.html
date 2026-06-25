@@ -44,6 +44,19 @@
 
     .summary-row { display:flex; justify-content:space-between; padding:9px 0; border-bottom:1px solid var(--border); font-size:13px; }
     .summary-row .k { color:var(--muted); } .summary-row .v { font-weight:700; }
+    /* 필수/선택 배지 */
+    .opt-badge { font-size:10px; font-weight:700; padding:2px 7px; border-radius:8px; border:1.5px solid var(--border); color:var(--muted); margin-left:6px; vertical-align:middle; display:inline-block; }
+    .opt-badge.req { border-color:var(--orange); color:var(--orange); background:var(--orange-soft,#fff7ed); }
+    /* 컨설팅 토글 카드 */
+    .consult-card { margin-top:16px; padding:13px 14px; border:2px solid var(--border); border-radius:12px; background:var(--panel); cursor:pointer; display:flex; align-items:flex-start; gap:12px; }
+    .consult-card.on { border-color:var(--blue); background:var(--blue-soft); }
+    /* ERP 미리보기 */
+    .erp-preview-row { display:flex; justify-content:space-between; padding:5px 0; border-bottom:1px dashed var(--border); font-size:12px; }
+    .erp-preview-row:last-child { border:none; font-weight:800; }
+    /* 경영비 입력 행 */
+    .cost-row { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+    .cost-row .cost-label { font-size:12px; font-weight:700; flex:0 0 90px; color:var(--muted); }
+    .cost-row .wiz-input { flex:1; min-height:44px; }
   </style>
 </head>
 <body>
@@ -85,6 +98,17 @@
     <div class="wiz-title">재배 작물</div>
     <div class="wiz-desc">주력 작물을 선택하세요.</div>
     <div class="opt-grid" id="cropGrid"></div>
+    <!-- 컨설팅 의향 선택 -->
+    <div class="consult-card" id="consultCard" onclick="_onConsulting(!_consulting)">
+      <div style="padding-top:2px;">
+        <div id="consultChk" style="width:22px;height:22px;border-radius:6px;border:2px solid var(--border);background:var(--panel);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;transition:all .15s;"></div>
+      </div>
+      <div style="flex:1;">
+        <div style="font-size:14px;font-weight:800;">🧑‍🌾 전문가 컨설팅 서비스 신청</div>
+        <div style="font-size:11.5px;color:var(--muted);margin-top:3px;line-height:1.5;">체크하면 Step 3~8이 <b>필수</b>로 바뀝니다. 경영현황까지 입력해야 전문가 매칭 및 AI 진단이 가능합니다.</div>
+        <div style="font-size:11px;margin-top:4px;color:var(--blue);font-weight:700;" id="consultHint">미신청 — Step 3 이후는 선택사항입니다 (언제든 수정 가능)</div>
+      </div>
+    </div>
   </div>
 
   <!-- Step 3: 시설 유형(온실) / 노지 재배환경(노지) — 작물 기반 분기 -->
@@ -147,8 +171,41 @@
     <div id="yieldTotalHint" style="font-size:11px;color:var(--muted);margin-top:6px;"></div>
   </div>
 
-  <!-- Step 7: 확인 -->
+  <!-- Step 7: 경영현황 -->
   <div class="wiz-step" data-step="7">
+    <div class="wiz-title">경영현황 <span class="opt-badge" id="step7Badge">(선택)</span></div>
+    <div class="wiz-desc">이번 작기 수입·비용을 입력하면 AI 컨설팅 진단 정확도가 높아집니다.</div>
+
+    <label class="wiz-label">예상 총수입 (만원) <span id="revenueReq" style="color:var(--red);display:none;">*</span></label>
+    <input class="wiz-input" id="fRevenue" type="number" inputmode="decimal" placeholder="예: 5400" oninput="_calcErpPreview()"/>
+
+    <label class="wiz-label" style="margin-top:14px;">비용 항목별 입력 <span style="font-size:10px;color:var(--muted);font-weight:600;">만원 단위 · 모르면 비워두세요</span></label>
+    <div class="cost-row">
+      <span class="cost-label">중간재비</span>
+      <input class="wiz-input" id="fCostMiddle" type="number" inputmode="decimal" placeholder="종묘·비료·농약·재료 합계" oninput="_calcErpPreview()"/>
+    </div>
+    <div class="cost-row">
+      <span class="cost-label">고용 인건비</span>
+      <input class="wiz-input" id="fCostLabor" type="number" inputmode="decimal" placeholder="고용 인원 합계" oninput="_calcErpPreview()"/>
+    </div>
+    <div class="cost-row">
+      <span class="cost-label">에너지비</span>
+      <input class="wiz-input" id="fCostEnergy" type="number" inputmode="decimal" placeholder="난방+전기 합산" oninput="_calcErpPreview()"/>
+    </div>
+    <div class="cost-row">
+      <span class="cost-label">임차료</span>
+      <input class="wiz-input" id="fCostRent" type="number" inputmode="decimal" placeholder="토지·시설 임차" oninput="_calcErpPreview()"/>
+    </div>
+
+    <label class="wiz-label">자가노동 규모 (명×일)</label>
+    <input class="wiz-input" id="fSelfLabor" type="number" inputmode="decimal" placeholder="예: 365 (1명×365일 기준)"/>
+
+    <!-- 즉시 계산 미리보기 -->
+    <div id="erpPreview" style="display:none;margin-top:14px;background:var(--panel-soft);border-radius:10px;padding:12px 14px;"></div>
+  </div>
+
+  <!-- Step 8: 확인 -->
+  <div class="wiz-step" data-step="8">
     <div class="wiz-title">입력 내용 확인</div>
     <div class="wiz-desc">아래 정보로 농장 프로필을 저장합니다.</div>
     <div class="card" style="padding:14px;" id="summaryCard"></div>
@@ -159,19 +216,24 @@
 
 <div class="wiz-footer">
   <button class="wiz-btn prev" id="btnPrev" onclick="_prev()" disabled>이전</button>
+  <button class="wiz-btn" id="btnSkip" onclick="_skipToConfirm()" style="display:none;flex:0 0 auto;padding:0 14px;background:var(--gray-soft);color:var(--muted);border:1.5px solid var(--border);font-size:13px;">건너뛰기 ›</button>
   <button class="wiz-btn next" id="btnNext" onclick="_next()">다음</button>
 </div>
 
 <script src="../components/data.js"></script>
 <script>
 'use strict';
-const TOTAL=7;
+const TOTAL=8;
 let _step=1;
-const STEP_NAMES=['기본 정보','재배 작물','시설 유형','재배 규모','작기','개선 목표','확인'];
+let _consulting=false;
+const STEP_NAMES=['기본 정보','재배 작물','시설 유형','재배 규모','작기','개선 목표','경영현황','확인'];
 const form={ farm_id:'', farm_name:'', region:'', sido:'', sigungu:'', emd:'', address_detail:'',
   crop_ko:'', facility_type:'', area_m2:null,
   cultivation_method:'토경', cultivation_detail:'', irrigation_method:'', season_start:'', season_end:'', growing_year:1,
-  pain_points:[], kpi_yield_kg:null, kpi_yield_per_10a:null };
+  pain_points:[], kpi_yield_kg:null, kpi_yield_per_10a:null,
+  consulting_requested:false, kpi_revenue_wan:null,
+  cost_middle_wan:null, cost_labor_wan:null, cost_energy_wan:null, cost_rent_wan:null,
+  self_labor_days:null };
 // 자동 농장 ID 생성 (중복 없음)
 function _genFarmId(){ return 'farm_'+Math.random().toString(36).slice(2,8); }
 
@@ -310,10 +372,77 @@ function _showStep(n){
   document.getElementById('wizStepNum').textContent=`${n} / ${TOTAL}`;
   document.getElementById('btnPrev').disabled = n===1;
   document.getElementById('btnNext').textContent = n===TOTAL ? '저장' : '다음';
+  // 건너뛰기 버튼: 비컨설팅 농가가 Step 3~7에 있을 때 표시
+  const skipBtn=document.getElementById('btnSkip');
+  if(skipBtn) skipBtn.style.display = (!_consulting && n>=3 && n<=7) ? '' : 'none';
+  // Step별 배지 갱신
+  _updateBadges();
   if(n===4) _renderMethods();   // 시설(Step3) 선택 반영해 재배방식 재렌더
   if(n===6) _applyFeatsToPains();
   if(n===TOTAL) _renderSummary();
 }
+
+function _updateBadges(){
+  const badge=document.getElementById('step7Badge');
+  const reqMark=document.getElementById('revenueReq');
+  if(badge){ badge.textContent=_consulting?'(필수)':'(선택)'; badge.className='opt-badge'+(_consulting?' req':''); }
+  if(reqMark) reqMark.style.display=_consulting?'':'none';
+  // Step 3~6 타이틀 배지: 동적으로 span 삽입/갱신
+  [3,4,5,6].forEach(sn=>{
+    const stepEl=document.querySelector(`.wiz-step[data-step="${sn}"]`);
+    if(!stepEl) return;
+    const title=stepEl.querySelector('.wiz-title');
+    if(!title) return;
+    let b=title.querySelector('.opt-badge');
+    if(!b){ b=document.createElement('span'); b.className='opt-badge'; title.appendChild(b); }
+    b.textContent=_consulting?'(필수)':'(선택)';
+    b.className='opt-badge'+(_consulting?' req':'');
+  });
+}
+
+// 컨설팅 의향 토글
+function _onConsulting(val){
+  _consulting=!!val;
+  form.consulting_requested=_consulting;
+  const card=document.getElementById('consultCard');
+  const chk=document.getElementById('consultChk');
+  const hint=document.getElementById('consultHint');
+  if(card) card.classList.toggle('on',_consulting);
+  if(chk){ chk.textContent=_consulting?'✓':''; chk.style.background=_consulting?'var(--blue)':'var(--panel)';
+    chk.style.borderColor=_consulting?'var(--blue)':'var(--border)'; chk.style.color='#fff'; }
+  if(hint) hint.textContent=_consulting?'✓ 컨설팅 신청 — Step 3~8 필수 입력':'미신청 — Step 3 이후는 선택사항입니다 (언제든 수정 가능)';
+  if(hint) hint.style.color=_consulting?'var(--blue)':'var(--muted)';
+  _updateBadges();
+  const skipBtn=document.getElementById('btnSkip');
+  if(skipBtn) skipBtn.style.display=(!_consulting && _step>=3 && _step<=7)?'':'none';
+}
+
+// 경영현황 즉시 계산 미리보기
+function _calcErpPreview(){
+  const rev=parseFloat(document.getElementById('fRevenue').value)||0;
+  const mid=parseFloat(document.getElementById('fCostMiddle').value)||0;
+  const lab=parseFloat(document.getElementById('fCostLabor').value)||0;
+  const eng=parseFloat(document.getElementById('fCostEnergy').value)||0;
+  const rent=parseFloat(document.getElementById('fCostRent').value)||0;
+  const el=document.getElementById('erpPreview');
+  if(!rev&&!mid&&!lab&&!eng&&!rent){ if(el) el.style.display='none'; return; }
+  const total=mid+lab+eng+rent;
+  const income=rev-total;
+  const rate=rev>0?Math.round(income/rev*100):0;
+  if(el){
+    el.style.display='block';
+    const rows=[
+      ['총수입',`${rev.toLocaleString()}만원`,''],
+      ['경영비 합계',`${total.toLocaleString()}만원`,'color:var(--orange)'],
+      ['예상 소득',`${income.toLocaleString()}만원 (소득률 ${rate}%)`,income>=0?'color:var(--green);':'color:var(--red);font-weight:800;'],
+    ];
+    el.innerHTML='<div style="font-size:11px;font-weight:800;color:var(--muted);margin-bottom:6px;">📊 입력 기반 즉시 계산 (참고용)</div>'+
+      rows.map(([k,v,s])=>`<div class="erp-preview-row"><span>${k}</span><span style="${s}">${v}</span></div>`).join('');
+  }
+}
+
+// 건너뛰기: Step 3~7 → 바로 확인(Step 8)으로 이동
+function _skipToConfirm(){ _collectStep(); _showStep(TOTAL); }
 
 function _collectStep(){
   if(_step===1){
@@ -343,6 +472,15 @@ function _collectStep(){
       form.pain_points[form.pain_points.indexOf('기타')]='기타: '+painOther;
     }
   }
+  if(_step===7){
+    form.kpi_revenue_wan  = parseFloat(document.getElementById('fRevenue').value)||null;
+    form.cost_middle_wan  = parseFloat(document.getElementById('fCostMiddle').value)||null;
+    form.cost_labor_wan   = parseFloat(document.getElementById('fCostLabor').value)||null;
+    form.cost_energy_wan  = parseFloat(document.getElementById('fCostEnergy').value)||null;
+    form.cost_rent_wan    = parseFloat(document.getElementById('fCostRent').value)||null;
+    form.self_labor_days  = parseFloat(document.getElementById('fSelfLabor').value)||null;
+    form.consulting_requested = _consulting;
+  }
 }
 // 면적당 입력 시 총량 미리보기
 document.addEventListener('input',e=>{
@@ -356,8 +494,15 @@ document.addEventListener('input',e=>{
 function _validate(){
   if(_step===1 && !form.farm_name){ alert('농장명을 입력하세요'); return false; }
   if(_step===2 && !form.crop_ko){ alert('작물을 선택하세요'); return false; }
-  if(_step===3 && !form.facility_type){ alert(_isField()?'노지 재배환경을 선택하세요':'시설 유형을 선택하세요'); return false; }
-  if(_step===3 && _isField() && !form.irrigation_method){ alert('관개 방식을 선택하세요'); return false; }
+  // Step 3~7: 컨설팅 신청 시 필수 검증
+  if(_consulting){
+    if(_step===3 && !form.facility_type){ alert('시설 유형을 선택하세요 (컨설팅 필수)'); return false; }
+    if(_step===3 && _isField() && !form.irrigation_method){ alert('관개 방식을 선택하세요'); return false; }
+    if(_step===7 && !form.kpi_revenue_wan){ alert('예상 총수입을 입력하세요 (컨설팅 필수)'); return false; }
+  } else {
+    // 비컨설팅: Step3 시설유형은 선택이지만 기존 로직 유지 (선택이므로 통과)
+    // (Step 3 미선택 시 _isField()가 작물 기반 추정값을 사용)
+  }
   return true;
 }
 
@@ -381,6 +526,19 @@ function _renderSummary(){
     ['재배연차',form.growing_year+'년차'],['개선목표',form.pain_points.join(', ')||'—'],
     ['목표수확량',form.kpi_yield_per_10a?`${form.kpi_yield_per_10a} kg/10a${form.kpi_yield_kg?` (총 ${form.kpi_yield_kg.toLocaleString()}kg)`:''}`:'—'],
   ];
+  // 경영현황 요약 (입력된 값만)
+  if(form.kpi_revenue_wan) rows.push(['예상 총수입',`${form.kpi_revenue_wan.toLocaleString()}만원`]);
+  const totalCost=(form.cost_middle_wan||0)+(form.cost_labor_wan||0)+(form.cost_energy_wan||0)+(form.cost_rent_wan||0);
+  if(totalCost>0){
+    rows.push(['경영비 합계',`${totalCost.toLocaleString()}만원`]);
+    if(form.kpi_revenue_wan){
+      const income=form.kpi_revenue_wan-totalCost;
+      const rate=Math.round(income/form.kpi_revenue_wan*100);
+      rows.push(['예상 소득(률)',`${income.toLocaleString()}만원 (${rate}%)`]);
+    }
+  }
+  if(form.self_labor_days) rows.push(['자가노동',`${form.self_labor_days}명×일`]);
+  rows.push(['컨설팅 신청',form.consulting_requested?'✓ 신청':'미신청']);
   document.getElementById('summaryCard').innerHTML=rows.map(([k,v])=>`<div class="summary-row"><span class="k">${k}</span><span class="v">${v}</span></div>`).join('');
 }
 
@@ -451,18 +609,28 @@ async function _save(){
   }
 }
 
-// 저장 후: 농장유형(노지/온실)에 맞는 다음 단계로 이어가기 (여정 단절 방지)
+// 저장 후: 농장유형(노지/온실)·컨설팅 여부에 맞는 다음 단계로 이어가기
 function _postSaveCTA(){
   const fid=encodeURIComponent(form.farm_id||'farm_001');
   const box=document.getElementById('saveResult');
   const field=_isField();
-  const cta = field ? {
-    msg:'다음으로 <b>노지 필지·위성 작황</b>을 확인하세요. 고가 센서 없이도 위성·기상으로 작황과 이상 필지를 진단합니다.',
-    primary:`f8_cluster.html?farm=${fid}`, primaryLabel:'🛰️ 클러스터 작황 보기', home:'f1_field.html'
-  } : {
-    msg:'다음으로 <b>시설 기자재</b>를 등록하면 보유 장비(제조사·프로토콜)를 표준 변수로 연동할 수 있습니다.',
-    primary:`c16_equipment.html?farm=${fid}`, primaryLabel:'🔌 기자재 등록하기', home:'c3_home.html'
-  };
+  let cta;
+  if(_consulting){
+    cta={
+      msg:'컨설팅 전문가 매칭을 위해 <b>종합진단</b>을 먼저 실행하세요. 경영현황·시설·작황 데이터가 자동 반영됩니다.',
+      primary:`c17_diagnosis.html?farm=${fid}`, primaryLabel:'🩺 종합진단 시작하기', home:'c3_home.html'
+    };
+  } else if(field){
+    cta={
+      msg:'다음으로 <b>노지 필지·위성 작황</b>을 확인하세요. 고가 센서 없이도 위성·기상으로 작황과 이상 필지를 진단합니다.',
+      primary:`f8_cluster.html?farm=${fid}`, primaryLabel:'🛰️ 클러스터 작황 보기', home:'f1_field.html'
+    };
+  } else {
+    cta={
+      msg:'다음으로 <b>시설 기자재</b>를 등록하면 보유 장비(제조사·프로토콜)를 표준 변수로 연동할 수 있습니다.',
+      primary:`c16_equipment.html?farm=${fid}`, primaryLabel:'🔌 기자재 등록하기', home:'c3_home.html'
+    };
+  }
   const nextUrl = encodeURIComponent(cta.primary);
   box.insertAdjacentHTML('afterend', `
     <div id="ctaBox" style="margin-top:14px;">
