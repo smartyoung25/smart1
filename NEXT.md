@@ -1,8 +1,16 @@
 # NEXT — 다음 세션 시작점
-> 마지막 커밋: a6a0134 (2026-06-25)
+> 마지막 커밋: 1562123 (2026-06-25) · origin 동기화됨
 
 ## 현재 상태 (1줄)
-PC 관리자 콘솔 신설(Step1~4 완료) — admin/manager 풀폭 콘솔 + 역할 라우팅.
+PC 관리자 콘솔 완성 + 데이터품질 3단계 + farmer.py P2-C(pdca 추가분리).
+
+## P2-C farmer.py 분리 진행
+[x] Step1: farmer_state.py + farmer_irrigation.py (커밋 157a6d7)
+[x] farmer_pdca.py — PDCA 4라우트 추출 (커밋 1562123) · farmer.py 3578→3515줄
+[ ] 다음: diagnosis·equipment·harvest 도메인은 farmer.py 내부 헬퍼 얽힘
+    → 선행작업 필요: 공유 헬퍼(get_system_diagnosis·_diag_history_path·_load_checklist·
+      _get_env·_detect_alerts·economics 헬퍼)를 farmer_state 또는 farmer_helpers로 이관 후 추출
+    → harvest는 라우트가 L828~1524 흩어져 있어 특히 위험. 헬퍼 이관 선행 필수.
 
 ## PC 관리자 콘솔 진행 상황 (계획: ~/.claude/plans/peppy-fluttering-quilt.md)
 [x] Step1: TokenResponse.role 노출 (커밋 9f527be)
