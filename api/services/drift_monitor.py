@@ -99,7 +99,8 @@ def _load_harvest_json(crop_ko: Optional[str] = None,
             pass
 
     # harvest_date 오름차순 (오래된 것 먼저 → 최근 limit건)
-    records.sort(key=lambda r: (r.get("harvest_date") or r.get("recorded_at", ""))[:10])
+    #   recorded_at가 null이고 harvest_date 부재 시 None[:10] TypeError 방지
+    records.sort(key=lambda r: (r.get("harvest_date") or r.get("recorded_at") or "")[:10])
     return records[-limit:]
 
 

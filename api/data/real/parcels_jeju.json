@@ -256,7 +256,7 @@
      "name": " 0758",
      "jimok": "시설",
      "area_ha": 0.004,
-     "crop": NaN
+     "crop": null
     },
     {
      "name": " 0259",
@@ -1414,19 +1414,19 @@
      "name": " 0016",
      "jimok": "밭",
      "area_ha": 0.041,
-     "crop": NaN
+     "crop": null
     },
     {
      "name": " 0015",
      "jimok": "밭",
      "area_ha": 0.013,
-     "crop": NaN
+     "crop": null
     },
     {
      "name": " 0014",
      "jimok": "밭",
      "area_ha": 0.005,
-     "crop": NaN
+     "crop": null
     }
    ]
   },
@@ -2194,7 +2194,7 @@
      "name": " 0125",
      "jimok": "밭",
      "area_ha": 0.135,
-     "crop": NaN
+     "crop": null
     },
     {
      "name": " 0068",
@@ -2308,7 +2308,7 @@
      "name": " 0024",
      "jimok": "밭",
      "area_ha": 0.007,
-     "crop": NaN
+     "crop": null
     }
    ]
   },
@@ -2320,7 +2320,7 @@
      "name": " 0002",
      "jimok": "밭",
      "area_ha": 0.011,
-     "crop": NaN
+     "crop": null
     }
    ]
   },

@@ -312,8 +312,8 @@ async def issue_demo_token():
     클라이언트 소스에 admin/비밀번호를 박지 않기 위한 근본 대책:
       - role="demo" (관리자 아님), farm_id="farm_001"
       - 전 기능 시연을 위해 tier="enterprise"로 노출
-      - 파괴적·관리자 쓰기는 PublicDemoMiddleware가 차단,
-        admin 조회화면은 require_admin_view가 demo 역할의 GET만 허용.
+      - /api/admin/* 관리자 쓰기는 PublicDemoMiddleware가 전부 403 차단,
+        admin 조회화면(C6·C20 등)은 require_admin_view가 demo 역할의 조회를 허용.
     PUBLIC_DEMO가 아니면 발급하지 않는다(403).
     """
     if not _PUBLIC_DEMO:

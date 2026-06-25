@@ -75,8 +75,11 @@
   function heatmap(parcels) {
     var tiles = (parcels || []).map(function (p) {
       var ring = p.status === '이상' ? 'box-shadow:0 0 0 2px var(--chart-hot,#dc2626);' : '';
-      return '<div class="sat-tile" title="' + esc(p.name) + ' · NDVI ' + p.ndvi.toFixed(2) + ' (' + esc(p.status) + ')" ' +
-        'style="background:' + heatColor(p.ndvi) + ';' + ring + '">' + p.ndvi.toFixed(2).slice(1) + '</div>';
+      var hasNdvi = p.ndvi != null;
+      var ndvi = hasNdvi ? p.ndvi : 0;
+      var label = hasNdvi ? ndvi.toFixed(2).slice(1) : '–';
+      return '<div class="sat-tile" title="' + esc(p.name) + ' · NDVI ' + (hasNdvi ? ndvi.toFixed(2) : '–') + ' (' + esc(p.status) + ')" ' +
+        'style="background:' + (hasNdvi ? heatColor(ndvi) : 'var(--gray-soft,#eef2ef)') + ';' + ring + '">' + label + '</div>';
     }).join('') || '<div class="cc-empty">필지 없음</div>';
     return '<div class="cc-card"><div class="cc-card-h">필지별 식생활력 (NDVI) <span class="cc-pill-live" style="background:var(--blue-soft);color:var(--blue)">🛰️ 무센서</span></div>' +
       '<div class="sat-heat">' + tiles + '</div>' +
@@ -89,8 +92,8 @@
         '<td class="cc-name">' + esc(p.name) + '</td>' +
         '<td>' + esc(p.crop) + '</td>' +
         '<td class="cc-num">' + (p.area_ha != null ? p.area_ha + 'ha' : '–') + '</td>' +
-        '<td class="cc-num" style="color:' + ncol(p.ndvi) + ';font-weight:800;">' + p.ndvi.toFixed(2) + '</td>' +
-        '<td class="cc-num">' + (p.deviation_pct > 0 ? '+' : '') + p.deviation_pct + '%</td>' +
+        '<td class="cc-num" style="color:' + ncol(p.ndvi != null ? p.ndvi : 0) + ';font-weight:800;">' + (p.ndvi != null ? p.ndvi.toFixed(2) : '–') + '</td>' +
+        '<td class="cc-num">' + (p.deviation_pct != null ? (p.deviation_pct > 0 ? '+' : '') + p.deviation_pct + '%' : '–') + '</td>' +
         '<td><span class="sat-status sat-' + (p.status === '이상' ? 'hot' : p.status === '주의' ? 'warn' : 'good') + '">' + esc(p.status) + '</span></td>' +
         '</tr>';
     }).join('') || '<tr><td colspan="6" class="cc-empty">필지 없음</td></tr>';

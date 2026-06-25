@@ -77,15 +77,14 @@ if _PUBLIC_DEMO:
     # 사용자 데이터 입력·기록·신청 POST 허용 (운영기록 /activity 포함).
     #   ※ /api/admin/* 관리자 쓰기는 아래에서 항상 403 유지.
     _WRITE_ALLOW_SUFFIX = ("/chat", "/integration-request", "/equipment", "/climate-plan",
-                           "/consent", "/daily-temp", "/whatif", "/diagnosis/checklist",
+                           "/consent", "/daily-temp", "/whatif", "/whatif/multi",
+                           "/diagnosis/checklist",
                            "/activity", "/irrigation",   # /irrigation: G3 일일 관수 기록 입력
                            "/environment/manual")        # G2 환경 실측 수동 입력·수정
     # 경로 중간 일치 허용(예: 장비 삭제 DELETE /equipment/{device_id})
-    #   /whatif: G4 단일·다중(/whatif/multi) 시뮬레이션(무변경 읽기) 모두 허용
-    _WRITE_ALLOW_CONTAINS = ("/equipment/", "/whatif")
-    # 관리자 조회+안전변경 허용. 재학습 트리거는 엔드포인트가 데모에서 '시뮬레이션+쿨다운'으로
-    # 자체 안전처리하므로 게이트 통과 허용. 파괴적(모델 교체·DELETE)만 차단 유지.
-    _ADMIN_BLOCK_CONTAINS = ("/models/promote", "/models/rollback")
+    #   /whatif·/whatif/multi 는 _WRITE_ALLOW_SUFFIX(endswith)가 정확히 커버하므로
+    #   부분문자열 매칭에서 제외(과허용 방지 — 예: /whatif-admin 미래경로 차단).
+    _WRITE_ALLOW_CONTAINS = ("/equipment/",)
 
     class PublicDemoMiddleware:
         def __init__(self, app): self.app = app
@@ -95,10 +94,12 @@ if _PUBLIC_DEMO:
                 _allow_post = ((path in _WRITE_ALLOW) or path.endswith(_WRITE_ALLOW_SUFFIX)
                                or any(c in path for c in _WRITE_ALLOW_CONTAINS))
                 if path.startswith("/api/admin"):
-                    # 관리자: 조회(GET/HEAD)·안전 변경 허용, 무거운·파괴적만 차단
-                    heavy = any(c in path for c in _ADMIN_BLOCK_CONTAINS)
-                    blocked = (method in _WRITE) and (heavy or method == "DELETE")
-                    deny_msg = "이 작업은 재학습·삭제 등 무거운/위험 작업이라 데모에서 비활성화되어 있습니다."
+                    # 불변식: 공개 데모에서 /api/admin/* 쓰기는 전부 403.
+                    #   조회(GET/HEAD)는 통과 → C6·C20 등 관리자 조회화면 시연 가능.
+                    #   (구 deny-list는 promote/rollback/DELETE 외 모든 admin 쓰기를 통과시켜
+                    #    billing/set-tier·cluster/notify·prices/refresh 누출 → 전면 차단으로 복원.)
+                    blocked = method in _WRITE
+                    deny_msg = "관리자 쓰기는 공개 데모에서 비활성화되어 있습니다."
                 else:
                     blocked = (method in _WRITE and path.startswith("/api/") and not _allow_post)
                     deny_msg = "공개 데모(읽기 전용) 모드입니다. 일반 입력·기록은 가능하나 이 변경은 비활성화되어 있습니다."

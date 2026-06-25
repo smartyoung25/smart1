@@ -452,8 +452,13 @@ def _real_parcels_lookup(meta: dict):
             rec = v; scope = f"{k} (제주 샘플)"; break
     if not rec:
         return None
+    # 방어: parcel 값 중 float NaN(비표준 JSON 토큰 유발)을 None으로 새니타이즈
+    import math as _math
+    def _san(p):
+        return {k: (None if isinstance(v, float) and not _math.isfinite(v) else v) for k, v in p.items()}
+    parcels = [_san(p) for p in (rec.get("parcels", []) or [])]
     return {"farm_id": meta.get("_fid", ""), "source": "farmmap_real", "region": scope,
-            "parcels": rec.get("parcels", []),
+            "parcels": parcels,
             "region_total": {"count": rec.get("count"), "area_ha": rec.get("total_area_ha")},
             "note": f"팜맵 농경지전자지도 2024 실데이터({scope} {rec.get('count')}필지 중 샘플). 출처: {db.get('source')}"}
 

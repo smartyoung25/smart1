@@ -13,7 +13,7 @@
   var vcol = function (v) { return v >= 0.62 ? 'var(--chart-good,#16a34a)' : v >= 0.55 ? 'var(--chart-warn,#f59e0b)' : 'var(--chart-hot,#dc2626)'; };
   var token = function () { try { return sessionStorage.getItem('sf_token') || ''; } catch (e) { return ''; } };
 
-  var state = { data: null, isDemo: false, inited: false, loading: false };
+  var state = { data: null, isDemo: false, loading: false };
 
   function apiBase() { return location.origin; }
 
@@ -38,11 +38,11 @@
     var s = d.summary || {};
     var cards = [
       { v: (d.total_farms || 0).toLocaleString(), l: '관제 농가', c: 'var(--text)' },
-      { v: s.anomaly, l: '이상 (' + s.anomaly_pct + '%)', c: 'var(--chart-hot,#dc2626)' },
-      { v: s.warn, l: '주의', c: 'var(--chart-warn,#f59e0b)' },
-      { v: s.normal, l: '정상', c: 'var(--chart-good,#16a34a)' },
-      { v: s.avg_vigor, l: '평균 작황 NDVI', c: 'var(--blue,#2563eb)' },
-      { v: s.avg_diag + '점', l: '평균 진단', c: 'var(--purple,#7c3aed)' }
+      { v: s.anomaly != null ? s.anomaly : '–', l: '이상 (' + (s.anomaly_pct != null ? s.anomaly_pct : '–') + '%)', c: 'var(--chart-hot,#dc2626)' },
+      { v: s.warn != null ? s.warn : '–', l: '주의', c: 'var(--chart-warn,#f59e0b)' },
+      { v: s.normal != null ? s.normal : '–', l: '정상', c: 'var(--chart-good,#16a34a)' },
+      { v: s.avg_vigor != null ? s.avg_vigor : '–', l: '평균 작황 NDVI', c: 'var(--blue,#2563eb)' },
+      { v: s.avg_diag != null ? s.avg_diag + '점' : '–', l: '평균 진단', c: 'var(--purple,#7c3aed)' }
     ];
     return '<div class="cc-kpi-row">' + cards.map(function (k) {
       return '<div class="cc-kpi"><div class="cc-kpi-v" style="color:' + k.c + '">' + esc(k.v) + '</div><div class="cc-kpi-l">' + esc(k.l) + '</div></div>';
@@ -96,7 +96,7 @@
     var demoTag = isDemo ? ' · 🧪 샘플 시뮬레이션(데모)' : '';
     root.innerHTML =
       '<div class="cc-head">' +
-        '<div><h1>클러스터 관제</h1><p class="cc-sub">평균 작황 NDVI ' + esc((d.summary || {}).avg_vigor) + ' · 평균 진단 ' + esc((d.summary || {}).avg_diag) + '점' + demoTag + '</p></div>' +
+        '<div><h1>클러스터 관제</h1><p class="cc-sub">평균 작황 NDVI ' + esc((d.summary || {}).avg_vigor != null ? (d.summary || {}).avg_vigor : '–') + ' · 평균 진단 ' + esc((d.summary || {}).avg_diag != null ? (d.summary || {}).avg_diag : '–') + '점' + demoTag + '</p></div>' +
         '<div class="cc-actions">' +
           '<div class="cc-filters">' +
             '<select id="ccRegion"></select>' +
@@ -111,17 +111,18 @@
       '<div class="cc-grid2">' + clusterTable(d.by_region, '지역 클러스터') + clusterTable(d.by_crop, '작목 클러스터') + '</div>' +
       alertsTable(d.alerts);
 
-    // 필터 옵션
-    if (!state.inited) {
-      var fr = document.getElementById('ccRegion'), fc = document.getElementById('ccCrop');
-      fr.innerHTML = '<option value="">전체 지역</option>' + (d.regions || []).map(function (r) { return '<option value="' + esc(r) + '">' + esc(r) + '</option>'; }).join('');
-      fc.innerHTML = '<option value="">전체 작목</option>' + (d.crops || []).map(function (c) { return '<option value="' + esc(c) + '">' + esc(c) + '</option>'; }).join('');
-      state.inited = true;
-    } else {
-      // 재렌더 시 선택값 복원
-      document.getElementById('ccRegion').value = state.region || '';
-      document.getElementById('ccCrop').value = state.crop || '';
+    // 필터 옵션 — render()가 매번 select를 빈 채로 재생성하므로 항상 채운 뒤 선택값 복원.
+    //   (구: if(!state.inited) 게이트 → 첫 렌더 후 옵션 0개 버그)
+    //   드롭다운은 '전체(무필터)' 응답의 풀 목록을 캐시해 사용(필터 응답은 부분목록이라 축소 방지).
+    if (!state.region && !state.crop) {           // 완전 무필터 응답에서만 풀 목록 캐시
+      state.allRegions = d.regions || state.allRegions || [];
+      state.allCrops = d.crops || state.allCrops || [];
     }
+    var fr = document.getElementById('ccRegion'), fc = document.getElementById('ccCrop');
+    fr.innerHTML = '<option value="">전체 지역</option>' + (state.allRegions || []).map(function (r) { return '<option value="' + esc(r) + '">' + esc(r) + '</option>'; }).join('');
+    fc.innerHTML = '<option value="">전체 작목</option>' + (state.allCrops || []).map(function (c) { return '<option value="' + esc(c) + '">' + esc(c) + '</option>'; }).join('');
+    fr.value = state.region || '';
+    fc.value = state.crop || '';
     bindEvents();
   }
 
@@ -158,7 +159,10 @@
     var d = state.data;
     if (!d || !(d.alerts || []).length) { msg('이상 농가가 없습니다.', 'var(--muted)'); return; }
     var ids = (d.alerts || []).map(function (a) { return a.farm_id; });
-    if (state.isDemo) { msg('🧪 샘플 시뮬레이션 — 실제 환경에서는 이상 농가 ' + ids.length + '곳에 현장점검 지시가 일괄 기록됩니다.', 'var(--orange)'); return; }
+    // 데모(role=demo)·샘플데이터는 실제 쓰기 대신 시뮬레이션 — admin 쓰기는 공개데모에서 403.
+    var isDemoRole = false;
+    try { isDemoRole = sessionStorage.getItem('sf_role') === 'demo'; } catch (e) {}
+    if (state.isDemo || isDemoRole) { msg('🧪 샘플 시뮬레이션 — 실제 환경에서는 이상 농가 ' + ids.length + '곳에 현장점검 지시가 일괄 기록됩니다.', 'var(--orange)'); return; }
     if (!confirm('이상 농가 ' + ids.length + '곳에 현장점검 지시를 기록할까요?')) return;
     try {
       var r = await fetch(apiBase() + '/api/admin/cluster/notify', {
@@ -166,6 +170,7 @@
         body: JSON.stringify({ farm_ids: ids, region: state.region || '', crop: state.crop || '', message: '위성·진단 기반 작황 이상 — 현장 점검 요망' })
       });
       if (r.ok) { var j = await r.json(); msg('✓ ' + j.recorded + '곳 지시 기록 · ' + (j.note || ''), j.dispatched ? 'var(--green)' : 'var(--orange)'); }
+      else if (r.status === 403) { msg('공개 데모에서는 알림 발송이 비활성화되어 있습니다.', 'var(--orange)'); }
       else { msg('알림 기록 실패 (' + r.status + ') — 관리자 권한 필요', 'var(--red)'); }
     } catch (e) { msg('알림 기록 실패: ' + e.message, 'var(--red)'); }
   }

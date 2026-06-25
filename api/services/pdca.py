@@ -195,9 +195,10 @@ def calc_growth_potential(farm_id: str, crop: str) -> Dict:
         from api.services.drift_monitor import compute_drift, summary_badge
         stats = compute_drift(crop)
         badge = summary_badge(stats)
-        level = badge.get("level", "green")
+        level = badge.get("alert", "green")   # summary_badge 키는 "alert"(green|yellow|red), "level" 아님
         drift_penalty = {"green": 0.0, "yellow": 0.15, "red": 0.30}.get(level, 0.0)
-        drift_detail.append({"crop": crop, "level": level, "mape": stats.mape})
+        drift_detail.append({"crop": crop, "level": level,
+                             "mape": (stats.mape if math.isfinite(stats.mape) else None)})
     except Exception as e:
         logger.debug("드리프트 조회 실패: %s", e)
 
@@ -579,7 +580,7 @@ def _drift_summary_all() -> Dict:
             try:
                 stats = compute_drift(c)
                 badge = summary_badge(stats)
-                level = badge.get("level", "green")
+                level = badge.get("alert", "green")   # 키는 "alert"(green|yellow|red)
                 if level == "red":    red.append(c)
                 elif level == "yellow": yellow.append(c)
                 else:                   green.append(c)
