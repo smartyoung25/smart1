@@ -13,9 +13,12 @@ PC 관리자 콘솔 신설(Step1~4 완료) — admin/manager 풀폭 콘솔 + 역
 [x] Step6: 클러스터 관제 PC 풀폭 네이티브 뷰 승격 (커밋 ec6e198)
     · console_cluster.js: KPI6열 + 지역/작목 2열 데이터테이블 + 이상농가 풀폭테이블
     · 실데이터 검증: 농가732·이상228 / 풀폭1200px / 콘솔에러0
-[ ] Step5(선택): 광역화면(f8/c9/c6/c20_report iframe) ?embed=1 시 자체 헤더/탭바 숨김
-    (현재 satellite/benchmark/model/report는 여전히 iframe 480px 좌측표시 — cluster만 풀폭 승격됨)
-[ ] (후속) f8 위성작황·c9 벤치마킹도 풀폭 네이티브 승격 검토
+[x] 위성 작황 풀폭 네이티브 승격 + 클러스터→위성 드릴다운 (커밋 b0757df)
+    · console_satellite.js: KPI6열 + NDVI히트맵 + 필지표 2열 + 이상알림 풀폭표
+    · F8은 per-farm 상세 → 클러스터 이상농가 🛰️클릭으로 콘솔 내 드릴다운(동선완결)
+[ ] (후속) c9 벤치마킹·c6 AI학습도 풀폭 네이티브 승격 검토 (현재 iframe 480px)
+[ ] Step5(선택): 남은 iframe(benchmark/model/report) ?embed=1 헤더 숨김
+    — 단 화면 자체 max-width:480px라 헤더만 숨겨도 좁음. 네이티브 승격이 정답.
 
 ## ✅ 해결: 클러스터 집계 시도명 정규화 (커밋 98f82d8)
 - api/services/region_canon.py 신규(정규화 단일소스) → cluster_overview·main.py 공용
