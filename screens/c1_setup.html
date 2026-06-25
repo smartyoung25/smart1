@@ -107,9 +107,15 @@
     <input class="wiz-input" id="fArea" type="number" inputmode="decimal" placeholder="예: 1200"/>
     <label class="wiz-label">재배 방식</label>
     <div class="opt-grid" id="methodGrid"></div>
+    <div id="methodOtherBlock" style="display:none;margin-top:8px;">
+      <input class="wiz-input" id="fMethodOther" placeholder="재배방식을 직접 입력하세요"/>
+    </div>
     <div id="substrateBlock" style="display:none;margin-top:10px;">
       <label class="wiz-label" id="substrateLabel">양액 세부</label>
       <div class="opt-grid" id="substrateGrid"></div>
+      <div id="substrateOtherBlock" style="display:none;margin-top:8px;">
+        <input class="wiz-input" id="fSubstrateOther" placeholder="배지 종류를 직접 입력하세요"/>
+      </div>
     </div>
     <div id="methodInfo" style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.5;background:var(--panel-soft);border-radius:8px;padding:9px 11px;">
       ℹ️ <b>수경·배지경은 모두 양액재배</b>입니다 — <b>수경</b>=배지 없이 양액에 뿌리(담액·NFT·DFT), <b>배지경</b>=고형배지(암면·코코피트·펄라이트)에 양액 공급.
@@ -133,6 +139,9 @@
     <div class="wiz-title">개선 목표</div>
     <div class="wiz-desc">가장 개선하고 싶은 항목을 선택하세요 (복수 가능).</div>
     <div class="chip-wrap" id="painChips"></div>
+    <div id="painOtherBlock" style="display:none;margin-top:8px;">
+      <input class="wiz-input" id="fPainOther" placeholder="개선 목표를 직접 입력하세요"/>
+    </div>
     <label class="wiz-label">목표 수확량 (kg/10a · 면적당)</label>
     <input class="wiz-input" id="fKpiYield" type="number" inputmode="decimal" placeholder="예: 4500 (10a=1,000㎡ 당)"/>
     <div id="yieldTotalHint" style="font-size:11px;color:var(--muted);margin-top:6px;"></div>
@@ -176,11 +185,11 @@ const FACILITIES=[
 const FIELD_FAC=new Set(FACILITIES.filter(f=>f[2]==='field').map(f=>f[0]));
 const IRRIGS=[['점적관개','💧'],['스프링클러','🚿'],['지표관개','🌊'],['무관개(천수답)','🌧️']];
 // 온실/노지별 재배방식 하이어라키 (조건부 노출)
-const METHODS_GH=[['토경','🌱'],['수경','💧'],['배지경','🪴']];
-const METHODS_FIELD=[['노지토경','🌾'],['노지재배','🚜']];
+const METHODS_GH=[['토경','🌱'],['수경','💧'],['배지경','🪴'],['기타','✏️']];
+const METHODS_FIELD=[['노지토경','🌾'],['노지재배','🚜'],['기타','✏️']];
 // 양액 2단계 세부 (수경/배지경 선택 시)
-const SUBSTRATE={ '수경':['담액(DFT)','NFT','박막'], '배지경':['암면','코코피트','펄라이트'] };
-const PAINS=['수확량 증대','품질 향상','에너지 절감','병해 예방','관수 효율','인건비 절감','출하가 향상'];
+const SUBSTRATE={ '수경':['담액(DFT)','NFT','박막','기타'], '배지경':['암면','코코피트','펄라이트','왕겨','피트모스','기타'] };
+const PAINS=['수확량 증대','품질 향상','에너지 절감','병해 예방','관수 효율','인건비 절감','출하가 향상','기타'];
 
 window.addEventListener('DOMContentLoaded', ()=>{
   _ensureToken();
@@ -246,12 +255,19 @@ function _renderMethods(){
 function _renderSubstrate(){
   const subs=SUBSTRATE[form.cultivation_method];
   const blk=document.getElementById('substrateBlock');
-  if(!subs){ blk.style.display='none'; form.cultivation_detail=''; return; }
+  if(!subs){ blk.style.display='none'; form.cultivation_detail='';
+    document.getElementById('substrateOtherBlock').style.display='none'; return; }
   blk.style.display='block';
   document.getElementById('substrateLabel').textContent = form.cultivation_method==='수경'?'수경 방식':'배지 종류';
   document.getElementById('substrateGrid').innerHTML=subs.map(s=>`<div class="opt-card${form.cultivation_detail===s?' sel':''}" onclick="_selSubstrate('${s}',this)">${s}</div>`).join('');
+  document.getElementById('substrateOtherBlock').style.display=form.cultivation_detail==='기타'?'block':'none';
 }
-function _selSubstrate(s,el){ form.cultivation_detail=s; document.querySelectorAll('#substrateGrid .opt-card').forEach(x=>x.classList.remove('sel')); el.classList.add('sel'); }
+function _selSubstrate(s,el){
+  form.cultivation_detail=s;
+  document.querySelectorAll('#substrateGrid .opt-card').forEach(x=>x.classList.remove('sel')); el.classList.add('sel');
+  const ob=document.getElementById('substrateOtherBlock'); ob.style.display=s==='기타'?'block':'none';
+  if(s!=='기타') document.getElementById('fSubstrateOther').value='';
+}
 // 선택한 시설이 노지 유형인지 (시설 우선, 미선택 시 작물로 추정)
 function _isField(){ return form.facility_type ? FIELD_FAC.has(form.facility_type) : FIELD_CROPS.includes(form.crop_ko); }
 function _selCrop(c,el){ form.crop_ko=c; document.querySelectorAll('#cropGrid .opt-card').forEach(x=>x.classList.remove('sel')); el.classList.add('sel'); }
@@ -272,8 +288,19 @@ function _renderStep3(){
   document.getElementById('facilityGrid').innerHTML = FACILITIES.map(([c,i,t])=>`<div class="opt-card${form.facility_type===c?' sel':''}" onclick="_selFacility('${c}',this)"><span class="opt-ico">${i}</span>${c}${t==='field'?' <span style="font-size:9px;color:var(--green-dark);">노지</span>':''}</div>`).join('');
   document.getElementById('irrigBlock').style.display = (form.facility_type && FIELD_FAC.has(form.facility_type))?'block':'none';
 }
-function _selMethod(c,el){ form.cultivation_method=c; form.cultivation_detail=''; document.querySelectorAll('#methodGrid .opt-card').forEach(x=>x.classList.remove('sel')); el.classList.add('sel'); _renderSubstrate(); }
-function _togglePain(p,el){ const i=form.pain_points.indexOf(p); if(i>=0){form.pain_points.splice(i,1);el.classList.remove('sel');}else{form.pain_points.push(p);el.classList.add('sel');} }
+function _selMethod(c,el){
+  form.cultivation_method=c; form.cultivation_detail='';
+  document.querySelectorAll('#methodGrid .opt-card').forEach(x=>x.classList.remove('sel')); el.classList.add('sel');
+  const ob=document.getElementById('methodOtherBlock'); ob.style.display=c==='기타'?'block':'none';
+  if(c!=='기타') document.getElementById('fMethodOther').value='';
+  _renderSubstrate();
+}
+function _togglePain(p,el){
+  const i=form.pain_points.indexOf(p);
+  if(i>=0){form.pain_points.splice(i,1);el.classList.remove('sel');}else{form.pain_points.push(p);el.classList.add('sel');}
+  document.getElementById('painOtherBlock').style.display=form.pain_points.includes('기타')?'block':'none';
+  if(!form.pain_points.includes('기타')) document.getElementById('fPainOther').value='';
+}
 
 function _showStep(n){
   _step=n;
@@ -296,13 +323,24 @@ function _collectStep(){
     form.address_detail=document.getElementById('fAddr').value.trim();
     form.region=[form.sido,form.sigungu].filter(Boolean).join(' ');   // 하위호환 합성
   }
-  if(_step===4){ form.area_m2=parseFloat(document.getElementById('fArea').value)||null; }
+  if(_step===4){
+    form.area_m2=parseFloat(document.getElementById('fArea').value)||null;
+    // 기타 직접입력 반영
+    const mOther=document.getElementById('fMethodOther').value.trim();
+    if(mOther && form.cultivation_method==='기타') form.cultivation_method='기타: '+mOther;
+    const sOther=document.getElementById('fSubstrateOther').value.trim();
+    if(sOther && form.cultivation_detail==='기타') form.cultivation_detail='기타: '+sOther;
+  }
   if(_step===5){ form.season_start=document.getElementById('fStart').value; form.season_end=document.getElementById('fEnd').value; form.growing_year=parseInt(document.getElementById('fYear').value)||1; }
   if(_step===6){
     form.kpi_yield_per_10a=parseFloat(document.getElementById('fKpiYield').value)||null;
-    // 총 목표수확량 = 면적당 × (면적/1000㎡) — 백엔드 kpi_yield_kg 는 총량
     form.kpi_yield_kg = (form.kpi_yield_per_10a && form.area_m2)
       ? Math.round(form.kpi_yield_per_10a * form.area_m2/1000) : null;
+    // 개선목표 기타 직접입력 반영
+    const painOther=document.getElementById('fPainOther').value.trim();
+    if(painOther && form.pain_points.includes('기타')){
+      form.pain_points[form.pain_points.indexOf('기타')]='기타: '+painOther;
+    }
   }
 }
 // 면적당 입력 시 총량 미리보기

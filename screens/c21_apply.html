@@ -36,6 +36,13 @@
   <span style="width:40px;"></span>
 </header>
 <main class="ap-body">
+  <!-- 장비 미등록 시 안내 배너 (장비등록 완료 후 연동신청 진행 권장) -->
+  <div id="eqCheckBanner" style="display:none;margin-bottom:12px;background:var(--orange-soft,#fff7ed);border:1.5px solid var(--orange);border-radius:12px;padding:13px 14px;">
+    <div style="font-size:13px;font-weight:800;color:var(--orange);">⚠️ 장비 등록을 먼저 완료하세요</div>
+    <div style="font-size:11.5px;color:var(--muted);margin-top:4px;line-height:1.5;">이기종 장비 연동 신청은 기자재 등록을 모두 완료한 후 진행하는 것을 권장합니다. 보유 장비를 먼저 등록하면 연동 처리가 빠르고 정확해집니다.</div>
+    <button onclick="location.href='c16_equipment.html'" style="width:100%;margin-top:10px;padding:11px;background:var(--orange);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:800;cursor:pointer;min-height:44px;">🔌 기자재 등록 먼저 하기 (C16) →</button>
+    <button onclick="document.getElementById('eqCheckBanner').style.display='none'" style="width:100%;margin-top:6px;padding:8px;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;min-height:36px;">장비 등록 완료됨 — 계속 진행</button>
+  </div>
   <div class="section-label">신청 가능한 항목</div>
   <div id="catList"><div style="text-align:center;padding:14px;color:var(--muted);font-size:13px;">로드 중…</div></div>
 
@@ -98,6 +105,11 @@ function _H(){return {Authorization:`Bearer ${_token}`,'Content-Type':'applicati
 
 async function _load(){
   await _ensure();
+  // 장비 등록 여부 확인 → 미등록 시 안내 배너 표시
+  try{
+    const d=await fetch(`${_api}/api/farms/${_farm}/equipment`,{headers:_H()}).then(r=>r.json()).catch(()=>({items:[]}));
+    if(!(d.items||[]).length) document.getElementById('eqCheckBanner').style.display='block';
+  }catch(_e){ document.getElementById('eqCheckBanner').style.display='block'; }
   // 카탈로그
   try{
     const c=await fetch(`${_api}/api/farms/${_farm}/integration-catalog`,{headers:_H()}).then(r=>r.json());

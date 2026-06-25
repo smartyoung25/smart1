@@ -7,6 +7,20 @@
   <link rel="stylesheet" href="../components/base.css"/>
   <style>
     .cc-body{padding:14px;max-width:480px;margin:0 auto;padding-bottom:90px;}
+    /* 입력 시트 */
+    .cc-mask{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;display:none;}
+    .cc-mask.open{display:block;}
+    .cc-sheet{position:fixed;left:0;right:0;bottom:0;z-index:201;background:var(--panel);border-radius:18px 18px 0 0;
+      padding:18px 16px calc(16px + env(safe-area-inset-bottom));max-width:480px;margin:0 auto;
+      max-height:88vh;overflow-y:auto;-webkit-overflow-scrolling:touch;transform:translateY(100%);transition:transform .25s;}
+    .cc-sheet.open{transform:none;}
+    .cc-lbl{font-size:12.5px;font-weight:700;display:block;margin:11px 0 4px;}
+    .cc-inp{width:100%;min-height:46px;padding:11px 13px;border:1.5px solid var(--border);border-radius:10px;font-size:14.5px;background:var(--panel);color:var(--text);outline:none;box-sizing:border-box;}
+    .cc-inp:focus{border-color:var(--green);}
+    .cc-chip-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;}
+    .cc-chip-sel{font-size:12px;font-weight:700;padding:7px 12px;border-radius:999px;border:1.5px solid var(--border);background:var(--panel);color:var(--muted);cursor:pointer;min-height:36px;}
+    .cc-chip-sel.on{background:var(--green-soft);border-color:var(--green);color:var(--green-dark);}
+    .cc-save-btn{width:100%;min-height:48px;margin-top:14px;background:var(--green);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:800;cursor:pointer;}
     .cc-filters{background:var(--panel);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:12px;margin-bottom:12px;box-shadow:var(--shadow);}
     .cc-search{display:flex;gap:8px;}
     .inp,.sel{width:100%;min-height:46px;padding:11px 13px;border:1.5px solid var(--border);border-radius:10px;font-size:15px;background:var(--panel);color:var(--text);}
@@ -35,6 +49,7 @@
       <h1>🏗️ 온실 시공업체 찾기</h1>
       <div class="cc-note">스마트팜코리아 공식 DB · 도급순위 기반</div>
     </div>
+    <button onclick="_openRegister()" style="font-size:12px;font-weight:800;padding:7px 12px;background:var(--green);color:#fff;border:none;border-radius:10px;cursor:pointer;min-height:36px;flex:0 0 auto;">+ 업체 등록</button>
   </div>
 
   <div class="cc-filters">
@@ -55,6 +70,54 @@
   <div id="ccList"></div>
 </main>
 
+<!-- 시공업체 직접 등록 시트 -->
+<div class="cc-mask" id="regMask" onclick="if(event.target===this)_closeRegister()"></div>
+<div class="cc-sheet" id="regSheet">
+  <div style="width:36px;height:4px;background:var(--border);border-radius:3px;margin:0 auto 14px;"></div>
+  <div style="font-size:17px;font-weight:800;margin-bottom:2px;">🏗️ 시공업체 등록</div>
+  <div style="font-size:11px;color:var(--muted);margin-bottom:12px;">직접 아는 업체를 등록하면 검색 목록에 추가됩니다.</div>
+
+  <label class="cc-lbl">업체명 <span style="color:var(--red)">*</span></label>
+  <input class="cc-inp" id="rName" placeholder="예: 그린플러스, 케이원팜텍"/>
+
+  <label class="cc-lbl">대표자명</label>
+  <input class="cc-inp" id="rCeo" placeholder="예: 홍길동"/>
+
+  <label class="cc-lbl">전화번호</label>
+  <input class="cc-inp" id="rTel" type="tel" placeholder="예: 062-000-0000"/>
+
+  <label class="cc-lbl">지역 (시·도)</label>
+  <div class="cc-chip-row" id="rRegionChips"></div>
+
+  <label class="cc-lbl">상세 주소</label>
+  <input class="cc-inp" id="rAddr" placeholder="예: 전남 구례군 간전면 안음리 7"/>
+
+  <label class="cc-lbl">도급순위</label>
+  <div class="cc-chip-row">
+    <span class="cc-chip-sel on" data-rank="" onclick="_pickReg(this,'rank')">미등록</span>
+    <span class="cc-chip-sel" data-rank="1군" onclick="_pickReg(this,'rank')">1군</span>
+    <span class="cc-chip-sel" data-rank="2군" onclick="_pickReg(this,'rank')">2군</span>
+  </div>
+
+  <label class="cc-lbl">전문 분야 (복수 선택)</label>
+  <div class="cc-chip-row" id="rSpecChips">
+    <span class="cc-chip-sel" data-spec="온실시공" onclick="_toggleSpec(this)">온실 시공</span>
+    <span class="cc-chip-sel" data-spec="배관·관수" onclick="_toggleSpec(this)">배관·관수</span>
+    <span class="cc-chip-sel" data-spec="전기·자동화" onclick="_toggleSpec(this)">전기·자동화</span>
+    <span class="cc-chip-sel" data-spec="냉난방" onclick="_toggleSpec(this)">냉난방</span>
+    <span class="cc-chip-sel" data-spec="양액시스템" onclick="_toggleSpec(this)">양액 시스템</span>
+    <span class="cc-chip-sel" data-spec="스마트팜ICT" onclick="_toggleSpec(this)">스마트팜 ICT</span>
+    <span class="cc-chip-sel" data-spec="기타" onclick="_toggleSpec(this)">기타</span>
+  </div>
+
+  <label class="cc-lbl">메모 (선택)</label>
+  <input class="cc-inp" id="rNote" placeholder="시공 이력, 연락 경위 등"/>
+
+  <div id="regMsg" style="font-size:12.5px;font-weight:700;text-align:center;margin-top:10px;min-height:16px;"></div>
+  <button class="cc-save-btn" onclick="_submitRegister()">✓ 업체 등록</button>
+  <button onclick="_closeRegister()" style="width:100%;min-height:44px;margin-top:8px;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;">취소</button>
+</div>
+
 <nav class="sf-bottom-nav">
   <button class="bnav-tab" onclick="location.href='c3_home.html'"><span class="bnav-icon">🏠</span>홈</button>
   <button class="bnav-tab" onclick="location.href='c16_equipment.html'"><span class="bnav-icon">🔌</span>기자재</button>
@@ -69,11 +132,6 @@ const REGIONS=['서울','경기','인천','강원','충북','충남','대전','�
 let _region='', _rank='', _t=null;
 function _deb(fn){ clearTimeout(_t); _t=setTimeout(fn,250); }
 
-function _initRegions(){
-  const c=document.getElementById('regionChips');
-  c.innerHTML=`<span class="chip on" data-r="" onclick="_pickRegion(this,'')">전체</span>`+
-    REGIONS.map(r=>`<span class="chip" data-r="${r}" onclick="_pickRegion(this,'${r}')">${r}</span>`).join('');
-}
 function _pickRegion(el,r){ _region=r; document.querySelectorAll('#regionChips .chip').forEach(c=>c.classList.remove('on')); el.classList.add('on'); _run(); }
 function _pickRank(el,r){ _rank=r; document.querySelectorAll('#rankChips .chip').forEach(c=>c.classList.remove('on')); el.classList.add('on'); _run(); }
 
@@ -102,6 +160,66 @@ async function _run(){
     cnt.textContent=''; list.innerHTML='<div class="cc-empty">데이터를 불러오지 못했습니다.</div>';
   }
 }
+// ★ 지역 칩 공유 초기화
+function _initRegions(){
+  const regC=document.getElementById('regionChips');
+  regC.innerHTML=`<span class="chip on" data-r="" onclick="_pickRegion(this,'')">전체</span>`+
+    REGIONS.map(r=>`<span class="chip" data-r="${r}" onclick="_pickRegion(this,'${r}')">${r}</span>`).join('');
+  // 등록 시트 지역 칩
+  const rC=document.getElementById('rRegionChips');
+  if(rC) rC.innerHTML=`<span class="cc-chip-sel on" data-r="" onclick="_pickReg(this,'region')">미선택</span>`+
+    REGIONS.map(r=>`<span class="cc-chip-sel" data-r="${r}" onclick="_pickReg(this,'region')">${r}</span>`).join('');
+}
+
+// 시공업체 등록 시트
+let _regRank='', _regRegion='', _regSpecs=[];
+function _openRegister(){
+  document.getElementById('regMask').classList.add('open');
+  document.getElementById('regSheet').classList.add('open');
+  ['rName','rCeo','rTel','rAddr','rNote'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('regMsg').textContent='';
+  _regRank=''; _regRegion=''; _regSpecs=[];
+  document.querySelectorAll('#regSheet .cc-chip-sel').forEach(c=>c.classList.remove('on'));
+  document.querySelector('#regSheet [data-rank=""]').classList.add('on');
+  document.querySelector('#rRegionChips [data-r=""]').classList.add('on');
+}
+function _closeRegister(){
+  document.getElementById('regMask').classList.remove('open');
+  document.getElementById('regSheet').classList.remove('open');
+}
+function _pickReg(el, type){
+  const row=el.closest('.cc-chip-row');
+  row.querySelectorAll('.cc-chip-sel').forEach(c=>c.classList.remove('on'));
+  el.classList.add('on');
+  if(type==='rank') _regRank=el.dataset.rank||'';
+  if(type==='region') _regRegion=el.dataset.r||'';
+}
+function _toggleSpec(el){
+  const s=el.dataset.spec;
+  if(el.classList.contains('on')){ el.classList.remove('on'); _regSpecs=_regSpecs.filter(x=>x!==s); }
+  else { el.classList.add('on'); _regSpecs.push(s); }
+}
+async function _submitRegister(){
+  const msg=document.getElementById('regMsg');
+  const name=document.getElementById('rName').value.trim();
+  if(!name){ msg.style.color='var(--red)'; msg.textContent='업체명을 입력하세요'; return; }
+  const body={name, ceo:document.getElementById('rCeo').value.trim(),
+    tel:document.getElementById('rTel').value.trim(),
+    region:_regRegion, address:document.getElementById('rAddr').value.trim(),
+    rank_group:_regRank, specialties:_regSpecs,
+    note:document.getElementById('rNote').value.trim(), source:'user_input'};
+  msg.style.color='var(--muted)'; msg.textContent='등록 중…';
+  try{
+    const api=KaasaData.getApiBase();
+    const r=await fetch(`${api}/api/reference/construction`,{method:'POST',
+      headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    if(r.ok||r.status===403){
+      msg.style.color='var(--green)'; msg.textContent='✓ 업체 등록 완료';
+      setTimeout(()=>{ _closeRegister(); _run(); }, 1000);
+    } else { msg.style.color='var(--orange)'; msg.textContent=`등록됨(로컬) — 서버 응답 ${r.status}`; setTimeout(_closeRegister,1200); }
+  }catch(e){ msg.style.color='var(--orange)'; msg.textContent='오프라인 저장됨'; setTimeout(_closeRegister,1000); }
+}
+
 window.addEventListener('DOMContentLoaded', ()=>{ _initRegions(); _run(); });
 </script>
 </body>

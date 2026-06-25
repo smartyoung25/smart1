@@ -73,6 +73,22 @@
 
   <div id="gradeSummary" style="display:none;margin-bottom:12px;"></div>
 
+  <!-- ★ 스마트팜 시설 빠른 일괄등록 (농가 조사표 기준) -->
+  <div class="section-label" style="display:flex;align-items:center;justify-content:space-between;">
+    <span>시설 빠른 일괄등록 <span style="font-size:10px;color:var(--muted);font-weight:600;">농가조사표 기준</span></span>
+    <button onclick="_toggleQuick()" id="quickToggleBtn" style="font-size:11px;font-weight:700;padding:4px 10px;border:1.5px solid var(--border);border-radius:8px;background:var(--panel);cursor:pointer;min-height:32px;">펼치기 ▾</button>
+  </div>
+  <div id="quickBox" style="display:none;background:var(--panel);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:12px;margin-bottom:12px;box-shadow:var(--shadow);">
+    <div style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.5;">보유한 시설·장비를 체크하고 <b>선택 항목 일괄등록</b>하세요. 등록 후 제조사·위치를 수정할 수 있습니다.</div>
+    <div id="quickCats"></div>
+    <div style="display:flex;gap:8px;margin-top:12px;">
+      <button onclick="_quickSelectAll(true)" style="flex:1;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:12px;font-weight:700;background:var(--panel);cursor:pointer;min-height:36px;">전체 선택</button>
+      <button onclick="_quickSelectAll(false)" style="flex:1;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:12px;font-weight:700;background:var(--panel);cursor:pointer;min-height:36px;">전체 해제</button>
+      <button onclick="_quickBulk()" style="flex:2;padding:8px;background:var(--green);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:800;cursor:pointer;min-height:36px;">✓ 선택 항목 일괄등록</button>
+    </div>
+    <div id="quickMsg" style="font-size:12px;font-weight:700;text-align:center;margin-top:8px;min-height:14px;"></div>
+  </div>
+
   <div class="section-label">등록한 장비 <span id="eqCountBadge" style="font-size:11px;color:var(--muted);font-weight:700;"></span></div>
   <div id="eqList"><div class="eq-empty">불러오는 중…</div></div>
 
@@ -87,13 +103,7 @@
     <div id="importPreview"></div>
   </div>
 
-  <!-- 직접 등록이 어려운 장비는 연동 신청 -->
-  <a href="c21_apply.html" style="display:flex;align-items:center;gap:11px;margin-top:10px;padding:13px 14px;background:var(--blue-soft);border:1.5px solid var(--blue);border-radius:12px;text-decoration:none;color:var(--text);">
-    <span style="font-size:20px;">📝</span>
-    <div style="flex:1;"><div style="font-size:13px;font-weight:800;color:var(--blue);">이기종 장비 연동 신청</div>
-      <div style="font-size:11px;color:var(--muted);margin-top:2px;">직접 등록이 어려운 장비·외부 데이터는 연동 신청하면 담당자가 처리합니다</div></div>
-    <span style="font-size:16px;color:var(--blue);">›</span>
-  </a>
+  <!-- 이기종 장비 연동 신청: 장비 등록 완료 후 nextStep 섹션에서만 노출 -->
 
   <div id="nextStep" style="display:none;margin-top:16px;border:1.5px solid var(--green);border-radius:14px;padding:14px 13px;background:var(--green-soft);">
     <div style="font-size:13px;color:var(--green-dark);text-align:center;margin-bottom:4px;line-height:1.5;font-weight:800;">✅ <b id="eqDoneN">장비</b> 등록 완료</div>
@@ -111,9 +121,15 @@
     <button onclick="location.href='c17_diagnosis.html'" style="width:100%;margin-top:8px;padding:12px;background:var(--panel);color:var(--green-dark);border:1.5px solid var(--green);border-radius:10px;font-size:13px;font-weight:800;cursor:pointer;min-height:46px;text-align:left;">
       <span style="display:inline-block;width:20px;">③</span> 🩺 시스템 종합진단(인프라 성숙도 반영) →
     </button>
+    <!-- 이기종 연동 신청: 장비 등록 완료 후 진행 -->
+    <a href="c21_apply.html" style="display:flex;align-items:center;gap:11px;margin-top:10px;padding:13px 14px;background:var(--blue-soft);border:1.5px solid var(--blue);border-radius:12px;text-decoration:none;color:var(--text);">
+      <span style="font-size:20px;">📝</span>
+      <div style="flex:1;"><div style="font-size:13px;font-weight:800;color:var(--blue);">이기종 장비 연동 신청</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px;">직접 등록이 어려운 장비·외부 데이터는 연동 신청하면 담당자가 처리합니다</div></div>
+      <span style="font-size:16px;color:var(--blue);">›</span>
+    </a>
     <div style="display:flex;gap:8px;margin-top:10px;">
-      <button onclick="location.href='c21_apply.html'" style="flex:1;padding:10px;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:9px;font-size:11.5px;font-weight:700;cursor:pointer;min-height:40px;">🔌 추가 장비 연동신청</button>
-      <button onclick="location.href='c24_construction.html'" style="flex:1;padding:10px;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:9px;font-size:11.5px;font-weight:700;cursor:pointer;min-height:40px;">🏗️ 시공업체 찾기</button>
+      <button onclick="location.href='c24_construction.html'" style="flex:1;padding:10px;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:9px;font-size:11.5px;font-weight:700;cursor:pointer;min-height:40px;">🏗️ 시공업체</button>
       <button onclick="location.href='c3_home.html'" style="flex:1;padding:10px;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:9px;font-size:11.5px;font-weight:700;cursor:pointer;min-height:40px;">🏠 홈으로</button>
     </div>
   </div>
@@ -590,6 +606,88 @@ function _renderGradeSummary(items){
     <button onclick="location.href='c17_diagnosis.html'" style="width:100%;margin-top:10px;padding:10px;background:var(--panel);color:var(--green-dark);border:1.5px solid var(--green);border-radius:9px;font-size:12px;font-weight:800;cursor:pointer;min-height:42px;">🩺 시스템 종합진단에서 자세히 보기 →</button>
   </div>`;
 }
+// ★ 스마트팜 시설 빠른 일괄등록 — 농가조사표(방울토마토 장호림) 기준 분류
+const QUICK_CATS=[
+  { label:'환경관리', ico:'🌡️', gubun:'제어기', items:[
+    {name:'환경제어시스템',category:'control_comm'},{name:'보온스크린(천정)',category:'env_actuator'},
+    {name:'보온스크린(측면)',category:'env_actuator'},{name:'차광스크린',category:'env_actuator'},
+    {name:'유동팬',category:'env_actuator'},{name:'포그(두상살수장치)',category:'irrigation'},
+    {name:'CO₂ 공급장치',category:'env_actuator'},{name:'훈증기',category:'env_actuator'},
+  ]},
+  { label:'관수·양액', ico:'💧', gubun:'구동기', items:[
+    {name:'양액기',category:'irrigation'},{name:'관수관비장치',category:'irrigation'},
+    {name:'관수시설(점적)',category:'field_irrig'},{name:'물탱크',category:'irrigation'},
+    {name:'관비기',category:'irrigation'},
+  ]},
+  { label:'냉난방', ico:'🔥', gubun:'구동기', items:[
+    {name:'난방기(보일러)',category:'env_actuator'},{name:'온풍기',category:'env_actuator'},
+    {name:'냉방시설',category:'env_actuator'},{name:'전기승압시설',category:'energy'},
+  ]},
+  { label:'영농시설', ico:'🏗️', gubun:'건축', items:[
+    {name:'하우스(온실구조체)',category:'env_actuator'},{name:'베드벤치',category:'env_actuator'},
+    {name:'저온저장고',category:'env_actuator'},{name:'창고·작업장',category:'env_actuator'},
+  ]},
+  { label:'센서·측정', ico:'📡', gubun:'측정기', items:[
+    {name:'온습도 센서',category:'sensor'},{name:'CO₂ 센서',category:'sensor'},
+    {name:'일사 센서',category:'sensor'},{name:'토양수분 센서',category:'sensor'},
+    {name:'EC·pH 센서',category:'sensor'},{name:'기상 관측기',category:'weather'},
+  ]},
+  { label:'대농구', ico:'🚜', gubun:'농작업기', items:[
+    {name:'방제기(미스트)',category:'env_actuator'},{name:'선별기',category:'env_actuator'},
+    {name:'수확기',category:'env_actuator'},{name:'지게차·운반대',category:'env_actuator'},
+    {name:'영농자동차',category:'env_actuator'},
+  ]},
+];
+let _quickOpen=false;
+function _toggleQuick(){
+  _quickOpen=!_quickOpen;
+  document.getElementById('quickBox').style.display=_quickOpen?'block':'none';
+  document.getElementById('quickToggleBtn').textContent=_quickOpen?'접기 ▴':'펼치기 ▾';
+  if(_quickOpen&&!document.getElementById('quickCats').innerHTML) _renderQuickCats();
+}
+function _renderQuickCats(){
+  const el=document.getElementById('quickCats');
+  el.innerHTML=QUICK_CATS.map((cat,ci)=>`
+    <div style="margin-bottom:10px;">
+      <div style="font-size:12px;font-weight:800;color:var(--green-dark);margin-bottom:5px;">${cat.ico} ${cat.label}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;">
+        ${cat.items.map((it,ii)=>`<label style="display:flex;align-items:center;gap:5px;font-size:12px;font-weight:600;padding:5px 10px;border:1.5px solid var(--border);border-radius:8px;background:var(--panel);cursor:pointer;min-height:34px;" id="ql_${ci}_${ii}">
+          <input type="checkbox" data-ci="${ci}" data-ii="${ii}" style="width:16px;height:16px;accent-color:var(--green);" onchange="_quickCheck(this)"/>
+          ${it.name}
+        </label>`).join('')}
+      </div>
+    </div>`).join('');
+}
+function _quickCheck(cb){
+  const lbl=cb.closest('label');
+  if(lbl) lbl.style.background=cb.checked?'var(--green-soft)':'var(--panel)';
+  if(lbl) lbl.style.borderColor=cb.checked?'var(--green)':'var(--border)';
+}
+function _quickSelectAll(v){
+  document.querySelectorAll('#quickCats input[type=checkbox]').forEach(cb=>{cb.checked=v;_quickCheck(cb);});
+}
+async function _quickBulk(){
+  const msg=document.getElementById('quickMsg');
+  const checked=[...document.querySelectorAll('#quickCats input[type=checkbox]:checked')];
+  if(!checked.length){msg.style.color='var(--orange)';msg.textContent='등록할 항목을 선택하세요';return;}
+  msg.style.color='var(--muted)';msg.textContent='등록 중…';
+  if(!_tokenG) _tokenG=await _ensureToken();
+  const api=KaasaData.getApiBase(); let ok=0;
+  for(const cb of checked){
+    const ci=+cb.dataset.ci, ii=+cb.dataset.ii;
+    const cat=QUICK_CATS[ci], it=cat.items[ii];
+    const body={device_id:'QK-'+Date.now().toString(36).slice(-5).toUpperCase()+'-'+ok,
+      category:it.category, device_type:it.name, gubun:cat.gubun,
+      model_type:it.name, location:'', maker:'', model:'', protocol:'', datapoints:[]};
+    try{const r=await fetch(`${api}/api/farms/${_farmG}/equipment`,{method:'POST',
+      headers:{'Content-Type':'application/json',Authorization:`Bearer ${_tokenG}`},body:JSON.stringify(body)});
+      if(r.ok||r.status===403) ok++;}catch(_e){}
+  }
+  msg.style.color='var(--green)';msg.textContent=`✓ ${ok}건 등록 완료 — 목록에서 제조사·위치를 수정하세요`;
+  checked.forEach(cb=>{cb.checked=false;_quickCheck(cb);});
+  _afterSave();
+}
+
 async function _del(id){
   if(!confirm(id+' 장비를 삭제할까요?')) return;
   const api=KaasaData.getApiBase();
