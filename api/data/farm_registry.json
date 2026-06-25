@@ -1,6 +1,6 @@
 {
   "generated_at": "2026-05-10T10:48:35.173501",
-  "total_farms": 732,
+  "total_farms": 716,
   "area_stats_by_crop": {
     "가지": {
       "avg_m2": 1930.0,
@@ -9222,66 +9222,6 @@
       "variety": "설향",
       "year": 2018
     },
-    "farm_testenv73720": {
-      "crop": "딸기",
-      "crop_ko": "딸기",
-      "sido": "충남",
-      "sigungu": "논산",
-      "area_m2": 1200.0,
-      "name": "딸기 농장 (farm_testenv73720)",
-      "iot_available": false,
-      "onboarding": true
-    },
-    "farm_testenv273737": {
-      "crop": "딸기",
-      "crop_ko": "딸기",
-      "sido": "충남",
-      "sigungu": "논산",
-      "area_m2": 1200.0,
-      "name": "딸기 농장 (farm_testenv273737)",
-      "iot_available": false,
-      "onboarding": true
-    },
-    "farm_testenv373752": {
-      "crop": "딸기",
-      "crop_ko": "딸기",
-      "sido": "충남",
-      "sigungu": "논산",
-      "area_m2": 1200.0,
-      "name": "딸기 농장 (farm_testenv373752)",
-      "iot_available": false,
-      "onboarding": true
-    },
-    "farm_envtest73871": {
-      "crop": "딸기",
-      "crop_ko": "딸기",
-      "sido": "충남",
-      "sigungu": "논산",
-      "area_m2": 1200.0,
-      "name": "딸기 농장 (farm_envtest73871)",
-      "iot_available": false,
-      "onboarding": true
-    },
-    "farm_rectest73937": {
-      "crop": "딸기",
-      "crop_ko": "딸기",
-      "sido": "충남",
-      "sigungu": "논산",
-      "area_m2": 1200.0,
-      "name": "딸기 농장 (farm_rectest73937)",
-      "iot_available": false,
-      "onboarding": true
-    },
-    "farm_ovtest74004": {
-      "crop": "딸기",
-      "crop_ko": "딸기",
-      "sido": "충남",
-      "sigungu": "논산",
-      "area_m2": 1500.0,
-      "name": "딸기 농장 (farm_ovtest74004)",
-      "iot_available": false,
-      "onboarding": true
-    },
     "farm_metafarm74117": {
       "crop": "딸기",
       "crop_ko": "딸기",
@@ -9289,86 +9229,6 @@
       "sigungu": "논산",
       "area_m2": 1500.0,
       "name": "딸기 농장 (farm_metafarm74117)",
-      "iot_available": false,
-      "onboarding": true
-    },
-    "farm_finaltest74153": {
-      "crop": "딸기",
-      "crop_ko": "딸기",
-      "sido": "충남",
-      "sigungu": "논산",
-      "area_m2": 1500.0,
-      "name": "딸기 농장 (farm_finaltest74153)",
-      "iot_available": false,
-      "onboarding": true
-    },
-    "farm_viewtest75061": {
-      "crop": "딸기",
-      "crop_ko": "딸기",
-      "sido": "충남",
-      "sigungu": "논산",
-      "area_m2": 1500.0,
-      "name": "딸기 농장 (farm_viewtest75061)",
-      "iot_available": false,
-      "onboarding": true
-    },
-    "farm_filltest75187": {
-      "crop": "딸기",
-      "crop_ko": "딸기",
-      "sido": "충남",
-      "sigungu": "논산",
-      "area_m2": 1200.0,
-      "name": "딸기 농장 (farm_filltest75187)",
-      "iot_available": false,
-      "onboarding": true
-    },
-    "farm_recfill75208": {
-      "crop": "strawberry",
-      "crop_ko": "strawberry",
-      "sido": "test",
-      "sigungu": "region",
-      "area_m2": 1200.0,
-      "name": "strawberry 농장 (farm_recfill75208)",
-      "iot_available": false,
-      "onboarding": true
-    },
-    "farm_fullcheck75230": {
-      "crop": "strawberry",
-      "crop_ko": "strawberry",
-      "sido": "Chungnam",
-      "sigungu": "Nonsan",
-      "area_m2": 1200.0,
-      "name": "strawberry 농장 (farm_fullcheck75230)",
-      "iot_available": false,
-      "onboarding": true
-    },
-    "farm_dashcheck75277": {
-      "crop": "tomato",
-      "crop_ko": "tomato",
-      "sido": "Chungbuk",
-      "sigungu": "Cheongju",
-      "area_m2": 800.0,
-      "name": "tomato 농장 (farm_dashcheck75277)",
-      "iot_available": false,
-      "onboarding": true
-    },
-    "farm_phtest75326": {
-      "crop": "딸기",
-      "crop_ko": "딸기",
-      "sido": "충남",
-      "sigungu": "논산",
-      "area_m2": 1200.0,
-      "name": "딸기 농장 (farm_phtest75326)",
-      "iot_available": false,
-      "onboarding": true
-    },
-    "farm_growthtest75372": {
-      "crop": "딸기",
-      "crop_ko": "딸기",
-      "sido": "충남",
-      "sigungu": "논산",
-      "area_m2": 1200.0,
-      "name": "딸기 농장 (farm_growthtest75372)",
       "iot_available": false,
       "onboarding": true
     },
@@ -9412,17 +9272,6 @@
       "iot_available": false,
       "onboarding": true
     },
-    "farm_testq": {
-      "crop": "딸기",
-      "crop_ko": "딸기",
-      "sido": "충청남도",
-      "sigungu": "논산시",
-      "emd": "광석면",
-      "area_m2": 1000.0,
-      "name": "테스트농장",
-      "iot_available": false,
-      "onboarding": true
-    },
     "farm_3yrnkv": {
       "crop": "오이",
       "crop_ko": "오이",
@@ -9453,17 +9302,6 @@
       "emd": "ㅇㅇㅇ",
       "area_m2": 1000.0,
       "name": "논산햇살농장",
-      "iot_available": false,
-      "onboarding": true
-    },
-    "farm_u386bfbe7": {
-      "crop": "딸기",
-      "crop_ko": "딸기",
-      "sido": "—",
-      "sigungu": "—",
-      "emd": "",
-      "area_m2": 1000.0,
-      "name": "흐름테스트농장",
       "iot_available": false,
       "onboarding": true
     },
