@@ -1,0 +1,28 @@
+#데이터명	농촌진흥청_스마트팜 생산성 향상 모델 오픈 API 조회 서비스 상세설명
+End Point	https://apis.data.go.kr/1390000/SmartFarmMdl
+DATA_GO_KR_SERVICE_KEY_DECODED=4b29046adc7addec95af1d13878fc4d2c6c26ed3b094ebf5a29a596a54755a96
+
+#데이터명	농촌진흥청_스마트팜 우수농가 공개용 데이터 상세설명
+End Point	https://apis.data.go.kr/1390000/SmartFarmData
+DATA_GO_KR_SERVICE_KEY_DECODED=4b29046adc7addec95af1d13878fc4d2c6c26ed3b094ebf5a29a596a54755a96
+
+#데이터명	한국농수산식품유통공사_전국 공영도매시장 실시간 경매정보 상세설명
+End Point	https://apis.data.go.kr/B552845/katRealTime2
+DATA_GO_KR_SERVICE_KEY_DECODED=4b29046adc7addec95af1d13878fc4d2c6c26ed3b094ebf5a29a596a54755a96
+
+#가격정보 API
+https://www.kamis.or.kr/customer/mypage/my_openapi/my_openapi.do
+API-KEY값	34550732-387d-4a0b-867f-88c70fc0e26a
+
+
+#기상청41_단기예보 조회서비스_오픈API활용가이드_2510.zip
+End Point	https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0
+API 환경 또는 API 호출 조건에 따라 인증키가 적용되는 방식이 다를 수 있습니다.
+포털에서 제공되는 Encoding/Decoding 된 인증키를 적용하면서 구동되는 키를 사용하시기 바랍니다.
+* 향후 포털에서 더 명확한 정보를 제공하기 위해 노력하겠습니다.
+일반 인증키	
+4b29046adc7addec95af1d13878fc4d2c6c26ed3b094ebf5a29a596a54755a96
+
+
+https://aihub.or.kr/
+APIKEY	6962C30A-8007-44DE-A9FC-614FD540D524

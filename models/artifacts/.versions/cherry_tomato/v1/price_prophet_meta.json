@@ -1,0 +1,12 @@
+{
+  "crop_ko": "방울토마토",
+  "crop_en": "cherry_tomato",
+  "n_train": 59,
+  "price_range": [
+    489.8,
+    6202.651428571428
+  ],
+  "train_mape": 16.9,
+  "train_mae": 442.0,
+  "saved_at": "2026-05-15T15:42:01.198808"
+}

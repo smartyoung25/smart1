@@ -1,0 +1,12 @@
+{
+  "crop_ko": "참외",
+  "crop_en": "melon",
+  "n_train": 41,
+  "price_range": [
+    786.1985930735931,
+    9000.0
+  ],
+  "train_mape": 11.9,
+  "train_mae": 302.0,
+  "saved_at": "2026-05-15T15:42:24.574815"
+}

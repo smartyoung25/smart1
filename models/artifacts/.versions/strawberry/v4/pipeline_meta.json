@@ -1,0 +1,77 @@
+{
+  "crop_ko": "딸기",
+  "crop_en": "strawberry",
+  "pipeline": "4stage",
+  "stage1": {
+    "crop_ko": "딸기",
+    "crop_en": "strawberry",
+    "stage": 1,
+    "model_type": "xgb_multioutput",
+    "feature_count": 33,
+    "target_cols": [
+      "growth_초장",
+      "growth_엽수",
+      "growth_엽장",
+      "growth_엽폭",
+      "growth_화방별착과수"
+    ],
+    "n_train": 1912,
+    "cv_r2_mean": 0.254,
+    "cv_r2_std": 0.053,
+    "cv_r2_min": 0.203,
+    "gate_passed": false,
+    "env_to_growth_lag": 2
+  },
+  "stage2": {
+    "crop_ko": "딸기",
+    "crop_en": "strawberry",
+    "stage": 2,
+    "model_type": "xgb_lgb_ensemble",
+    "feature_count": 15,
+    "n_train": 205,
+    "log_transform": true,
+    "best_n_estimators": 50,
+    "lgb_best_n": 30,
+    "has_lgb": true,
+    "has_quantile": true,
+    "cv_r2_mean": 0.25,
+    "cv_r2_std": 0.0,
+    "cv_mape_mean": 79.7,
+    "mape": 19.8,
+    "gate_passed": true,
+    "agg_mode": "annual",
+    "harvest_lag": 1,
+    "area_default_m2": 1200.0,
+    "area_from_registry_count": 156,
+    "area_from_csv_count": 156,
+    "cultiv_meta_count": 156
+  },
+  "stage3": {
+    "crop_ko": "딸기",
+    "crop_en": "strawberry",
+    "feature_names": [
+      "log_yield_annual",
+      "log_price_annual"
+    ],
+    "price_median": 9000.0,
+    "price_p25": 5541.0,
+    "price_p75": 12700.0,
+    "monthly_price_map": {
+      "1": 11500.0,
+      "2": 8809.0,
+      "3": 7341.0,
+      "4": 6518.0,
+      "5": 6130.0,
+      "6": 6000.0,
+      "10": 23000.0,
+      "11": 15000.0,
+      "12": 12663.0
+    },
+    "agg_mode": "annual",
+    "cv_mape_mean": 19.3,
+    "mape": 17.9,
+    "gate_passed": true,
+    "n_train": 139,
+    "stage": 3
+  }
+}

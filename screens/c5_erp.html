@@ -310,11 +310,23 @@ async function _loadAll(token, farmId) {
   const api = KaasaData.getApiBase();
   const H   = { Authorization: `Bearer ${token}` };
 
-  const [erp, costs, revenue] = await Promise.all([
-    fetch(`${api}/api/farms/${farmId}/erp/realtime`,    {headers:H}).then(r=>r.ok?r.json():null).catch(()=>null),
-    fetch(`${api}/api/farms/${farmId}/costs`,           {headers:H}).then(r=>r.ok?r.json():null).catch(()=>null),
-    fetch(`${api}/api/farms/${farmId}/revenue`,         {headers:H}).then(r=>r.ok?r.json():null).catch(()=>null),
+  const [costs, revenue] = await Promise.all([
+    fetch(`${api}/api/farms/${farmId}/costs`,   {headers:H}).then(r=>r.ok?r.json():null).catch(()=>null),
+    fetch(`${api}/api/farms/${farmId}/revenue`, {headers:H}).then(r=>r.ok?r.json():null).catch(()=>null),
   ]);
+
+  // /erp/realtime 미구현 — costs+revenue로 동일 지표 계산
+  const _rev  = revenue?.revenue_krw ?? revenue?.predicted_revenue_krw ?? 0;
+  const _cost = costs?.total_cost_krw ?? 0;
+  const _yield= revenue?.yield_kg_forecast ?? 0;
+  const erp = {
+    cost_per_kg:     _yield > 0 ? _cost / _yield : 0,
+    margin_per_kg:   _yield > 0 ? (_rev - _cost) / _yield : 0,
+    income_rate_pct: _rev > 0 ? ((_rev - _cost) / _rev) * 100 : 0,
+    breakeven_kg:    revenue?.price_per_kg > 0 ? _cost / revenue.price_per_kg : 0,
+    crop_ko:         revenue?.crop_ko ?? costs?.crop_ko ?? '',
+    area_m2:         revenue?.area_m2 ?? costs?.area_m2 ?? 0,
+  };
 
   _renderBanner(erp);
   _renderCosts(costs);

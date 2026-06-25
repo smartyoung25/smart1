@@ -161,7 +161,14 @@ async def startup_event():
 
 @app.get("/health", tags=["system"])
 def health():
-    return {"status": "ok", "version": app.version}
+    from api.services.persistence import _ENGINE_FAILED
+    db_ok = not _ENGINE_FAILED
+    if not db_ok:
+        import logging
+        logging.getLogger(__name__).critical(
+            "DB 미연결 — in-memory 폴백 중. 수동입력 데이터 재시작 시 소멸 위험."
+        )
+    return {"status": "ok", "version": app.version, "db_ok": db_ok}
 
 
 # ── 대시보드 일원화: 구 PC 다크 대시보드는 비노출(모바일로 통일) ─────────────────

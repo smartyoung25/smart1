@@ -147,6 +147,14 @@ def retrain_crop(crop: str) -> dict:
             results["registry_version"] = new_ver
             logger.info("  [registry] %s 신규 버전 v%d 등록·활성화", crop, new_ver)
 
+            # 신규 버전 활성화 후 API 서버의 모델 캐시 무효화
+            try:
+                from api.services.model_loader import clear_model_cache
+                cleared = clear_model_cache()
+                logger.info("  [cache] 모델 캐시 초기화: %s", cleared)
+            except Exception as _ce:
+                logger.warning("  [cache] 캐시 초기화 실패(무시): %s", _ce)
+
             # 오래된 스냅샷 정리 (최근 5개 유지)
             removed = cleanup_old_snapshots(crop_en, keep_n=5)
             if removed:

@@ -1,0 +1,39 @@
+[
+  {
+    "device_id": "EQ-RCAGP",
+    "category": "env_actuator",
+    "device_type": "난방기(온풍·온수·지열)",
+    "gubun": "농작업기",
+    "model_type": "적과기",
+    "grade": "",
+    "gong": "",
+    "score100": null,
+    "location": "",
+    "maker": "그린플러스",
+    "model": "",
+    "protocol": "MQTT",
+    "host": "",
+    "port": null,
+    "unit_id": null,
+    "datapoints": [
+      {
+        "tag": "heating_temp_set",
+        "data_type": "float",
+        "unit": "°C",
+        "poll_interval": 60,
+        "rw": "read",
+        "canonical_name": "heating_temp_set"
+      },
+      {
+        "tag": "temp_internal",
+        "data_type": "float",
+        "unit": "°C",
+        "poll_interval": 60,
+        "rw": "read",
+        "canonical_name": "temp_internal"
+      }
+    ],
+    "install_date": "",
+    "ts": "2026-06-25T00:23:04.215208+00:00"
+  }
+]

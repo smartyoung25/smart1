@@ -1,0 +1,191 @@
+﻿2026-06-11 16:53:24  watchdog ?쒖옉
+2026-06-11 21:32:32  watchdog ?쒖옉
+2026-06-11 21:32:36  uvicorn ?ш린??
+}
+
+function Start-Tunnel {
+    Start-Process -WindowStyle Hidden -FilePath C:\smart_farm\deploy\cloudflare\bin\cloudflared.exe 
+        -ArgumentList 
+2026-06-11 22:39:44  watchdog ?쒖옉
+2026-06-11 22:39:48  uvicorn ?ш린??
+}
+
+function Start-Tunnel {
+    Start-Process -WindowStyle Hidden -FilePath C:\smart_farm\deploy\cloudflare\bin\cloudflared.exe 
+        -ArgumentList 
+2026-06-12 05:28:54  watchdog ?쒖옉
+2026-06-12 05:28:58  uvicorn ?ш린??
+}
+
+function Start-Tunnel {
+    Start-Process -WindowStyle Hidden -FilePath C:\smart_farm\deploy\cloudflare\bin\cloudflared.exe 
+        -ArgumentList 
+2026-06-12 05:41:01  watchdog ?쒖옉
+2026-06-12 16:26:50  uvicorn ?ш린??
+}
+
+function Start-Tunnel {
+    Start-Process -WindowStyle Hidden -FilePath C:\smart_farm\deploy\cloudflare\bin\cloudflared.exe 
+        -ArgumentList 
+2026-06-12 17:33:14  uvicorn ?ш린??
+}
+
+function Start-Tunnel {
+    Start-Process -WindowStyle Hidden -FilePath C:\smart_farm\deploy\cloudflare\bin\cloudflared.exe 
+        -ArgumentList 
+2026-06-12 20:47:36  uvicorn ?ш린??
+}
+
+function Start-Tunnel {
+    Start-Process -WindowStyle Hidden -FilePath C:\smart_farm\deploy\cloudflare\bin\cloudflared.exe 
+        -ArgumentList 
+2026-06-13 19:29:52  uvicorn ?ш린??
+}
+
+function Start-Tunnel {
+    Start-Process -WindowStyle Hidden -FilePath C:\smart_farm\deploy\cloudflare\bin\cloudflared.exe 
+        -ArgumentList 
+2026-06-13 23:48:09  uvicorn ?ш린??
+}
+
+function Start-Tunnel {
+    Start-Process -WindowStyle Hidden -FilePath C:\smart_farm\deploy\cloudflare\bin\cloudflared.exe 
+        -ArgumentList 
+2026-06-13 23:48:50  uvicorn ?ш린??
+}
+
+function Start-Tunnel {
+    Start-Process -WindowStyle Hidden -FilePath C:\smart_farm\deploy\cloudflare\bin\cloudflared.exe 
+        -ArgumentList 
+2026-06-14 07:18:23  watchdog ?쒖옉
+2026-06-14 07:18:27  uvicorn ?ш린??
+}
+
+function Start-Tunnel {
+    Start-Process -WindowStyle Hidden -FilePath C:\smart_farm\deploy\cloudflare\bin\cloudflared.exe 
+        -ArgumentList 
+2026-06-14 12:45:17  uvicorn ?ш린??
+}
+
+function Start-Tunnel {
+    Start-Process -WindowStyle Hidden -FilePath C:\smart_farm\deploy\cloudflare\bin\cloudflared.exe 
+        -ArgumentList 
+2026-06-14 12:46:03  uvicorn ?ш린??
+}
+
+function Start-Tunnel {
+    Start-Process -WindowStyle Hidden -FilePath C:\smart_farm\deploy\cloudflare\bin\cloudflared.exe 
+        -ArgumentList 
+2026-06-14 20:16:28  uvicorn ?ш린??
+}
+
+function Start-Tunnel {
+    Start-Process -WindowStyle Hidden -FilePath C:\smart_farm\deploy\cloudflare\bin\cloudflared.exe 
+        -ArgumentList 
+2026-06-14 20:21:30  uvicorn ?ш린??
+}
+
+function Start-Tunnel {
+    Start-Process -WindowStyle Hidden -FilePath C:\smart_farm\deploy\cloudflare\bin\cloudflared.exe 
+        -ArgumentList 
+2026-06-14 20:28:23  uvicorn ?ш린??
+}
+
+function Start-Tunnel {
+    Start-Process -WindowStyle Hidden -FilePath C:\smart_farm\deploy\cloudflare\bin\cloudflared.exe 
+        -ArgumentList 
+2026-06-14 21:38:01  uvicorn ?ш린??
+}
+
+function Start-Tunnel {
+    Start-Process -WindowStyle Hidden -FilePath C:\smart_farm\deploy\cloudflare\bin\cloudflared.exe 
+        -ArgumentList 
+2026-06-14 21:42:28  uvicorn ?ш린??
+}
+
+function Start-Tunnel {
+    Start-Process -WindowStyle Hidden -FilePath C:\smart_farm\deploy\cloudflare\bin\cloudflared.exe 
+        -ArgumentList 
+2026-06-14 21:44:28  uvicorn ?ш린??
+}
+
+function Start-Tunnel {
+    Start-Process -WindowStyle Hidden -FilePath C:\smart_farm\deploy\cloudflare\bin\cloudflared.exe 
+        -ArgumentList 
+2026-06-14 21:47:41  uvicorn ?ш린??
+}
+
+function Start-Tunnel {
+    Start-Process -WindowStyle Hidden -FilePath C:\smart_farm\deploy\cloudflare\bin\cloudflared.exe 
+        -ArgumentList 
+2026-06-14 21:49:41  uvicorn ?ш린??
+}
+
+function Start-Tunnel {
+    Start-Process -WindowStyle Hidden -FilePath C:\smart_farm\deploy\cloudflare\bin\cloudflared.exe 
+        -ArgumentList 
+2026-06-14 21:51:05  uvicorn ?ш린??
+}
+
+function Start-Tunnel {
+    Start-Process -WindowStyle Hidden -FilePath C:\smart_farm\deploy\cloudflare\bin\cloudflared.exe 
+        -ArgumentList 
+2026-06-14 21:54:54  uvicorn ?ш린??
+}
+
+function Start-Tunnel {
+    Start-Process -WindowStyle Hidden -FilePath C:\smart_farm\deploy\cloudflare\bin\cloudflared.exe 
+        -ArgumentList 
+2026-06-14 21:55:40  uvicorn ?ш린??
+}
+
+function Start-Tunnel {
+    Start-Process -WindowStyle Hidden -FilePath C:\smart_farm\deploy\cloudflare\bin\cloudflared.exe 
+        -ArgumentList 
+2026-06-15 05:33:59  uvicorn ?ш린??
+}
+
+function Start-Tunnel {
+    Start-Process -WindowStyle Hidden -FilePath C:\smart_farm\deploy\cloudflare\bin\cloudflared.exe 
+        -ArgumentList 
+2026-06-15 05:35:24  uvicorn ?ш린??
+}
+
+function Start-Tunnel {
+    Start-Process -WindowStyle Hidden -FilePath C:\smart_farm\deploy\cloudflare\bin\cloudflared.exe 
+        -ArgumentList 
+2026-06-15 07:42:26  uvicorn ?ш린??
+}
+
+function Start-Tunnel {
+    Start-Process -WindowStyle Hidden -FilePath C:\smart_farm\deploy\cloudflare\bin\cloudflared.exe 
+        -ArgumentList 
+2026-06-15 07:43:12  uvicorn ?ш린??
+}
+
+function Start-Tunnel {
+    Start-Process -WindowStyle Hidden -FilePath C:\smart_farm\deploy\cloudflare\bin\cloudflared.exe 
+        -ArgumentList 
+2026-06-15 07:49:29  uvicorn ?ш린??
+}
+
+function Start-Tunnel {
+    Start-Process -WindowStyle Hidden -FilePath C:\smart_farm\deploy\cloudflare\bin\cloudflared.exe 
+        -ArgumentList 
+2026-06-15 07:55:46  uvicorn ?ш린??
+}
+
+function Start-Tunnel {
+    Start-Process -WindowStyle Hidden -FilePath C:\smart_farm\deploy\cloudflare\bin\cloudflared.exe 
+        -ArgumentList 
+2026-06-15 09:44:40  watchdog ?쒖옉
+2026-06-15 18:03:20  watchdog ?쒖옉
+2026-06-15 18:03:25  uvicorn ?ш린?? }
+    catch { Log 
+2026-06-15 18:16:36  watchdog ?쒖옉
+2026-06-18 09:24:37  watchdog ?쒖옉
+2026-06-18 09:24:41  uvicorn ?ш린?? }
+    catch { Log 
+2026-06-18 10:05:43  uvicorn 湲곕룞 以?遺???湲? ??以묐났 湲곕룞 ?앸왂
+2026-06-18 10:06:29  uvicorn ?ш린?? }
+    catch { Log 
