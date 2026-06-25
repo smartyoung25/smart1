@@ -1,6 +1,6 @@
 {
   "generated_at": "2026-05-10T10:48:35.173501",
-  "total_farms": 731,
+  "total_farms": 732,
   "area_stats_by_crop": {
     "가지": {
       "avg_m2": 1930.0,
@@ -9468,6 +9468,17 @@
       "onboarding": true
     },
     "farm_ub393d67d": {
+      "crop": "딸기",
+      "crop_ko": "딸기",
+      "sido": "충청남도",
+      "sigungu": "논산시",
+      "emd": "111",
+      "area_m2": 1000.0,
+      "name": "논산",
+      "iot_available": false,
+      "onboarding": true
+    },
+    "farm_u490c01cf": {
       "crop": "딸기",
       "crop_ko": "딸기",
       "sido": "충청남도",

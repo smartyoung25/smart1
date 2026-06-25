@@ -1,0 +1,26 @@
+{
+  "user_id": 82,
+  "farm_id": "farm_u490c01cf",
+  "farm_name": "논산",
+  "crop_ko": "딸기",
+  "facility_type": "단동온실",
+  "area_m2": null,
+  "cultivation_method": "배지경",
+  "cultivation_detail": "코코피트",
+  "irrigation_method": "",
+  "region": "충청남도 논산시",
+  "sido": "충청남도",
+  "sigungu": "논산시",
+  "emd": "111",
+  "address_detail": "",
+  "season_start": "2026-06-25",
+  "season_end": "2026-10-08",
+  "growing_year": 1,
+  "pain_points": [
+    "관수 효율"
+  ],
+  "kpi_yield_kg": null,
+  "kpi_revenue_wan": null,
+  "kpi_energy_save": null,
+  "kpi_drain_rate": null
+}
