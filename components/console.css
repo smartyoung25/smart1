@@ -1,0 +1,179 @@
+/* ============================================================
+   KAASA SmartOS — console.css
+   PC 관리자 콘솔 전용 스타일 (admin/manager 풀폭 레이아웃)
+   ★ base.css 토큰 재사용 — console.html이 base.css + console.css 둘 다 link
+   ★ ui-ux-pro-max "Analytics Dashboard" 지침: Data-Dense · 중립 그레이 베이스
+     + 브랜드 그린 · Cool→Hot 데이터 심각도색 · 명료성 > 미학
+   ============================================================ */
+
+:root {
+  --con-topbar-h:  56px;
+  --con-side-w:    240px;
+  --con-side-bg:   #0f1d16;   /* 사이드바: 브랜드 다크 그린 계열 */
+  --con-side-fg:   rgba(255,255,255,.82);
+  --con-side-muted:rgba(255,255,255,.45);
+  --con-side-hover:rgba(255,255,255,.08);
+  --con-side-active-bg: rgba(53,192,130,.16);
+  --con-side-active-fg: #8fe6b8;
+  --con-side-active-bar:#35c082;
+}
+
+* { box-sizing: border-box; }
+html, body {
+  margin: 0; padding: 0; height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-text-size-adjust: 100%;
+}
+
+/* ── 셸 그리드: 상단바(56px) / 사이드바(240px) + 메인(1fr) ── */
+.con-shell {
+  display: grid;
+  grid-template-columns: var(--con-side-w) 1fr;
+  grid-template-rows: var(--con-topbar-h) 1fr;
+  grid-template-areas:
+    "brand topbar"
+    "side  main";
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
+/* ── 상단바 ── */
+.con-brand {
+  grid-area: brand;
+  background: var(--con-side-bg);
+  color: #fff;
+  display: flex; align-items: center; gap: 9px;
+  padding: 0 18px;
+  font-weight: 800; font-size: 15px; letter-spacing: -.02em;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+.con-brand .logo { font-size: 19px; }
+.con-brand small { display: block; font-size: 10px; font-weight: 500; color: var(--con-side-muted); letter-spacing: 0; }
+
+.con-topbar {
+  grid-area: topbar;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 20px; gap: 16px;
+}
+.con-topbar .con-view-title { font-size: 15px; font-weight: 800; color: var(--text); }
+.con-topbar .con-view-title small { display:block; font-size: 11px; font-weight: 500; color: var(--muted); }
+.con-topbar-right { display: flex; align-items: center; gap: 10px; }
+.con-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--green-soft); color: var(--green-dark);
+  font-size: 11.5px; font-weight: 700; padding: 5px 11px; border-radius: 999px;
+}
+.con-iconbtn {
+  width: 38px; height: 38px; border: 1px solid var(--border); background: var(--panel);
+  border-radius: 10px; color: var(--text); font-size: 16px; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: background .15s, border-color .15s;
+}
+.con-iconbtn:hover { background: var(--panel-soft); border-color: var(--green); }
+
+/* ── 사이드바 ── */
+.con-side {
+  grid-area: side;
+  background: var(--con-side-bg);
+  color: var(--con-side-fg);
+  overflow-y: auto;
+  display: flex; flex-direction: column;
+  padding: 10px 10px 16px;
+}
+.con-side-group {
+  font-size: 10px; letter-spacing: .09em; text-transform: uppercase;
+  color: var(--con-side-muted); font-weight: 700;
+  margin: 14px 12px 6px;
+}
+.con-nav { display: flex; flex-direction: column; gap: 2px; }
+.con-nav a {
+  display: flex; align-items: center; gap: 11px;
+  color: var(--con-side-fg); text-decoration: none;
+  padding: 10px 13px; border-radius: 10px;
+  font-size: 13.5px; font-weight: 600; line-height: 1.2;
+  min-height: 42px;
+  position: relative;
+  transition: background .14s, color .14s;
+}
+.con-nav a .ico { font-size: 17px; width: 22px; text-align: center; flex: 0 0 auto; }
+.con-nav a:hover { background: var(--con-side-hover); color: #fff; }
+.con-nav a.active {
+  background: var(--con-side-active-bg); color: var(--con-side-active-fg);
+}
+.con-nav a.active::before {
+  content: ""; position: absolute; left: -10px; top: 8px; bottom: 8px;
+  width: 4px; border-radius: 0 3px 3px 0; background: var(--con-side-active-bar);
+}
+.con-side-spacer { flex: 1 1 auto; }
+.con-side-divider { height: 1px; background: rgba(255,255,255,.10); margin: 12px 12px; }
+.con-side-foot a {
+  display: flex; align-items: center; gap: 10px;
+  color: var(--con-side-muted); text-decoration: none;
+  font-size: 12.5px; padding: 9px 13px; border-radius: 10px;
+}
+.con-side-foot a:hover { background: var(--con-side-hover); color: #fff; }
+
+/* ── 메인 콘텐츠 ── */
+/* ★ base.css의 `main{max-width:600px;margin:0 auto;padding:16px}` 무력화 —
+   콘솔은 그리드 셀 풀폭을 사용해야 함(모바일 고정폭 상속 차단). */
+.con-main {
+  grid-area: main;
+  background: var(--bg);
+  overflow: hidden;
+  position: relative;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}
+.con-frame {
+  width: 100%; height: 100%; border: 0; display: block; background: var(--bg);
+}
+
+/* ── 대시보드 랜딩(기본 #dashboard) ── */
+.con-dash {
+  height: 100%; overflow-y: auto; padding: 24px 28px;
+  display: none;
+}
+.con-dash.show { display: block; }
+.con-frame.hide { display: none; }
+.con-dash h1 { font-size: 20px; font-weight: 800; margin: 0 0 4px; }
+.con-dash .sub { font-size: 13px; color: var(--muted); margin: 0 0 22px; }
+.con-card-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+.con-card {
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 18px 18px 16px;
+  box-shadow: var(--shadow); text-decoration: none; color: var(--text);
+  display: flex; flex-direction: column; gap: 6px;
+  transition: transform .14s, border-color .14s;
+}
+.con-card:hover { transform: translateY(-2px); border-color: var(--green); }
+.con-card .ico { font-size: 26px; }
+.con-card .t { font-size: 15px; font-weight: 800; }
+.con-card .d { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+/* ── skip link (접근성) ── */
+.con-skip {
+  position: absolute; left: -999px; top: 8px; z-index: 999;
+  background: var(--green-dark); color: #fff; padding: 8px 14px; border-radius: 8px;
+}
+.con-skip:focus { left: 8px; }
+
+/* ── 키보드 포커스 링 ── */
+.con-nav a:focus-visible, .con-iconbtn:focus-visible,
+.con-card:focus-visible, .con-side-foot a:focus-visible {
+  outline: 2px solid var(--green-2); outline-offset: 2px;
+}
+
+/* ── 노트북 좁은 폭: 사이드바 축소(아이콘+라벨 유지, 폭만 감소) ── */
+@media (max-width: 1100px) {
+  :root { --con-side-w: 200px; }
+  .con-dash { padding: 18px 16px; }
+}

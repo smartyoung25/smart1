@@ -146,6 +146,14 @@ async function _login(){
       const d=await r.json();
       if(d.access_token) sessionStorage.setItem('sf_token',d.access_token);
       if(d.farm_id) sessionStorage.setItem('sf_farm_id',d.farm_id);   // 계정 농장ID 인계(홈·세팅 일관)
+      if(d.role) sessionStorage.setItem('sf_role',d.role);            // PC콘솔 라우팅·가드용
+      // 관리자(admin/manager)는 PC 풀폭 콘솔로, 그 외 역할은 모바일 앱으로
+      const ADMIN_ROLES=['admin','manager','superadmin'];
+      if(ADMIN_ROLES.includes(d.role)){
+        res.style.color='var(--green)';res.textContent='✓ 로그인 완료! 관리자 콘솔로 이동합니다…';
+        setTimeout(()=>location.href='/console',900);
+        return;
+      }
       // 온보딩 미완료면 농장세팅(C1)으로, 완료면 홈으로
       const dest=d.onboarding_required?'c1_setup.html':'c3_home.html';
       res.style.color='var(--green)';res.textContent=d.onboarding_required?'✓ 로그인 완료! 농장 세팅을 이어갑니다…':'✓ 로그인 완료! 이동합니다…';

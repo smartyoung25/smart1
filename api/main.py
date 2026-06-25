@@ -212,6 +212,14 @@ if _SMARTOS_INDEX.exists():
     def serve_smartos_index():
         return FileResponse(str(_SMARTOS_INDEX))
 
+# PC 관리자 콘솔 셸 (admin/manager 전용 풀폭 레이아웃)
+_CONSOLE = _SMARTOS_ROOT / "console.html"
+if _CONSOLE.exists():
+    @app.get("/console", include_in_schema=False)
+    @app.get("/console/", include_in_schema=False)
+    def serve_console():
+        return FileResponse(str(_CONSOLE))
+
 # 시스템 소개 인트로(랜딩) 페이지
 _INTRO = _SMARTOS_ROOT / "screens" / "intro.html"
 if _INTRO.exists():

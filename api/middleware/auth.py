@@ -61,6 +61,7 @@ _PUBLIC_PATHS: set[str] = {
     "/components",  # SmartOS CSS/JS 컴포넌트 (정적)
     "/smartos",     # SmartOS 네비게이터
     "/index.html",  # 네비게이터 (화면들의 ../index.html 링크 대상)
+    "/console",     # PC 관리자 콘솔 셸 (HTML 비인증 서빙, 안의 fetch는 토큰 필요)
     "/intro",       # 시스템 소개 인트로(랜딩)
     "/favicon.ico",
     # NOTE: '/api/data' 무인증 공개경로 제거 (보안 P0) — 생육/수확 수신·이력 GET은

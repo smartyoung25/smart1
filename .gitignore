@@ -13,6 +13,9 @@ build/
 # 런타임 텔레메트리 (일별 누적, 커밋 불필요)
 api/data/telemetry/
 
+# 외부 설치 스킬 (개발 도구, 제품 저장소 제외 — 자체 .git 보유)
+.claude/skills/ui-ux-pro-max-skill/
+
 # 대용량 산출물 바이너리
 out/*.pptx
 out/*.docx
