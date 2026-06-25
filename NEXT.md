@@ -40,10 +40,18 @@ PC 관리자 콘솔 신설(Step1~4 완료) — admin/manager 풀폭 콘솔 + 역
     · 콘솔 대시보드 716 반영 확인
     · 참고: area_stats_by_crop는 캐시 집계 유지(폴백 추정 근사값)
 
+[x] farm_registry JSON 무결성 (커밋 1182352) — bare NaN 제거 + 공백 작물명 정규화
+    · area_stats "파프리카 " NaN 버킷 제거(JS JSON.parse 거부값), 함안농가 crop 공백→정상
+    · 엄격 JSON 파싱 OK / 클러스터 by_crop 공백정크 0
+
+## ⚠️ area_stats_by_crop 주의 (재계산 금지)
+- farms dict 파생 아님 = 별도 면적 survey 소스(딸기 n=238 vs farms 실측area 4개)
+- farms에서 재계산 시 좋은 집계(238) 파괴(→4). 절대 farms 기준 재계산 말 것.
+- farms의 700+는 클러스터 proxy 농가(area_m2 없음, crop/sido만)
+
 ## 콘솔 잔여(선택)
 [ ] 관제 보고서 — 현재 c20_report iframe(A4), 적정. 필요시 헤더 정리
 [ ] launch.json "uvi-preview"(포트8001) — 검증 전용. 운영은 8000 워치독
-[ ] (선택) area_stats_by_crop 재계산 — 테스트농가 제거분 반영(딸기 카운트 미세 정정)
 
 ## ✅ 해결: 클러스터 집계 시도명 정규화 (커밋 98f82d8)
 - api/services/region_canon.py 신규(정규화 단일소스) → cluster_overview·main.py 공용
