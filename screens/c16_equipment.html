@@ -215,6 +215,7 @@ const GUBUN_ICO={'구동기':'⚙️','측정기':'📡','제어기':'🖥️','
 
 window.addEventListener('DOMContentLoaded', ()=>{
   _farmG=new URLSearchParams(location.search).get('farm')||sessionStorage.getItem('sf_farm_id')||'farm_001';
+  _renderProfileRec();
   _ensureToken().then(async t=>{ _tokenG=t;
     const api=KaasaData.getApiBase();
     _schema=await fetch(`${api}/api/farms/${_farmG}/equipment/schema`,{headers:{Authorization:`Bearer ${t}`}}).then(r=>r.json()).catch(()=>null);
@@ -686,6 +687,47 @@ async function _quickBulk(){
   msg.style.color='var(--green)';msg.textContent=`✓ ${ok}건 등록 완료 — 목록에서 제조사·위치를 수정하세요`;
   checked.forEach(cb=>{cb.checked=false;_quickCheck(cb);});
   _afterSave();
+}
+
+// ★ 농가 프로파일 기반 맞춤 기자재 추천 배너
+function _renderProfileRec(){
+  try{
+    const prof=JSON.parse(localStorage.getItem('sf_profile')||'{}');
+    const crop=prof.crop_ko||''; if(!crop) return;
+    const ft=prof.facility_type||''; const method=prof.cultivation_method||'';
+    const isHydro=method.includes('수경')||method.includes('배지경');
+    const isField=['노지 노출','노지 멀칭','비가림(부분피복)'].includes(ft);
+    let recs=[];
+    if(!isField&&isHydro){
+      recs=['양액기','EC·pH 센서','환경제어시스템','온습도 센서','CO₂ 센서','관수관비장치','보온스크린(천정)'];
+    } else if(!isField){
+      recs=['환경제어시스템','온습도 센서','CO₂ 센서','보온스크린(천정)','유동팬','관수관비장치'];
+    } else {
+      recs=['관수시설(점적)','기상 관측기','토양수분 센서','물탱크','온습도 센서'];
+    }
+    const el=document.createElement('div');
+    el.id='profileRecBanner';
+    el.style.cssText='background:var(--blue-soft);border:1.5px solid var(--blue);border-radius:12px;padding:12px 14px;margin-bottom:14px;';
+    el.innerHTML=`<div style="font-size:13px;font-weight:800;color:var(--blue);margin-bottom:5px;">🌱 ${crop}${ft?' · '+ft:''} 맞춤 추천 기자재</div>`+
+      `<div style="font-size:11px;color:var(--muted);margin-bottom:8px;line-height:1.5;">농장 프로파일 기반으로 아래 기자재를 먼저 등록하는 것을 권장합니다.</div>`+
+      `<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px;">${recs.map(r=>`<span style="font-size:11.5px;font-weight:700;padding:4px 10px;background:var(--blue);color:#fff;border-radius:20px;">${r}</span>`).join('')}</div>`+
+      `<button onclick="_autoCheckRec(${JSON.stringify(recs).replace(/'/g,'&#39;')})" style="width:100%;padding:11px;background:var(--blue);color:#fff;border:none;border-radius:9px;font-size:13px;font-weight:800;cursor:pointer;min-height:44px;">✓ 추천 항목 빠른 일괄등록으로 자동 선택 →</button>`;
+    const body=document.querySelector('.eq-body');
+    const sectionLabel=body.querySelector('.section-label');
+    if(sectionLabel) body.insertBefore(el,sectionLabel);
+    else body.insertBefore(el,body.firstChild);
+  }catch(e){}
+}
+function _autoCheckRec(recs){
+  if(!_quickOpen) _toggleQuick();
+  setTimeout(()=>{
+    document.querySelectorAll('#quickCats input[type=checkbox]').forEach(cb=>{
+      const ci=+cb.dataset.ci, ii=+cb.dataset.ii;
+      const it=QUICK_CATS[ci]&&QUICK_CATS[ci].items[ii];
+      if(it&&recs.includes(it.name)){cb.checked=true;_quickCheck(cb);}
+    });
+    document.getElementById('quickBox').scrollIntoView({behavior:'smooth',block:'center'});
+  },180);
 }
 
 async function _del(id){

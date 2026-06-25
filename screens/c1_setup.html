@@ -311,6 +311,7 @@ function _showStep(n){
   document.getElementById('btnPrev').disabled = n===1;
   document.getElementById('btnNext').textContent = n===TOTAL ? '저장' : '다음';
   if(n===4) _renderMethods();   // 시설(Step3) 선택 반영해 재배방식 재렌더
+  if(n===6) _applyFeatsToPains();
   if(n===TOTAL) _renderSummary();
 }
 
@@ -395,6 +396,31 @@ function _saveProfile(){
     region:form.region, sido:form.sido, sigungu:form.sigungu, emd:form.emd,
     area_m2:form.area_m2, farm_id:form.farm_id, farm_name:form.farm_name };
   localStorage.setItem('sf_profile', JSON.stringify(profile));
+}
+
+// C0 관심기능 → Step6 개선목표 자동 체크 (가입 시 선택한 feats 이월)
+const _FEAT_PAIN={'관수관리':'관수 효율','생육예측':'수확량 증대','병해진단':'병해 예방',
+  '수익분석':'출하가 향상','환경제어':'에너지 절감','공동출하':'출하가 향상','시세분석':'출하가 향상','AI추천':'수확량 증대'};
+function _applyFeatsToPains(){
+  try{
+    const feats=JSON.parse(localStorage.getItem('sf_signup_feats')||'[]');
+    const toAuto=[...new Set(feats.map(f=>_FEAT_PAIN[f]).filter(Boolean))];
+    if(!toAuto.length) return;
+    toAuto.forEach(pain=>{
+      if(!form.pain_points.includes(pain)){
+        form.pain_points.push(pain);
+        document.querySelectorAll('#painChips .chip').forEach(el=>{
+          if(el.textContent.trim()===pain) el.classList.add('sel');
+        });
+      }
+    });
+    if(document.getElementById('featsHint')) return;
+    const hint=document.createElement('div');
+    hint.id='featsHint';
+    hint.style.cssText='font-size:11px;color:var(--blue);margin-top:8px;padding:8px 10px;background:var(--blue-soft);border-radius:8px;line-height:1.5;';
+    hint.textContent='💡 가입 시 선택한 관심 기능을 바탕으로 개선 목표를 자동 선택했습니다. 필요 시 추가·변경하세요.';
+    document.getElementById('painChips').insertAdjacentElement('afterend',hint);
+  }catch(e){}
 }
 
 async function _save(){
