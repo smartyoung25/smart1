@@ -50,13 +50,24 @@
     /* 컨설팅 토글 카드 */
     .consult-card { margin-top:16px; padding:13px 14px; border:2px solid var(--border); border-radius:12px; background:var(--panel); cursor:pointer; display:flex; align-items:flex-start; gap:12px; }
     .consult-card.on { border-color:var(--blue); background:var(--blue-soft); }
-    /* ERP 미리보기 */
-    .erp-preview-row { display:flex; justify-content:space-between; padding:5px 0; border-bottom:1px dashed var(--border); font-size:12px; }
-    .erp-preview-row:last-child { border:none; font-weight:800; }
-    /* 경영비 입력 행 */
-    .cost-row { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
-    .cost-row .cost-label { font-size:12px; font-weight:700; flex:0 0 90px; color:var(--muted); }
-    .cost-row .wiz-input { flex:1; min-height:44px; }
+    /* 소득구조 폭포수 (C5 ERP 동일 스타일) */
+    .income-flow { display:flex; flex-direction:column; gap:5px; }
+    .if-row { display:flex; align-items:center; gap:9px; padding:9px 11px; border-radius:10px; border:1.5px solid var(--border); background:var(--panel); }
+    .if-row.plus  { border-color:var(--green);  background:var(--green-soft); }
+    .if-row.minus { border-color:var(--orange); background:var(--orange-soft,#fff7ed); }
+    .if-row.result{ border-color:var(--blue);   background:var(--blue-soft); }
+    .if-row.net   { border-color:var(--green);  background:var(--green-soft); }
+    .if-sign { font-size:18px; font-weight:900; flex-shrink:0; width:20px; text-align:center; }
+    .if-label { font-size:12.5px; font-weight:800; }
+    .if-sub   { font-size:10px; color:var(--muted); line-height:1.4; margin-top:1px; }
+    .if-amt   { font-size:14px; font-weight:900; white-space:nowrap; }
+    .if-rate  { font-size:10px; color:var(--muted); }
+    .if-divider { text-align:center; font-size:11px; color:var(--muted); padding:2px 0; }
+    /* 경영비 입력 그룹 */
+    .cg-hdr { font-size:11px; font-weight:800; letter-spacing:.5px; margin:12px 0 5px; padding:5px 9px; border-radius:8px; }
+    .cost-row { display:flex; align-items:center; gap:8px; margin-bottom:6px; }
+    .cost-row .cost-label { font-size:11.5px; font-weight:700; flex:0 0 108px; color:var(--text); line-height:1.3; }
+    .cost-row .wiz-input { flex:1; min-height:42px; font-size:14px; padding:9px 11px; }
   </style>
 </head>
 <body>
@@ -171,37 +182,57 @@
     <div id="yieldTotalHint" style="font-size:11px;color:var(--muted);margin-top:6px;"></div>
   </div>
 
-  <!-- Step 7: 경영현황 -->
+  <!-- Step 7: 경영현황 (농가조사표 13항목 기준) -->
   <div class="wiz-step" data-step="7">
     <div class="wiz-title">경영현황 <span class="opt-badge" id="step7Badge">(선택)</span></div>
-    <div class="wiz-desc">이번 작기 수입·비용을 입력하면 AI 컨설팅 진단 정확도가 높아집니다.</div>
+    <div class="wiz-desc">농가조사표 기준 수입·비용을 입력하면 소득률·순수익을 즉시 계산합니다. 만원 단위 · 모르면 비워두세요.</div>
 
-    <label class="wiz-label">예상 총수입 (만원) <span id="revenueReq" style="color:var(--red);display:none;">*</span></label>
-    <input class="wiz-input" id="fRevenue" type="number" inputmode="decimal" placeholder="예: 5400" oninput="_calcErpPreview()"/>
-
-    <label class="wiz-label" style="margin-top:14px;">비용 항목별 입력 <span style="font-size:10px;color:var(--muted);font-weight:600;">만원 단위 · 모르면 비워두세요</span></label>
-    <div class="cost-row">
-      <span class="cost-label">중간재비</span>
-      <input class="wiz-input" id="fCostMiddle" type="number" inputmode="decimal" placeholder="종묘·비료·농약·재료 합계" oninput="_calcErpPreview()"/>
+    <!-- ① 총수입 -->
+    <div class="cg-hdr" style="background:var(--green-soft,#f0fdf4);color:var(--green-dark,#166534);">
+      + 총수입 <span id="revenueReq" style="color:var(--red);display:none;">*</span>
     </div>
     <div class="cost-row">
-      <span class="cost-label">고용 인건비</span>
-      <input class="wiz-input" id="fCostLabor" type="number" inputmode="decimal" placeholder="고용 인원 합계" oninput="_calcErpPreview()"/>
+      <span class="cost-label">주산물 판매액</span>
+      <input class="wiz-input" id="fRevMain" type="number" inputmode="decimal" placeholder="만원" oninput="_calcErpPreview()"/>
     </div>
     <div class="cost-row">
-      <span class="cost-label">에너지비</span>
-      <input class="wiz-input" id="fCostEnergy" type="number" inputmode="decimal" placeholder="난방+전기 합산" oninput="_calcErpPreview()"/>
+      <span class="cost-label">부산물·보조금</span>
+      <input class="wiz-input" id="fRevSub" type="number" inputmode="decimal" placeholder="만원 (선택)" oninput="_calcErpPreview()"/>
+    </div>
+
+    <!-- ② 경영비 13항목 (JS _renderCostInputGroups() 동적 렌더) -->
+    <div id="costInputGroups"></div>
+
+    <!-- ③ 자가노동비 -->
+    <div class="cg-hdr" style="background:var(--panel-soft);color:var(--muted);margin-top:4px;">
+      − 자가노동비 <span style="font-size:9px;font-weight:400;">(경영주 기회비용 = 인원×일수×단가)</span>
+    </div>
+    <div style="display:flex;gap:6px;margin-bottom:6px;">
+      <div style="flex:1;">
+        <div style="font-size:10.5px;font-weight:700;color:var(--muted);margin-bottom:3px;">인원(명)</div>
+        <input class="wiz-input" id="fLaborPersons" type="number" inputmode="decimal" placeholder="1" oninput="_calcErpPreview()"/>
+      </div>
+      <div style="flex:1;">
+        <div style="font-size:10.5px;font-weight:700;color:var(--muted);margin-bottom:3px;">일수(일)</div>
+        <input class="wiz-input" id="fLaborDays" type="number" inputmode="decimal" placeholder="365" oninput="_calcErpPreview()"/>
+      </div>
+      <div style="flex:1;">
+        <div style="font-size:10.5px;font-weight:700;color:var(--muted);margin-bottom:3px;">단가(만원/일)</div>
+        <input class="wiz-input" id="fLaborWage" type="number" inputmode="decimal" placeholder="9" oninput="_calcErpPreview()"/>
+      </div>
+    </div>
+
+    <!-- ④ 자본용역비 -->
+    <div class="cg-hdr" style="background:var(--panel-soft);color:var(--muted);">
+      − 자본용역비 <span style="font-size:9px;font-weight:400;">(유동+고정+토지 이자상당액)</span>
     </div>
     <div class="cost-row">
-      <span class="cost-label">임차료</span>
-      <input class="wiz-input" id="fCostRent" type="number" inputmode="decimal" placeholder="토지·시설 임차" oninput="_calcErpPreview()"/>
+      <span class="cost-label">자본용역비</span>
+      <input class="wiz-input" id="fCapSvc" type="number" inputmode="decimal" placeholder="만원 (미입력 시 경영비×11.2% 추정)" oninput="_calcErpPreview()"/>
     </div>
 
-    <label class="wiz-label">자가노동 규모 (명×일)</label>
-    <input class="wiz-input" id="fSelfLabor" type="number" inputmode="decimal" placeholder="예: 365 (1명×365일 기준)"/>
-
-    <!-- 즉시 계산 미리보기 -->
-    <div id="erpPreview" style="display:none;margin-top:14px;background:var(--panel-soft);border-radius:10px;padding:12px 14px;"></div>
+    <!-- 소득구조 폭포수 미리보기 -->
+    <div class="income-flow" id="erpPreview" style="display:none;margin-top:14px;"></div>
   </div>
 
   <!-- Step 8: 확인 -->
@@ -231,9 +262,55 @@ const form={ farm_id:'', farm_name:'', region:'', sido:'', sigungu:'', emd:'', a
   crop_ko:'', facility_type:'', area_m2:null,
   cultivation_method:'토경', cultivation_detail:'', irrigation_method:'', season_start:'', season_end:'', growing_year:1,
   pain_points:[], kpi_yield_kg:null, kpi_yield_per_10a:null,
-  consulting_requested:false, kpi_revenue_wan:null,
-  cost_middle_wan:null, cost_labor_wan:null, cost_energy_wan:null, cost_rent_wan:null,
-  self_labor_days:null };
+  consulting_requested:false,
+  // 총수입 (농가조사표 기준)
+  revenue_main_wan:null, revenue_sub_wan:null, kpi_revenue_wan:null,
+  // 경영비 13항목
+  cost_seed_wan:null, cost_fertilizer_wan:null, cost_pesticide_wan:null,
+  cost_energy_wan:null, cost_material_wan:null, cost_small_tool_wan:null,
+  cost_depr_equip_wan:null, cost_depr_fac_wan:null, cost_repair_wan:null, cost_other_cost_wan:null,
+  cost_labor_hired_wan:null,
+  cost_rent_wan:null, cost_consign_wan:null,
+  // 자가노동비·자본용역비
+  self_labor_persons:null, self_labor_days:null, self_labor_wage_wan:null, self_labor_cost_wan:null,
+  capital_service_wan:null };
+
+// 경영비 13항목 그룹 정의 (C5 ERP와 동일 구조)
+const _CA_GROUPS_INPUT=[
+  { key:'중간재비', color:'#3b82f6', bg:'#eff6ff', items:[
+    {id:'seed',       label:'종자·종묘비',    ph:'모종·씨앗 구입비'},
+    {id:'fertilizer', label:'비료비',          ph:'복합비료·요소·퇴비 합계'},
+    {id:'pesticide',  label:'농약비',           ph:'살충·살균·친환경제재'},
+    {id:'energy',     label:'수도·광열비',     ph:'전기·경유·가스·수도료'},
+    {id:'material',   label:'기타재료비',      ph:'비닐·보온재·포장재 등'},
+    {id:'small_tool', label:'소농구비',         ph:'소농기구 구입'},
+    {id:'depr_equip', label:'대농구 상각비',   ph:'방제기·자동차·선별기 등'},
+    {id:'depr_fac',   label:'영농시설 상각비', ph:'하우스·관수·양액·환경제어'},
+    {id:'repair',     label:'수리·유지비',     ph:'시설 수리 및 유지'},
+    {id:'other_cost', label:'기타비용',         ph:'기타 운영비'},
+  ]},
+  { key:'고용노동비', color:'#7c3aed', bg:'#f5f3ff', items:[
+    {id:'labor_hired',label:'고용노동비',      ph:'남·여 고용 노임 합계'},
+  ]},
+  { key:'임차·위탁', color:'#b45309', bg:'#fffbeb', items:[
+    {id:'rent',       label:'임차료',           ph:'토지·농기계·시설 임차'},
+    {id:'consign',    label:'위탁영농비',       ph:'위탁 작업 비용'},
+  ]},
+];
+
+function _renderCostInputGroups(){
+  const el=document.getElementById('costInputGroups'); if(!el) return;
+  let html='';
+  _CA_GROUPS_INPUT.forEach(grp=>{
+    html+=`<div class="cg-hdr" style="background:${grp.bg};color:${grp.color};margin-top:4px;">− ${grp.label||grp.key}</div>`;
+    grp.items.forEach(it=>{
+      html+=`<div class="cost-row"><span class="cost-label">${it.label}</span>
+        <input class="wiz-input" id="fCost_${it.id}" type="number" inputmode="decimal" placeholder="${it.ph}" oninput="_calcErpPreview()"/>
+      </div>`;
+    });
+  });
+  el.innerHTML=html;
+}
 // 자동 농장 ID 생성 (중복 없음)
 function _genFarmId(){ return 'farm_'+Math.random().toString(36).slice(2,8); }
 
@@ -256,8 +333,7 @@ const PAINS=['수확량 증대','품질 향상','에너지 절감','병해 예�
 window.addEventListener('DOMContentLoaded', ()=>{
   _ensureToken();
   _renderOpts();
-  // 농장 ID: 가입 시 백엔드가 발급한 ID(sf_farm_id) 우선 — 없을 때만 생성(순수 데모)
-  //   ※ 새로 생성하면 JWT의 farm_id 와 어긋나 온보딩이 다른 농장에 저장되는 단락 발생
+  _renderCostInputGroups();   // 경영비 13항목 입력 필드 동적 생성
   form.farm_id=sessionStorage.getItem('sf_farm_id')||_genFarmId();
   document.getElementById('fFarmIdView').textContent=form.farm_id;
   _loadRegions();
@@ -417,28 +493,83 @@ function _onConsulting(val){
   if(skipBtn) skipBtn.style.display=(!_consulting && _step>=3 && _step<=7)?'':'none';
 }
 
-// 경영현황 즉시 계산 미리보기
+// 경영현황 소득구조 폭포수 미리보기 (C5 ERP 동일 로직)
 function _calcErpPreview(){
-  const rev=parseFloat(document.getElementById('fRevenue').value)||0;
-  const mid=parseFloat(document.getElementById('fCostMiddle').value)||0;
-  const lab=parseFloat(document.getElementById('fCostLabor').value)||0;
-  const eng=parseFloat(document.getElementById('fCostEnergy').value)||0;
-  const rent=parseFloat(document.getElementById('fCostRent').value)||0;
-  const el=document.getElementById('erpPreview');
-  if(!rev&&!mid&&!lab&&!eng&&!rent){ if(el) el.style.display='none'; return; }
-  const total=mid+lab+eng+rent;
-  const income=rev-total;
-  const rate=rev>0?Math.round(income/rev*100):0;
-  if(el){
-    el.style.display='block';
-    const rows=[
-      ['총수입',`${rev.toLocaleString()}만원`,''],
-      ['경영비 합계',`${total.toLocaleString()}만원`,'color:var(--orange)'],
-      ['예상 소득',`${income.toLocaleString()}만원 (소득률 ${rate}%)`,income>=0?'color:var(--green);':'color:var(--red);font-weight:800;'],
-    ];
-    el.innerHTML='<div style="font-size:11px;font-weight:800;color:var(--muted);margin-bottom:6px;">📊 입력 기반 즉시 계산 (참고용)</div>'+
-      rows.map(([k,v,s])=>`<div class="erp-preview-row"><span>${k}</span><span style="${s}">${v}</span></div>`).join('');
-  }
+  const el=document.getElementById('erpPreview'); if(!el) return;
+  const w=v=>Math.round(v).toLocaleString()+'만원';
+  const pct=(v,tot)=>tot>0?(v/tot*100).toFixed(1)+'%':'—';
+
+  const revMain=parseFloat(document.getElementById('fRevMain').value)||0;
+  const revSub =parseFloat(document.getElementById('fRevSub').value)||0;
+  const totalRev=revMain+revSub;
+
+  // 경영비: 13항목 합산
+  let mgmtCost=0;
+  _CA_GROUPS_INPUT.forEach(grp=>grp.items.forEach(it=>{
+    const inp=document.getElementById('fCost_'+it.id);
+    mgmtCost+=(inp?parseFloat(inp.value)||0:0);
+  }));
+
+  // 자가노동비
+  const persons=parseFloat(document.getElementById('fLaborPersons').value)||0;
+  const days   =parseFloat(document.getElementById('fLaborDays').value)||0;
+  const wage   =parseFloat(document.getElementById('fLaborWage').value)||0;
+  const selfLabor=persons*days*wage;
+
+  // 자본용역비: 직접 입력 or 경영비×11.2% 추정
+  const capInput=parseFloat(document.getElementById('fCapSvc').value)||0;
+  const capSvc=capInput>0?capInput:Math.round(mgmtCost*0.112);
+
+  if(!totalRev && !mgmtCost){ el.style.display='none'; return; }
+
+  const income=totalRev-mgmtCost;
+  const netProfit=income-selfLabor-capSvc;
+  const incRate=totalRev>0?(income/totalRev*100):0;
+  const netRate=totalRev>0?(netProfit/totalRev*100):0;
+
+  el.style.display='flex';
+  el.innerHTML=`
+    <div style="font-size:10.5px;font-weight:800;color:var(--muted);margin-bottom:6px;letter-spacing:.3px;">📊 소득구조 즉시 계산 (참고용)</div>
+    <div class="if-row plus">
+      <div class="if-sign" style="color:var(--green);">+</div>
+      <div style="flex:1;"><div class="if-label">총수입 (주산물+부산물·보조금)</div>
+        <div class="if-sub">${revMain?'주산물 '+w(revMain):''}${revSub?' + 부산물·보조금 '+w(revSub):''}</div></div>
+      <div style="text-align:right;"><div class="if-amt" style="color:var(--green);">${w(totalRev)}</div><div class="if-rate">100%</div></div>
+    </div>
+    <div class="if-row minus">
+      <div class="if-sign" style="color:var(--orange);">−</div>
+      <div style="flex:1;"><div class="if-label">경영비 (13항목 합계)</div>
+        <div class="if-sub">중간재비+고용노동비+임차·위탁</div></div>
+      <div style="text-align:right;"><div class="if-amt" style="color:var(--orange);">${w(mgmtCost)}</div><div class="if-rate">${pct(mgmtCost,totalRev)}</div></div>
+    </div>
+    <div class="if-divider">▼</div>
+    <div class="if-row result">
+      <div class="if-sign" style="color:var(--blue);">=</div>
+      <div style="flex:1;"><div class="if-label" style="font-size:13px;">소득</div>
+        <div class="if-sub">소득률 ${incRate>0?incRate.toFixed(1):'—'}%</div></div>
+      <div style="text-align:right;"><div class="if-amt" style="color:var(--blue);font-size:15px;">${w(income)}</div>
+        <div class="if-rate" style="color:var(--blue);font-weight:700;">${incRate>0?incRate.toFixed(1):'—'}%</div></div>
+    </div>
+    ${selfLabor>0?`<div class="if-row minus" style="opacity:.85;">
+      <div class="if-sign" style="color:var(--muted);">−</div>
+      <div style="flex:1;"><div class="if-label" style="color:var(--muted);">자가노동비</div>
+        <div class="if-sub">${persons}명×${days}일×${wage}만원</div></div>
+      <div style="text-align:right;"><div class="if-amt" style="color:var(--muted);">${w(selfLabor)}</div></div>
+    </div>`:''}
+    <div class="if-row minus" style="opacity:.85;">
+      <div class="if-sign" style="color:var(--muted);">−</div>
+      <div style="flex:1;"><div class="if-label" style="color:var(--muted);">자본용역비</div>
+        <div class="if-sub">${capInput>0?'직접 입력':'경영비×11.2% 추정'}</div></div>
+      <div style="text-align:right;"><div class="if-amt" style="color:var(--muted);">${w(capSvc)}</div></div>
+    </div>
+    <div class="if-divider">▼</div>
+    <div class="if-row net">
+      <div class="if-sign" style="color:var(--green);">=</div>
+      <div style="flex:1;"><div class="if-label" style="font-size:13px;">순수익</div>
+        <div class="if-sub">순수익률 ${netRate>0?netRate.toFixed(1):'—'}%</div></div>
+      <div style="text-align:right;"><div class="if-amt" style="color:${netProfit>=0?'var(--green)':'var(--red)'};font-size:15px;">${w(netProfit)}</div>
+        <div class="if-rate" style="color:${netProfit>=0?'var(--green)':'var(--red)'};font-weight:700;">${netRate.toFixed(1)}%</div></div>
+    </div>`;
 }
 
 // 건너뛰기: Step 3~7 → 바로 확인(Step 8)으로 이동
@@ -473,12 +604,20 @@ function _collectStep(){
     }
   }
   if(_step===7){
-    form.kpi_revenue_wan  = parseFloat(document.getElementById('fRevenue').value)||null;
-    form.cost_middle_wan  = parseFloat(document.getElementById('fCostMiddle').value)||null;
-    form.cost_labor_wan   = parseFloat(document.getElementById('fCostLabor').value)||null;
-    form.cost_energy_wan  = parseFloat(document.getElementById('fCostEnergy').value)||null;
-    form.cost_rent_wan    = parseFloat(document.getElementById('fCostRent').value)||null;
-    form.self_labor_days  = parseFloat(document.getElementById('fSelfLabor').value)||null;
+    form.revenue_main_wan = parseFloat(document.getElementById('fRevMain').value)||null;
+    form.revenue_sub_wan  = parseFloat(document.getElementById('fRevSub').value)||null;
+    form.kpi_revenue_wan  = (form.revenue_main_wan||0)+(form.revenue_sub_wan||0)||null;
+    // 13항목 수집
+    _CA_GROUPS_INPUT.forEach(grp=>grp.items.forEach(it=>{
+      const inp=document.getElementById('fCost_'+it.id);
+      form['cost_'+it.id+'_wan']=inp?(parseFloat(inp.value)||null):null;
+    }));
+    // 자가노동비
+    form.self_labor_persons = parseFloat(document.getElementById('fLaborPersons').value)||null;
+    form.self_labor_days    = parseFloat(document.getElementById('fLaborDays').value)||null;
+    form.self_labor_wage_wan= parseFloat(document.getElementById('fLaborWage').value)||null;
+    form.self_labor_cost_wan= (form.self_labor_persons||0)*(form.self_labor_days||0)*(form.self_labor_wage_wan||0)||null;
+    form.capital_service_wan= parseFloat(document.getElementById('fCapSvc').value)||null;
     form.consulting_requested = _consulting;
   }
 }
@@ -498,7 +637,7 @@ function _validate(){
   if(_consulting){
     if(_step===3 && !form.facility_type){ alert('시설 유형을 선택하세요 (컨설팅 필수)'); return false; }
     if(_step===3 && _isField() && !form.irrigation_method){ alert('관개 방식을 선택하세요'); return false; }
-    if(_step===7 && !form.kpi_revenue_wan){ alert('예상 총수입을 입력하세요 (컨설팅 필수)'); return false; }
+    if(_step===7 && !form.revenue_main_wan){ alert('주산물 판매액을 입력하세요 (컨설팅 필수)'); return false; }
   } else {
     // 비컨설팅: Step3 시설유형은 선택이지만 기존 로직 유지 (선택이므로 통과)
     // (Step 3 미선택 시 _isField()가 작물 기반 추정값을 사용)
@@ -527,17 +666,22 @@ function _renderSummary(){
     ['목표수확량',form.kpi_yield_per_10a?`${form.kpi_yield_per_10a} kg/10a${form.kpi_yield_kg?` (총 ${form.kpi_yield_kg.toLocaleString()}kg)`:''}`:'—'],
   ];
   // 경영현황 요약 (입력된 값만)
-  if(form.kpi_revenue_wan) rows.push(['예상 총수입',`${form.kpi_revenue_wan.toLocaleString()}만원`]);
-  const totalCost=(form.cost_middle_wan||0)+(form.cost_labor_wan||0)+(form.cost_energy_wan||0)+(form.cost_rent_wan||0);
+  if(form.kpi_revenue_wan) rows.push(['총수입',`${form.kpi_revenue_wan.toLocaleString()}만원`]);
+  const totalCost=_CA_GROUPS_INPUT.flatMap(g=>g.items).reduce((s,it)=>s+(form['cost_'+it.id+'_wan']||0),0);
   if(totalCost>0){
     rows.push(['경영비 합계',`${totalCost.toLocaleString()}만원`]);
     if(form.kpi_revenue_wan){
       const income=form.kpi_revenue_wan-totalCost;
-      const rate=Math.round(income/form.kpi_revenue_wan*100);
-      rows.push(['예상 소득(률)',`${income.toLocaleString()}만원 (${rate}%)`]);
+      rows.push(['소득(소득률)',`${income.toLocaleString()}만원 (${Math.round(income/form.kpi_revenue_wan*100)}%)`]);
     }
   }
-  if(form.self_labor_days) rows.push(['자가노동',`${form.self_labor_days}명×일`]);
+  if(form.self_labor_cost_wan) rows.push(['자가노동비',`${form.self_labor_cost_wan.toLocaleString()}만원`]);
+  if(form.capital_service_wan) rows.push(['자본용역비',`${form.capital_service_wan.toLocaleString()}만원`]);
+  if(form.kpi_revenue_wan && totalCost>0){
+    const income=form.kpi_revenue_wan-totalCost;
+    const net=income-(form.self_labor_cost_wan||0)-(form.capital_service_wan||Math.round(totalCost*0.112));
+    rows.push(['순수익',`${net.toLocaleString()}만원`]);
+  }
   rows.push(['컨설팅 신청',form.consulting_requested?'✓ 신청':'미신청']);
   document.getElementById('summaryCard').innerHTML=rows.map(([k,v])=>`<div class="summary-row"><span class="k">${k}</span><span class="v">${v}</span></div>`).join('');
 }
