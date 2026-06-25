@@ -9,14 +9,14 @@ PC 관리자 콘솔 완성 + 데이터품질 3단계 + farmer.py P2-C(pdca 추�
 [x] farmer_pdca.py — PDCA 4라우트 (커밋 1562123)
 [x] farmer_equipment.py — 기자재·연동·동의 10라우트 (커밋 82d9b20)
     · _equipment_path는 get_system_diagnosis도 사용 → farmer_state로 이관(공유)
-    · 검증: /diagnosis 200(크로스모듈 _equipment_path 정상)
+[x] farmer_env.py — climate-plan 5라우트 (커밋 d73a444) · clean 추출
 [ ] 다음 후보:
-    - diagnosis 클러스터: capability·diagnosis/*·get_system_diagnosis는 _diag_history_path·
-      _load_checklist·_append_diag_snapshot 상호의존. checklist헬퍼는 get_system_diagnosis도
-      사용 → farmer_state 이관 후 클러스터 통째 추출 가능(비연속 L2447~2543 + L2908~3035)
-    - climate-plan(L2812~2891): _FARM_META만? 확인 후 farmer_env로
-    - harvest(L828~1524 흩어짐): _get_env·_detect_alerts·economics 헬퍼 얽힘. 헬퍼 이관 선행 필수.
-    분리모듈 4개: state·irrigation·pdca·equipment
+    - diagnosis 클러스터(capability·diagnosis/*·get_system_diagnosis): get_system_diagnosis가
+      _compute_costs(economics)·_activity_path(activity)·_load_checklist 사용.
+      → 선행: _compute_costs·_activity_path를 farmer_state 이관 후 클러스터 통째 추출
+      (비연속 L2442~2535 + L2619~2724)
+    - harvest(흩어짐): _get_env·_detect_alerts·_compute_costs 얽힘. 헬퍼 이관 선행 필수.
+    분리모듈 5개: state·irrigation·pdca·equipment·env (farmer.py 4300→3146줄, -27%)
 
 ## PC 관리자 콘솔 진행 상황 (계획: ~/.claude/plans/peppy-fluttering-quilt.md)
 [x] Step1: TokenResponse.role 노출 (커밋 9f527be)
