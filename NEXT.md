@@ -1,8 +1,22 @@
 # NEXT — 다음 세션 시작점
-> 마지막 커밋: fae69f3 (2026-06-25)
+> 마지막 커밋: a6a0134 (2026-06-25)
 
 ## 현재 상태 (1줄)
-P0+P1 완료 — 서비스 신뢰도 버그 7건 수정, 프로세스 흐름 재설계.
+PC 관리자 콘솔 신설(Step1~4 완료) — admin/manager 풀폭 콘솔 + 역할 라우팅.
+
+## PC 관리자 콘솔 진행 상황 (계획: ~/.claude/plans/peppy-fluttering-quilt.md)
+[x] Step1: TokenResponse.role 노출 (커밋 9f527be)
+[x] Step2: /console 라우트 + 셸 + 공개경로 (a6a0134)
+[x] Step3: c0_signup _login() admin/manager→/console 분기 (a6a0134)
+[x] Step4: 사이드바 해시라우팅 + iframe 임베드(c20/f8/c9/c6/c20_report) (a6a0134)
+    ★ 핵심수정: base.css main{max-width:600px} 오염을 .con-main 풀폭 override로 차단
+[ ] Step5(선택): 광역화면 ?embed=1 시 자체 헤더/탭바 숨김 (현재 ?embed=1 URL만 부착, 숨김 미구현)
+[ ] Step6(ui-ux-pro-max): c20_cluster_admin PC 풀폭 전용뷰 승격 (현재 iframe 480px 좌측표시)
+- 스킬: .claude/skills/ui-ux-pro-max-skill/ 설치됨(gitignore). 검색CLI 실행은 보안차단 → 데이터 직접 읽기로 활용
+- 검증서버: 별도 포트 8001 (운영 8000 비건드림). launch.json "uvi-preview"
+
+## 이전 세션 완료 (fae69f3)
+P0+P1 — 서비스 신뢰도 버그 7건 수정, 프로세스 흐름 재설계.
 
 ## 이번 세션 완료 (fae69f3)
 [x] P0-A: retrain_trigger.py — 재학습 후 clear_model_cache() 자동 호출
