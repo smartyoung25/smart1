@@ -273,10 +273,33 @@ html, body {
 .sat-warn { background: var(--orange-soft); color: var(--orange); }
 .sat-hot  { background: var(--red-soft); color: var(--red); }
 
+/* ── AI 학습·모델(model) 전용 ── */
+.cm-gate-info { font-size: 11px; font-weight: 600; color: var(--muted); margin-left: auto; }
+.cm-pipe { display: flex; align-items: stretch; gap: 4px; flex-wrap: wrap; }
+.cm-pipe-step { flex: 1 1 0; min-width: 150px; display: flex; align-items: center; gap: 9px; background: var(--panel-soft); border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; }
+.cm-pipe-ico { font-size: 18px; width: 30px; height: 30px; border-radius: 50%; background: var(--green-soft); display: flex; align-items: center; justify-content: center; flex: 0 0 auto; }
+.cm-pipe-body { flex: 1; min-width: 0; }
+.cm-pipe-t { font-size: 12.5px; font-weight: 800; }
+.cm-pipe-s { font-size: 10.5px; color: var(--muted); line-height: 1.3; }
+.cm-pipe-badge { font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 7px; background: var(--green-soft); color: var(--green-dark); flex: 0 0 auto; }
+.cm-pipe-arrow { display: flex; align-items: center; color: var(--muted); font-weight: 800; flex: 0 0 auto; }
+.cm-badge { font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 8px; white-space: nowrap; }
+.cm-pass { background: var(--green-soft); color: var(--green-dark); }
+.cm-fail { background: var(--red-soft); color: var(--red); }
+.cm-drift { padding: 9px 0; border-bottom: 1px solid var(--border); }
+.cm-drift:last-child { border-bottom: none; }
+.cm-drift-head { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.cm-drift-name { flex: 1; font-weight: 700; }
+.cm-drift-mape { font-size: 11.5px; font-weight: 800; }
+.cm-drift-bar { height: 6px; background: var(--gray-soft); border-radius: 3px; overflow: hidden; margin-top: 6px; }
+.cm-drift-bar > i { display: block; height: 100%; border-radius: 3px; }
+.cm-drift-label { font-size: 11px; font-weight: 700; margin-top: 4px; }
+
 /* ── 노트북 좁은 폭: 사이드바 축소 + 그리드 단순화 ── */
 @media (max-width: 1100px) {
   :root { --con-side-w: 200px; }
   .con-dash { padding: 18px 16px; }
   .cc-kpi-row { grid-template-columns: repeat(3, 1fr); }
   .cc-grid2 { grid-template-columns: 1fr; }
+  .cm-pipe-arrow { display: none; }
 }

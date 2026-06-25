@@ -72,6 +72,9 @@
       <!-- 위성 작황 풀폭 네이티브 뷰 -->
       <section class="con-native" id="satelliteView" aria-label="위성 작황"></section>
 
+      <!-- AI 학습·모델 풀폭 네이티브 뷰 -->
+      <section class="con-native" id="modelView" aria-label="AI 학습·모델"></section>
+
       <!-- iframe 임베드(관제 화면) -->
       <iframe class="con-frame hide" id="viewFrame" title="콘솔 화면" referrerpolicy="same-origin"></iframe>
     </main>
@@ -80,6 +83,7 @@
   <!-- 클러스터 관제·위성 작황 풀폭 렌더러 -->
   <script src="/components/console_cluster.js"></script>
   <script src="/components/console_satellite.js"></script>
+  <script src="/components/console_model.js"></script>
   <script>
   (function () {
     'use strict';
@@ -113,13 +117,14 @@
       cluster:   { title: '클러스터 관제',    sub: '725개 농가 광역 모니터링',  type: 'native', native: 'cluster' },
       satellite: { title: '위성 작황',        sub: '필지별 NDVI 작황 상세',     type: 'native', native: 'satellite' },
       benchmark: { title: '벤치마킹',         sub: '우수농가 성과 비교',         type: 'frame', src: '/screens/c9_benchmark.html?embed=1' },
-      model:     { title: 'AI 학습·모델',     sub: '예측모델 학습·드리프트',     type: 'frame', src: '/screens/c6_learning.html?embed=1' },
+      model:     { title: 'AI 학습·모델',     sub: '예측모델 학습·게이트·드리프트', type: 'native', native: 'model' },
       report:    { title: '관제 보고서',      sub: '광역 집계 보고서',           type: 'frame', src: '/screens/c20_report.html?embed=1' }
     };
     var frame    = document.getElementById('viewFrame');
     var dashView = document.getElementById('dashView');
     var clusterView = document.getElementById('clusterView');
     var satelliteView = document.getElementById('satelliteView');
+    var modelView = document.getElementById('modelView');
     var vTitle   = document.getElementById('viewTitle');
     var vSub     = document.getElementById('viewSub');
     var navLinks = document.querySelectorAll('.con-nav a');
@@ -135,12 +140,16 @@
       dashView.classList.remove('show');
       clusterView.classList.remove('show');
       satelliteView.classList.remove('show');
+      modelView.classList.remove('show');
       if (cfg.type === 'native' && cfg.native === 'cluster') {
         clusterView.classList.add('show');
         if (window.ConsoleCluster) window.ConsoleCluster.ensure();
       } else if (cfg.type === 'native' && cfg.native === 'satellite') {
         satelliteView.classList.add('show');
         if (window.ConsoleSatellite) window.ConsoleSatellite.ensure();
+      } else if (cfg.type === 'native' && cfg.native === 'model') {
+        modelView.classList.add('show');
+        if (window.ConsoleModel) window.ConsoleModel.ensure();
       } else if (cfg.type === 'frame') {
         if (frame.getAttribute('data-src') !== cfg.src) {
           frame.src = cfg.src;
