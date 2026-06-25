@@ -12,6 +12,8 @@ from __future__ import annotations
 import hashlib
 import os
 
+from api.services.region_canon import canonical_sido
+
 # 익명화 솔트 — 서버 시크릿 기반(없으면 폴백). 솔트가 비밀이라 farm_id 브루트포스 역추적 차단.
 _ANON_SALT = (os.environ.get("CLUSTER_ANON_SALT")
               or os.environ.get("JWT_SECRET_KEY")
@@ -47,9 +49,10 @@ def build_overview(farms: dict, region: str = "", crop: str = "",
     crop = (crop or "").strip()
     rows = []
     for fid, f in (farms or {}).items():
-        sido = (f.get("sido") or "").strip() or "미상"
+        # 시도명 정규화 — "충남"·"충청남도" 등 혼재 표기를 정식명으로 통일(중복 집계 방지)
+        sido = canonical_sido(f.get("sido"))
         c = (f.get("crop") or f.get("crop_ko") or "미상").strip()
-        if region and region not in sido:
+        if region and canonical_sido(region) != sido:
             continue
         if crop and crop != c:
             continue
