@@ -34,10 +34,16 @@ PC 관리자 콘솔 신설(Step1~4 완료) — admin/manager 풀폭 콘솔 + 역
 - ✅ 480px 모바일 iframe 전부 제거. 다크모드·반응형 검증 완료.
 - 검증 전부 포트8001(운영8000 무영향). launch.json "uvi-preview"
 
+[x] QA 테스트 시드 16개 제거 (커밋 a31ad7e) — 자동 온보딩/QA 아티팩트
+    · total_farms 732→716, 충청남도 89→77, 미상 6→2(데모 farm_005·farm_link1 보존)
+    · 명시적 ID 리스트 제거(연관데이터 0 확인), console.html 하드코딩 "725개농가" 제거
+    · 콘솔 대시보드 716 반영 확인
+    · 참고: area_stats_by_crop는 캐시 집계 유지(폴백 추정 근사값)
+
 ## 콘솔 잔여(선택)
-[ ] QA 테스트 시드 정리(farm_recfill75208·fullcheck75230·dashcheck75277) — 현재 미상버킷 무해
-[ ] 관제 보고서 단축 — 현재 c20_report iframe(A4), 필요시 콘솔 헤더 정리
+[ ] 관제 보고서 — 현재 c20_report iframe(A4), 적정. 필요시 헤더 정리
 [ ] launch.json "uvi-preview"(포트8001) — 검증 전용. 운영은 8000 워치독
+[ ] (선택) area_stats_by_crop 재계산 — 테스트농가 제거분 반영(딸기 카운트 미세 정정)
 
 ## ✅ 해결: 클러스터 집계 시도명 정규화 (커밋 98f82d8)
 - api/services/region_canon.py 신규(정규화 단일소스) → cluster_overview·main.py 공용
