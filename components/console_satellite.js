@@ -30,6 +30,33 @@
     return null;
   }
 
+  async function fetchBenchmark(farmId) {
+    try {
+      var r = await fetch(apiBase() + '/api/farms/' + encodeURIComponent(farmId) + '/benchmark',
+        { headers: { Authorization: 'Bearer ' + token() } });
+      if (r.ok) return await r.json();
+    } catch (e) {}
+    return null;
+  }
+
+  // 우수농가 대비 벤치마킹 — per-farm 드릴 맥락에서 "왜 부진한가" 보강
+  function benchmarkCard(b) {
+    if (!b || !(b.metrics || []).length) return '';
+    var statusColor = function (s) { return s === 'good' ? 'var(--chart-good,#16a34a)' : s === 'warn' ? 'var(--chart-warn,#f59e0b)' : 'var(--chart-hot,#dc2626)'; };
+    var rows = b.metrics.map(function (m) {
+      var c = statusColor(m.status);
+      return '<div class="sat-bm-row">' +
+        '<div class="sat-bm-head"><span class="sat-bm-key">' + esc(m.key) + '</span>' +
+        '<span class="sat-bm-cmp" style="color:' + c + '">내 ' + esc(m.mine) + esc(m.unit || '') + ' / 상위 ' + esc(m.top) + esc(m.unit || '') + '</span></div>' +
+        '<div class="sat-bm-bar"><i style="width:' + Math.max(0, Math.min(100, m.pct || 0)) + '%;background:' + c + '"></i></div></div>';
+    }).join('');
+    return '<div class="cc-card cc-card-full"><div class="cc-card-h">우수농가 대비 벤치마킹 ' +
+      '<span class="cc-pill-live" style="background:var(--blue-soft);color:var(--blue)">🔵 RDA·우수농가 기준</span></div>' +
+      rows +
+      (b.weakest ? '<div class="sat-bm-advice">⚡ <b>' + esc(b.weakest) + '</b> 개선 여지 — ' + esc(b.advice || '') + '</div>' : '') +
+      '</div>';
+  }
+
   function kpiStrip(d) {
     var s = d.summary || {}, w = d.weather_stress || {};
     var cards = [
@@ -90,7 +117,7 @@
       '<tbody>' + rows + '</tbody></table></div></div>';
   }
 
-  function render(d, farmId) {
+  function render(d, farmId, bm) {
     var root = document.getElementById('satelliteView');
     if (!root) return;
     if (!d) { root.innerHTML = '<div class="cc-loading">위성 작황 데이터를 불러오지 못했습니다 (' + esc(farmId) + ').</div>'; return; }
@@ -105,7 +132,8 @@
       (w.note ? '<div class="sat-wx">🌦️ <b>무센서 기상 스트레스</b> — ' + esc(w.note) + (w.water_stress_pct >= 25 ? ' <b style="color:var(--orange)">(관개 우선 검토)</b>' : '') + '</div>' : '') +
       kpiStrip(d) +
       '<div class="cc-grid2">' + heatmap(d.parcels) + parcelTable(d.parcels) + '</div>' +
-      alertsTable(d.alerts);
+      alertsTable(d.alerts) +
+      benchmarkCard(bm);
   }
 
   async function load(farmId) {
@@ -113,10 +141,12 @@
     state.loading = true;
     var root = document.getElementById('satelliteView');
     if (root && state.lastFarm !== farmId) root.innerHTML = '<div class="cc-loading">위성 작황 집계 중… (' + esc(farmId) + ')</div>';
-    var d = await fetchCluster(farmId);
+    // 위성 작황 + 벤치마킹 병렬 조회(per-farm 드릴 맥락)
+    var results = await Promise.all([fetchCluster(farmId), fetchBenchmark(farmId)]);
+    var d = results[0], bm = results[1];
     state.loading = false;
     state.data = d; state.lastFarm = farmId;
-    render(d, farmId);
+    render(d, farmId, bm);
   }
 
   window.ConsoleSatellite = {

@@ -272,6 +272,15 @@ html, body {
 .sat-good { background: var(--green-soft); color: var(--green-dark); }
 .sat-warn { background: var(--orange-soft); color: var(--orange); }
 .sat-hot  { background: var(--red-soft); color: var(--red); }
+/* 위성 뷰 내 벤치마킹 카드 */
+.sat-bm-row { padding: 8px 0; }
+.sat-bm-row:not(:last-of-type) { border-bottom: 1px solid var(--border); }
+.sat-bm-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; font-size: 12.5px; font-weight: 700; }
+.sat-bm-key { color: var(--text); }
+.sat-bm-cmp { font-size: 12px; font-weight: 800; white-space: nowrap; }
+.sat-bm-bar { height: 8px; background: var(--gray-soft); border-radius: 4px; overflow: hidden; margin-top: 6px; }
+.sat-bm-bar > i { display: block; height: 100%; border-radius: 4px; }
+.sat-bm-advice { margin-top: 12px; padding: 11px 13px; background: var(--orange-soft); border-radius: 10px; font-size: 12px; color: var(--text); line-height: 1.5; border-left: 3px solid var(--orange); }
 
 /* ── AI 학습·모델(model) 전용 ── */
 .cm-gate-info { font-size: 11px; font-weight: 600; color: var(--muted); margin-left: auto; }
