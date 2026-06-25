@@ -17,10 +17,15 @@ PC 관리자 콘솔 신설(Step1~4 완료) — admin/manager 풀폭 콘솔 + 역
     (현재 satellite/benchmark/model/report는 여전히 iframe 480px 좌측표시 — cluster만 풀폭 승격됨)
 [ ] (후속) f8 위성작황·c9 벤치마킹도 풀폭 네이티브 승격 검토
 
-## ⚠️ 발견된 별개 이슈 (백엔드, 콘솔과 무관)
-- farm_registry 지역명 정규화 누락: cluster_overview 집계에 "충남"·"충청남도", "충북"·"충청북도",
-  빈값 "—"가 별도 행으로 중복 집계됨. 모바일 C20·콘솔 양쪽에 동일 노출.
-  → api/services/cluster_overview.py 또는 등록 시 시도명 정규화 필요(_CANON 매핑 재사용 가능).
+## ✅ 해결: 클러스터 집계 시도명 정규화 (커밋 98f82d8)
+- api/services/region_canon.py 신규(정규화 단일소스) → cluster_overview·main.py 공용
+- 충남+충청남도→충청남도(89), 충북+충청북도→충청북도(35) 병합
+- 정크(test/Chungnam/Chungbuk/—) → 미상(6) 통합, by_region 14→11행
+- 모바일 C20·PC 콘솔 동시 해결
+
+## 참고: farm_registry 테스트 시드 잔존(정상 데이터 아님, 선택적 정리)
+- farm_recfill75208(sido=test)·farm_fullcheck75230(Chungnam)·farm_dashcheck75277(Chungbuk)
+  = QA 자동점검 아티팩트. 현재 미상 버킷으로 무해 처리됨. 레지스트리에서 제거하면 더 깔끔.
 - 스킬: .claude/skills/ui-ux-pro-max-skill/ 설치됨(gitignore). 검색CLI 실행은 보안차단 → 데이터 직접 읽기로 활용
 - 검증서버: 별도 포트 8001 (운영 8000 비건드림). launch.json "uvi-preview"
 
