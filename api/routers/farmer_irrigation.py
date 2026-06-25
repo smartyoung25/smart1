@@ -9,7 +9,7 @@ import logging
 from datetime import date
 from typing import Optional
 
-from fastapi import Query
+from fastapi import Query, HTTPException
 from pydantic import BaseModel, Field
 
 from api.routers.farmer_state import router, _FARM_META, _require_farm
@@ -233,7 +233,6 @@ def get_priva_schedule(
     drain_actual_pct 미제공 시 irrigation_store의 전일 배액률을 자동으로 사용합니다.
     P/I 적분항(I-term)은 priva_pi_store에 일간 영속화되어 연속 교정이 가능합니다.
     """
-    from fastapi import HTTPException
     try:
         return _get_priva_schedule_impl(
             farm_id, growth_stage, plant_size_pct, drain_actual_pct, trigger_j_cm2

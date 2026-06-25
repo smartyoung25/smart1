@@ -35,7 +35,7 @@
     var cards = [
       { v: num(totalN), l: '누적 학습 샘플', c: 'var(--blue,#2563eb)' },
       { v: avgR2 ? avgR2.toFixed(3) : '–', l: '평균 M1 생육 R²', c: 'var(--green)' },
-      { v: gatePass + '/' + m2.length, l: 'M2 게이트 통과', c: gatePass === m2.length ? 'var(--green)' : 'var(--chart-warn,#f59e0b)' },
+      { v: m2.length ? gatePass + '/' + m2.length : '–', l: 'M2 게이트 통과', c: (m2.length && gatePass === m2.length) ? 'var(--green)' : 'var(--chart-warn,#f59e0b)' },
       { v: driftRisk, l: 'M2 드리프트 위험', c: driftRisk ? 'var(--chart-hot,#dc2626)' : 'var(--green)' },
       { v: m1.length, l: 'M1 생육 모델', c: 'var(--purple,#7c3aed)' },
       { v: (d.m3_revenue || []).length, l: 'M3 매출 모델', c: 'var(--text)' }
