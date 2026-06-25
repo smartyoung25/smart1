@@ -76,6 +76,35 @@
     /* WS 점 */
     .ws-dot { width:8px; height:8px; border-radius:50%; background:var(--muted); display:inline-block; }
     .ws-dot.connected { background:var(--green); box-shadow:0 0 0 3px rgba(31,122,77,.2); }
+
+    /* ── 소득 구조 폭포수 ── */
+    .income-flow { display:flex; flex-direction:column; gap:6px; }
+    .if-row { display:flex; align-items:center; gap:10px; padding:10px 13px;
+              border-radius:10px; border:1.5px solid var(--border);
+              background:var(--panel); box-shadow:var(--shadow); }
+    .if-row.plus  { border-color:var(--green); background:var(--green-soft); }
+    .if-row.minus { border-color:var(--orange); background:var(--orange-soft); }
+    .if-row.result{ border-color:var(--blue); background:var(--blue-soft); }
+    .if-sign { font-size:18px; font-weight:900; min-width:20px; text-align:center; flex-shrink:0; }
+    .if-label { flex:1; font-size:12.5px; font-weight:700; }
+    .if-sub   { font-size:10.5px; color:var(--muted); margin-top:1px; }
+    .if-amt   { font-size:14px; font-weight:900; text-align:right; }
+    .if-rate  { font-size:10px; color:var(--muted); text-align:right; margin-top:1px; }
+    .if-divider { text-align:center; color:var(--muted); font-size:12px; padding:2px 0; }
+
+    /* ── 비용 항목 상세 (농가조사표) ── */
+    .ca-group-hdr { font-size:11px; font-weight:800; color:var(--muted); letter-spacing:.4px;
+                    padding:8px 0 4px; border-bottom:1px solid var(--border); margin-top:8px; }
+    .ca-item { display:flex; align-items:center; gap:8px; padding:8px 0;
+               border-bottom:1px dotted var(--border); }
+    .ca-item:last-child { border-bottom:none; }
+    .ca-dot  { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+    .ca-name { flex:1; font-size:12.5px; font-weight:600; }
+    .ca-sub  { font-size:10px; color:var(--muted); display:block; margin-top:1px; }
+    .ca-pct  { font-size:11px; color:var(--muted); min-width:36px; text-align:right; }
+    .ca-amt  { font-size:12.5px; font-weight:800; min-width:78px; text-align:right; }
+    .ca-bar-wrap { height:4px; background:var(--gray-soft); border-radius:3px; margin-top:5px; }
+    .ca-bar-fill { height:100%; border-radius:3px; transition:width .6s; }
   </style>
 </head>
 <body>
@@ -164,6 +193,20 @@
       <span>0 kg</span>
       <span id="bepForecast">예상 수확량</span>
     </div>
+  </div>
+
+  <!-- ── 소득 구조 (농가조사표 기준) ── -->
+  <div class="section-label" style="margin-top:14px;">소득 구조 분석 <span class="trust-badge trust-est">🟠 농가조사표 기준</span></div>
+  <div class="card" style="padding:14px;" id="incomeFlowCard">
+    <div class="income-flow" id="incomeFlow">
+      <div style="text-align:center;padding:14px;color:var(--muted);font-size:12px;">로드 중…</div>
+    </div>
+  </div>
+
+  <!-- ── 비용 항목별 상세 (농가조사표 13항목) ── -->
+  <div class="section-label" style="margin-top:14px;">비용 항목별 상세 <span style="font-size:10px;color:var(--muted);font-weight:400;">(경영비 기준)</span></div>
+  <div class="card" style="padding:14px;" id="costDetailCard">
+    <div style="text-align:center;padding:14px;color:var(--muted);font-size:12px;">로드 중…</div>
   </div>
 
   <!-- 비용 절감 조언 -->
@@ -276,6 +319,8 @@ async function _loadAll(token, farmId) {
   _renderBanner(erp);
   _renderCosts(costs);
   _renderProfitability(revenue, erp, costs);
+  _renderIncomeFlow(revenue, erp, costs);
+  _renderCostDetail(costs);
   _renderSavings(costs, erp);
 }
 
@@ -387,6 +432,177 @@ function _renderProfitability(revenue, erp, costs) {
   if (bepBar)  bepBar.style.width    = `${yPct}%`;
   if (bepLine) bepLine.style.left    = `${bepPct}%`;
   if (bepFc)   bepFc.textContent    = `예상 ${Math.round(yFcast).toLocaleString()}kg`;
+}
+
+// ── 소득 구조 폭포수 ──────────────────────────────────────────────────────────
+function _renderIncomeFlow(revenue, erp, costs) {
+  const el = document.getElementById('incomeFlow');
+  if (!el) return;
+
+  // API 응답 우선, 없으면 ERP 기반 추정
+  const totalRev   = revenue?.revenue_krw ?? erp?.predicted_revenue_krw ?? 0;
+  const mgmtCost   = costs?.total_cost_krw ?? erp?.total_cost_krw ?? 0;
+  const income     = totalRev - mgmtCost;
+  const selfLabor  = erp?.self_labor_cost_krw ?? Math.round(mgmtCost * 0.092);
+  const capitalSvc = erp?.capital_service_krw ?? Math.round(mgmtCost * 0.112);
+  const netProfit  = income - selfLabor - capitalSvc;
+  const incomeRate = totalRev > 0 ? (income / totalRev * 100) : 0;
+  const netRate    = totalRev > 0 ? (netProfit / totalRev * 100) : 0;
+
+  const w = v => Math.round(v / 10000).toLocaleString() + '만원';
+
+  // 농가조사표 기준 항목명 추출
+  const items = costs?.items || [];
+  const laborItem = items.find(i => i.category === 'labor');
+  const laborPct  = laborItem ? Math.round((laborItem.pct_of_total ?? 0) * 100) : '—';
+
+  el.innerHTML = `
+    <div class="if-row plus">
+      <div class="if-sign" style="color:var(--green);">+</div>
+      <div style="flex:1;">
+        <div class="if-label">총수입 (주산물+부산물)</div>
+        <div class="if-sub">주산물 판매액 합계</div>
+      </div>
+      <div style="text-align:right;"><div class="if-amt" style="color:var(--green);">${w(totalRev)}</div><div class="if-rate">100%</div></div>
+    </div>
+    <div class="if-row minus">
+      <div class="if-sign" style="color:var(--orange);">−</div>
+      <div style="flex:1;">
+        <div class="if-label">경영비 (중간재비+고용노동비+임차료)</div>
+        <div class="if-sub">종자묘·비료·농약·광열·기타재료·상각비·노임</div>
+      </div>
+      <div style="text-align:right;"><div class="if-amt" style="color:var(--orange);">${w(mgmtCost)}</div><div class="if-rate">${totalRev>0?Math.round(mgmtCost/totalRev*100):'—'}%</div></div>
+    </div>
+    <div class="if-divider">▼</div>
+    <div class="if-row result">
+      <div class="if-sign" style="color:var(--blue);">=</div>
+      <div style="flex:1;">
+        <div class="if-label" style="font-size:14px;">소득 <span style="font-size:10px;font-weight:400;color:var(--muted);">= 총수입 − 경영비</span></div>
+        <div class="if-sub">핵심 경영성과 지표 (소득률 ${incomeRate > 0 ? incomeRate.toFixed(1) : '—'}%)</div>
+      </div>
+      <div style="text-align:right;"><div class="if-amt" style="color:var(--blue);font-size:16px;">${w(income)}</div><div class="if-rate" style="color:var(--blue);font-weight:700;">${incomeRate>0?incomeRate.toFixed(1):'—'}%</div></div>
+    </div>
+    <div class="if-row minus" style="margin-top:4px;opacity:.85;">
+      <div class="if-sign" style="color:var(--muted);">−</div>
+      <div style="flex:1;">
+        <div class="if-label" style="color:var(--muted);">자가노동비</div>
+        <div class="if-sub">경영주 자가 투입 노동력 기회비용</div>
+      </div>
+      <div style="text-align:right;"><div class="if-amt" style="color:var(--muted);">${w(selfLabor)}</div></div>
+    </div>
+    <div class="if-row minus" style="opacity:.85;">
+      <div class="if-sign" style="color:var(--muted);">−</div>
+      <div style="flex:1;">
+        <div class="if-label" style="color:var(--muted);">자본용역비 (유동+고정+토지)</div>
+        <div class="if-sub">투하자본 이자 상당액</div>
+      </div>
+      <div style="text-align:right;"><div class="if-amt" style="color:var(--muted);">${w(capitalSvc)}</div></div>
+    </div>
+    <div class="if-divider">▼</div>
+    <div class="if-row result" style="border-color:var(--green);">
+      <div class="if-sign" style="color:var(--green);">=</div>
+      <div style="flex:1;">
+        <div class="if-label" style="font-size:13px;">순수익 <span style="font-size:10px;font-weight:400;color:var(--muted);">= 소득 − 자가노동·자본용역</span></div>
+        <div class="if-sub">기회비용 차감 후 진정한 이익 (순수익률 ${netRate > 0 ? netRate.toFixed(1) : '—'}%)</div>
+      </div>
+      <div style="text-align:right;"><div class="if-amt" style="color:var(--green);">${w(netProfit)}</div><div class="if-rate" style="color:var(--green);font-weight:700;">${netRate>0?netRate.toFixed(1):'—'}%</div></div>
+    </div>`;
+}
+
+// ── 비용 항목 상세 (농가조사표 13항목) ──────────────────────────────────────
+const _CA_GROUPS = [
+  { key:'중간재비', label:'중간재비', color:'#3b82f6', items:[
+    { id:'seed',      label:'종자·종묘비',    sub:'모종·씨앗 구입비',                color:'#60a5fa' },
+    { id:'fertilizer',label:'비료비 (무기질+유기질)', sub:'복합비료·요소·퇴비 등',  color:'#22c55e' },
+    { id:'pesticide', label:'농약비',           sub:'살충·살균·친환경제재',           color:'#ef4444' },
+    { id:'energy',    label:'수도광열비',       sub:'전기·경유·가스·수도료',          color:'#f97316' },
+    { id:'material',  label:'기타재료비',       sub:'하우스비닐·보온시설·포장재 등',  color:'#8b5cf6' },
+    { id:'small_tool',label:'소농구비',         sub:'소농기구 구입',                  color:'#06b6d4' },
+    { id:'depr_equip',label:'대농구 상각비',    sub:'방제기·자동차·선별기 등',        color:'#64748b' },
+    { id:'depr_fac',  label:'영농시설 상각비',  sub:'하우스·베드·관수·양액·환경제어', color:'#475569' },
+    { id:'repair',    label:'수리·유지비',      sub:'시설 수리 및 유지',              color:'#94a3b8' },
+    { id:'other_cost',label:'기타비용',         sub:'기타 운영비',                   color:'#cbd5e1' },
+  ]},
+  { key:'노동비', label:'고용노동비', color:'#7c3aed', items:[
+    { id:'labor_hired',label:'고용노동비',      sub:'남·여 고용노임 합계',            color:'#8b5cf6' },
+  ]},
+  { key:'임차·위탁', label:'임차료·위탁영농비', color:'#b45309', items:[
+    { id:'rent',      label:'임차료',           sub:'토지·농기계·영농시설 임차',      color:'#d97706' },
+    { id:'consign',   label:'위탁영농비',        sub:'위탁 작업 비용',                color:'#f59e0b' },
+  ]},
+];
+
+// API cost items → id 매핑
+const _CA_MAP = {
+  seed:'nutrients', fertilizer:'nutrients', pesticide:'pesticides',
+  energy:'electricity', material:'other', small_tool:'other',
+  depr_equip:'other', depr_fac:'other', repair:'other', other_cost:'other',
+  labor_hired:'labor', rent:'other', consign:'other',
+};
+
+function _renderCostDetail(costs) {
+  const el = document.getElementById('costDetailCard');
+  if (!el) return;
+
+  const items = costs?.items || [];
+  const total = costs?.total_cost_krw || 0;
+
+  // 카테고리별 금액 집계
+  const byCategory = {};
+  items.forEach(it => { byCategory[it.category] = (byCategory[it.category]||0) + (it.amount_krw||0); });
+
+  // 농가조사표 기준 항목별 추정 분배 (API 상세 없을 때 비율 폴백)
+  const FALLBACK_RATIO = {
+    seed:0.052, fertilizer:0.045, pesticide:0.014, energy:0.120,
+    material:0.146, small_tool:0.003, depr_equip:0.057, depr_fac:0.146,
+    repair:0.000, other_cost:0.038, labor_hired:0.379, rent:0.000, consign:0.000,
+  };
+
+  const fmt = v => v > 0 ? Math.round(v/10000).toLocaleString()+'만원' : '—';
+
+  let html = '';
+  _CA_GROUPS.forEach(grp => {
+    let grpTotal = 0;
+    const rowsHtml = grp.items.map(itDef => {
+      // API에 해당 카테고리 데이터가 있으면 비율로 나누고, 없으면 폴백
+      const apiCat = _CA_MAP[itDef.id];
+      const apiAmt = byCategory[apiCat] || 0;
+      // 같은 api 카테고리를 공유하는 항목들의 폴백 비율 합
+      const siblingRatioSum = _CA_GROUPS.flatMap(g=>g.items)
+        .filter(x=>_CA_MAP[x.id]===apiCat)
+        .reduce((s,x)=>s+(FALLBACK_RATIO[x.id]||0),0);
+      const myRatio = FALLBACK_RATIO[itDef.id] || 0;
+      const amt = apiAmt > 0 && siblingRatioSum > 0
+        ? Math.round(apiAmt * (myRatio / siblingRatioSum))
+        : Math.round(total * myRatio);
+      grpTotal += amt;
+      const pct = total > 0 ? (amt/total*100) : 0;
+      return `<div class="ca-item">
+        <div class="ca-dot" style="background:${itDef.color};"></div>
+        <div style="flex:1;">
+          <div class="ca-name">${itDef.label}<span class="ca-sub">${itDef.sub}</span></div>
+          <div class="ca-bar-wrap"><div class="ca-bar-fill" style="width:${Math.min(pct,100).toFixed(1)}%;background:${itDef.color};"></div></div>
+        </div>
+        <div class="ca-pct">${pct>0?pct.toFixed(1)+'%':'—'}</div>
+        <div class="ca-amt">${fmt(amt)}</div>
+      </div>`;
+    }).join('');
+
+    html += `<div class="ca-group-hdr" style="color:${grp.color};">
+      ${grp.label} <span style="float:right;font-size:11px;font-weight:400;">${fmt(grpTotal)} · ${total>0?(grpTotal/total*100).toFixed(1):'—'}%</span>
+    </div>${rowsHtml}`;
+  });
+
+  if (!html) {
+    html = '<div style="text-align:center;padding:14px;color:var(--muted);font-size:12.5px;">비용 데이터가 없습니다.</div>';
+  } else {
+    html += `<div style="margin-top:12px;padding:10px 12px;border-radius:9px;background:var(--gray-soft);font-size:11px;color:var(--muted);line-height:1.6;">
+      <b style="color:var(--text);">비목별 기준:</b> 농림부 농산물 생산비 조사표 (농가조사표) 13개 항목 기준<br>
+      ※ 상각비 = 구입가 ÷ 내용연수 × 조사작목 부담비율 / 유동자본용역비 = 유동자본 × 5% × 후산출계수
+    </div>`;
+  }
+
+  el.innerHTML = html;
 }
 
 // ── 비용 절감 조언 ──────────────────────────────────────────────────────────
