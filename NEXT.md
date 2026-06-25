@@ -23,17 +23,19 @@ P0+P1 완료 — 서비스 신뢰도 버그 7건 수정, 프로세스 흐름 재
 
 ## 다음 작업 (우선순위 순)
 
-### P2-C: farmer.py 분리 (4300줄 → 도메인별 분할) — 전용 세션 필요
-**사전 작업**: `farmer_shared.py` 생성 (router, _verify_farm_ownership, _FARM_META, _FARM_ENV, _RESOURCE_COSTS, _require_farm)
-**도메인 분리 순서** (각 1 세션):
-  1. `farmer_irrigation.py` — L2084~2488+  (irrigation, field/*)
-  2. `farmer_harvest.py`   — L986~1675    (harvest, revenue, costs, market/*, whatif)
-  3. `farmer_env.py`       — L690~961, L3537~3610 (environment, climate-plan)
-  4. `farmer_diagnosis.py` — L3172~3270   (capability, diagnosis/*)
-  5. `farmer_equipment.py` — L3270~3535   (equipment, consent, integration)
+### P2-C: farmer.py 분리 (진행 중 — 커밋 157a6d7)
+**완료**:
+  - [x] Step1: `farmer_state.py` + `farmer_irrigation.py` 추출 완료 (4300→3578줄, -722줄)
+    - farmer_state: router, _verify_farm_ownership, _FARM_META, _FARM_ENV, _require_farm
+    - farmer_irrigation: 관수 4개 + 노지 4개 = 8개 라우트
+    - 순환 임포트 없음, app 라우트 160개 전수 유지 확인
+
+**다음 세션**:
+  2. `farmer_harvest.py` — harvest, revenue, costs, market/*, whatif (Grep으로 줄번호 확인 후)
+  3. `farmer_env.py`     — environment, climate-plan
+  4. `farmer_diagnosis.py` — capability, diagnosis/*
+  5. `farmer_equipment.py` — equipment, consent, integration
 **컨텍스트 전략**: 전체 파일 읽기 금지. Grep으로 함수명 → 줄번호 → 50줄 읽기.
-- farmer_env.py / farmer_harvest.py / farmer_irrigation.py / farmer_diagnosis.py
-- 한 세션에 1개 파일만 분리 후 커밋
 
 ### 사용자 액션 필요
 - 2022+ 실수확 데이터 확보 → 딸기/완숙 M2 재학습
