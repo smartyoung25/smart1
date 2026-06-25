@@ -172,8 +172,93 @@ html, body {
   outline: 2px solid var(--green-2); outline-offset: 2px;
 }
 
-/* ── 노트북 좁은 폭: 사이드바 축소(아이콘+라벨 유지, 폭만 감소) ── */
+/* ══════════════════════════════════════════════════════════════
+   클러스터 관제 풀폭 네이티브 뷰 (#clusterView) — Analytics Dashboard
+   ══════════════════════════════════════════════════════════════ */
+.con-native { display: none; height: 100%; overflow-y: auto; padding: 22px 26px; }
+.con-native.show { display: block; }
+
+.cc-loading { padding: 40px; text-align: center; color: var(--muted); font-size: 14px; }
+
+.cc-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
+.cc-head h1 { font-size: 20px; font-weight: 800; margin: 0 0 3px; }
+.cc-sub { font-size: 12.5px; color: var(--muted); margin: 0; }
+.cc-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.cc-filters { display: flex; gap: 8px; }
+.cc-filters select {
+  min-height: 38px; padding: 7px 11px; border: 1.5px solid var(--border);
+  border-radius: 9px; background: var(--panel); color: var(--text); font-size: 13px; cursor: pointer;
+}
+.cc-btn {
+  min-height: 38px; padding: 8px 14px; border-radius: 9px; font-size: 12.5px; font-weight: 800;
+  cursor: pointer; border: 1.5px dashed transparent; background: var(--panel);
+}
+.cc-btn-report { border-color: var(--blue); color: var(--blue); }
+.cc-btn-notify { border-color: var(--red); color: var(--red); }
+.cc-btn:hover { filter: brightness(.97); }
+.cc-msg { font-size: 12.5px; font-weight: 700; min-height: 16px; margin-bottom: 8px; }
+
+/* KPI 스트립 */
+.cc-kpi-row {
+  display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-bottom: 18px;
+}
+.cc-kpi {
+  background: var(--panel); border: 1px solid var(--border); border-radius: 14px;
+  padding: 14px 16px; box-shadow: var(--shadow);
+}
+.cc-kpi-v { font-size: 23px; font-weight: 900; line-height: 1; }
+.cc-kpi-l { font-size: 11.5px; color: var(--muted); margin-top: 6px; }
+
+/* 2열 클러스터 그리드 */
+.cc-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.cc-card {
+  background: var(--panel); border: 1px solid var(--border); border-radius: 16px;
+  padding: 16px 18px; box-shadow: var(--shadow);
+}
+.cc-card-full { grid-column: 1 / -1; }
+.cc-card-h { font-size: 14px; font-weight: 800; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+
+/* 데이터 테이블(Data-Dense) */
+.cc-tablewrap { overflow-x: auto; }
+.cc-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.cc-table th {
+  text-align: left; font-size: 11px; font-weight: 700; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .03em; padding: 6px 10px;
+  border-bottom: 1.5px solid var(--border); white-space: nowrap;
+}
+.cc-table td { padding: 9px 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+.cc-table tbody tr:last-child td { border-bottom: none; }
+.cc-table tbody tr:hover { background: var(--panel-soft); }
+.cc-name { font-weight: 800; white-space: nowrap; }
+.cc-num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.cc-barcell { width: 40%; min-width: 120px; }
+.cc-bar { height: 9px; background: var(--gray-soft); border-radius: 5px; overflow: hidden; }
+.cc-bar > i { display: block; height: 100%; border-radius: 5px; }
+.cc-anom { color: var(--chart-hot,#dc2626); font-weight: 800; }
+.cc-ok { color: var(--muted); }
+.cc-empty { text-align: center; color: var(--muted); padding: 16px; }
+
+/* 이상 농가 테이블 */
+.cc-table-alerts td { font-size: 13px; }
+.cc-loc { font-weight: 800; white-space: nowrap; }
+.cc-det { color: var(--muted); font-size: 12px; }
+.cc-sev-hot  { color: var(--chart-hot,#dc2626); font-weight: 800; }
+.cc-sev-warn { color: var(--chart-warn,#f59e0b); font-weight: 800; }
+.cc-sev-good { color: var(--chart-good,#16a34a); font-weight: 800; }
+.cc-drill {
+  padding: 7px 12px; background: var(--green); color: #fff; border: none;
+  border-radius: 8px; font-size: 12px; font-weight: 800; cursor: pointer; white-space: nowrap;
+}
+.cc-drill:hover { background: var(--green-2); }
+.cc-pill-live {
+  font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 999px;
+  background: var(--green-soft); color: var(--green-dark);
+}
+
+/* ── 노트북 좁은 폭: 사이드바 축소 + 그리드 단순화 ── */
 @media (max-width: 1100px) {
   :root { --con-side-w: 200px; }
   .con-dash { padding: 18px 16px; }
+  .cc-kpi-row { grid-template-columns: repeat(3, 1fr); }
+  .cc-grid2 { grid-template-columns: 1fr; }
 }
