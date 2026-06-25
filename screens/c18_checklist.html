@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8"/>
@@ -16,7 +16,7 @@
     .ck-label{font-size:12.5px;font-weight:600;line-height:1.5;margin-bottom:7px;}
     .ck-opts{display:flex;gap:6px;}
     .ck-opt{flex:1;padding:8px 4px;border:1.5px solid var(--border);border-radius:8px;font-size:12px;font-weight:700;
-      background:var(--panel);color:var(--muted);cursor:pointer;text-align:center;min-height:40px;}
+      background:var(--panel);color:var(--muted);cursor:pointer;text-align:center;min-height:44px;}
     .ck-opt.sel-good{background:var(--green);color:#fff;border-color:var(--green);}
     .ck-opt.sel-warn{background:var(--orange);color:#fff;border-color:var(--orange);}
     .ck-opt.sel-bad{background:var(--red);color:#fff;border-color:var(--red);}
@@ -82,7 +82,7 @@ async function _loadList(){
   const api=KaasaData.getApiBase?KaasaData.getApiBase():location.origin;
   const el=document.getElementById('ckRecords');
   try{
-    const d=await fetch(`${api}/api/farms/${_farmG}/diagnosis/checklist/records`,{headers:{Authorization:`Bearer ${_tokG}`}}).then(r=>r.json());
+    const d=await fetch(`${api}/api/farms/${_farmG}/diagnosis/checklist/records`,{headers:{Authorization:`Bearer ${_tokG}`}}).then(r=>r.ok?r.json():null).catch(()=>null);
     const recs=d.records||[];
     if(!recs.length){ el.innerHTML='<div style="font-size:12px;color:var(--muted);padding:8px 0;">저장된 문진이 없습니다. 항목을 입력하고 저장하세요.</div>'; return; }
     el.innerHTML=recs.map(r=>{
@@ -113,7 +113,7 @@ async function _ensureToken(){const s=sessionStorage.getItem('sf_token');if(s)re
 async function _load(token, pullResp=true){
   const api=KaasaData.getApiBase?KaasaData.getApiBase():location.origin;
   let d;
-  try{ d=await fetch(`${api}/api/farms/${_farmG}/diagnosis/checklist`,{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.json()); }
+  try{ d=await fetch(`${api}/api/farms/${_farmG}/diagnosis/checklist`,{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.ok?r.json():null).catch(()=>null); }
   catch(e){ document.getElementById('ckSections').innerHTML='<div style="color:var(--muted);text-align:center;padding:20px;">불러오기 실패</div>'; return; }
   _opts=(d.schema&&d.schema.status_options)||[];
   if(pullResp){ _resp=d.responses||{}; if(d.consultant) document.getElementById('ckName').value=d.consultant; }

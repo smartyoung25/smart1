@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8"/>
@@ -52,8 +52,8 @@
     .dec-detail{font-size:11.5px;color:var(--muted);margin-top:4px;line-height:1.5;}
     .dec-dom{font-size:10px;font-weight:700;color:var(--muted);}
     .dec-btns{display:flex;gap:8px;margin-top:9px;}
-    .dec-go{flex:1;padding:10px;background:var(--green);color:#fff;border:none;border-radius:9px;font-size:12.5px;font-weight:800;cursor:pointer;min-height:42px;}
-    .dec-log{flex:0 0 96px;padding:10px;background:var(--gray-soft);color:var(--text);border:none;border-radius:9px;font-size:12.5px;font-weight:800;cursor:pointer;min-height:42px;}
+    .dec-go{flex:1;padding:10px;background:var(--green);color:#fff;border:none;border-radius:9px;font-size:12.5px;font-weight:800;cursor:pointer;min-height:44px;}
+    .dec-log{flex:0 0 96px;padding:10px;background:var(--gray-soft);color:var(--text);border:none;border-radius:9px;font-size:12.5px;font-weight:800;cursor:pointer;min-height:44px;}
   </style>
 </head>
 <body>
@@ -155,7 +155,7 @@ function onFarmChange(id){sessionStorage.setItem('sf_farm_id',id);location.reloa
 async function _loadTrend(token){
   try{
     const api=KaasaData.getApiBase();
-    const h=await fetch(`${api}/api/farms/${_farmG}/diagnosis/history`,{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.json());
+    const h=await fetch(`${api}/api/farms/${_farmG}/diagnosis/history`,{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.ok?r.json():null).catch(()=>null);
     const snaps=(h.snapshots||[]).filter(s=>s.overall!=null);
     if(snaps.length<2) return;
     const box=document.getElementById('dgTrend'); box.style.display='block';
@@ -178,7 +178,7 @@ async function _loadDataQuality(token){
   const el=document.getElementById('dataQuality'); if(!el) return;
   try{
     const api=KaasaData.getApiBase();
-    const d=await fetch(`${api}/api/farms/${_farmG}/activity/summary`,{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.json());
+    const d=await fetch(`${api}/api/farms/${_farmG}/activity/summary`,{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.ok?r.json():null).catch(()=>null);
     const byKind=d.by_kind||{}; const recent=d.recent||[];
     const items=recent.filter(i=>i.kind==='data_anomaly');
     const n=byKind['data_anomaly'] || items.length;
@@ -200,7 +200,7 @@ async function _loadEquipGrade(token){
   const el=document.getElementById('equipGrade'); if(!el) return;
   try{
     const api=KaasaData.getApiBase();
-    const d=await fetch(`${api}/api/farms/${_farmG}/equipment`,{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.json());
+    const d=await fetch(`${api}/api/farms/${_farmG}/equipment`,{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.ok?r.json():null).catch(()=>null);
     const items=(d.items||[]).filter(i=>i.grade);
     if(!items.length){ el.innerHTML='<span style="color:var(--muted);">평가된 기자재가 없습니다. <a href="c16_equipment.html" style="color:var(--blue);font-weight:700;">＋ 기자재 등록(C16)</a></span>'; return; }
     const GP={A:5,B:4,C:3,D:2,E:1}, PG={5:'A',4:'B',3:'C',2:'D',1:'E'};
@@ -223,7 +223,7 @@ async function _loadEquipGrade(token){
 async function _load(token){
   const api=KaasaData.getApiBase();
   let d;
-  try{ d=await fetch(`${api}/api/farms/${_farmG}/diagnosis`,{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.json()); }
+  try{ d=await fetch(`${api}/api/farms/${_farmG}/diagnosis`,{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.ok?r.json():null).catch(()=>null); }
   catch(e){ document.getElementById('dgGrade').textContent='진단 실패'; return; }
   document.getElementById('dgScore').textContent=d.overall_score;
   document.getElementById('dgGrade').textContent=`종합 ${d.grade} · ${d.tier} 등급`;

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8"/>
@@ -137,7 +137,7 @@ async function _loadClim(token,farmId){
 async function _loadExtended(token,farmId){
   try{
     const api=KaasaData.getApiBase();
-    const d=await fetch(`${api}/api/farms/${farmId}/environment/weather/extended?days=16`,{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.json());
+    const d=await fetch(`${api}/api/farms/${farmId}/environment/weather/extended?days=16`,{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.ok?r.json():null).catch(()=>null);
     if(!d||!d.items||!d.items.length){document.getElementById('extStrip').innerHTML='<span style="font-size:12px;color:var(--muted);">장기예보 조회 실패</span>';return;}
     document.getElementById('extSrc').textContent=`${d.region} · ET₀ ${d.summary.avg_et0} · 16일강수 ${d.summary.total_rain}mm`;
     _drawExtChart(d.items);

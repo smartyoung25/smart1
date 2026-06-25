@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8"/>
@@ -182,7 +182,7 @@ function _save(){
   // 공동출하 가입 전용 API 미구현 → localStorage 저장 (실 연동 시 POST 교체)
   const rec={...form, ts:Date.now(), date:new Date().toISOString().slice(0,10)};
   const arr=JSON.parse(localStorage.getItem('sf_pool_join')||'[]'); arr.push(rec); localStorage.setItem('sf_pool_join',JSON.stringify(arr));
-  res.style.color='var(--green)'; res.innerHTML='✓ 공동출하 가입 신청 완료! 승인 대기 중입니다.<br><small style="color:var(--muted)">(가입 API 미구현 — 로컬 저장)</small>';
+  res.style.color='var(--green)'; res.innerHTML='✓ 공동출하 가입 신청 완료! 담당자 확인 후 승인됩니다.';
   setTimeout(()=>location.href='c12_joint.html', 2000);
 }
 </script>

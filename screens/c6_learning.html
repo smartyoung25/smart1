@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8"/>
@@ -92,7 +92,7 @@ async function _loadInputDrift(token,farmId){
   const el=document.getElementById('inputDrift'); if(!el) return;
   try{
     const api=KaasaData.getApiBase();
-    const d=await fetch(`${api}/api/farms/${farmId}/activity/summary`,{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.json());
+    const d=await fetch(`${api}/api/farms/${farmId}/activity/summary`,{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.ok?r.json():null).catch(()=>null);
     const byKind=d.by_kind||{}; const recent=d.recent||[];
     const n=byKind['data_anomaly']||recent.filter(i=>i.kind==='data_anomaly').length;
     const inputs=(byKind['env_manual']||0)+(byKind['irrigation']||0)+(byKind['env_setpoint']||0);

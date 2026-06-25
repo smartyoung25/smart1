@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8"/>
@@ -98,7 +98,7 @@ window.addEventListener('DOMContentLoaded',()=>{
 async function _proactiveAnomaly(token, farmId){
   try{
     const api=KaasaData.getApiBase();
-    const d=await fetch(`${api}/api/farms/${farmId}/activity/summary`,{headers:{Authorization:'Bearer '+token}}).then(r=>r.json());
+    const d=await fetch(`${api}/api/farms/${farmId}/activity/summary`,{headers:{Authorization:'Bearer '+token}}).then(r=>r.ok?r.json():null).catch(()=>null);
     const n=(d.by_kind||{})['data_anomaly']||0;
     if(!n) return;
     const recent=(d.recent||[]).filter(i=>i.kind==='data_anomaly').slice(0,2)
