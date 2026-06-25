@@ -47,6 +47,7 @@ class TokenResponse(BaseModel):
     chat_quota_max: int = 0
     onboarding_required: bool = False   # 최초 로그인 온보딩 필요 여부
     farm_id: str = ""                   # 계정 농장 ID(가입 시 백엔드 발급) — 프론트 흐름 일관성
+    role: str = ""                      # 역할(farmer/org/distributor/expert/public/admin/manager) — PC콘솔 라우팅용
 
 
 class RegisterRequest(BaseModel):
@@ -197,6 +198,7 @@ def _build_token_response(user: dict, onboarding_required: bool = False) -> Toke
         chat_quota_max=chat_quota_max,
         onboarding_required=onboarding_required,
         farm_id=farm_id,
+        role=role,
     )
 
 
@@ -335,6 +337,7 @@ async def issue_demo_token():
         tier=tier,
         chat_quota_max=_AI_QUOTAS.get(tier, 0),
         onboarding_required=False,
+        role="demo",
     )
 
 
