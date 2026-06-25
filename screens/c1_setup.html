@@ -380,11 +380,13 @@ window.addEventListener('DOMContentLoaded', ()=>{
 
 // 행정구역 시도→시군구 로드
 let _regionTree={};
+let _onRegionsLoaded=null;   // 로드 완료 후 실행할 콜백
 async function _loadRegions(){
   try{ const api=sessionStorage.getItem('sf_api')||location.origin;
     const d=await fetch(`${api}/api/regions`).then(r=>r.json());
     _regionTree=d.tree||{};
     document.getElementById('fSido').innerHTML='<option value="">시도 선택</option>'+(d.sido||[]).map(s=>`<option>${s}</option>`).join('');
+    if(_onRegionsLoaded){ _onRegionsLoaded(); _onRegionsLoaded=null; }
   }catch(e){}
 }
 function _onSido(){
@@ -668,10 +670,15 @@ function _restoreFormUI(){
   _v('fRevMain',form.revenue_main_wan); _v('fRevSub',form.revenue_sub_wan);
   _v('fLaborPersons',form.self_labor_persons); _v('fLaborDays',form.self_labor_days);
   _v('fLaborWage',form.self_labor_wage_wan); _v('fCapSvc',form.capital_service_wan);
-  // 시도→시군구 (비동기 로드 의존)
+  // 시도→시군구: 지역 데이터 로드 완료 후 복원 (경쟁 조건 방지)
   if(form.sido){
-    const s=document.getElementById('fSido'); if(s) s.value=form.sido; _onSido();
-    setTimeout(()=>{ const g=document.getElementById('fSigungu'); if(g&&form.sigungu) g.value=form.sigungu; },300);
+    const _setRegion=()=>{
+      const s=document.getElementById('fSido'); if(s) s.value=form.sido;
+      _onSido();
+      const g=document.getElementById('fSigungu'); if(g&&form.sigungu) g.value=form.sigungu;
+    };
+    if(Object.keys(_regionTree).length){ _setRegion(); }
+    else { _onRegionsLoaded=_setRegion; }
   }
   // 선택 카드
   document.querySelectorAll('.opt-card[data-crop]').forEach(c=>c.classList.toggle('sel',c.dataset.crop===form.crop_ko));
@@ -727,6 +734,7 @@ function _validateInline(){
   if(_step===2&&!form.crop_ko) return err('작물을 선택하세요');
   if(_consulting){
     if(_step===3&&!form.facility_type) return err('시설 유형을 선택하세요 (컨설팅 필수)');
+    if(_step===3&&_isField()&&!form.irrigation_method) return err('관개 방식을 선택하세요 (노지 필수)');
     if(_step===7&&!form.revenue_main_wan) return err('주산물 판매액을 입력하세요 (컨설팅 필수)');
   }
   return true;
@@ -845,7 +853,8 @@ function _saveProfile(){
     cultivation_method:form.cultivation_method, cultivation_detail:form.cultivation_detail,
     irrigation_method:form.irrigation_method, farm_type,
     region:form.region, sido:form.sido, sigungu:form.sigungu, emd:form.emd,
-    area_m2:form.area_m2, farm_id:form.farm_id, farm_name:form.farm_name };
+    area_m2:form.area_m2, farm_id:form.farm_id, farm_name:form.farm_name,
+    season_start:form.season_start, season_end:form.season_end };
   localStorage.setItem('sf_profile', JSON.stringify(profile));
 }
 
