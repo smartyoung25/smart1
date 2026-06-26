@@ -15,8 +15,9 @@
 
 ## 영구 제약 (위반 시 서비스 장애)
 
-- `PUBLIC_DEMO=1` 환경에서 `/api/admin/*` 전부 403 (notify·drift·retrain 포함)
+- `PUBLIC_DEMO=1` 환경에서 `/api/admin/*` **쓰기(POST/PUT/PATCH/DELETE) 전부 403** (notify·drift·retrain·set-tier 포함). 게이트는 allow-list가 아닌 `blocked=method in _WRITE`(`api/main.py` admin 분기) — deny-list 금지(과거 누출 원인). admin **조회(GET)**는 데모 콘솔(C6·C20) 시연용으로 허용.
 - 쓰기 허용 경로만 선별 개방 (`api/main.py` `_WRITE_ALLOW*` 3개 상수)
+- **데모 데이터 경계**: demo 역할은 `_verify_farm_ownership`·`require_admin_view` 면제 → cross-farm **조회** 가능(콘솔 다농가 관제·드릴다운의 필수 동작). 현재 PII(전화·이메일·소유주명) 반환 GET 엔드포인트 0개라 영업데이터만 노출(수용됨). ★ PII 반환 엔드포인트 신규 추가 시 반드시 demo 가드 필요.
 - 기능식별자 `/smartos`·터널명 `kaasa-smartos`·SW키는 브랜드 치환 대상 제외
 - `SMTP_USER`·`SMTP_PASSWORD`·`ANTHROPIC_API_KEY` → .env 미설정 시 폴백 동작
 
