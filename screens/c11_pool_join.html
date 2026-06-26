@@ -181,7 +181,8 @@ function _save(){
   const res=document.getElementById('saveResult');
   // 공동출하 가입 전용 API 미구현 → localStorage 저장 (실 연동 시 POST 교체)
   const rec={...form, ts:Date.now(), date:new Date().toISOString().slice(0,10)};
-  const arr=JSON.parse(localStorage.getItem('sf_pool_join')||'[]'); arr.push(rec); localStorage.setItem('sf_pool_join',JSON.stringify(arr));
+  // ★ 키 통일: C12 운영화면이 'sf_pool_joined'를 읽어 가입 전/후 분기 → C11도 동일 키 사용(구: sf_pool_join 불일치로 가입 미반영)
+  const arr=JSON.parse(localStorage.getItem('sf_pool_joined')||'[]'); arr.push(rec); localStorage.setItem('sf_pool_joined',JSON.stringify(arr));
   res.style.color='var(--green)'; res.innerHTML='✓ 공동출하 가입 신청 완료! 담당자 확인 후 승인됩니다.';
   setTimeout(()=>location.href='c12_joint.html', 2000);
 }
