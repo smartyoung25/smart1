@@ -416,10 +416,14 @@ window.addEventListener('DOMContentLoaded', () => {
                  sessionStorage.getItem('sf_farm_id') || 'farm_001';
   document.getElementById('farmSel').value = farmId;
 
-  // farm_type 우선: 내 유형 생산 탭을 가치사슬 기본 진입점으로(없으면 온실)
+  // 가치사슬 모델: 생산 유형은 택1(온실 또는 노지, 병렬 아님) → 경영 → 유통.
+  //   내 farm_type 생산단계만 노출, 안 쓰는 생산 유형 탭은 숨김(하단nav로 보조 접근).
   try {
     const pf = JSON.parse(localStorage.getItem('sf_profile') || '{}');
-    switchSum(pf.farm_type === 'field' ? 'field' : 'greenhouse');
+    const isField = pf.farm_type === 'field';
+    const hideTab = document.querySelector('.sum-tab[data-dom="' + (isField ? 'greenhouse' : 'field') + '"]');
+    if (hideTab) hideTab.style.display = 'none';
+    switchSum(isField ? 'field' : 'greenhouse');
   } catch (e) { switchSum('greenhouse'); }
 
   _updateHero();
