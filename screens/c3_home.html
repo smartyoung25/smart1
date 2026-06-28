@@ -276,15 +276,16 @@
     </button>
   </div>
 
-  <!-- 온실/노지/출하 요약 -->
-  <div class="section-label" style="margin-top:16px;">현황 요약</div>
+  <!-- 가치사슬 도메인 허브: 생산(온실/노지) → 경영 → 유통 -->
+  <div class="section-label" style="margin-top:16px;">생산 → 경영 → 유통 <span style="font-weight:600;color:var(--muted);font-size:11px;margin-left:4px;">가치사슬 — 단계를 선택하세요</span></div>
   <div class="summary-tabs">
-    <button class="sum-tab active" onclick="switchSum('greenhouse')">🏡 온실</button>
-    <button class="sum-tab" onclick="switchSum('field')">🌿 노지</button>
-    <button class="sum-tab" onclick="switchSum('market')">🚛 출하</button>
+    <button class="sum-tab" data-dom="greenhouse" onclick="switchSum('greenhouse')">🏡 온실</button>
+    <button class="sum-tab" data-dom="field" onclick="switchSum('field')">🌿 노지</button>
+    <button class="sum-tab" data-dom="management" onclick="switchSum('management')">💰 경영</button>
+    <button class="sum-tab" data-dom="market" onclick="switchSum('market')">🚛 유통</button>
   </div>
 
-  <div class="sum-panel active" id="sumGreenhouse">
+  <div class="sum-panel" id="sumGreenhouse">
     <div class="card">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
         <div>
@@ -326,6 +327,27 @@
       <button class="btn full secondary" style="margin-top:12px;" onclick="location.href='f1_field.html'">
         노지 홈 상세 →
       </button>
+    </div>
+  </div>
+
+  <div class="sum-panel" id="sumManagement">
+    <div class="card">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div><div style="font-size:11px;color:var(--muted);">소득률</div>
+          <div style="font-size:18px;font-weight:800;color:var(--green);" id="sumMgIncome">—</div></div>
+        <div><div style="font-size:11px;color:var(--muted);">kg당 마진</div>
+          <div style="font-size:18px;font-weight:800;" id="sumMgMargin">—</div></div>
+        <div><div style="font-size:11px;color:var(--muted);">kg당 원가</div>
+          <div style="font-size:18px;font-weight:800;" id="sumMgCost">—</div></div>
+        <div><div style="font-size:11px;color:var(--muted);">예상 매출</div>
+          <div style="font-size:18px;font-weight:800;" id="sumMgRev">—</div></div>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:8px;">생산 결과를 경영 지표로 — 원가·마진·소득 분석</div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:10px;">
+      <button class="btn secondary" style="flex:1;font-size:12.5px;" onclick="location.href='c5_erp.html'">💰 수익성 ERP</button>
+      <button class="btn secondary" style="flex:1;font-size:12.5px;" onclick="location.href='c17_diagnosis.html'">🩺 종합진단</button>
+      <button class="btn secondary" style="flex:1;font-size:12.5px;" onclick="location.href='c9_benchmark.html'">📈 벤치마킹</button>
     </div>
   </div>
 
@@ -394,6 +416,12 @@ window.addEventListener('DOMContentLoaded', () => {
                  sessionStorage.getItem('sf_farm_id') || 'farm_001';
   document.getElementById('farmSel').value = farmId;
 
+  // farm_type 우선: 내 유형 생산 탭을 가치사슬 기본 진입점으로(없으면 온실)
+  try {
+    const pf = JSON.parse(localStorage.getItem('sf_profile') || '{}');
+    switchSum(pf.farm_type === 'field' ? 'field' : 'greenhouse');
+  } catch (e) { switchSum('greenhouse'); }
+
   _updateHero();
   _buildTodos();
   _checkOnboardingNudge();   // 프로필 미완성 시 넛지 표시
@@ -417,6 +445,7 @@ window.addEventListener('DOMContentLoaded', () => {
     _loadDataConn(token, farmId);
     _loadFieldSummary(token, farmId);
     _loadMarketSummary(token, farmId);
+    _loadManagementSummary(token, farmId);
     setTimeout(() => _loadPdcaMini(token, farmId), 800);
   });
 });
@@ -488,6 +517,26 @@ async function _loadMarketSummary(token, farmId){
     set('sumMDiff', diff>=0 ? `+${fmt(diff)}<span style="font-size:11px;font-weight:400">원/kg</span>` : `${fmt(diff)}원`);
     set('sumMPool', '모집중');
     if(ws?.price_source) set('sumMNote', `단가: ${ws.price_source} 실시세 · 공동출하 시 +${fmt(Math.max(diff,0))}원/kg`);
+  }catch(e){}
+}
+
+// 경영 미니 요약 — 생산 결과를 원가·마진·소득으로(가치사슬 경영 단계). costs+revenue 인라인 계산(c5_erp 동일 소스)
+async function _loadManagementSummary(token, farmId){
+  try{
+    const api=KaasaData.getApiBase(), H={Authorization:`Bearer ${token}`};
+    const [costs, rev] = await Promise.all([
+      fetch(`${api}/api/farms/${farmId}/costs`,{headers:H}).then(r=>r.ok?r.json():null).catch(()=>null),
+      fetch(`${api}/api/farms/${farmId}/revenue`,{headers:H}).then(r=>r.ok?r.json():null).catch(()=>null),
+    ]);
+    const set=(id,v)=>{const el=document.getElementById(id); if(el) el.innerHTML=v;};
+    const fmt=v=>Math.round(v).toLocaleString();
+    const _rev  = rev?.revenue_krw ?? rev?.predicted_revenue_krw ?? 0;
+    const _cost = costs?.total_cost_krw ?? 0;
+    const _yield= rev?.yield_kg_forecast ?? 0;
+    if(_yield>0 && _cost>0) set('sumMgCost',  `${fmt(_cost/_yield)}<span style="font-size:11px;font-weight:400">원</span>`);
+    if(_yield>0 && _rev>0)  set('sumMgMargin',`${fmt((_rev-_cost)/_yield)}<span style="font-size:11px;font-weight:400">원</span>`);
+    if(_rev>0) set('sumMgIncome', `${(((_rev-_cost)/_rev)*100).toFixed(1)}<span style="font-size:11px;font-weight:400">%</span>`);
+    if(_rev>0) set('sumMgRev',    `${fmt(_rev/10000)}<span style="font-size:11px;font-weight:400">만원</span>`);
   }catch(e){}
 }
 
@@ -984,9 +1033,8 @@ async function _loadYieldForecast(token, farmId) {
 
 // ── 요약 탭 전환 ────────────────────────────────────────────────────────────
 function switchSum(tab) {
-  document.querySelectorAll('.sum-tab').forEach((el, i) => {
-    const ids = ['greenhouse','field','market'];
-    el.classList.toggle('active', ids[i] === tab);
+  document.querySelectorAll('.sum-tab').forEach(el => {
+    el.classList.toggle('active', el.getAttribute('data-dom') === tab);
   });
   document.querySelectorAll('.sum-panel').forEach(el => el.classList.remove('active'));
   const panel = document.getElementById('sum' + tab.charAt(0).toUpperCase() + tab.slice(1));

@@ -39,6 +39,10 @@
     .cc-hd .back{font-size:22px;text-decoration:none;color:var(--text);min-width:32px;}
     .cc-hd h1{font-size:17px;font-weight:800;margin:0;flex:1;}
     .cc-note{font-size:10.5px;color:var(--muted);margin-top:3px;}
+    /* 입력 방식 선택(찾기/직접입력) 세그먼트 */
+    .cc-mode{display:flex;gap:8px;margin-bottom:8px;}
+    .cc-mode-btn{flex:1;min-height:46px;padding:11px;border:1.5px solid var(--border);background:var(--panel);color:var(--muted);border-radius:12px;font-size:13.5px;font-weight:800;cursor:pointer;transition:all .15s;}
+    .cc-mode-btn.on{border-color:var(--green);background:var(--green-soft);color:var(--green-dark);}
   </style>
 </head>
 <body>
@@ -46,13 +50,19 @@
   <div class="cc-hd">
     <a class="back" href="c16_equipment.html">‹</a>
     <div style="flex:1;">
-      <h1>🏗️ 온실 시공업체 찾기</h1>
-      <div class="cc-note">스마트팜코리아 공식 DB · 도급순위 기반</div>
+      <h1>🏗️ 온실 시공업체</h1>
+      <div class="cc-note">공식 DB에서 찾거나 아는 업체를 직접 입력하세요</div>
     </div>
-    <button onclick="_openRegister()" style="font-size:12px;font-weight:800;padding:7px 12px;background:var(--green);color:#fff;border:none;border-radius:10px;cursor:pointer;min-height:36px;flex:0 0 auto;">+ 업체 등록</button>
   </div>
 
-  <div class="cc-filters">
+  <!-- 입력 방식 선택: 찾기 vs 직접입력 (전면 제시) -->
+  <div class="cc-mode" id="ccMode">
+    <button class="cc-mode-btn on" id="modeFind" onclick="_setMode('find')">🔍 업체 찾기</button>
+    <button class="cc-mode-btn" id="modeInput" onclick="_setMode('input')">✍️ 직접 입력</button>
+  </div>
+  <div id="modeHint" style="font-size:11.5px;color:var(--muted);margin:0 2px 12px;line-height:1.5;">공식 DB(스마트팜코리아·도급순위)에서 시공업체를 검색합니다.</div>
+
+  <div class="cc-filters" id="findSection">
     <div class="cc-search">
       <input class="inp" id="q" placeholder="상호명 검색 (예: 그린플러스)" oninput="_deb(_run)"/>
     </div>
@@ -173,6 +183,19 @@ function _initRegions(){
 
 // 시공업체 등록 시트
 let _regRank='', _regRegion='', _regSpecs=[];
+// 입력 방식 선택: 찾기(검색) ↔ 직접입력(등록폼)
+function _setMode(m){
+  const find=document.getElementById('modeFind'), input=document.getElementById('modeInput');
+  const hint=document.getElementById('modeHint');
+  if(m==='input'){
+    find.classList.remove('on'); input.classList.add('on');
+    hint.textContent='아는 시공업체를 직접 입력해 등록하면 검색 목록에 추가됩니다.';
+    _openRegister();
+  } else {
+    input.classList.remove('on'); find.classList.add('on');
+    hint.textContent='공식 DB(스마트팜코리아·도급순위)에서 시공업체를 검색합니다.';
+  }
+}
 function _openRegister(){
   document.getElementById('regMask').classList.add('open');
   document.getElementById('regSheet').classList.add('open');
@@ -186,6 +209,7 @@ function _openRegister(){
 function _closeRegister(){
   document.getElementById('regMask').classList.remove('open');
   document.getElementById('regSheet').classList.remove('open');
+  _setMode('find');   // 시트 닫히면 찾기 모드로 복귀
 }
 function _pickReg(el, type){
   const row=el.closest('.cc-chip-row');
