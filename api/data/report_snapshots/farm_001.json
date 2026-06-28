@@ -9,12 +9,12 @@
     "avg_ach": 121
   },
   "2026-06": {
-    "income_rate": 88.3,
+    "income_rate": 91.8,
     "cost_per_kg": 181.0,
     "energy_per_kg": 39.9,
     "yield": 13.82,
-    "price": 1543,
+    "price": 2200,
     "alerts": 2,
-    "avg_ach": 101
+    "avg_ach": 102
   }
 }
