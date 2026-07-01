@@ -457,6 +457,7 @@ window.addEventListener('DOMContentLoaded', () => {
   _farmG = farmId;
   _ensureToken().then(token => {
     _tokenG = token;
+    _farmTypeFallback(token);   // localStorage 비면 서버 온보딩으로 생산(온실/노지) 탭 복구
     KaasaData.init({
       farmId, token,
       onSensor:    _onSensor,
@@ -476,6 +477,33 @@ window.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => _loadPdcaMini(token, farmId), 800);
   });
 });
+
+// farm_type 서버 폴백 — localStorage(sf_profile) 초기화 시 온보딩 데이터로 생산 탭 복구.
+//   기본은 온실이라 노지 농가가 오분기되는 것을 방지(서버 _FARM_META.farm_type 판정과 동일).
+function _farmTypeFallback(token) {
+  try { if (JSON.parse(localStorage.getItem('sf_profile') || '{}').farm_type) return; } catch (e) {}
+  const api = sessionStorage.getItem('sf_api') || location.origin;
+  fetch(api + '/api/v1/auth/onboarding/status', { headers: { Authorization: 'Bearer ' + token } })
+    .then(r => r.ok ? r.json() : null)
+    .then(d => {
+      const data = d && d.data; if (!data) return;
+      const fac = data.facility_type || '', cm = data.cultivation_method || '';
+      const isField = /노지|비가림/.test(fac) || /노지/.test(cm);
+      try {
+        const pf = JSON.parse(localStorage.getItem('sf_profile') || '{}');
+        pf.farm_type = isField ? 'field' : 'greenhouse';
+        if (data.crop_ko) pf.crop_ko = data.crop_ko;
+        localStorage.setItem('sf_profile', JSON.stringify(pf));
+      } catch (e) {}
+      if (isField) {   // 기본(온실)과 다를 때만 탭 재적용
+        const gh = document.querySelector('.sum-tab[data-dom="greenhouse"]');
+        const fd = document.querySelector('.sum-tab[data-dom="field"]');
+        if (gh) gh.style.display = 'none';
+        if (fd) fd.style.display = '';
+        switchSum('field');
+      }
+    }).catch(() => {});
+}
 
 // PDCA 미니 KPI 배지 로더
 async function _loadPdcaMini(token, farmId) {
@@ -939,10 +967,8 @@ async function _applyDecision(item) {
         detail: `${item.action||''} · 심각도 ${item.severity} · 출처 ${item.source}` })
     });
     if (r && r.status === 403) throw new Error('데모(읽기 전용) 모드 — 기록 저장은 비활성화되어 있습니다.');
-  } catch (e) {
-    if (/데모|읽기 전용|403/.test(e && e.message || '')) throw e;  // 데모 차단은 정직하게 알림
-    /* 그 외(오프라인 등)는 UI 진행 */
-  }
+    if (!r || !r.ok) throw new Error('HTTP ' + (r ? r.status : 'network'));
+  } catch (e) { throw e; }  // 성공만 "✓ 기록됨"; 데모·오프라인·오류는 decision_card 가 정직하게 표시
 }
 
 // ── AI 추천 ─────────────────────────────────────────────────────────────────

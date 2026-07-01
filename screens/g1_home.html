@@ -228,13 +228,14 @@ function _renderDecisions(){
   DecisionDeck.render(el, items, { onApply:_applyDecision });
 }
 async function _applyDecision(item){
-  try{
-    const api = KaasaData.getApiBase ? KaasaData.getApiBase() : location.origin;
-    await fetch(`${api}/api/farms/${_farmG}/activity`, { method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':`Bearer ${_tokenG}`},
-      body: JSON.stringify({ kind:'decision_apply', item:item.title, value:item.confidence??null,
-        detail:`${item.action||''} · 심각도 ${item.severity} · 출처 ${item.source}` }) });
-  }catch(e){}
+  // 실패를 삼키지 않고 전파 → decision_card 가 성공/데모/재시도를 정직하게 표시
+  const api = KaasaData.getApiBase ? KaasaData.getApiBase() : location.origin;
+  const r = await fetch(`${api}/api/farms/${_farmG}/activity`, { method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':`Bearer ${_tokenG}`},
+    body: JSON.stringify({ kind:'decision_apply', item:item.title, value:item.confidence??null,
+      detail:`${item.action||''} · 심각도 ${item.severity} · 출처 ${item.source}` }) });
+  if (r.status === 403) throw new Error('데모(읽기 전용) 모드 — 기록 저장 비활성화');
+  if (!r.ok) throw new Error('HTTP ' + r.status);
 }
 
 function onFarmChange(id){ sessionStorage.setItem('sf_farm_id', id); location.reload(); }
