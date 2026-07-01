@@ -456,6 +456,13 @@ async function _importQuote(){
   }catch(e){ msg.style.color='var(--red)'; msg.textContent='업로드 실패: '+e.message; }
 }
 const GRADE_COL2={A:'#16a34a',B:'#65a30d',C:'#ca8a04',D:'#ea580c',E:'#dc2626'};
+// KC인증 배지 — 인증(녹색)/미인증(주황). 값 없으면 미표시.
+function _kcBadge(kc){
+  if(!kc) return '';
+  const ok=kc==='인증';
+  const col=ok?'#16a34a':'#c2620a';
+  return `<span title="KC인증 ${kc}" style="font-size:9px;font-weight:800;color:${col};background:${ok?'var(--green-soft)':'#fff4e6'};border:1px solid ${col};border-radius:5px;padding:0 5px;margin-left:4px;">${ok?'✅ KC':'⚠️ KC미인증'}</span>`;
+}
 function _gradeBadge(it){
   if(!it.grade) return '<span style="font-size:9.5px;color:var(--muted);">미매칭</span>';
   const col=GRADE_COL2[it.grade]||'#64748b';
@@ -475,7 +482,7 @@ function _renderDraft(){
         <button class="eq-del" onclick="_draft.splice(${i},1);_renderDraft()">×</button></div>
       <div style="margin-top:4px;display:flex;align-items:center;gap:6px;">
         <span style="font-size:9.5px;color:var(--muted);">${it.gubun||'대분류 미상'}${it.model_type?' · '+it.model_type:''}</span>
-        ${_gradeBadge(it)}</div>
+        ${_gradeBadge(it)}${_kcBadge(it.kc)}</div>
     </div>`).join('')+
     `<button class="addbtn" style="min-height:44px;margin-top:6px;" onclick="_bulkRegister()">초안 ${_draft.length}건 일괄 등록</button>`;
 }
@@ -487,7 +494,7 @@ async function _bulkRegister(){
     const dt=(d.device_type||'').trim(); if(!dt) continue;
     const body={device_id:`IMP-${Date.now().toString(36)}-${i}`, category:d.category||'', device_type:dt,
       gubun:d.gubun||'', model_type:d.model_type||'', grade:d.grade||'', gong:d.gong||'', score100:d.score100||null,
-      maker:d.maker||'', model:d.model||'', protocol:d.protocol||'', datapoints:[]};
+      kc:d.kc||'', maker:d.maker||'', model:d.model||'', protocol:d.protocol||'', datapoints:[]};
     try{ const r=await fetch(`${api}/api/farms/${_farmG}/equipment`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${_tokenG}`},body:JSON.stringify(body)}); if(r.ok||r.status===403) ok++; }catch(e){}
   }
   msg.style.color='var(--green)'; msg.textContent=`✓ ${ok}건 등록 완료`;
@@ -510,6 +517,7 @@ async function _save(){
     grade:(_refHit&&_refHit.grade)||'',
     gong:(_refHit&&_refHit.gong)||'',
     score100:(_refHit&&_refHit.score100)||null,
+    kc:(_refHit&&_refHit.kc)||'',
     datapoints:_collectDps(),
   };
   const msg=document.getElementById('eqMsg');
@@ -554,7 +562,7 @@ async function _loadList(){
     const gb=it.grade?`<span style="font-size:9.5px;font-weight:800;color:#fff;background:${GC[it.grade]||'#64748b'};border-radius:5px;padding:1px 6px;margin-left:4px;">${it.grade}등급</span>`:'';
     return `<div class="eq-card"><div class="eq-head">
         <span class="eq-ico">${GUBUN_ICO[it.gubun]||CAT_ICO[it.category]||'📦'}</span>
-        <span class="eq-name">${it.device_id} · ${it.model_type||it.device_type||''}${gb}</span>
+        <span class="eq-name">${it.device_id} · ${it.model_type||it.device_type||''}${gb}${_kcBadge(it.kc)}</span>
         <span class="eq-proto">${it.protocol||'-'}</span>
         <button class="eq-del" style="background:var(--blue-soft);color:var(--blue);" onclick="_openEdit(${ix})">수정</button>
         <button class="eq-del" onclick="_del('${it.device_id}')">삭제</button></div>

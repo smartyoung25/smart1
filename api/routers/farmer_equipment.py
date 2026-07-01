@@ -103,6 +103,7 @@ def _reclassify_from_catalog(name: str, maker: str, model: str):
         "grade": best.get("grade", ""),
         "gong": best.get("gong", ""),
         "score100": best.get("score100"),
+        "kc": best.get("kc", ""),            # KC인증 상태(인증/미인증) — 등록장비 배지용
         "match_confidence": best_s,
     }
 
@@ -139,6 +140,7 @@ class EquipmentItem(BaseModel):
     grade:        str = Field("", max_length=4)     # 종합등급 A~E
     gong:         str = Field("", max_length=40)    # 공종별 구분
     score100:     Optional[float] = None            # 환산점수(100)
+    kc:           str = Field("", max_length=8)     # KC인증 상태(인증/미인증)
     location:     str = Field("", max_length=64)
     maker:        str = Field("", max_length=64)
     model:        str = Field("", max_length=64)

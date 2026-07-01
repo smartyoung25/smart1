@@ -49,8 +49,16 @@
       const on=inv.mappedVars.has(v);
       return `<span class="eql-var ${on?'on':'off'}">${on?'🟢':'○'} ${VAR_KO[v]||v}</span>`;
     }).join('');
+    // KC인증 요약(등록장비 기준) — 인증/미인증 대수 칩
+    const withKc=(inv.items||[]).filter(i=>i.kc);
+    let kcChip='';
+    if(withKc.length){
+      const cert=withKc.filter(i=>i.kc==='인증').length, non=withKc.length-cert;
+      kcChip=(cert?`<span class="eql-var on" title="KC인증 완료 장비">✅ KC ${cert}</span>`:'')
+           +(non?`<span class="eql-var" style="background:#fff4e6;color:#c2620a;" title="KC 미인증 장비">⚠️ 미인증 ${non}</span>`:'');
+    }
     el.innerHTML=`<div class="eql-badge"><span class="eql-h">🔌 연동 장비 ${inv.deviceCount}대</span>
-      ${vars}<a class="eql-link" href="c16_equipment.html">관리 →</a></div>`;
+      ${kcChip}${vars}<a class="eql-link" href="c16_equipment.html">관리 →</a></div>`;
   }
 
   // 등록 장비를 device_alert 에 연계 (online/battery 필드가 있으면 경보)

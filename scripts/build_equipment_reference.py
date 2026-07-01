@@ -21,10 +21,46 @@ api/data/reference/*.json 이 전량 갱신된다. (멱등)
 """
 import argparse, json, os, re, sys
 from collections import Counter, defaultdict
+from datetime import datetime
 import openpyxl
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT_DIR = os.path.join(ROOT, "api", "data", "reference")
+
+
+# ── 버전 비교(신규/변경 추적) ────────────────────────────────────
+def _load_existing(fn):
+    """기존 산출 JSON 로드(없으면 빈 리스트/딕셔너리 판단은 호출측)."""
+    p = os.path.join(OUT_DIR, fn)
+    if os.path.exists(p):
+        try:
+            with open(p, encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return None
+    return None
+
+
+def _diff(old, new, keyfn):
+    """이전/현재 항목집합을 key 기준 비교 → 신규/삭제 집계."""
+    def keyset(items):
+        s = set()
+        for it in (items or []):
+            try:
+                k = keyfn(it)
+            except Exception:
+                k = None
+            if k:
+                s.add(k)
+        return s
+    ko, kn = keyset(old), keyset(new)
+    added = sorted(kn - ko)
+    removed = sorted(ko - kn)
+    return {
+        "prev_count": len(old or []), "curr_count": len(new or []),
+        "added": len(added), "removed": len(removed),
+        "added_sample": added[:10], "removed_sample": removed[:10],
+    }
 
 # ── 공식 분류체계 ────────────────────────────────────────────────
 # 스마트팜 ICT 기자재 표준(농식품부/TTA) 3계층: 대분류 → 표준 장치명
@@ -226,9 +262,23 @@ def main():
 
     src_base = os.path.basename(a.src)
     ver = re.search(r"_(\d{6})\.xlsx$", src_base)
+
+    # 이전 산출과 비교 → 신규/변경 항목 추적(정례 갱신 이력)
+    prev_meta = _load_existing("_meta.json") or {}
+    changes = {
+        "vendor_products": _diff(_load_existing("vendor_products.json"), products,
+                                 lambda x: "%s|%s" % (x.get("maker", ""), x.get("model", ""))),
+        "vendors": _diff(_load_existing("vendors.json"), vendors, lambda x: x.get("name", "")),
+        "construction_companies": _diff(_load_existing("construction_companies.json"), construction,
+                                        lambda x: x.get("name", "")),
+    }
+    built_at = datetime.now().isoformat(timespec="seconds")
+
     meta = {
         "source": src_base,
         "source_version": ver.group(1) if ver else "",
+        "previous_version": prev_meta.get("source_version", ""),
+        "built_at": built_at,
         "official_standard": "스마트팜 ICT 기자재 표준(농식품부/TTA) — 표준 장치명 기준",
         "counts": {
             "vendor_products": len(products),
@@ -237,12 +287,26 @@ def main():
             "taxonomy_categories": len(taxonomy),
         },
         "category_product_count": dict(cat_count),
+        "changes": changes,
     }
     dump("equipment_taxonomy.json", taxonomy)
     dump("vendor_products.json", products)
     dump("vendors.json", vendors)
     dump("construction_companies.json", construction)
     dump("_meta.json", meta)
+
+    # 갱신 이력 누적(_meta_history.json) — 분기 정례 갱신 변경분 추적
+    hist = _load_existing("_meta_history.json")
+    if not isinstance(hist, list):
+        hist = []
+    hist.append({
+        "built_at": built_at,
+        "source_version": meta["source_version"],
+        "previous_version": meta["previous_version"],
+        "counts": meta["counts"],
+        "changes": {k: {"added": v["added"], "removed": v["removed"]} for k, v in changes.items()},
+    })
+    dump("_meta_history.json", hist)
 
     print("[OK] reference data built ->", OUT_DIR)
     print(json.dumps(meta, ensure_ascii=False, indent=2))
