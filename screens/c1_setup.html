@@ -931,7 +931,10 @@ function _postSaveCTA(){
   } else {
     cta={
       msg:'다음으로 <b>시설 기자재</b>를 등록하면 보유 장비(제조사·프로토콜)를 표준 변수로 연동할 수 있습니다.',
-      primary:`c16_equipment.html?farm=${fid}`, primaryLabel:'🔌 기자재 등록하기', home:'c3_home.html'
+      primary:`c16_equipment.html?farm=${fid}`, primaryLabel:'🔌 기자재 등록하기', home:'c3_home.html',
+      // 온실 신축·개보수 수요 연계: 도급순위 기반 공식 시공업체 찾기
+      secondary:'c24_construction.html', secondaryLabel:'🏗️ 온실 시공업체 찾기',
+      secondaryMsg:'온실 신축·개보수가 필요하면 도급순위 기반 공식 시공업체를 찾아보세요.'
     };
   }
   const nextUrl = encodeURIComponent(cta.primary);
@@ -948,6 +951,12 @@ function _postSaveCTA(){
         <button onclick="location.href='${cta.primary}'" style="flex:1;padding:14px;background:var(--green);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:800;cursor:pointer;min-height:48px;">${cta.primaryLabel}</button>
         <button onclick="location.href='${cta.home}'" style="flex:0 0 110px;padding:14px;background:var(--gray-soft);color:var(--muted);border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:700;cursor:pointer;min-height:48px;">홈으로</button>
       </div>
+      ${cta.secondary?`<a href="${cta.secondary}" style="display:flex;align-items:center;gap:10px;background:var(--green-soft);border:1.5px solid var(--green);border-radius:var(--radius-sm);padding:11px 14px;text-decoration:none;color:var(--green-dark);margin-top:10px;min-height:46px;box-sizing:border-box;">
+        <span style="font-size:18px;">🏗️</span>
+        <div style="flex:1;"><div style="font-size:13px;font-weight:800;">${cta.secondaryLabel}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px;">${cta.secondaryMsg}</div></div>
+        <span style="font-size:16px;">›</span>
+      </a>`:''}
     </div>`);
 }
 </script>

@@ -145,29 +145,47 @@ function _deb(fn){ clearTimeout(_t); _t=setTimeout(fn,250); }
 function _pickRegion(el,r){ _region=r; document.querySelectorAll('#regionChips .chip').forEach(c=>c.classList.remove('on')); el.classList.add('on'); _run(); }
 function _pickRank(el,r){ _rank=r; document.querySelectorAll('#rankChips .chip').forEach(c=>c.classList.remove('on')); el.classList.add('on'); _run(); }
 
+// 직접등록(로컬) 업체 목록 — 읽기전용 reference API를 침범하지 않고 내 기기에 보관
+function _userVendors(){
+  try{ return JSON.parse(localStorage.getItem('sf_user_vendors')||'[]'); }catch(e){ return []; }
+}
+function _ccCard(c, mine){
+  const tel=(c.tel||'').replace(/[^0-9]/g,'');
+  const badge = mine
+    ? `<span class="cc-rank" style="background:var(--blue-soft);color:#1e40af;">직접등록</span>`
+    : (c.rank_group?`<span class="cc-rank">${c.rank_group}</span>`:'');
+  return `<div class="cc-card">
+    <div class="cc-top">
+      <div class="cc-name">${c.name||'-'}</div>
+      ${badge}
+    </div>
+    <div class="cc-addr">📍 ${c.address||'-'}</div>
+    ${tel?`<a class="cc-tel" href="tel:${tel}">📞 ${c.tel}</a>`:''}
+  </div>`;
+}
 async function _run(){
   const q=document.getElementById('q').value.trim();
   const api=KaasaData.getApiBase();
   const url=`${api}/api/reference/construction?q=${encodeURIComponent(q)}&region=${encodeURIComponent(_region)}&rank=${encodeURIComponent(_rank)}&limit=100`;
   const cnt=document.getElementById('ccCount'), list=document.getElementById('ccList');
+  // 직접등록 항목에도 동일 필터(검색어·지역·도급순위) 적용
+  const ql=q.toLowerCase();
+  const mine=_userVendors().filter(c=>
+    (!q || (c.name||'').toLowerCase().includes(ql)) &&
+    (!_region || (c.region||'').includes(_region) || (c.address||'').includes(_region)) &&
+    (!_rank || c.rank_group===_rank));
+  const mineHtml=mine.map(c=>_ccCard(c,true)).join('');
   try{
     const r=await fetch(url); const d=await r.json();
     const items=d.items||[];
-    cnt.textContent=`${d.count}개 업체`;
-    if(!items.length){ list.innerHTML='<div class="cc-empty">조건에 맞는 시공업체가 없습니다.<br>지역·검색어를 바꿔보세요.</div>'; return; }
-    list.innerHTML=items.map(c=>{
-      const tel=(c.tel||'').replace(/[^0-9]/g,'');
-      return `<div class="cc-card">
-        <div class="cc-top">
-          <div class="cc-name">${c.name||'-'}</div>
-          ${c.rank_group?`<span class="cc-rank">${c.rank_group}</span>`:''}
-        </div>
-        <div class="cc-addr">📍 ${c.address||'-'}</div>
-        ${tel?`<a class="cc-tel" href="tel:${tel}">📞 ${c.tel}</a>`:''}
-      </div>`;
-    }).join('');
+    const total=mine.length+items.length;
+    cnt.textContent=`${total}개 업체`+(mine.length?` · 내 등록 ${mine.length}`:'');
+    if(!total){ list.innerHTML='<div class="cc-empty">조건에 맞는 시공업체가 없습니다.<br>지역·검색어를 바꿔보세요.</div>'; return; }
+    list.innerHTML=mineHtml+items.map(c=>_ccCard(c,false)).join('');
   }catch(e){
-    cnt.textContent=''; list.innerHTML='<div class="cc-empty">데이터를 불러오지 못했습니다.</div>';
+    // 공식 DB 로드 실패해도 내 등록 항목은 보여줌
+    if(mine.length){ cnt.textContent=`${mine.length}개 업체 · 내 등록`; list.innerHTML=mineHtml; }
+    else { cnt.textContent=''; list.innerHTML='<div class="cc-empty">데이터를 불러오지 못했습니다.</div>'; }
   }
 }
 // ★ 지역 칩 공유 초기화
@@ -223,25 +241,23 @@ function _toggleSpec(el){
   if(el.classList.contains('on')){ el.classList.remove('on'); _regSpecs=_regSpecs.filter(x=>x!==s); }
   else { el.classList.add('on'); _regSpecs.push(s); }
 }
-async function _submitRegister(){
+function _submitRegister(){
   const msg=document.getElementById('regMsg');
   const name=document.getElementById('rName').value.trim();
   if(!name){ msg.style.color='var(--red)'; msg.textContent='업체명을 입력하세요'; return; }
-  const body={name, ceo:document.getElementById('rCeo').value.trim(),
+  // 공식 참조 DB는 읽기전용 — 직접등록은 내 기기(localStorage)에 저장하고 검색목록에 병합
+  const entry={name, ceo:document.getElementById('rCeo').value.trim(),
     tel:document.getElementById('rTel').value.trim(),
     region:_regRegion, address:document.getElementById('rAddr').value.trim(),
     rank_group:_regRank, specialties:_regSpecs,
     note:document.getElementById('rNote').value.trim(), source:'user_input'};
-  msg.style.color='var(--muted)'; msg.textContent='등록 중…';
   try{
-    const api=KaasaData.getApiBase();
-    const r=await fetch(`${api}/api/reference/construction`,{method:'POST',
-      headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-    if(r.ok||r.status===403){
-      msg.style.color='var(--green)'; msg.textContent='✓ 업체 등록 완료';
-      setTimeout(()=>{ _closeRegister(); _run(); }, 1000);
-    } else { msg.style.color='var(--orange)'; msg.textContent=`등록됨(로컬) — 서버 응답 ${r.status}`; setTimeout(_closeRegister,1200); }
-  }catch(e){ msg.style.color='var(--orange)'; msg.textContent='오프라인 저장됨'; setTimeout(_closeRegister,1000); }
+    const list=_userVendors().filter(x=>x.name!==entry.name);   // 동명 중복 갱신
+    list.unshift(entry);
+    localStorage.setItem('sf_user_vendors', JSON.stringify(list));
+    msg.style.color='var(--green)'; msg.textContent='✓ 등록 완료 — 내 목록에 추가됨';
+    setTimeout(()=>{ _closeRegister(); _run(); }, 900);
+  }catch(e){ msg.style.color='var(--red)'; msg.textContent='저장 실패: '+e.message; }
 }
 
 window.addEventListener('DOMContentLoaded', ()=>{ _initRegions(); _run(); });
