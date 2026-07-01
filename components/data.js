@@ -815,6 +815,28 @@ const KaasaData = (() => {
     if (html) document.body.appendChild(box);
   }
 
+  // 데스크톱(≥1100px) 좌측 세로 네비 — 각 화면 하단탭(.sf-bottom-nav)을 복제해 주입.
+  //   링크·라벨·활성상태가 하단탭과 100% 일치. 표시는 base.css 미디어쿼리가 담당(모바일 숨김).
+  function _installSidebar() {
+    if (document.querySelector('.sf-sidebar')) return;
+    const bottom = document.querySelector('.sf-bottom-nav');
+    if (!bottom) return;                       // 하단탭 없는 화면(로그인·리포트 등)은 사이드바 생략
+    const side = document.createElement('nav');
+    side.className = 'sf-sidebar';
+    const brand = document.createElement('div');
+    brand.className = 'sf-side-brand';
+    brand.textContent = 'KAASA';
+    side.appendChild(brand);
+    bottom.querySelectorAll('.bnav-tab').forEach(tab => {
+      const b = tab.cloneNode(true);           // onclick·아이콘·라벨·활성상태 그대로 복제
+      b.classList.remove('bnav-tab');
+      b.classList.add('sf-side-tab');
+      side.appendChild(b);
+    });
+    document.body.appendChild(side);
+    document.body.classList.add('has-sidebar');  // 본문 좌측 여백(220px)은 이 클래스에만 적용
+  }
+
   // 화면 헤더의 #farmSel 을 작물별 데모 농장 목록으로 통일 (각 화면 하드코딩 보완)
   function _syncFarmSelectors() {
     const cur = sessionStorage.getItem('sf_farm_id') || _farmId || 'farm_001';
@@ -836,7 +858,7 @@ const KaasaData = (() => {
   if (typeof document !== 'undefined') {
     document.addEventListener('DOMContentLoaded', () => {
       try {
-        _buildDrawer(); _bindMenuTab(); _renderStratBands(); _installPwa(); _syncFarmSelectors(); _installFab();
+        _buildDrawer(); _bindMenuTab(); _renderStratBands(); _installPwa(); _syncFarmSelectors(); _installFab(); _installSidebar();
         if (navigator && navigator.onLine === false) _setNet(false);  // 진입 시 오프라인이면 즉시 표시
       } catch (e) {}
     });
