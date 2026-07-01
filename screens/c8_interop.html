@@ -18,6 +18,16 @@
 .flow-step:last-child{border-bottom:none;}
 .flow-num{width:26px;height:26px;border-radius:50%;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;flex-shrink:0;}
 .mod-card{background:var(--panel);border-radius:var(--radius-sm);padding:14px;box-shadow:var(--shadow);text-decoration:none;color:var(--text);border:1.5px solid var(--border);display:block;margin-bottom:8px;}
+/* 이기종 데이터포인트 → 표준변수 매핑 UI */
+.eq-int-row{padding:10px 0;border-bottom:1px solid var(--border);}
+.eq-int-row:last-child{border-bottom:none;}
+.eq-int-hd{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:800;}
+.eq-int-hd .mk{color:var(--muted);font-weight:400;font-size:11px;}
+.dp-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px;}
+.eq-dp{font-size:10.5px;font-weight:700;background:var(--green-soft);color:var(--green-dark);border-radius:8px;padding:3px 9px;}
+.dp-map{display:inline-flex;align-items:center;gap:5px;background:#fff4e6;border:1px solid #f0b866;border-radius:8px;padding:2px 6px;}
+.dp-map .dp-tag{font-size:10.5px;font-weight:800;color:#c2620a;}
+.dp-map select{font-size:11px;border:1px solid var(--border);border-radius:6px;padding:3px 5px;background:var(--panel);color:var(--text);min-height:34px;max-width:150px;}
 </style></head>
 <body>
 <header class="sf-header">
@@ -57,11 +67,14 @@
 <script src="../components/data.js"></script>
 <script>
 'use strict';
+// 모듈 스코프 — 매핑 UI(_mapDp)가 재렌더할 수 있도록 상태 보관
+let _api, _token, _farmId, _items=[], _canon=[], _canonLbl={}, _apiTot=0, _apiOk=0;
 (async function(){
   const api=sessionStorage.getItem('sf_api')||location.origin;
   let token=sessionStorage.getItem('sf_token');
   if(!token){const r=await fetch(`${api}/api/v1/auth/demo-token`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({})});if(r.ok){token=(await r.json()).access_token;sessionStorage.setItem('sf_token',token);}}
   const farmId=sessionStorage.getItem('sf_farm_id')||'farm_001';
+  _api=api; _token=token; _farmId=farmId;
   let d;
   try{ d=await fetch(`${api}/api/farms/${farmId}/system/api-status`,{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.json()); }
   catch(e){ document.getElementById('apiList').innerHTML='<div style="color:var(--muted);font-size:12px;">로드 실패</div>'; return; }
@@ -85,36 +98,69 @@
     <div class="row"><span class="row-ico">🔌</span><div class="row-t" style="flex:1;">${k}<div class="row-s">${typeof v==='object'?(v.status||JSON.stringify(v).slice(0,40)):v}</div></div></div>`).join('')
     : '<div class="row"><span class="row-ico">📡</span><div class="row-t" style="flex:1;">MQTT 브로커 (mosquitto)<div class="row-s">포트 1883 · 센서 스트리밍</div></div><span class="badge" style="background:var(--green-soft);color:var(--green-dark)">활성</span></div>';
 
-  // ── 등록 장비(C16) 반영 — 이기종 통합 현황 ──────────────────────────────
+  // ── 등록 장비(C16) 반영 — 이기종 통합 + 표준변수 매핑 UI ─────────────────
+  _apiTot=entries.length; _apiOk=conn;
+  // 표준변수(canonical) 목록 — 매핑 셀렉터용
+  try{
+    const sc=await fetch(`${api}/api/farms/${farmId}/equipment/schema`,{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.json());
+    _canon=sc.canonical_names||[]; _canonLbl=sc.variable_labels||{};
+  }catch(e){}
   try{
     const eq=await fetch(`${api}/api/farms/${farmId}/equipment`,{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.json());
-    const items=eq.items||[];
-    const vars=new Set();
-    items.forEach(it=>(it.datapoints||[]).forEach(dp=>{ const c=dp.canonical||dp.variable; if(c) vars.add(c); }));
-    const elList=document.getElementById('eqList');
-    if(!items.length){
-      elList.innerHTML='<div style="text-align:center;color:var(--muted);font-size:12px;line-height:1.6;">등록된 장비가 없습니다.<br><a href="c16_equipment.html" style="color:var(--green-dark);font-weight:800;">＋ 장비 등록(C16)</a>으로 시작하세요.</div>';
-    }else{
-      // 연동률 KPI에 등록 장비 반영(외부 API + 등록 장비 통합)
-      const apiTot=entries.length, apiOk=conn;
-      const totalSrc=apiTot+items.length, okSrc=apiOk+items.length;  // 등록 장비는 표준변수 매핑됨=연동
-      document.getElementById('kConn').textContent=okSrc;
-      document.getElementById('kConnSub').textContent=`전체 ${totalSrc}개 중`;
-      document.getElementById('kRate').textContent=totalSrc?Math.round(okSrc/totalSrc*100):0;
-      const ban=document.getElementById('eqBanner');
-      ban.style.display='block';
-      ban.innerHTML=`✅ 등록 장비 <b>${items.length}대</b>가 표준 변수 <b>${vars.size}개</b>로 연동되었습니다. 제조사·프로토콜이 달라도 화면·모델이 동일하게 사용합니다.`;
-      elList.innerHTML=items.map(it=>{
-        const dps=(it.datapoints||[]); const proto=(it.protocol||'—');
-        const vlist=dps.map(dp=>dp.canonical||dp.variable).filter(Boolean).slice(0,5).join(' · ')||'표준변수 매핑 대기';
-        return `<div class="row"><span class="row-ico">🔌</span>
-          <div class="row-t" style="flex:1;">${(it.device_type||it.device_id)} <span style="color:var(--muted);font-weight:400;">${it.maker||''}</span>
-            <div class="row-s">${proto} · ${vlist}</div></div>
-          <span class="badge" style="background:var(--green-soft);color:var(--green-dark)">연동</span></div>`;
-      }).join('');
-      document.getElementById('eqNext').style.display='block';
-    }
+    _items=eq.items||[]; _renderEq();
   }catch(e){ document.getElementById('eqList').innerHTML='<div style="color:var(--muted);font-size:12px;">장비 로드 실패</div>'; }
 })();
+
+// 표준변수 매핑값 추출(레거시 필드명 호환: canonical_name 우선)
+function _dpVar(dp){ return dp.canonical_name||dp.canonical||dp.variable||''; }
+
+function _renderEq(){
+  const items=_items;
+  const elList=document.getElementById('eqList');
+  const ban=document.getElementById('eqBanner');
+  const vars=new Set();
+  items.forEach(it=>(it.datapoints||[]).forEach(dp=>{ const c=_dpVar(dp); if(c) vars.add(c); }));
+  if(!items.length){
+    elList.innerHTML='<div style="text-align:center;color:var(--muted);font-size:12px;line-height:1.6;">등록된 장비가 없습니다.<br><a href="c16_equipment.html" style="color:var(--green-dark);font-weight:800;">＋ 장비 등록(C16)</a>으로 시작하세요.</div>';
+    ban.style.display='none'; document.getElementById('eqNext').style.display='none'; return;
+  }
+  // 연동률 KPI에 등록 장비 반영(외부 API + 등록 장비)
+  const totalSrc=_apiTot+items.length, okSrc=_apiOk+items.length;
+  document.getElementById('kConn').textContent=okSrc;
+  document.getElementById('kConnSub').textContent=`전체 ${totalSrc}개 중`;
+  document.getElementById('kRate').textContent=totalSrc?Math.round(okSrc/totalSrc*100):0;
+  const unmapped=items.reduce((n,it)=>n+(it.datapoints||[]).filter(dp=>!_dpVar(dp)).length,0);
+  ban.style.display='block';
+  ban.innerHTML=`✅ 등록 장비 <b>${items.length}대</b> · 표준변수 <b>${vars.size}개</b> 연동`
+    +(unmapped?` · <b style="color:#c2620a;">${unmapped}개</b> 매핑 대기 — 아래에서 표준변수를 선택하세요.`:' — 제조사·프로토콜이 달라도 화면·모델이 동일하게 사용합니다.');
+  elList.innerHTML=items.map((it,di)=>{
+    const dps=(it.datapoints||[]); const proto=(it.protocol||'—');
+    const dpHtml = dps.length ? dps.map((dp,pi)=>{
+      const c=_dpVar(dp);
+      if(c) return `<span class="eq-dp">${dp.tag||'포인트'} → ${_canonLbl[c]||c}</span>`;
+      const opts=_canon.map(v=>`<option value="${v}">${_canonLbl[v]||v} (${v})</option>`).join('');
+      return `<span class="dp-map"><span class="dp-tag">${dp.tag||'포인트'}</span>
+        <select onchange="_mapDp(${di},${pi},this.value)"><option value="">표준변수 선택…</option>${opts}</select></span>`;
+    }).join('') : '<span class="eq-sub" style="font-size:11px;color:var(--muted);">데이터 포인트 없음</span>';
+    return `<div class="eq-int-row">
+      <div class="eq-int-hd"><span>🔌 ${(it.device_type||it.device_id)}</span><span class="mk">${it.maker||''} · ${proto}</span>
+        <span class="badge" style="margin-left:auto;background:var(--green-soft);color:var(--green-dark)">연동</span></div>
+      <div class="dp-list">${dpHtml}</div></div>`;
+  }).join('');
+  document.getElementById('eqNext').style.display='block';
+}
+
+// 데이터포인트 → 표준변수 매핑 저장(장비 upsert). 통제권 사용자 유지: 선택 시에만 반영.
+async function _mapDp(di, pi, val){
+  if(!val) return;
+  const it=_items[di]; if(!it||!it.datapoints||!it.datapoints[pi]) return;
+  it.datapoints[pi].canonical_name=val;
+  try{
+    const r=await fetch(`${_api}/api/farms/${_farmId}/equipment`,{method:'POST',
+      headers:{'Content-Type':'application/json',Authorization:`Bearer ${_token}`},body:JSON.stringify(it)});
+    // 200(저장) 또는 403(데모)이면 로컬 상태 반영으로 간주 — 재렌더
+  }catch(e){/* 오프라인이어도 로컬 상태 유지 */}
+  _renderEq();
+}
 </script>
 </body></html>
