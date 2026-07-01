@@ -338,6 +338,30 @@ def get_crop_models():
 
 
 # ---------------------------------------------------------------------------
+# GET /models/advisories  — 제안형 재학습 권고(인앱 스케줄러가 주기 기록)
+# ---------------------------------------------------------------------------
+
+@router.get("/models/advisories", tags=["model_versioning"],
+            summary="재학습 권고(제안형 스케줄러) 현황")
+def get_retrain_advisories():
+    """인앱 스케줄러가 주기 점검해 기록한 '재학습 권고' 제안 목록.
+
+    감지(드리프트 RED·신규데이터 임계)→제안까지만 연결하고 **자동 재학습은 하지 않는다**.
+    관리자가 이 목록을 보고 `/api/admin/pipeline/trigger`로 승인·실행한다. 조회 전용(GET).
+    """
+    import json as _json
+    from pathlib import Path as _P
+    _empty = {"generated_at": None, "count": 0, "advisories": [], "auto_executed": False}
+    p = _P(__file__).resolve().parents[2] / "pipeline" / "state" / "retrain_advisories.json"
+    if not p.exists():
+        return _empty
+    try:
+        return _json.loads(p.read_text(encoding="utf-8"))
+    except Exception:
+        return _empty
+
+
+# ---------------------------------------------------------------------------
 # GET /models/drift  — M2 드리프트 모니터링
 # ---------------------------------------------------------------------------
 

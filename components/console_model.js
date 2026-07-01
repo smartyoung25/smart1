@@ -11,13 +11,23 @@
   // 모델 성능은 전역 메트릭 — 대표 농가 farm_001 경로로 조회
   var SYS_FARM = 'farm_001';
 
-  var state = { data: null, loading: false };
+  var state = { data: null, adv: null, loading: false };
 
   function apiBase() { return location.origin; }
 
   async function fetchPerf() {
     try {
       var r = await fetch(apiBase() + '/api/farms/' + SYS_FARM + '/system/model-performance',
+        { headers: { Authorization: 'Bearer ' + token() } });
+      if (r.ok) return await r.json();
+    } catch (e) {}
+    return null;
+  }
+
+  // 제안형 스케줄러가 기록한 재학습 권고(감지→제안, 자동실행 안 함)
+  async function fetchAdvisories() {
+    try {
+      var r = await fetch(apiBase() + '/api/admin/models/advisories',
         { headers: { Authorization: 'Bearer ' + token() } });
       if (r.ok) return await r.json();
     } catch (e) {}
@@ -99,6 +109,27 @@
       '<span class="cc-pill-live" style="background:var(--blue-soft);color:var(--blue)">🔵 MAPE 기준</span></div>' + rows + '</div>';
   }
 
+  // 재학습 권고 배너 — 제안형 스케줄러 결과. 자동 실행 안 함, 관리자 승인 후 재학습.
+  function advisoryCard() {
+    var adv = state.adv;
+    if (!adv || !adv.count) return '';
+    var sevC = { high: 'var(--chart-hot,#dc2626)', medium: 'var(--orange,#f59e0b)', low: 'var(--muted)' };
+    var items = (adv.advisories || []).map(function (a) {
+      var c = sevC[a.severity] || 'var(--muted)';
+      var mape = (a.mape != null) ? ' · MAPE ' + a.mape + '%' : '';
+      var crop = a.crop === '*' ? '전체' : a.crop;
+      return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);">' +
+        '<span style="width:9px;height:9px;border-radius:50%;background:' + c + ';flex:0 0 auto;"></span>' +
+        '<b style="min-width:74px;color:' + c + ';">' + esc(crop) + '</b>' +
+        '<span style="color:var(--muted);font-size:13px;">' + esc((a.reason || '') + mape) + '</span></div>';
+    }).join('');
+    var when = adv.generated_at ? String(adv.generated_at).slice(0, 16).replace('T', ' ') : '';
+    return '<div class="cc-card cc-card-full" style="border-left:4px solid var(--chart-hot,#dc2626);">' +
+      '<div class="cc-card-h">🔁 재학습 권고 ' + adv.count + '건 ' +
+      '<span class="cm-gate-info">제안형 · 자동 실행 안 함(검토 후 재학습 승인) · 점검 ' + esc(when) + '</span></div>' +
+      items + '</div>';
+  }
+
   function matrix(d) {
     var m1 = d.m1_growth || [], m2 = d.m2_yield || [], m3 = d.m3_revenue || [];
     var avgR2 = m1.length ? (m1.reduce(function (s, x) { return s + (x.r2 || 0); }, 0) / m1.length) : 0;
@@ -142,6 +173,7 @@
       '<p class="cc-sub">M1 생육·M2 수확·M3 매출·M5 병해 모델 성능 / 배포 게이트 · 드리프트 모니터링' +
       (d.generated_at ? ' · 생성 ' + esc(String(d.generated_at).slice(0, 16).replace('T', ' ')) : '') + '</p></div></div>' +
       kpiStrip(d) +
+      advisoryCard() +
       pipeline() +
       '<div class="cc-grid2">' + m2GateTable(d.m2_yield) + m2DriftCard(d.m2_yield) + '</div>' +
       matrix(d) +
@@ -153,10 +185,11 @@
     state.loading = true;
     var root = document.getElementById('modelView');
     if (root) root.innerHTML = '<div class="cc-loading">모델 성능 집계 중…</div>';
-    var d = await fetchPerf();
+    var results = await Promise.all([fetchPerf(), fetchAdvisories()]);
     state.loading = false;
-    state.data = d;
-    render(d);
+    state.data = results[0];
+    state.adv = results[1];
+    render(results[0]);
   }
 
   window.ConsoleModel = {

@@ -32,6 +32,20 @@
     ]
   };
 
+  // 가치사슬 도메인 순서: 생산(택1) → 경영 → 유통. 생산 도메인은 farm_type 로 결정.
+  var DOMAIN_LABEL = { greenhouse: '온실 생산', field: '노지 생산', management: '경영', market: '유통' };
+  function _prodDomain() {
+    try {
+      var p = JSON.parse(localStorage.getItem('sf_profile') || '{}');
+      return p.farm_type === 'field' ? 'field' : 'greenhouse';
+    } catch (e) { return 'greenhouse'; }
+  }
+  function _order() { return [_prodDomain(), 'management', 'market']; }
+  function nextDomain(domain) {
+    var o = _order(), i = o.indexOf(domain);
+    return (i >= 0 && i < o.length - 1) ? o[i + 1] : null;
+  }
+
   function _doneSet() {
     try { return new Set(JSON.parse(localStorage.getItem('sf_stage_done') || '[]')); }
     catch (e) { return new Set(); }
@@ -91,9 +105,16 @@
         '<span class="sc-ico">' + mark + '</span><span class="sc-lb">' + _esc(s.label) + '</span></button>';
     }).join('<span class="stage-sep"></span>');
     var allDone = list.every(function (s) { return isDone(s.key); });
-    var nextHtml = (nx && !allDone)
-      ? '<button class="stage-next" onclick="StageFlow.go(\'' + nx.key + '\')">다음 단계: ' + _esc(nx.icon + ' ' + nx.label) + ' →</button>'
-      : '<div class="stage-next done">✅ 이 단계 흐름 완료 — 다음 가치사슬 단계를 선택하세요</div>';
+    var nextHtml;
+    if (nx && !allDone) {
+      nextHtml = '<button class="stage-next" onclick="StageFlow.go(\'' + nx.key + '\')">다음 단계: ' + _esc(nx.icon + ' ' + nx.label) + ' →</button>';
+    } else {
+      // 도메인 완료 → 다음 가치사슬 도메인 첫 단계를 제안(생산→경영→유통). 마지막이면 전체완료.
+      var nd = nextDomain(domain), f = nd && STAGES[nd] ? STAGES[nd][0] : null;
+      nextHtml = f
+        ? '<button class="stage-next" onclick="StageFlow.go(\'' + f.key + '\')">다음: ' + _esc(DOMAIN_LABEL[nd] + ' · ' + f.icon + ' ' + f.label) + ' →</button>'
+        : '<div class="stage-next done">✅ 가치사슬 전 단계 완료</div>';
+    }
     return '<div class="stage-row">' + chips + '</div>' + nextHtml;
   }
 
@@ -103,5 +124,5 @@
     if (target) target.innerHTML = render(domain);
   }
 
-  window.StageFlow = { STAGES: STAGES, isDone: isDone, markDone: markDone, next: next, go: go, render: render, mount: mount };
+  window.StageFlow = { STAGES: STAGES, isDone: isDone, markDone: markDone, next: next, nextDomain: nextDomain, go: go, render: render, mount: mount };
 })();
