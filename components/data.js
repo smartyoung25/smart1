@@ -863,8 +863,9 @@ const KaasaData = (() => {
       box.className = 'stage-flow stage-flow-inject';
       box.setAttribute('data-dom', m[0]);
       main.insertBefore(box, main.firstChild);
-      try { window.StageFlow.markDone(m[1]); } catch (e) {}   // 진입=진행(기존 go() 시맨틱과 동일)
-      window.StageFlow.mount(m[0], box);
+      // 방문만으로 완료 처리하지 않음(과대 진행 방지) — 현재 단계는 '현재 위치'로 강조.
+      // 완료(✓)는 사용자가 '다음 단계 →'를 눌러 명시적으로 넘길 때만 부여(StageFlow.advance).
+      window.StageFlow.mount(m[0], box, m[1]);
     }
     if (window.StageFlow) { mountIt(); return; }
     var s = document.createElement('script');

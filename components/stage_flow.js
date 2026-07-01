@@ -79,50 +79,73 @@
     return list.length ? list[list.length - 1] : null;
   }
 
+  // 칩/허브 제안 클릭 = 해당 단계로 '이동만'(완료 표시 안 함 — 방문≠완료).
   function go(key) {
     var st = _find(key);
-    if (!st) return;
-    markDone(key);
-    location.href = st.screen;
+    if (st) location.href = st.screen;
+  }
+  // '다음 단계' 명시 클릭 = 현재 단계를 완료 처리하고 다음 단계로 이동(도메인 내 → 다음 도메인).
+  function advance(currentKey) {
+    if (!currentKey) return;
+    markDone(currentKey);
+    var domain = _domainOf(currentKey);
+    var list = STAGES[domain] || [];
+    var i = _indexOf(domain, currentKey);
+    var target = (i >= 0 && i < list.length - 1) ? list[i + 1] : null;
+    if (!target) { var nd = nextDomain(domain); target = (nd && STAGES[nd]) ? STAGES[nd][0] : null; }
+    if (target) location.href = target.screen;
   }
   function _find(key) {
     for (var d in STAGES) { for (var i = 0; i < STAGES[d].length; i++) { if (STAGES[d][i].key === key) return STAGES[d][i]; } }
     return null;
   }
+  function _indexOf(domain, key) { var l = STAGES[domain] || []; for (var i = 0; i < l.length; i++) { if (l[i].key === key) return i; } return -1; }
+  function _domainOf(key) { for (var d in STAGES) { if (_indexOf(d, key) >= 0) return d; } return null; }
 
   var _esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); };
 
-  // 도메인 스테퍼 + 다음단계 제안 HTML
-  function render(domain) {
+  // 도메인 스테퍼 + 다음단계 제안 HTML.
+  //   currentKey 있으면(단계 화면 주입) 그 단계를 '현재 위치'로 강조 + '다음 단계'는 완료 처리 이동.
+  //   없으면(허브) 첫 미완료를 현재로 보고 '다음'은 이동만(완료는 각 단계 화면에서).
+  function render(domain, currentKey) {
     var list = STAGES[domain]; if (!list) return '';
     var nx = next(domain);
+    var curKey = currentKey || (nx ? nx.key : null);
     var chips = list.map(function (s) {
       var done = isDone(s.key);
-      var cur  = nx && s.key === nx.key && !done;
+      var cur  = !done && s.key === curKey;
       var cls  = done ? 'done' : (cur ? 'cur' : 'future');
       var mark = done ? '✓' : s.icon;
       return '<button class="stage-chip ' + cls + '" onclick="StageFlow.go(\'' + s.key + '\')" title="' + _esc(s.label) + '">' +
         '<span class="sc-ico">' + mark + '</span><span class="sc-lb">' + _esc(s.label) + '</span></button>';
     }).join('<span class="stage-sep"></span>');
-    var allDone = list.every(function (s) { return isDone(s.key); });
-    var nextHtml;
-    if (nx && !allDone) {
-      nextHtml = '<button class="stage-next" onclick="StageFlow.go(\'' + nx.key + '\')">다음 단계: ' + _esc(nx.icon + ' ' + nx.label) + ' →</button>';
+    // 다음 대상: 주입=현재 다음 단계 / 허브=첫 미완료(전부 완료면 다음 도메인)
+    var nextTarget = null, crossLabel = '';
+    if (currentKey) {
+      var ci = _indexOf(domain, currentKey);
+      if (ci >= 0 && ci < list.length - 1) nextTarget = list[ci + 1];
+      else { var ndc = nextDomain(domain); if (ndc && STAGES[ndc]) { nextTarget = STAGES[ndc][0]; crossLabel = DOMAIN_LABEL[ndc] + ' · '; } }
     } else {
-      // 도메인 완료 → 다음 가치사슬 도메인 첫 단계를 제안(생산→경영→유통). 마지막이면 전체완료.
-      var nd = nextDomain(domain), f = nd && STAGES[nd] ? STAGES[nd][0] : null;
-      nextHtml = f
-        ? '<button class="stage-next" onclick="StageFlow.go(\'' + f.key + '\')">다음: ' + _esc(DOMAIN_LABEL[nd] + ' · ' + f.icon + ' ' + f.label) + ' →</button>'
-        : '<div class="stage-next done">✅ 가치사슬 전 단계 완료</div>';
+      var allDone = list.every(function (s) { return isDone(s.key); });
+      if (nx && !allDone) nextTarget = nx;
+      else { var ndh = nextDomain(domain); if (ndh && STAGES[ndh]) { nextTarget = STAGES[ndh][0]; crossLabel = DOMAIN_LABEL[ndh] + ' · '; } }
+    }
+    var nextHtml;
+    if (nextTarget) {
+      var lbl = crossLabel + nextTarget.icon + ' ' + nextTarget.label;
+      var oc = currentKey ? ("StageFlow.advance('" + currentKey + "')") : ("StageFlow.go('" + nextTarget.key + "')");
+      nextHtml = '<button class="stage-next" onclick="' + oc + '">' + (currentKey ? '다음 단계: ' : '다음: ') + _esc(lbl) + ' →</button>';
+    } else {
+      nextHtml = '<div class="stage-next done">✅ 가치사슬 전 단계 완료</div>';
     }
     return '<div class="stage-row">' + chips + '</div>' + nextHtml;
   }
 
-  // 컨테이너 채우기(도메인별). domId 없으면 [data-dom]로 자동 매칭.
-  function mount(domain, el) {
+  // 컨테이너 채우기(도메인별). currentKey 있으면 그 단계를 '현재 위치'로 강조.
+  function mount(domain, el, currentKey) {
     var target = el || document.querySelector('.stage-flow[data-dom="' + domain + '"]');
-    if (target) target.innerHTML = render(domain);
+    if (target) target.innerHTML = render(domain, currentKey);
   }
 
-  window.StageFlow = { STAGES: STAGES, isDone: isDone, markDone: markDone, next: next, nextDomain: nextDomain, go: go, render: render, mount: mount };
+  window.StageFlow = { STAGES: STAGES, isDone: isDone, markDone: markDone, next: next, nextDomain: nextDomain, go: go, advance: advance, render: render, mount: mount };
 })();
