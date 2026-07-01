@@ -218,82 +218,6 @@
     <div style="text-align:center;padding:16px;color:var(--muted);font-size:13px;">의사결정 분석 중…</div>
   </div>
 
-  <!-- KPI 2×2 -->
-  <div class="section-label">오늘 경영 현황 <span class="trust-badge trust-model">🔵 예측</span></div>
-  <div class="kpi-grid" style="margin-bottom:16px;">
-    <div class="kpi-card">
-      <div class="kpi-label">오늘 수확예측</div>
-      <div class="kpi-value" id="kpiYield">—<span style="font-size:13px;font-weight:400"> kg</span></div>
-      <div class="kpi-delta" id="kpiYieldDelta">예측 중…</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-label">예상 매출</div>
-      <div class="kpi-value" id="kpiRevenue" style="font-size:18px;">—<span style="font-size:12px;font-weight:400"> 원</span></div>
-      <div class="kpi-delta" id="kpiRevenueDelta">가격 × 수확량</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-label">배액률</div>
-      <div class="kpi-value" id="kpiDrain" style="color:var(--muted)">—<span style="font-size:13px;font-weight:400">%</span></div>
-      <div class="kpi-delta">목표 20~30%</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-label">VPD</div>
-      <div class="kpi-value" id="kpiVpd" style="font-size:20px;color:var(--muted)">—<span style="font-size:12px;font-weight:400"> kPa</span></div>
-      <div class="kpi-delta" id="kpiVpdStatus">적정 0.6~1.2</div>
-    </div>
-  </div>
-
-  <!-- PDCA 운영관리 진입 카드 -->
-  <div class="section-label">PDCA 운영관리</div>
-  <a href="c25_pdca.html" style="text-decoration:none;display:block;margin-bottom:14px;">
-    <div style="background:var(--panel);border:1.5px solid var(--border);border-radius:var(--radius);
-                padding:14px;box-shadow:var(--shadow);display:flex;align-items:center;gap:12px;">
-      <div style="font-size:28px;flex-shrink:0;">🔄</div>
-      <div style="flex:1;">
-        <div style="font-size:13px;font-weight:800;margin-bottom:4px;">적기적작 PDCA 운영관리</div>
-        <div style="font-size:11px;color:var(--muted);line-height:1.5;">효과성·효율성·성장가능성 3대 지수 · 일별/주간/작기 Plan-Do-Check-Act</div>
-        <div style="display:flex;gap:8px;margin-top:8px;" id="pdcaMiniKpi">
-          <span style="font-size:10px;padding:2px 8px;background:var(--gray-soft);border-radius:8px;font-weight:700;">효과성 —%</span>
-          <span style="font-size:10px;padding:2px 8px;background:var(--gray-soft);border-radius:8px;font-weight:700;">효율성 —%</span>
-          <span style="font-size:10px;padding:2px 8px;background:var(--gray-soft);border-radius:8px;font-weight:700;">성장 —%</span>
-        </div>
-      </div>
-      <div style="font-size:18px;color:var(--muted);">›</div>
-    </div>
-  </a>
-
-  <!-- 우수농가 대비 + 연결 실데이터 (실데이터 주입 반영) -->
-  <div class="section-label" style="display:flex;align-items:center;justify-content:space-between;">
-    <span>우수농가 대비 <span class="trust-badge trust-model" style="font-size:9px;">🔵 벤치마크</span></span>
-    <span id="bmSrc" style="font-size:10px;color:var(--muted);"></span>
-  </div>
-  <a class="card" id="bmCard" href="c9_benchmark.html" style="display:none;padding:14px;text-decoration:none;color:var(--text);"></a>
-  <div id="bmEmpty" style="display:none;"></div>
-  <div id="dataConn" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;"></div>
-
-  <!-- 오늘 할 일 (Period 연동) -->
-  <div class="section-label" style="display:flex;align-items:center;justify-content:space-between;">
-    <span>오늘 할 일</span>
-    <span id="todoProgress" style="font-size:12px;color:var(--muted)">0/0 완료</span>
-  </div>
-  <div class="todo-list" id="todoList">
-    <div style="text-align:center;padding:16px;color:var(--muted);font-size:13px;">할 일 로드 중…</div>
-  </div>
-
-  <!-- AI 추천 신뢰도 -->
-  <div class="section-label" style="margin-top:16px;">AI 추천</div>
-  <div class="card" id="aiRecommendCard">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-      <span style="font-size:13px;font-weight:700;">관수 추천 신뢰도</span>
-      <span id="aiConfBadge" style="font-size:12px;font-weight:800;color:var(--green);">—%</span>
-    </div>
-    <div class="confidence-bar-wrap"><div class="confidence-bar-fill" id="aiConfBar" style="width:0%"></div></div>
-    <div id="aiRecommendText" style="font-size:12px;color:var(--muted);margin-top:8px;">AI 추천을 불러오는 중…</div>
-    <button class="btn full" style="margin-top:10px;" onclick="location.href='g3_period.html'">
-      관수 Period 상세 보기 →
-    </button>
-  </div>
-
   <!-- 가치사슬 도메인 허브: 생산(온실/노지) → 경영 → 유통 -->
   <div class="section-label" style="margin-top:16px;">생산 → 경영 → 유통 <span style="font-weight:600;color:var(--muted);font-size:11px;margin-left:4px;">가치사슬 — 단계를 선택하세요</span></div>
   <div class="summary-tabs">
@@ -393,6 +317,83 @@
     </div>
     <button class="btn full secondary" style="margin-top:8px;" onclick="location.href='c12_joint.html'">
       공동출하 상세 →
+    </button>
+  </div>
+
+
+  <!-- KPI 2×2 -->
+  <div class="section-label">오늘 경영 현황 <span class="trust-badge trust-model">🔵 예측</span></div>
+  <div class="kpi-grid" style="margin-bottom:16px;">
+    <div class="kpi-card">
+      <div class="kpi-label">오늘 수확예측</div>
+      <div class="kpi-value" id="kpiYield">—<span style="font-size:13px;font-weight:400"> kg</span></div>
+      <div class="kpi-delta" id="kpiYieldDelta">예측 중…</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">예상 매출</div>
+      <div class="kpi-value" id="kpiRevenue" style="font-size:18px;">—<span style="font-size:12px;font-weight:400"> 원</span></div>
+      <div class="kpi-delta" id="kpiRevenueDelta">가격 × 수확량</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">배액률</div>
+      <div class="kpi-value" id="kpiDrain" style="color:var(--muted)">—<span style="font-size:13px;font-weight:400">%</span></div>
+      <div class="kpi-delta">목표 20~30%</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">VPD</div>
+      <div class="kpi-value" id="kpiVpd" style="font-size:20px;color:var(--muted)">—<span style="font-size:12px;font-weight:400"> kPa</span></div>
+      <div class="kpi-delta" id="kpiVpdStatus">적정 0.6~1.2</div>
+    </div>
+  </div>
+
+  <!-- PDCA 운영관리 진입 카드 -->
+  <div class="section-label">PDCA 운영관리</div>
+  <a href="c25_pdca.html" style="text-decoration:none;display:block;margin-bottom:14px;">
+    <div style="background:var(--panel);border:1.5px solid var(--border);border-radius:var(--radius);
+                padding:14px;box-shadow:var(--shadow);display:flex;align-items:center;gap:12px;">
+      <div style="font-size:28px;flex-shrink:0;">🔄</div>
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:800;margin-bottom:4px;">적기적작 PDCA 운영관리</div>
+        <div style="font-size:11px;color:var(--muted);line-height:1.5;">효과성·효율성·성장가능성 3대 지수 · 일별/주간/작기 Plan-Do-Check-Act</div>
+        <div style="display:flex;gap:8px;margin-top:8px;" id="pdcaMiniKpi">
+          <span style="font-size:10px;padding:2px 8px;background:var(--gray-soft);border-radius:8px;font-weight:700;">효과성 —%</span>
+          <span style="font-size:10px;padding:2px 8px;background:var(--gray-soft);border-radius:8px;font-weight:700;">효율성 —%</span>
+          <span style="font-size:10px;padding:2px 8px;background:var(--gray-soft);border-radius:8px;font-weight:700;">성장 —%</span>
+        </div>
+      </div>
+      <div style="font-size:18px;color:var(--muted);">›</div>
+    </div>
+  </a>
+
+  <!-- 우수농가 대비 + 연결 실데이터 (실데이터 주입 반영) -->
+  <div class="section-label" style="display:flex;align-items:center;justify-content:space-between;">
+    <span>우수농가 대비 <span class="trust-badge trust-model" style="font-size:9px;">🔵 벤치마크</span></span>
+    <span id="bmSrc" style="font-size:10px;color:var(--muted);"></span>
+  </div>
+  <a class="card" id="bmCard" href="c9_benchmark.html" style="display:none;padding:14px;text-decoration:none;color:var(--text);"></a>
+  <div id="bmEmpty" style="display:none;"></div>
+  <div id="dataConn" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;"></div>
+
+  <!-- 오늘 할 일 (Period 연동) -->
+  <div class="section-label" style="display:flex;align-items:center;justify-content:space-between;">
+    <span>오늘 할 일</span>
+    <span id="todoProgress" style="font-size:12px;color:var(--muted)">0/0 완료</span>
+  </div>
+  <div class="todo-list" id="todoList">
+    <div style="text-align:center;padding:16px;color:var(--muted);font-size:13px;">할 일 로드 중…</div>
+  </div>
+
+  <!-- AI 추천 신뢰도 -->
+  <div class="section-label" style="margin-top:16px;">AI 추천</div>
+  <div class="card" id="aiRecommendCard">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <span style="font-size:13px;font-weight:700;">관수 추천 신뢰도</span>
+      <span id="aiConfBadge" style="font-size:12px;font-weight:800;color:var(--green);">—%</span>
+    </div>
+    <div class="confidence-bar-wrap"><div class="confidence-bar-fill" id="aiConfBar" style="width:0%"></div></div>
+    <div id="aiRecommendText" style="font-size:12px;color:var(--muted);margin-top:8px;">AI 추천을 불러오는 중…</div>
+    <button class="btn full" style="margin-top:10px;" onclick="location.href='g3_period.html'">
+      관수 Period 상세 보기 →
     </button>
   </div>
 
