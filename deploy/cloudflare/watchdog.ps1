@@ -40,10 +40,12 @@ function Test-Api {
 }
 
 function Start-Api {
-    # 중복 기동 방지: 이미 uvicorn 프로세스가 있으면(느린 부팅 중 /health 미응답) 새로 띄우지 않음
+    # 중복 기동 방지: 이미 '포트 8000' uvicorn 프로세스가 있으면(느린 부팅 중 /health 미응답) 새로 띄우지 않음.
+    #   ★ 포트 8000 한정 매칭 — 다른 포트(8001·8055 등 별개 프로젝트/프리뷰) uvicorn은 무시.
+    #     (과거: 포트 무관 매칭이라 타 포트 uvicorn이 존재하면 8000 기동을 영구 생략 → farmingsight 502 원인.)
     $alive = @(Get-CimInstance Win32_Process -Filter "Name='python.exe'" -ErrorAction SilentlyContinue |
-        Where-Object { $_.CommandLine -like '*uvicorn*api.main:app*' })
-    if ($alive.Count -gt 0) { Log "uvicorn 기동 중(부팅 대기) — 중복 기동 생략"; return }
+        Where-Object { $_.CommandLine -like '*uvicorn*api.main:app*' -and $_.CommandLine -match '--port\s+8000(\D|$)' })
+    if ($alive.Count -gt 0) { Log "uvicorn(8000) 기동 중(부팅 대기) — 중복 기동 생략"; return }
     # 줄연속(백틱) 미사용 — 실행환경에서 백틱 유실 시 파싱오류로 재기동 실패하던 문제 방지
     $env:PYTHONPATH = $SMART; $env:PYTHONIOENCODING = "utf-8"; $env:PUBLIC_DEMO = "1"
     $apiArgs = @("-m","uvicorn","api.main:app","--host","0.0.0.0","--port","8000","--log-level","warning")
