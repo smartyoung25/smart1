@@ -100,6 +100,24 @@
     }
     .sum-tab.active { border-color: var(--green); background: var(--green-soft); color: var(--green-dark); }
     .sum-panel { display: none; }
+    /* 작업단계 스테퍼 */
+    .stage-flow { margin-bottom: 10px; }
+    .stage-row { display: flex; align-items: center; gap: 2px; overflow-x: auto; padding: 2px 0; }
+    .stage-chip { flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: 2px;
+      min-width: 54px; padding: 7px 6px; border: 1.5px solid var(--border); background: var(--panel);
+      border-radius: 12px; cursor: pointer; transition: all .15s; }
+    .stage-chip .sc-ico { font-size: 15px; line-height: 1; }
+    .stage-chip .sc-lb { font-size: 10.5px; font-weight: 700; color: var(--muted); }
+    .stage-chip.done { border-color: var(--green); background: var(--green-soft); }
+    .stage-chip.done .sc-ico { color: var(--green-dark); font-weight: 900; }
+    .stage-chip.done .sc-lb { color: var(--green-dark); }
+    .stage-chip.cur { border-color: var(--green); background: #fff; box-shadow: 0 0 0 2px var(--green-soft); }
+    .stage-chip.cur .sc-lb { color: var(--green-dark); }
+    .stage-chip.future { opacity: .6; }
+    .stage-sep { flex: 0 0 auto; width: 8px; height: 1.5px; background: var(--border); }
+    .stage-next { display: block; width: 100%; margin-top: 8px; padding: 10px; border: none;
+      background: var(--green); color: #fff; border-radius: 10px; font-size: 12.5px; font-weight: 800; cursor: pointer; }
+    .stage-next.done { background: var(--green-soft); color: var(--green-dark); font-weight: 700; cursor: default; }
     .sum-panel.active { display: block; }
 
     /* 가격 스트립 */
@@ -286,6 +304,7 @@
   </div>
 
   <div class="sum-panel" id="sumGreenhouse">
+    <div class="stage-flow" data-dom="greenhouse"></div>
     <div class="card">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
         <div>
@@ -312,6 +331,7 @@
   </div>
 
   <div class="sum-panel" id="sumField">
+    <div class="stage-flow" data-dom="field"></div>
     <div class="card">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
         <div><div style="font-size:11px;color:var(--muted);">클러스터 작황</div>
@@ -331,6 +351,7 @@
   </div>
 
   <div class="sum-panel" id="sumManagement">
+    <div class="stage-flow" data-dom="management"></div>
     <div class="card">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
         <div><div style="font-size:11px;color:var(--muted);">소득률</div>
@@ -352,6 +373,7 @@
   </div>
 
   <div class="sum-panel" id="sumMarket">
+    <div class="stage-flow" data-dom="market"></div>
     <div class="card">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
         <div><div style="font-size:11px;color:var(--muted);">공동출하 단가</div>
@@ -398,6 +420,7 @@
 <script src="../components/data.js"></script>
 <script src="../components/decision_card.js"></script>
 <script src="../components/device_alert.js"></script>
+<script src="../components/stage_flow.js"></script>
 <script>
 'use strict';
 
@@ -1043,6 +1066,8 @@ function switchSum(tab) {
   document.querySelectorAll('.sum-panel').forEach(el => el.classList.remove('active'));
   const panel = document.getElementById('sum' + tab.charAt(0).toUpperCase() + tab.slice(1));
   if (panel) panel.classList.add('active');
+  // 활성 도메인 작업단계 스테퍼 갱신(완료·현재·다음 반영). tab=data-dom과 동일 키.
+  if (window.StageFlow) StageFlow.mount(tab);
 }
 </script>
 </body>
