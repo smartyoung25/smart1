@@ -163,6 +163,80 @@ async def startup_event():
 
     asyncio.create_task(_daily_kamis_scheduler())
 
+    # ── 제안형 재학습 스케줄러 (감지→제안, 자동 실행 안 함) ──────────────────
+    import os as _os
+    _advisor_logger = _log.getLogger("retrain_advisor")
+
+    async def _retrain_advisor_once():
+        """드리프트 RED·재학습 임계 점검 → '재학습 권고' 제안 기록·사전알림. 자동 재학습은 안 함(통제권 관리자)."""
+        try:
+            from datetime import datetime as _dt, timezone as _tz
+            from pathlib import Path as _P
+            import json as _json, math as _math
+            loop = asyncio.get_event_loop()
+            env_thr  = int(_os.environ.get("RETRAIN_ENV_THRESHOLD", "500"))
+            prod_thr = int(_os.environ.get("RETRAIN_PROD_THRESHOLD", "500"))
+            advisories = []
+            # 1) 드리프트 RED (작목별)
+            try:
+                from api.services.drift_monitor import compute_all_drift, summary_badge
+                stats = await loop.run_in_executor(None, compute_all_drift, None)
+                for crop, st in (stats or {}).items():
+                    b = summary_badge(st)
+                    if b.get("alert") == "red":
+                        _m = b.get("mape")
+                        advisories.append({"crop": crop, "kind": "drift",
+                            "reason": b.get("reason") or "드리프트 RED — 재학습 권고",
+                            "mape": (_m if isinstance(_m, (int, float)) and _math.isfinite(_m) else None),
+                            "severity": "high", "action": "retrain"})
+            except Exception as e:
+                _advisor_logger.warning("[advisor] 드리프트 점검 실패: %s", e)
+            # 2) 신규 데이터 재학습 임계
+            try:
+                from pipeline.retrain_trigger import _load_state, should_trigger
+                _st = _load_state()
+                trig, reason = should_trigger(_st, env_thr, prod_thr, False)
+                if trig:
+                    advisories.append({"crop": "*", "kind": "threshold",
+                        "reason": f"신규 데이터 임계 도달: {reason}", "mape": None,
+                        "severity": "medium", "action": "retrain"})
+            except Exception as e:
+                _advisor_logger.warning("[advisor] 임계 점검 실패: %s", e)
+            # 3) 제안 기록(관리자 콘솔 조회용, /api/admin/models/advisories) — 자동 실행 안 함
+            out = {"generated_at": _dt.now(_tz.utc).isoformat(), "count": len(advisories),
+                   "advisories": advisories, "auto_executed": False}
+            try:
+                sp = _P(__file__).resolve().parents[1] / "pipeline" / "state" / "retrain_advisories.json"
+                sp.parent.mkdir(parents=True, exist_ok=True)
+                sp.write_text(_json.dumps(out, ensure_ascii=False, indent=2), encoding="utf-8")
+            except Exception as e:
+                _advisor_logger.warning("[advisor] 제안 기록 실패: %s", e)
+            if advisories:
+                _advisor_logger.info("[advisor] 재학습 권고 %d건(제안만·자동실행 안 함): %s",
+                                     len(advisories), [a["crop"] for a in advisories])
+                # 임계 도달 시 사전 알림(미설정 채널은 notifier 내부에서 로그 폴백)
+                try:
+                    if any(a["kind"] == "threshold" for a in advisories):
+                        from pipeline.retrain_trigger import _load_state
+                        from pipeline.notifier import notify_threshold
+                        _s2 = _load_state()
+                        await loop.run_in_executor(None, notify_threshold,
+                            _s2.get("new_env_rows", 0), _s2.get("new_prod_rows", 0), env_thr, prod_thr)
+                except Exception as e:
+                    _advisor_logger.warning("[advisor] 알림 실패(무시): %s", e)
+        except Exception as e:
+            _advisor_logger.warning("[advisor] 점검 실패(무시): %s", e)
+
+    async def _retrain_advisor_scheduler():
+        """재학습 권고 주기 점검(기본 6시간). 감지→제안 사슬만 연결하고 자동 재학습은 하지 않음."""
+        interval = int(_os.environ.get("RETRAIN_ADVISOR_INTERVAL_SEC", str(6 * 3600)))
+        await asyncio.sleep(60)   # 부팅 후 1분 뒤 첫 점검
+        while True:
+            await _retrain_advisor_once()
+            await asyncio.sleep(max(600, interval))
+
+    asyncio.create_task(_retrain_advisor_scheduler())
+
 
 @app.get("/health", tags=["system"])
 def health():
