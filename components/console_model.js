@@ -105,8 +105,9 @@
         '<div class="cm-drift-bar"><i style="width:' + w + '%;background:' + st.c + '"></i></div>' +
         '<div class="cm-drift-label" style="color:' + st.c + '">' + st.l + '</div></div>';
     }).join('') || '<div class="cc-empty">데이터 없음</div>';
-    return '<div class="cc-card"><div class="cc-card-h">M2 드리프트 모니터링 ' +
-      '<span class="cc-pill-live" style="background:var(--blue-soft);color:var(--blue)">🔵 MAPE 기준</span></div>' + rows + '</div>';
+    return '<div class="cc-card"><div class="cc-card-h">M2 학습시 성능 (CV MAPE) ' +
+      '<span class="cc-pill-live" style="background:var(--blue-soft);color:var(--blue)">🔵 학습 평가</span>' +
+      '<span class="cm-gate-info">학습 시점 검증값 — 현재(라이브) 드리프트는 상단 \'재학습 권고\' 참조</span></div>' + rows + '</div>';
   }
 
   // 재학습 권고 배너 — 제안형 스케줄러 결과. 자동 실행 안 함, 관리자 승인 후 재학습.
@@ -116,17 +117,21 @@
     var sevC = { high: 'var(--chart-hot,#dc2626)', medium: 'var(--orange,#f59e0b)', low: 'var(--muted)' };
     var items = (adv.advisories || []).map(function (a) {
       var c = sevC[a.severity] || 'var(--muted)';
-      var mape = (a.mape != null) ? ' · MAPE ' + a.mape + '%' : '';
+      var mape = (a.mape != null) ? ' · 라이브 MAPE ' + a.mape + '%' : '';
       var crop = a.crop === '*' ? '전체' : a.crop;
+      var arg = (a.crop === '*' ? '' : a.crop);
       return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);">' +
         '<span style="width:9px;height:9px;border-radius:50%;background:' + c + ';flex:0 0 auto;"></span>' +
         '<b style="min-width:74px;color:' + c + ';">' + esc(crop) + '</b>' +
-        '<span style="color:var(--muted);font-size:13px;">' + esc((a.reason || '') + mape) + '</span></div>';
+        '<span style="flex:1;color:var(--muted);font-size:13px;">' + esc((a.reason || '') + mape) + '</span>' +
+        '<button onclick="ConsoleModel.approve(\'' + esc(arg) + '\',this)" title="관리자 승인 시 재학습 실행(제안→실행)" ' +
+        'style="flex:0 0 auto;font-size:12px;font-weight:800;padding:6px 12px;border:1.5px solid ' + c + ';color:' + c + ';background:transparent;border-radius:8px;cursor:pointer;min-height:34px;">▶ 재학습 승인</button>' +
+        '</div>';
     }).join('');
     var when = adv.generated_at ? String(adv.generated_at).slice(0, 16).replace('T', ' ') : '';
     return '<div class="cc-card cc-card-full" style="border-left:4px solid var(--chart-hot,#dc2626);">' +
       '<div class="cc-card-h">🔁 재학습 권고 ' + adv.count + '건 ' +
-      '<span class="cm-gate-info">제안형 · 자동 실행 안 함(검토 후 재학습 승인) · 점검 ' + esc(when) + '</span></div>' +
+      '<span class="cm-gate-info">최근 실측 대비 라이브 드리프트 · 제안형(자동 실행 안 함) — 승인 시 재학습 · 점검 ' + esc(when) + '</span></div>' +
       items + '</div>';
   }
 
@@ -192,7 +197,28 @@
     render(results[0]);
   }
 
+  // 재학습 승인·실행 — 제안(권고)을 관리자가 승인하면 파이프라인 트리거(제안→실행 사슬).
+  //   PUBLIC_DEMO 에서는 쓰기 게이트로 403 → 정직하게 "관리자 계정 필요" 안내.
+  async function approveRetrain(crop, btn) {
+    if (btn) { btn.disabled = true; btn.textContent = '요청 중…'; }
+    try {
+      var r = await fetch(apiBase() + '/api/admin/pipeline/trigger', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token() },
+        body: JSON.stringify(crop ? { crop: crop } : {})
+      });
+      if (!btn) return;
+      if (r.status === 403) {
+        btn.textContent = '🔒 데모 — 관리자 계정 필요'; btn.style.opacity = '.7';
+        btn.style.borderColor = 'var(--muted)'; btn.style.color = 'var(--muted)';
+      } else if (r.ok) {
+        btn.textContent = '✓ 재학습 시작'; btn.style.background = 'var(--green)';
+        btn.style.color = '#fff'; btn.style.borderColor = 'var(--green)';
+      } else { btn.disabled = false; btn.textContent = '재시도'; }
+    } catch (e) { if (btn) { btn.disabled = false; btn.textContent = '재시도'; } }
+  }
+
   window.ConsoleModel = {
-    ensure: function () { if (state.data) return; load(); }
+    ensure: function () { if (state.data) return; load(); },
+    approve: approveRetrain
   };
 })();
