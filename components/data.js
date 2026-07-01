@@ -837,6 +837,42 @@ const KaasaData = (() => {
     document.body.classList.add('has-sidebar');  // 본문 좌측 여백(220px)은 이 클래스에만 적용
   }
 
+  // 가치사슬 단계 화면 → [도메인, stage key]. c3_home 외 14개 화면에 스테퍼 자동 주입.
+  //   (stage_flow.STAGES 의 key 와 일치. 개별 화면 편집 없이 흐름 연속화.)
+  var SCREEN_STAGE = {
+    'g2_env.html': ['greenhouse', 'gh_env'], 'g3_period.html': ['greenhouse', 'gh_irr'],
+    'g4_growth.html': ['greenhouse', 'gh_growth'], 'g6_harvest.html': ['greenhouse', 'gh_harv'],
+    'f3_weather.html': ['field', 'fd_wx'], 'f4_soil.html': ['field', 'fd_soil'],
+    'f5_remote.html': ['field', 'fd_ndvi'], 'f7_harvest.html': ['field', 'fd_harv'],
+    'c17_diagnosis.html': ['management', 'mg_diag'], 'c5_erp.html': ['management', 'mg_erp'],
+    'c9_benchmark.html': ['management', 'mg_bench'], 'c25_pdca.html': ['management', 'mg_pdca'],
+    'c11_pool_join.html': ['market', 'mk_join'], 'c12_joint.html': ['market', 'mk_ops']
+  };
+  function _compPrefix() { return location.pathname.includes('/screens/') ? '../components/' : 'components/'; }
+
+  // 단계 화면 상단에 작업단계 스테퍼 + "다음 단계 →" 주입. stage_flow.js 를 필요 시 동적 로드.
+  function _installStageFlow() {
+    var here = (location.pathname.split('/').pop() || '');
+    var m = SCREEN_STAGE[here];
+    if (!m) return;
+    function mountIt() {
+      if (!window.StageFlow) return;
+      var main = document.querySelector('main'); if (!main) return;
+      if (document.querySelector('.stage-flow-inject')) return;
+      var box = document.createElement('div');
+      box.className = 'stage-flow stage-flow-inject';
+      box.setAttribute('data-dom', m[0]);
+      main.insertBefore(box, main.firstChild);
+      try { window.StageFlow.markDone(m[1]); } catch (e) {}   // 진입=진행(기존 go() 시맨틱과 동일)
+      window.StageFlow.mount(m[0], box);
+    }
+    if (window.StageFlow) { mountIt(); return; }
+    var s = document.createElement('script');
+    s.src = _compPrefix() + 'stage_flow.js';
+    s.onload = mountIt; s.onerror = function () {};
+    document.head.appendChild(s);
+  }
+
   // 화면 헤더의 #farmSel 을 작물별 데모 농장 목록으로 통일 (각 화면 하드코딩 보완)
   function _syncFarmSelectors() {
     const cur = sessionStorage.getItem('sf_farm_id') || _farmId || 'farm_001';
@@ -858,7 +894,7 @@ const KaasaData = (() => {
   if (typeof document !== 'undefined') {
     document.addEventListener('DOMContentLoaded', () => {
       try {
-        _buildDrawer(); _bindMenuTab(); _renderStratBands(); _installPwa(); _syncFarmSelectors(); _installFab(); _installSidebar();
+        _buildDrawer(); _bindMenuTab(); _renderStratBands(); _installPwa(); _syncFarmSelectors(); _installFab(); _installSidebar(); _installStageFlow();
         if (navigator && navigator.onLine === false) _setNet(false);  // 진입 시 오프라인이면 즉시 표시
       } catch (e) {}
     });

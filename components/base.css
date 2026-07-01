@@ -357,6 +357,28 @@ section { margin-bottom: 24px; }
 }
 .explain b { color: var(--green); }
 
+/* ── 가치사슬 작업단계 스테퍼 (c3_home + 단계 화면 자동 주입 공용) ── */
+.stage-flow { margin-bottom: 10px; }
+.stage-row { display: flex; align-items: center; gap: 2px; overflow-x: auto; padding: 2px 0; }
+.stage-chip { flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: 2px;
+  min-width: 54px; padding: 7px 6px; border: 1.5px solid var(--border); background: var(--panel);
+  border-radius: 12px; cursor: pointer; transition: all .15s; }
+.stage-chip .sc-ico { font-size: 15px; line-height: 1; }
+.stage-chip .sc-lb { font-size: 10.5px; font-weight: 700; color: var(--muted); }
+.stage-chip.done { border-color: var(--green); background: var(--green-soft); }
+.stage-chip.done .sc-ico { color: var(--green-dark); font-weight: 900; }
+.stage-chip.done .sc-lb { color: var(--green-dark); }
+.stage-chip.cur { border-color: var(--green); background: #fff; box-shadow: 0 0 0 2px var(--green-soft); }
+.stage-chip.cur .sc-lb { color: var(--green-dark); }
+.stage-chip.future { opacity: .6; }
+.stage-sep { flex: 0 0 auto; width: 8px; height: 1.5px; background: var(--border); }
+.stage-next { display: block; width: 100%; margin-top: 8px; padding: 10px; border: none;
+  background: var(--green); color: #fff; border-radius: 10px; font-size: 12.5px; font-weight: 800; cursor: pointer; }
+.stage-next.done { background: var(--green-soft); color: var(--green-dark); font-weight: 700; cursor: default; }
+/* 단계 화면에 자동 주입될 때의 카드 래퍼(허브 c3_home 은 자체 패널 안이라 미적용) */
+.stage-flow-inject { margin: 12px; padding: 12px 14px; background: var(--panel);
+  border: 1.5px solid var(--border); border-radius: var(--radius-sm, 14px); box-shadow: var(--shadow); }
+
 /* ── 데스크톱 좌측 사이드 네비 — 모바일 기본 숨김(주입돼도 노출 안 됨) ── */
 .sf-sidebar { display: none; }
 
