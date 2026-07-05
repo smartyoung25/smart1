@@ -37,6 +37,14 @@ COPY models/     ./models/
 COPY pipeline/   ./pipeline/
 COPY adapters/   ./adapters/
 
+# Frontend served by api/main.py from the app root (_SMARTOS_ROOT = /app):
+#   /screens, /components mounts + /index.html, /console, /intro, PWA assets.
+# Without these the user-facing pages 404 (previously worked around by a
+# docker-compose volume mount — now baked into the image).
+COPY screens/    ./screens/
+COPY components/ ./components/
+COPY index.html console.html sw.js manifest.webmanifest icon.svg og-image.png ./
+
 # Pre-create writable directories
 RUN mkdir -p logs pipeline/state
 
