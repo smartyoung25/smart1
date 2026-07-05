@@ -1,0 +1,31 @@
+{
+  "generated_at": "2026-07-05T14:24:54.134414+00:00",
+  "count": 3,
+  "advisories": [
+    {
+      "crop": "딸기",
+      "kind": "drift",
+      "reason": "드리프트 RED — 재학습 권고",
+      "mape": 245.24,
+      "severity": "high",
+      "action": "retrain"
+    },
+    {
+      "crop": "파프리카",
+      "kind": "drift",
+      "reason": "드리프트 RED — 재학습 권고",
+      "mape": 126.24,
+      "severity": "high",
+      "action": "retrain"
+    },
+    {
+      "crop": "오이",
+      "kind": "drift",
+      "reason": "드리프트 RED — 재학습 권고",
+      "mape": 98.69,
+      "severity": "high",
+      "action": "retrain"
+    }
+  ],
+  "auto_executed": false
+}

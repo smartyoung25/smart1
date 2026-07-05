@@ -348,5 +348,19 @@
     "item": "환경 실측 입력·수정",
     "value": null,
     "detail": "온도 40℃ · 습도 72% · CO₂ 1050ppm · 일사 320W/m² · EC 2 · 지온 19℃"
+  },
+  {
+    "ts": "2026-07-01T08:22:52.890836+00:00",
+    "kind": "decision_apply",
+    "item": "AI 관수·양액 추천",
+    "value": 72.0,
+    "detail": "내부 온도 +5.0℃ · 심각도 info · 출처 model"
+  },
+  {
+    "ts": "2026-07-01T08:23:29.851368+00:00",
+    "kind": "decision_apply",
+    "item": "AI 관수·양액 추천",
+    "value": 72.0,
+    "detail": "내부 온도 +5.0℃ · 심각도 info · 출처 model"
   }
 ]
