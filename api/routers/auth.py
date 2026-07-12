@@ -499,7 +499,9 @@ async def get_onboarding_status(
 
     user = get_user_by_username(token_user.get("sub", ""))
     if not user:
-        raise HTTPException(status_code=404, detail="사용자 정보를 찾을 수 없습니다.")
+        # 데모 토큰(sub='demo')·미등록 사용자: 404 대신 '미완료' 정상 응답
+        #   (인증된 요청이고, 홈 화면이 매 로드마다 호출 → 404 콘솔 에러 방지)
+        return {"completed": False, "user_id": token_user.get("user_id", 0), "data": None}
 
     user_id  = user.get("id", 0)
     completed = bool(user.get("onboarding_completed", False))
