@@ -54,8 +54,12 @@
 
 <div class="chat-main" id="chatMain">
   <!-- 인사 + 후속질문 칩 -->
-  <div class="msg ai"><div class="bubble">안녕하세요 👋 KAASA AI 영농 비서입니다.<br>농장 데이터 + <b>농진청 자료·병해충 DB</b>(RAG 검색)를 결합해 답변합니다. 무엇이 궁금하세요?
-    <div style="margin-top:6px;font-size:10.5px;color:var(--muted);">🔎 출처: 센서 실측 · 농진청 표준 · 병해충 DB · 과거 작기기록</div></div></div>
+  <!-- ★ 구: "농진청 자료·병해충 DB(RAG 검색)를 결합해 답변" / "출처: 농진청 표준·병해충 DB"
+       → RAG·지식베이스는 미구현이다(벡터DB·임베딩 없음). 실제 근거는 이 농장의 실시간
+       데이터뿐이며, 그 외는 모델의 일반 지식이다. 없는 출처를 표기하면 안 된다. -->
+  <div class="msg ai"><div class="bubble">안녕하세요 👋 KAASA AI 영농 비서입니다.<br><b>내 농장의 실시간 데이터</b>(환경·관수·생육·경영)를 근거로 답변합니다. 무엇이 궁금하세요?
+    <div style="margin-top:6px;font-size:10.5px;color:var(--muted);">🔎 근거: 내 농장 센서 실측 · 관수·생육 기록 · 경영 지표</div>
+    <div style="margin-top:4px;font-size:10.5px;color:var(--orange);">ℹ️ 농진청 재배지침·병해충 DB 연동은 준비 중입니다. 농장 데이터 밖의 답변은 일반 지식 기반이므로 <b>현장 확인</b>이 필요하며, <b>농약 사용은 반드시 등록 정보를 확인</b>하세요.</div></div></div>
   <div style="font-size:11px;font-weight:700;color:var(--muted);margin:4px 0 6px;">💡 이런 걸 물어보세요 (활용 사례)</div>
   <div class="sugg-wrap" id="ucSugg" style="max-height:none;"></div>
   <div class="sugg-wrap" id="initSugg" style="margin-top:6px;"></div>
@@ -156,7 +160,12 @@ async function _send(){
       const d=await r.json();
       const refs=(d.referenced_data||[]).map(x=>`<span class="ref-badge">${x}</span>`).join('');
       const conf=d.confidence!=null?` · 신뢰도 ${Math.round(d.confidence*100)}%`:'';
-      const meta=`${refs}${refs?'<br>':''}<span style="opacity:.7">모델: ${d.model_used||'?'}${conf}</span>`;
+      // ★ call_ai 체인: Anthropic → OpenAI → Ollama → 규칙기반. LLM 이 안 붙으면
+      //   model_used 가 'rule_based'(최종 stub) 또는 'fallback'(호출 실패) 로 온다.
+      //   구: 흐릿한 작은 글씨 "모델: rule_based" 뿐이라 사용자는 AI가 답한 줄 알았다.
+      const _fb=['fallback','rule_based','stub','rule-v2'].includes((d.model_used||'').toLowerCase());
+      const mode=_fb?`<span style="display:inline-block;background:var(--orange-soft);color:var(--orange);font-weight:800;font-size:10px;padding:2px 7px;border-radius:8px;margin-bottom:3px;">🔸 기본 응답 모드 — AI 미연결</span><br>`:'';
+      const meta=`${mode}${refs}${refs?'<br>':''}<span style="opacity:.7">모델: ${d.model_used||'?'}${conf}</span>`;
       _addMsg('ai', _esc(d.reply||'(응답 없음)'), meta);
       // 후속 질문 칩
       if(d.suggestions&&d.suggestions.length){
