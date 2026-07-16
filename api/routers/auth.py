@@ -420,7 +420,7 @@ async def password_forgot(req: PasswordForgotRequest):
     base = os.environ.get("PUBLIC_BASE_URL", "").rstrip("/")
     link = f"{base}/screens/c0_reset.html?token={token}"
     ok, _msg = mailer.send_email(
-        email, "[KAASA smartfarmingsight] 비밀번호 재설정",
+        email, "[KAASA Farmingsight] 비밀번호 재설정",
         f"안녕하세요.\n\n아래 링크에서 새 비밀번호를 설정하세요. (30분간 유효)\n{link}\n\n"
         f"본인이 요청하지 않았다면 이 메일을 무시하세요.",
     )

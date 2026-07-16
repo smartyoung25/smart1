@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""KAASA smartfarmingsight — 7단계 실증 추진 로드맵 (Word .docx)."""
+"""KAASA Farmingsight — 7단계 실증 추진 로드맵 (Word .docx)."""
 import os
 from docx import Document
 from docx.shared import Pt, RGBColor, Inches
@@ -100,7 +100,7 @@ def shade(cell, hexcolor):
 
 # ── 제목 ──
 p = doc.add_paragraph(); p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-set_kfont(p.add_run("KAASA smartfarmingsight"), 13, True, GREEN)
+set_kfont(p.add_run("KAASA Farmingsight"), 13, True, GREEN)
 p = doc.add_paragraph(); p.alignment = WD_ALIGN_PARAGRAPH.CENTER
 set_kfont(p.add_run("7단계 실증 추진 로드맵 — 단계별 기능·화면 매핑"), 20, True, GREEN_DARK)
 p = doc.add_paragraph(); p.alignment = WD_ALIGN_PARAGRAPH.CENTER

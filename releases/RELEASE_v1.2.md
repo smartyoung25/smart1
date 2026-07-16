@@ -1,6 +1,6 @@
 # KAASA SmartOS v1.2 — 릴리스 노트
 
-> 패키지: KAASA_SmartOS_v1.2.zip · 2026-06-08 · SFROP v2.0
+> 패키지: KAASA_SmartOS_v1.2.zip · 2026-06-08 · Farmingsight
 > 진입: /intro (시스템 소개) → 시작하기/둘러보기
 
 ## v1.1 → v1.2 (압축·보강)

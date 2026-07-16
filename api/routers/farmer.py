@@ -2982,7 +2982,7 @@ def get_monthly_report(farm_id: str, month: str = ""):
 
 
 @router.get("/erp/realtime",
-            summary="ERP 실시간 원가·마진·소득률 (SFROP v2.0 혁신4)")
+            summary="ERP 실시간 원가·마진·소득률 (Farmingsight 혁신4)")
 def get_erp_realtime(
     farm_id: str,
     _user: dict = Depends(require_auth),

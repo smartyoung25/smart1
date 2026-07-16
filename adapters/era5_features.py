@@ -1,4 +1,4 @@
-"""ERA5-Land 기상 피처 어댑터 — SFROP v2.0 Phase 45.
+"""ERA5-Land 기상 피처 어댑터 — Farmingsight Phase 45.
 
 ERA5 NetCDF → 일별 CSV → 월별 집계 → M1 학습 행렬 피처 추가
 

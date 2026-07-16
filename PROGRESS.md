@@ -148,7 +148,7 @@
 - **관수 P1~P6**(야간 dry-back 신설) + 프리바 운용매뉴얼 반영(IRRIGATION_START·STRUCTURE) + 백엔드 dryback_night_pct 적재(period le=6)
 - **운영기록 폐루프**(RecordSheet): F4관개·F6방제·F7수확·G2환경·F3계획·G4생육·F5현장 → /activity + 최근기록 타임라인
 - **C16 시설기자재**(이기종 통합 매핑) + **C17 시스템 종합진단**(5영역 점수·ROI) + 연동배지
-- **사업계획서(SFROP v2.0) 정합**: C13 UC1~10·RAG, C16 물리캘리브레이션, 5대문제(overview), AI에이전트(G2), 다층시간창(G3)
+- **사업계획서(Farmingsight) 정합**: C13 UC1~10·RAG, C16 물리캘리브레이션, 5대문제(overview), AI에이전트(G2), 다층시간창(G3)
 - **인트로 랜딩**(/intro) + **전 33화면 기능형 메뉴 드로어**(검색·등급·빠른이동·농장전환·로그아웃, data.js 자동주입)
 - **챗봇 LLM 없이 실데이터 응답**(관수·환경·에너지·수확·수익·병해·알림), **F5 /field/soil 파생**
 

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""KAASA smartfarmingsight 통합 소개서 (PPTX, 16:9) — 시스템 소개 + 7단계 로드맵, 디자인 통일."""
+"""KAASA Farmingsight 통합 소개서 (PPTX, 16:9) — 시스템 소개 + 7단계 로드맵, 디자인 통일."""
 import os
 from pptx import Presentation
 from pptx.util import Inches, Pt, Emu
@@ -8,7 +8,7 @@ from pptx.enum.shapes import MSO_SHAPE
 from pptx.dml.color import RGBColor
 
 SHOTS = os.path.join("out", "ppt_shots")
-OUT = os.path.join("out", "KAASA_smartfarmingsight_통합소개서.pptx")
+OUT = os.path.join("out", "KAASA_Farmingsight_통합소개서.pptx")
 
 GREEN_DARK = RGBColor(0x0F, 0x51, 0x32)
 GREEN = RGBColor(0x2E, 0xCC, 0x71)
@@ -249,7 +249,7 @@ for title, kicker, items, shots in ROAD:
 # ───────── 마무리 ─────────
 s = prs.slides.add_slide(BLANK); _box(s, 0, 0, SW, SH, fill=GREEN_DARK)
 _text(s, Inches(1), Inches(2.7), Inches(11.3), Inches(2.0),
-      [[("KAASA smartfarmingsight", 40, True, WHITE)],
+      [[("KAASA Farmingsight", 40, True, WHITE)],
        [("데이터로 농사를 결정하다 — 환경·생육·경영을 하나로", 18, False, RGBColor(0xCF,0xE9,0xDB))]], align=PP_ALIGN.CENTER)
 _text(s, Inches(1), Inches(5.2), Inches(11.3), Inches(0.6), [[("https://farmingsight.org", 16, True, GREEN)]], align=PP_ALIGN.CENTER)
 

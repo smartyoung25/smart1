@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""KAASA smartfarmingsight 시스템 소개서 (PPTX, 16:9) — 화면 스크린샷 포함."""
+"""KAASA Farmingsight 시스템 소개서 (PPTX, 16:9) — 화면 스크린샷 포함."""
 import os
 from pptx import Presentation
 from pptx.util import Inches, Pt, Emu
@@ -7,7 +7,7 @@ from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
 from pptx.dml.color import RGBColor
 
 SHOTS = os.path.join("out", "ppt_shots")
-OUT = os.path.join("out", "KAASA_smartfarmingsight_소개서.pptx")
+OUT = os.path.join("out", "KAASA_Farmingsight_소개서.pptx")
 
 # 팔레트
 GREEN_DARK = RGBColor(0x0F, 0x51, 0x32)
@@ -260,7 +260,7 @@ bullets(s, Inches(0.6), Inches(4.4), Inches(12.1), Inches(2.6),
 s = prs.slides.add_slide(BLANK)
 _box(s, 0, 0, SW, SH, fill=GREEN_DARK)
 _text(s, Inches(1), Inches(2.7), Inches(11.3), Inches(2.0),
-      [[("KAASA smartfarmingsight", 40, True, WHITE)],
+      [[("KAASA Farmingsight", 40, True, WHITE)],
        [("데이터로 농사를 결정하다 — 환경·생육·경영을 하나로", 18, False, RGBColor(0xCF,0xE9,0xDB))]],
       align=PP_ALIGN.CENTER)
 _text(s, Inches(1), Inches(5.2), Inches(11.3), Inches(0.6),

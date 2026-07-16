@@ -1,0 +1,12 @@
+{
+  "crop_ko": "딸기",
+  "crop_en": "strawberry",
+  "n_train": 41,
+  "price_range": [
+    3500.0,
+    23000.0
+  ],
+  "train_mape": 10.5,
+  "train_mae": 828.0,
+  "saved_at": "2026-05-15T15:41:48.846168"
+}

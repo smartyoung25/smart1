@@ -106,7 +106,7 @@ def no_borders(tbl):
 
 # 제목
 p = doc.add_paragraph(); p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-kf(p.add_run("KAASA smartfarmingsight"), 13, True, GREEN)
+kf(p.add_run("KAASA Farmingsight"), 13, True, GREEN)
 p = doc.add_paragraph(); p.alignment = WD_ALIGN_PARAGRAPH.CENTER
 kf(p.add_run("7단계 실증 추진 로드맵 — 단계별 기능·화면 매핑"), 20, True, GREEN_DARK)
 p = doc.add_paragraph(); p.alignment = WD_ALIGN_PARAGRAPH.CENTER

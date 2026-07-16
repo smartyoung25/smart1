@@ -377,7 +377,7 @@ def build_stage1_matrix(
     else:
         logger.info("  AquaCrop 피처 비활성화 (%s — 분포이동 보호)", config.crop_en)
 
-    # ── 7) ERA5 기상 피처 (SFROP v2.0 Phase 45) ──────────────────────────────────
+    # ── 7) ERA5 기상 피처 (Farmingsight Phase 45) ──────────────────────────────────
     #    추가 피처: GDD정규화, CU_norm, ET0_mm, DIF, NDVI_proxy, 누적일사량_MJm2
     #    ERA5 CSV 없으면 NASA POWER → 합성 순으로 자동 폴백
     try:

@@ -74,7 +74,7 @@ function section(children) {
   return {
     properties: { page: { size: { width: 12240, height: 15840 }, margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 } } },
     headers: { default: new Header({ children: [new Paragraph({ alignment: AlignmentType.RIGHT,
-      children: [run("KAASA smartfarmingsight", { size: 16, color: "888888" })] })] }) },
+      children: [run("KAASA Farmingsight", { size: 16, color: "888888" })] })] }) },
     footers: { default: new Footer({ children: [new Paragraph({ alignment: AlignmentType.CENTER,
       children: [run("- ", { size: 16, color: "888888" }), new TextRun({ children: [PageNumber.CURRENT], font: FONT, size: 16, color: "888888" }), run(" -", { size: 16, color: "888888" })] })] }) },
     children,
@@ -103,7 +103,7 @@ function workLog() {
   const c = [];
   c.push(...titleBlock("작업 내역서", "스마트팜 기자재·시공업체 공식 데이터 통합 / C16 장비추가 개선",
     [["문서번호", "WR-2026-0618", "작성일", "2026-06-18"],
-     ["프로젝트", "KAASA smartfarmingsight", "작성자", "개발팀"],
+     ["프로젝트", "KAASA Farmingsight", "작성자", "개발팀"],
      ["대상 범위", "기자재 참조 DB·장비추가 화면", "도메인", "farmingsight.org"]]));
 
   c.push(H1("1. 작업 개요"));
@@ -172,7 +172,7 @@ function workPlan() {
   const c = [];
   c.push(...titleBlock("작업 계획서", "기자재 참조 DB의 서비스 연동 및 지속 운영 고도화",
     [["문서번호", "WP-2026-0618", "작성일", "2026-06-18"],
-     ["프로젝트", "KAASA smartfarmingsight", "작성자", "개발팀"],
+     ["프로젝트", "KAASA Farmingsight", "작성자", "개발팀"],
      ["계획 기간", "2026-06-19 ~ 2026-07-31", "선행작업", "WR-2026-0618"]]));
 
   c.push(H1("1. 목적"));

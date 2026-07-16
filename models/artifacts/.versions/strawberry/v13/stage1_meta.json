@@ -1,0 +1,36 @@
+{
+  "crop_ko": "딸기",
+  "crop_en": "strawberry",
+  "stage": 1,
+  "model_type": "xgb_optuna",
+  "feature_count": 69,
+  "target_cols": [
+    "growth_초장",
+    "growth_엽수",
+    "growth_엽장",
+    "growth_엽폭",
+    "growth_화방별착과수"
+  ],
+  "n_train": 1912,
+  "cv_r2_mean": 0.284,
+  "cv_r2_std": 0.0497,
+  "cv_r2_min": 0.2372,
+  "fold_scores": [
+    0.2742,
+    0.3671,
+    0.2574,
+    0.2372
+  ],
+  "gate_passed": true,
+  "best_params": {
+    "n_estimators": 108,
+    "max_depth": 4,
+    "lr": 0.0185118103490941,
+    "subsample": 0.6079072728886378,
+    "colsample_bytree": 0.7913484806360623,
+    "min_child_weight": 5,
+    "reg_alpha": 0.003291876527880703,
+    "reg_lambda": 0.2305316281756348
+  },
+  "tuned_by": "optuna"
+}

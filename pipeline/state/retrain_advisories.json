@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-07-11T23:00:26.857162+00:00",
+  "generated_at": "2026-07-16T16:25:46.790321+00:00",
   "count": 3,
   "advisories": [
     {
       "crop": "딸기",
       "kind": "drift",
       "reason": "드리프트 RED — 재학습 권고",
-      "mape": 245.24,
+      "mape": 53.82,
       "severity": "high",
       "action": "retrain"
     },
@@ -14,7 +14,7 @@
       "crop": "파프리카",
       "kind": "drift",
       "reason": "드리프트 RED — 재학습 권고",
-      "mape": 126.24,
+      "mape": 60.0,
       "severity": "high",
       "action": "retrain"
     },

@@ -1,5 +1,5 @@
 ﻿# ============================================================
-#  KAASA smartfarmingsight — 자동복구 watchdog
+#  KAASA Farmingsight — 자동복구 watchdog
 #  uvicorn(API 8000) + cloudflared(named tunnel) 가 죽으면 자동 재기동.
 #  시스템 서비스 미사용. 작업 스케줄러(로그온 시) 로 기동 권장.
 #  수동 실행:  powershell -ExecutionPolicy Bypass -File watchdog.ps1

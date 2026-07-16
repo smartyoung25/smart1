@@ -29,7 +29,7 @@ $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoi
 
 Register-ScheduledTask -TaskName $taskName -Action $action -Trigger @($trigLogon, $trigRepeat) `
     -Settings $settings -RunLevel Highest `
-    -Description "KAASA smartfarmingsight watchdog 자동시작(로그온+15분). uvicorn8000/cloudflared 자동복구." -Force | Out-Null
+    -Description "KAASA Farmingsight watchdog 자동시작(로그온+15분). uvicorn8000/cloudflared 자동복구." -Force | Out-Null
 
 Write-Host "=== 등록 완료 ==="
 Get-ScheduledTask -TaskName $taskName | Select-Object TaskName, State | Format-Table -Auto

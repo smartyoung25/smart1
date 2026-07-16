@@ -24,7 +24,7 @@ def page(slug, title, desc, keywords, h1, lede, body_html, faq, crumb_name):
 <link rel="canonical" href="{canon}"/>
 <meta name="robots" content="index,follow,max-image-preview:large"/>
 <meta property="og:type" content="article"/>
-<meta property="og:site_name" content="KAASA smartfarmingsight"/>
+<meta property="og:site_name" content="KAASA Farmingsight"/>
 <meta property="og:title" content="{title}"/>
 <meta property="og:description" content="{desc}"/>
 <meta property="og:url" content="{canon}"/>
@@ -94,7 +94,7 @@ def page(slug, title, desc, keywords, h1, lede, body_html, faq, crumb_name):
 
 p1 = page(
  "irrigation-period",
- "스마트팜 관수 P1~P6 가이드 — 일사적산 기반 급액·배액 제어 | KAASA smartfarmingsight",
+ "스마트팜 관수 P1~P6 가이드 — 일사적산 기반 급액·배액 제어 | KAASA Farmingsight",
  "스마트팜 관수 자동화 P1~P6 가이드. 시각이 아닌 일사 적산(J/cm²)으로 급액·배액을 제어하는 6단계 일일 곡선, 급액/배액 EC·pH, 배액률, 함수율 dry-back을 정리합니다.",
  "스마트팜 관수,관수 자동화,일사적산 관수,P1 P6 관수,배액률,급액 EC,배액 EC,함수율 dry-back,양액 제어",
  "스마트팜 관수 P1~P6 — 일사적산 기반 급액·배액 제어",
@@ -132,7 +132,7 @@ p1 = page(
 
 p2 = page(
  "environment-strategy",
- "스마트팜 환경관리 전략 — VPD·DLI·CO₂ 광연동 제어 | KAASA smartfarmingsight",
+ "스마트팜 환경관리 전략 — VPD·DLI·CO₂ 광연동 제어 | KAASA Farmingsight",
  "스마트팜 환경관리 전략 가이드. VPD 밴드(0.4~0.6 kPa), DLI(PAR 4.57), CO₂ 시비, 광연동 승온을 생육시기×하루 4구간 전략표로 운영하는 방법.",
  "스마트팜 환경관리,VPD,DLI,CO2 시비,광연동 승온,온실 기후관리,환경 전략표,주야간 온도",
  "스마트팜 환경관리 전략 — VPD·DLI·CO₂ 광연동",
@@ -160,7 +160,7 @@ p2 = page(
 
 p3 = page(
  "disease-early-warning",
- "병해 조기경보·IPM 가이드 — 결로시간 기반 예방 | KAASA smartfarmingsight",
+ "병해 조기경보·IPM 가이드 — 결로시간 기반 예방 | KAASA Farmingsight",
  "스마트팜 병해 조기경보·IPM 가이드. 잎 결로(습윤) 시간과 환경 위험을 기반으로 감염 위험을 미리 알리고, 방제 이행을 기록해 품질을 관리하는 방법.",
  "병해 조기경보,IPM,결로시간,잎 습윤,방제 이행,작물 품질관리,곰팡이병 예방",
  "병해 조기경보·IPM — 결로시간 기반 예방",

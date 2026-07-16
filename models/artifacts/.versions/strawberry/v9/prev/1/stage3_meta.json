@@ -1,0 +1,32 @@
+{
+  "crop_ko": "딸기",
+  "crop_en": "strawberry",
+  "xgb": null,
+  "feature_names": [
+    "log_yield_annual",
+    "log_price_annual",
+    "year_trend",
+    "log_n_harvest_months",
+    "log_farm_price_hist"
+  ],
+  "price_median": 9000.0,
+  "price_p25": 5541.0,
+  "price_p75": 12700.0,
+  "monthly_price_map": {
+    "1": 11500.0,
+    "2": 8809.0,
+    "3": 7341.0,
+    "4": 6518.0,
+    "5": 6130.0,
+    "6": 6000.0,
+    "10": 23000.0,
+    "11": 15000.0,
+    "12": 12663.0
+  },
+  "agg_mode": "annual",
+  "cv_mape_mean": 19.8,
+  "mape": 17.4,
+  "gate_passed": true,
+  "n_train": 139,
+  "stage": 3
+}

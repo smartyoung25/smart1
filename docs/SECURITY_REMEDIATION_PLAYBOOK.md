@@ -1,4 +1,4 @@
-# 보안 조치 수행 결과 (P0 핫픽스) — KAASA smartfarmingsight
+# 보안 조치 수행 결과 (P0 핫픽스) — KAASA Farmingsight
 
 > 대상: 운영 `C:\smart_farm` (D2 배포 — Cloudflare tunnel `kaasa-smartos` → uvicorn :8000, PUBLIC_DEMO=1)
 > 근거: 외부 코드분석 보고서(리뷰 사본 `E:\…\smart1`) + 운영 코드 실재성 교차검증(Explore ×3)

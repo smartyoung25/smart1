@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""KAASA smartfarmingsight 도입 제안서 (PPTX, 16:9) — 회원가입 유도(CTA)."""
+"""KAASA Farmingsight 도입 제안서 (PPTX, 16:9) — 회원가입 유도(CTA)."""
 import os
 from pptx import Presentation
 from pptx.util import Inches, Pt, Emu
@@ -8,7 +8,7 @@ from pptx.enum.shapes import MSO_SHAPE
 from pptx.dml.color import RGBColor
 
 SHOTS = os.path.join("out", "ppt_shots")
-OUT = os.path.join("out", "KAASA_smartfarmingsight_제안서.pptx")
+OUT = os.path.join("out", "KAASA_Farmingsight_제안서.pptx")
 
 GREEN_DARK = RGBColor(0x0F, 0x51, 0x32)
 GREEN = RGBColor(0x2E, 0xCC, 0x71)
@@ -196,7 +196,7 @@ _text(s,Inches(8.7),Inches(5.6),Inches(3.9),Inches(0.9),
 s=prs.slides.add_slide(BLANK); _box(s,0,0,SW,SH,fill=GREEN_DARK)
 _text(s,Inches(1),Inches(2.6),Inches(11.3),Inches(2.0),
       [[("함께 시작하시죠",38,True,WHITE)],
-       [("KAASA smartfarmingsight · 데이터로 농사를 결정하다",17,False,RGBColor(0xCF,0xE9,0xDB))]],align=PP_ALIGN.CENTER)
+       [("KAASA Farmingsight · 데이터로 농사를 결정하다",17,False,RGBColor(0xCF,0xE9,0xDB))]],align=PP_ALIGN.CENTER)
 _round(s,Inches(4.7),Inches(4.7),Inches(3.93),Inches(0.7),GREEN)
 _text(s,Inches(4.7),Inches(4.7),Inches(3.93),Inches(0.7),[[("무료 회원가입 →  farmingsight.org",14,True,WHITE)]],align=PP_ALIGN.CENTER,anchor=MSO_ANCHOR.MIDDLE)
 

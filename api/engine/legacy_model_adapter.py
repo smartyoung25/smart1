@@ -1,4 +1,4 @@
-"""LegacyModelAdapter — SFROP v2.0 Phase 45.
+"""LegacyModelAdapter — Farmingsight Phase 45.
 
 RDA 농진청 스마트팜 실측 데이터(5000행)를 현재 sklearn 으로 재학습하여
 M2 수확량 예측 정확도를 향상시킨다.

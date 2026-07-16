@@ -400,5 +400,685 @@
     "new_metrics": {
       "m2_mape": 68.63
     }
+  },
+  {
+    "timestamp": "2026-07-16T16:45:26.056856",
+    "crop": "딸기",
+    "decision": "rejected",
+    "reason": "M2 MAPE +0.0%p (기준 ≥2.0), M1 R² -0.681 (기준 ≥0.02)",
+    "old_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -0.31920000000000004
+    },
+    "new_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -1.0
+    },
+    "candidate_mtime": {
+      "m2_meta.json": "2026-07-16T16:45:25.806538"
+    }
+  },
+  {
+    "timestamp": "2026-07-16T16:47:46.483630",
+    "crop": "딸기",
+    "decision": "rejected",
+    "reason": "M2 MAPE +0.0%p (기준 ≥2.0), M1 R² -0.681 (기준 ≥0.02)",
+    "old_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -0.31920000000000004
+    },
+    "new_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -1.0
+    },
+    "candidate_mtime": {
+      "m2_meta.json": "2026-07-16T16:47:46.218032"
+    }
+  },
+  {
+    "timestamp": "2026-07-16T16:49:13.764316",
+    "crop": "딸기",
+    "decision": "rejected",
+    "reason": "M2 MAPE +0.0%p (기준 ≥2.0), M1 R² -0.681 (기준 ≥0.02)",
+    "old_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -0.31920000000000004
+    },
+    "new_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -1.0
+    },
+    "candidate_mtime": {
+      "m2_meta.json": "2026-07-16T16:49:13.496285"
+    }
+  },
+  {
+    "timestamp": "2026-07-16T16:50:19.410428",
+    "crop": "딸기",
+    "decision": "rejected",
+    "reason": "M2 MAPE +0.0%p (기준 ≥2.0), M1 R² -0.681 (기준 ≥0.02)",
+    "old_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -0.31920000000000004
+    },
+    "new_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -1.0
+    },
+    "candidate_mtime": {
+      "m2_meta.json": "2026-07-16T16:50:19.121730"
+    }
+  },
+  {
+    "timestamp": "2026-07-16T16:51:54.929447",
+    "crop": "딸기",
+    "decision": "rejected",
+    "reason": "M2 MAPE +0.0%p (기준 ≥2.0), M1 R² -0.681 (기준 ≥0.02)",
+    "old_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -0.31920000000000004
+    },
+    "new_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -1.0
+    },
+    "candidate_mtime": {
+      "m2_meta.json": "2026-07-16T16:50:19.121730"
+    }
+  },
+  {
+    "timestamp": "2026-07-16T16:51:59.151788",
+    "crop": "딸기",
+    "decision": "rejected",
+    "reason": "M2 MAPE +0.0%p (기준 ≥2.0), M1 R² -0.681 (기준 ≥0.02)",
+    "old_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -0.31920000000000004
+    },
+    "new_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -1.0
+    },
+    "candidate_mtime": {
+      "m2_meta.json": "2026-07-16T16:50:19.121730"
+    }
+  },
+  {
+    "timestamp": "2026-07-16T16:51:59.570533",
+    "crop": "딸기",
+    "decision": "rejected",
+    "reason": "M2 MAPE +0.0%p (기준 ≥2.0), M1 R² -0.681 (기준 ≥0.02)",
+    "old_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -0.31920000000000004
+    },
+    "new_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -1.0
+    },
+    "candidate_mtime": {
+      "m2_meta.json": "2026-07-16T16:50:19.121730"
+    }
+  },
+  {
+    "timestamp": "2026-07-16T16:51:59.870461",
+    "crop": "딸기",
+    "decision": "rejected",
+    "reason": "M2 MAPE +0.0%p (기준 ≥2.0), M1 R² -0.681 (기준 ≥0.02)",
+    "old_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -0.31920000000000004
+    },
+    "new_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -1.0
+    },
+    "candidate_mtime": {
+      "m2_meta.json": "2026-07-16T16:50:19.121730"
+    }
+  },
+  {
+    "timestamp": "2026-07-16T16:52:00.221054",
+    "crop": "딸기",
+    "decision": "rejected",
+    "reason": "M2 MAPE +0.0%p (기준 ≥2.0), M1 R² -0.681 (기준 ≥0.02)",
+    "old_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -0.31920000000000004
+    },
+    "new_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -1.0
+    },
+    "candidate_mtime": {
+      "m2_meta.json": "2026-07-16T16:50:19.121730"
+    }
+  },
+  {
+    "timestamp": "2026-07-16T16:52:00.508450",
+    "crop": "딸기",
+    "decision": "rejected",
+    "reason": "M2 MAPE +0.0%p (기준 ≥2.0), M1 R² -0.681 (기준 ≥0.02)",
+    "old_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -0.31920000000000004
+    },
+    "new_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -1.0
+    },
+    "candidate_mtime": {
+      "m2_meta.json": "2026-07-16T16:50:19.121730"
+    }
+  },
+  {
+    "timestamp": "2026-07-16T16:52:00.804866",
+    "crop": "딸기",
+    "decision": "rejected",
+    "reason": "M2 MAPE +0.0%p (기준 ≥2.0), M1 R² -0.681 (기준 ≥0.02)",
+    "old_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -0.31920000000000004
+    },
+    "new_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -1.0
+    },
+    "candidate_mtime": {
+      "m2_meta.json": "2026-07-16T16:50:19.121730"
+    }
+  },
+  {
+    "timestamp": "2026-07-16T16:52:01.088675",
+    "crop": "딸기",
+    "decision": "rejected",
+    "reason": "M2 MAPE +0.0%p (기준 ≥2.0), M1 R² -0.681 (기준 ≥0.02)",
+    "old_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -0.31920000000000004
+    },
+    "new_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -1.0
+    },
+    "candidate_mtime": {
+      "m2_meta.json": "2026-07-16T16:50:19.121730"
+    }
+  },
+  {
+    "timestamp": "2026-07-16T16:53:14.569308",
+    "crop": "딸기",
+    "decision": "rejected",
+    "reason": "M2 MAPE +0.0%p (기준 ≥2.0), M1 R² -0.681 (기준 ≥0.02)",
+    "old_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -0.31920000000000004
+    },
+    "new_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -1.0
+    },
+    "candidate_mtime": {
+      "m2_meta.json": "2026-07-16T16:50:19.121730"
+    }
+  },
+  {
+    "timestamp": "2026-07-16T16:53:18.885429",
+    "crop": "딸기",
+    "decision": "rejected",
+    "reason": "M2 MAPE +0.0%p (기준 ≥2.0), M1 R² -0.681 (기준 ≥0.02)",
+    "old_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -0.31920000000000004
+    },
+    "new_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -1.0
+    },
+    "candidate_mtime": {
+      "m2_meta.json": "2026-07-16T16:50:19.121730"
+    }
+  },
+  {
+    "timestamp": "2026-07-16T16:53:19.301962",
+    "crop": "딸기",
+    "decision": "rejected",
+    "reason": "M2 MAPE +0.0%p (기준 ≥2.0), M1 R² -0.681 (기준 ≥0.02)",
+    "old_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -0.31920000000000004
+    },
+    "new_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -1.0
+    },
+    "candidate_mtime": {
+      "m2_meta.json": "2026-07-16T16:50:19.121730"
+    }
+  },
+  {
+    "timestamp": "2026-07-16T16:53:19.601530",
+    "crop": "딸기",
+    "decision": "rejected",
+    "reason": "M2 MAPE +0.0%p (기준 ≥2.0), M1 R² -0.681 (기준 ≥0.02)",
+    "old_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -0.31920000000000004
+    },
+    "new_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -1.0
+    },
+    "candidate_mtime": {
+      "m2_meta.json": "2026-07-16T16:50:19.121730"
+    }
+  },
+  {
+    "timestamp": "2026-07-16T16:53:19.985233",
+    "crop": "딸기",
+    "decision": "rejected",
+    "reason": "M2 MAPE +0.0%p (기준 ≥2.0), M1 R² -0.681 (기준 ≥0.02)",
+    "old_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -0.31920000000000004
+    },
+    "new_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -1.0
+    },
+    "candidate_mtime": {
+      "m2_meta.json": "2026-07-16T16:50:19.121730"
+    }
+  },
+  {
+    "timestamp": "2026-07-16T16:53:20.268563",
+    "crop": "딸기",
+    "decision": "rejected",
+    "reason": "M2 MAPE +0.0%p (기준 ≥2.0), M1 R² -0.681 (기준 ≥0.02)",
+    "old_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -0.31920000000000004
+    },
+    "new_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -1.0
+    },
+    "candidate_mtime": {
+      "m2_meta.json": "2026-07-16T16:50:19.121730"
+    }
+  },
+  {
+    "timestamp": "2026-07-16T16:53:20.552184",
+    "crop": "딸기",
+    "decision": "rejected",
+    "reason": "M2 MAPE +0.0%p (기준 ≥2.0), M1 R² -0.681 (기준 ≥0.02)",
+    "old_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -0.31920000000000004
+    },
+    "new_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -1.0
+    },
+    "candidate_mtime": {
+      "m2_meta.json": "2026-07-16T16:50:19.121730"
+    }
+  },
+  {
+    "timestamp": "2026-07-16T16:53:20.835240",
+    "crop": "딸기",
+    "decision": "rejected",
+    "reason": "M2 MAPE +0.0%p (기준 ≥2.0), M1 R² -0.681 (기준 ≥0.02)",
+    "old_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -0.31920000000000004
+    },
+    "new_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -1.0
+    },
+    "candidate_mtime": {
+      "m2_meta.json": "2026-07-16T16:50:19.121730"
+    }
+  },
+  {
+    "timestamp": "2026-07-16T16:54:21.799118",
+    "crop": "딸기",
+    "decision": "rejected",
+    "reason": "M2 MAPE +0.0%p (기준 ≥2.0), M1 R² -0.681 (기준 ≥0.02)",
+    "old_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -0.31920000000000004
+    },
+    "new_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -1.0
+    },
+    "candidate_mtime": {
+      "m2_meta.json": "2026-07-16T16:50:19.121730"
+    }
+  },
+  {
+    "timestamp": "2026-07-16T16:54:25.735180",
+    "crop": "딸기",
+    "decision": "rejected",
+    "reason": "M2 MAPE +0.0%p (기준 ≥2.0), M1 R² -0.681 (기준 ≥0.02)",
+    "old_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -0.31920000000000004
+    },
+    "new_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -1.0
+    },
+    "candidate_mtime": {
+      "m2_meta.json": "2026-07-16T16:50:19.121730"
+    }
+  },
+  {
+    "timestamp": "2026-07-16T16:54:25.900495",
+    "crop": "딸기",
+    "decision": "rejected",
+    "reason": "M2 MAPE +0.0%p (기준 ≥2.0), M1 R² -0.681 (기준 ≥0.02)",
+    "old_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -0.31920000000000004
+    },
+    "new_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -1.0
+    },
+    "candidate_mtime": {
+      "m2_meta.json": "2026-07-16T16:50:19.121730"
+    }
+  },
+  {
+    "timestamp": "2026-07-16T16:54:26.298936",
+    "crop": "딸기",
+    "decision": "rejected",
+    "reason": "M2 MAPE +0.0%p (기준 ≥2.0), M1 R² -0.681 (기준 ≥0.02)",
+    "old_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -0.31920000000000004
+    },
+    "new_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -1.0
+    },
+    "candidate_mtime": {
+      "m2_meta.json": "2026-07-16T16:50:19.121730"
+    }
+  },
+  {
+    "timestamp": "2026-07-16T16:54:26.631520",
+    "crop": "딸기",
+    "decision": "rejected",
+    "reason": "M2 MAPE +0.0%p (기준 ≥2.0), M1 R² -0.681 (기준 ≥0.02)",
+    "old_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -0.31920000000000004
+    },
+    "new_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -1.0
+    },
+    "candidate_mtime": {
+      "m2_meta.json": "2026-07-16T16:50:19.121730"
+    }
+  },
+  {
+    "timestamp": "2026-07-16T16:54:26.781282",
+    "crop": "딸기",
+    "decision": "rejected",
+    "reason": "M2 MAPE +0.0%p (기준 ≥2.0), M1 R² -0.681 (기준 ≥0.02)",
+    "old_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -0.31920000000000004
+    },
+    "new_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -1.0
+    },
+    "candidate_mtime": {
+      "m2_meta.json": "2026-07-16T16:50:19.121730"
+    }
+  },
+  {
+    "timestamp": "2026-07-16T16:54:27.165616",
+    "crop": "딸기",
+    "decision": "rejected",
+    "reason": "M2 MAPE +0.0%p (기준 ≥2.0), M1 R² -0.681 (기준 ≥0.02)",
+    "old_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -0.31920000000000004
+    },
+    "new_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -1.0
+    },
+    "candidate_mtime": {
+      "m2_meta.json": "2026-07-16T16:50:19.121730"
+    }
+  },
+  {
+    "timestamp": "2026-07-16T16:54:27.448861",
+    "crop": "딸기",
+    "decision": "rejected",
+    "reason": "M2 MAPE +0.0%p (기준 ≥2.0), M1 R² -0.681 (기준 ≥0.02)",
+    "old_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -0.31920000000000004
+    },
+    "new_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -1.0
+    },
+    "candidate_mtime": {
+      "m2_meta.json": "2026-07-16T16:50:19.121730"
+    }
+  },
+  {
+    "timestamp": "2026-07-16T16:56:27.626848",
+    "crop": "딸기",
+    "decision": "rejected",
+    "reason": "M2 MAPE +0.0%p (기준 ≥2.0), M1 R² -0.681 (기준 ≥0.02)",
+    "old_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -0.31920000000000004
+    },
+    "new_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -1.0
+    },
+    "candidate_mtime": {
+      "m2_meta.json": "2026-07-16T16:50:19.121730"
+    }
+  },
+  {
+    "timestamp": "2026-07-16T16:56:31.659898",
+    "crop": "딸기",
+    "decision": "rejected",
+    "reason": "M2 MAPE +0.0%p (기준 ≥2.0), M1 R² -0.681 (기준 ≥0.02)",
+    "old_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -0.31920000000000004
+    },
+    "new_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -1.0
+    },
+    "candidate_mtime": {
+      "m2_meta.json": "2026-07-16T16:50:19.121730"
+    }
+  },
+  {
+    "timestamp": "2026-07-16T16:56:31.976564",
+    "crop": "딸기",
+    "decision": "rejected",
+    "reason": "M2 MAPE +0.0%p (기준 ≥2.0), M1 R² -0.681 (기준 ≥0.02)",
+    "old_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -0.31920000000000004
+    },
+    "new_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -1.0
+    },
+    "candidate_mtime": {
+      "m2_meta.json": "2026-07-16T16:50:19.121730"
+    }
+  },
+  {
+    "timestamp": "2026-07-16T16:56:32.143305",
+    "crop": "딸기",
+    "decision": "rejected",
+    "reason": "M2 MAPE +0.0%p (기준 ≥2.0), M1 R² -0.681 (기준 ≥0.02)",
+    "old_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -0.31920000000000004
+    },
+    "new_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -1.0
+    },
+    "candidate_mtime": {
+      "m2_meta.json": "2026-07-16T16:50:19.121730"
+    }
+  },
+  {
+    "timestamp": "2026-07-16T16:56:32.593187",
+    "crop": "딸기",
+    "decision": "rejected",
+    "reason": "M2 MAPE +0.0%p (기준 ≥2.0), M1 R² -0.681 (기준 ≥0.02)",
+    "old_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -0.31920000000000004
+    },
+    "new_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -1.0
+    },
+    "candidate_mtime": {
+      "m2_meta.json": "2026-07-16T16:50:19.121730"
+    }
+  },
+  {
+    "timestamp": "2026-07-16T16:56:32.893327",
+    "crop": "딸기",
+    "decision": "rejected",
+    "reason": "M2 MAPE +0.0%p (기준 ≥2.0), M1 R² -0.681 (기준 ≥0.02)",
+    "old_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -0.31920000000000004
+    },
+    "new_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -1.0
+    },
+    "candidate_mtime": {
+      "m2_meta.json": "2026-07-16T16:50:19.121730"
+    }
+  },
+  {
+    "timestamp": "2026-07-16T16:56:33.043228",
+    "crop": "딸기",
+    "decision": "rejected",
+    "reason": "M2 MAPE +0.0%p (기준 ≥2.0), M1 R² -0.681 (기준 ≥0.02)",
+    "old_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -0.31920000000000004
+    },
+    "new_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -1.0
+    },
+    "candidate_mtime": {
+      "m2_meta.json": "2026-07-16T16:50:19.121730"
+    }
+  },
+  {
+    "timestamp": "2026-07-16T16:56:33.443179",
+    "crop": "딸기",
+    "decision": "rejected",
+    "reason": "M2 MAPE +0.0%p (기준 ≥2.0), M1 R² -0.681 (기준 ≥0.02)",
+    "old_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -0.31920000000000004
+    },
+    "new_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -1.0
+    },
+    "candidate_mtime": {
+      "m2_meta.json": "2026-07-16T16:50:19.121730"
+    }
+  },
+  {
+    "timestamp": "2026-07-16T17:12:32.480805",
+    "crop": "딸기",
+    "decision": "rejected",
+    "reason": "M2 MAPE +0.0%p (기준 ≥2.0), M1 R² -0.681 (기준 ≥0.02)",
+    "old_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -0.31920000000000004
+    },
+    "new_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -1.0
+    },
+    "candidate_mtime": {
+      "m2_meta.json": "2026-07-16T17:12:32.213771"
+    }
+  },
+  {
+    "timestamp": "2026-07-16T17:13:56.492410",
+    "crop": "딸기",
+    "decision": "rejected",
+    "reason": "M2 MAPE +0.0%p (기준 ≥2.0), M1 R² -0.681 (기준 ≥0.02)",
+    "old_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -0.31920000000000004
+    },
+    "new_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -1.0
+    },
+    "candidate_mtime": {
+      "m2_meta.json": "2026-07-16T17:13:54.106956"
+    }
+  },
+  {
+    "timestamp": "2026-07-16T17:23:11.706676",
+    "crop": "딸기",
+    "decision": "rejected",
+    "reason": "M2 MAPE +0.0%p (기준 ≥2.0), M1 R² -0.681 (기준 ≥0.02)",
+    "old_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -0.31920000000000004
+    },
+    "new_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -1.0
+    },
+    "candidate_mtime": {
+      "m2_meta.json": "2026-07-16T17:23:11.356452"
+    }
+  },
+  {
+    "timestamp": "2026-07-16T18:05:35.160544",
+    "crop": "딸기",
+    "decision": "rejected",
+    "reason": "M2 MAPE +0.0%p (기준 ≥2.0), M1 R² -0.681 (기준 ≥0.02)",
+    "old_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -0.31920000000000004
+    },
+    "new_metrics": {
+      "m2_mape": 102.41,
+      "m1_r2": -1.0
+    },
+    "candidate_mtime": {
+      "m2_meta.json": "2026-07-16T18:05:34.910158"
+    }
   }
 ]

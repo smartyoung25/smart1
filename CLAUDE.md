@@ -1,4 +1,4 @@
-# KAASA smartfarmingsight — 작업 메모리
+# KAASA Farmingsight — 작업 메모리
 > 세션 시작 시: NEXT.md만 읽을 것. 이 파일은 아키텍처 변경 시만 참조.
 > 세션 기록은 archive/SESSIONS_2026-06.md로 이관 완료.
 
@@ -6,7 +6,7 @@
 
 ## 브랜드 & 운영
 
-- **제품명**: KAASA smartfarmingsight
+- **제품명**: KAASA Farmingsight
 - **도메인**: https://farmingsight.org (Cloudflare Named Tunnel, kaasa-smartos)
 - **서버**: `PYTHONPATH=C:\smart_farm PUBLIC_DEMO=1 python -m uvicorn api.main:app --port 8000`
 - **터널**: `cloudflared tunnel --config deploy/cloudflare/config.yml run kaasa-smartos`

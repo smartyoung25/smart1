@@ -362,5 +362,96 @@
     "item": "AI 관수·양액 추천",
     "value": 72.0,
     "detail": "내부 온도 +5.0℃ · 심각도 info · 출처 model"
+  },
+  {
+    "ts": "2026-07-15T01:53:58.535304+00:00",
+    "kind": "decision_apply",
+    "item": "관수 기준값 확인",
+    "value": 70.0,
+    "detail": "배액률 20~30% 유지 (농진청 표준) · 심각도 info · 출처 standard"
+  },
+  {
+    "ts": "2026-07-16T10:03:00.499120+00:00",
+    "kind": "irrigation",
+    "item": "verify",
+    "value": 1.0,
+    "detail": "AI 추천 관수 승인"
+  },
+  {
+    "ts": "2026-07-16T10:03:00.530385+00:00",
+    "kind": "env_setpoint",
+    "item": "verify",
+    "value": 1.0,
+    "detail": "제어 권고 확인"
+  },
+  {
+    "ts": "2026-07-16T10:03:00.545492+00:00",
+    "kind": "consult",
+    "item": "verify",
+    "value": 1.0,
+    "detail": "전문가 점검 요청"
+  },
+  {
+    "ts": "2026-07-16T10:03:00.562300+00:00",
+    "kind": "correction",
+    "item": "verify",
+    "value": 1.0,
+    "detail": "보정계수"
+  },
+  {
+    "ts": "2026-07-16T10:03:00.566165+00:00",
+    "kind": "pool_join",
+    "item": "verify",
+    "value": 1.0,
+    "detail": "공동출하 신청"
+  },
+  {
+    "ts": "2026-07-16T10:03:37.351840+00:00",
+    "kind": "irrigation",
+    "item": "P4",
+    "value": 320.0,
+    "detail": "AI 추천 관수 승인 — 급액 320mL"
+  },
+  {
+    "ts": "2026-07-16T11:06:17.072944+00:00",
+    "kind": "irrigation",
+    "item": "deploy_verify",
+    "value": 1.0,
+    "detail": "배포검증"
+  },
+  {
+    "ts": "2026-07-16T11:06:19.124255+00:00",
+    "kind": "env_setpoint",
+    "item": "deploy_verify",
+    "value": 1.0,
+    "detail": "배포검증"
+  },
+  {
+    "ts": "2026-07-16T11:06:21.174081+00:00",
+    "kind": "consult",
+    "item": "deploy_verify",
+    "value": 1.0,
+    "detail": "배포검증"
+  },
+  {
+    "ts": "2026-07-16T11:06:23.224568+00:00",
+    "kind": "correction",
+    "item": "deploy_verify",
+    "value": 1.0,
+    "detail": "배포검증"
+  },
+  {
+    "ts": "2026-07-16T11:06:25.273826+00:00",
+    "kind": "pool_join",
+    "item": "deploy_verify",
+    "value": 1.0,
+    "detail": "배포검증"
+  },
+  {
+    "ts": "2026-07-16T11:09:38.396445+00:00",
+    "kind": "irrigation",
+    "item": "regress",
+    "value": 1.0,
+    "detail": "회귀"
   }
 ]

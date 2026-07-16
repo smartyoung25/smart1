@@ -26,7 +26,7 @@
 | 5/22 (목) | 5건 | UI/UX 전면 개선 + 사용자 계정 시스템 |
 | 5/23 (금) | 10건 | M5 병해탐지·외부 API·커버리지 85.55%·AquaCrop |
 | 5/24 (토) | 1건 | Phase 43 데이터 수집 자동화 정리 커밋 |
-| 5/25 (일) | 7건 | SFROP v2.0 + 블랙아웃 버그 근본 수정 |
+| 5/25 (일) | 7건 | Farmingsight + 블랙아웃 버그 근본 수정 |
 
 ---
 
@@ -253,7 +253,7 @@ farm_registry.json 신규 농장 자동 등록 (온보딩 시 82개)
 
 ---
 
-### 8. SFROP v2.0 — Phase 45 (5/25)
+### 8. Farmingsight — Phase 45 (5/25)
 
 #### ERP 실시간 수익성 엔진
 
@@ -298,7 +298,7 @@ era5_download_run.py (smartfarm-mvp) 로직 포팅
 
 | 커밋 | 내용 |
 |------|------|
-| `c4e5227` | feat(Phase 45): SFROP v2.0 대시보드 통합 — ERP 실시간 수익성 + LED 스펙트럼 + 4개 시나리오 |
+| `c4e5227` | feat(Phase 45): Farmingsight 대시보드 통합 — ERP 실시간 수익성 + LED 스펙트럼 + 4개 시나리오 |
 | `0176695` | feat(Phase 45): ERA5 기상 피처 통합 + M1 전작목 재학습 |
 
 ---
@@ -381,7 +381,7 @@ farm_registry.json: 온보딩 82개 농장 자동 등록 반영
 | Phase 42 — AquaCrop 물리피처 | 5/23 | ✅ |
 | Phase 43 — 데이터 수집 자동화 파이프라인 | 5/24 | ✅ |
 | Phase 44 — 대시보드 블랙아웃 수정 | 5/25 | ✅ |
-| Phase 45 — SFROP v2.0 ERP+ERA5 통합 | 5/25 | ✅ |
+| Phase 45 — Farmingsight ERP+ERA5 통합 | 5/25 | ✅ |
 
 ---
 
@@ -420,7 +420,7 @@ farm_registry.json: 온보딩 82개 농장 자동 등록 반영
 | 5/23 | `4ad41f2` | Phase 43: 데이터 수집 자동화 파이프라인 |
 | 5/24 | `27ec683` | Phase 43 누적 변경사항 정리 커밋 |
 | 5/25 | `b01723a` | fix: 대시보드 메뉴 섹션 블랙아웃 버그 수정 (Phase 44) |
-| 5/25 | `c4e5227` | feat(Phase 45): SFROP v2.0 대시보드 통합 — ERP 실시간 수익성 + LED 스펙트럼 + 4개 시나리오 |
+| 5/25 | `c4e5227` | feat(Phase 45): Farmingsight 대시보드 통합 — ERP 실시간 수익성 + LED 스펙트럼 + 4개 시나리오 |
 | 5/25 | `0176695` | feat(Phase 45): ERA5 기상 피처 통합 + M1 전작목 재학습 |
 | 5/25 | `7cefcde` | fix(environ): 신규 가입 농가 환경탭 빈 화면 버그 수정 |
 | 5/25 | `4876355` | feat(dashboard): 신규 농가 빈 화면 — 작목별 시뮬레이션 데이터 주입 |

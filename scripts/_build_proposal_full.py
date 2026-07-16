@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""KAASA smartfarmingsight 종합 도입 제안서 (PPTX, 16:9)
+"""KAASA Farmingsight 종합 도입 제안서 (PPTX, 16:9)
    = 통합소개서(시스템 소개 + 7단계 로드맵) 기반 + 제안서 요소(문제·차별점·무료 요금제·회원가입 CTA)."""
 import os
 from pptx import Presentation
@@ -9,7 +9,7 @@ from pptx.enum.shapes import MSO_SHAPE
 from pptx.dml.color import RGBColor
 
 SHOTS = os.path.join("out", "ppt_shots")
-OUT = os.path.join("out", "KAASA_smartfarmingsight_제안서.pptx")
+OUT = os.path.join("out", "KAASA_Farmingsight_제안서.pptx")
 
 GREEN_DARK = RGBColor(0x0F,0x51,0x32); GREEN = RGBColor(0x2E,0xCC,0x71)
 ORANGE = RGBColor(0xE6,0x7E,0x22); INK = RGBColor(0x1A,0x1A,0x1A)
@@ -222,7 +222,7 @@ _text(s,Inches(8.7),Inches(5.6),Inches(3.9),Inches(0.9),[[("✓ 무료 플랜 ·
 
 # ═════ 28. 마무리 ═════
 s=prs.slides.add_slide(BLANK); _box(s,0,0,SW,SH,fill=GREEN_DARK)
-_text(s,Inches(1),Inches(2.6),Inches(11.3),Inches(2.0),[[("함께 시작하시죠",38,True,WHITE)],[("KAASA smartfarmingsight · 데이터로 농사를 결정하다",17,False,MINT)]],align=PP_ALIGN.CENTER)
+_text(s,Inches(1),Inches(2.6),Inches(11.3),Inches(2.0),[[("함께 시작하시죠",38,True,WHITE)],[("KAASA Farmingsight · 데이터로 농사를 결정하다",17,False,MINT)]],align=PP_ALIGN.CENTER)
 _round(s,Inches(4.7),Inches(4.7),Inches(3.93),Inches(0.7),GREEN)
 _text(s,Inches(4.7),Inches(4.7),Inches(3.93),Inches(0.7),[[("무료 회원가입 →  farmingsight.org",14,True,WHITE)]],align=PP_ALIGN.CENTER,anchor=MSO_ANCHOR.MIDDLE)
 
