@@ -2699,35 +2699,62 @@ def get_benchmark(farm_id: str):
     share = max(10.0, min(60.0, share))   # 비현실값 클리핑
     en_eff = round(100 - share)            # 효율 점수 40~90
 
-    # 우수농가 기준 (RDA 표준 상위)
+    # 비교 기준. ★ src = 기준값의 출처. 실 피어(농가 익명집계) 데이터가 없어 대부분
+    #   합성 기준이며, 이를 "우수농가 실측"인 것처럼 보이면 안 된다:
+    #     derived = 내 값에서 파생(수확량 ×1.15 등) → 구조상 비율이 고정됨(항상 87%).
+    #     fixed   = 도메인 고정 기준값(에너지 88·배액 90).
+    #     rda     = 농진청 소득조사 실측(작목 매칭 시 아래에서 교체).
     metrics = [
-        {"key":"수확량 (kg/m²)", "mine":round(yld,1),     "top":round(yld*1.15,1), "unit":"", "higher":True},
-        {"key":"마진율 (%)",     "mine":margin,            "top":max(margin, 82),   "unit":"%","higher":True},
-        {"key":"에너지 효율",    "mine":en_eff,            "top":88,                "unit":"","higher":True},
-        {"key":"배액률 적정도",  "mine":drain_ok,          "top":90,                "unit":"","higher":True},
+        {"key":"수확량 (kg/m²)", "mine":round(yld,1),     "top":round(yld*1.15,1), "unit":"", "higher":True, "src":"derived"},
+        {"key":"마진율 (%)",     "mine":margin,            "top":max(margin, 82),   "unit":"%","higher":True, "src":"derived"},
+        {"key":"에너지 효율",    "mine":en_eff,            "top":88,                "unit":"","higher":True, "src":"fixed"},
+        {"key":"배액률 적정도",  "mine":drain_ok,          "top":90,                "unit":"","higher":True, "src":"fixed"},
     ]
     # 농진청 소득조사 실 벤치마크 주입 (작목 매칭 시 상위농가 실값 사용)
     real_src = None
     rb = _real_income_benchmark(crop)
     if rb:
         real_src = rb.get("_source")
-        # 마진율 → 소득률 상위25%(실측)로 비교 기준 교체
+        # 마진율 → 소득률 상위25%(실측)로 비교 기준 교체 (src 도 rda 로 승격)
         for m in metrics:
             if m["key"].startswith("마진율") and rb.get("income_rate_top25_pct"):
-                m["key"] = "소득률 (%)"; m["top"] = rb["income_rate_top25_pct"]
+                m["key"] = "소득률 (%)"; m["top"] = rb["income_rate_top25_pct"]; m["src"] = "rda"
         # 농가수취가 메트릭 추가(내 시세 vs 실 평균 수취가)
         if rb.get("farmprice_wn_kg"):
-            metrics.append({"key":"농가수취가 (원/kg)", "mine":round(price), "top":round(rb["farmprice_wn_kg"]), "unit":"", "higher":True})
+            metrics.append({"key":"농가수취가 (원/kg)", "mine":round(price), "top":round(rb["farmprice_wn_kg"]), "unit":"", "higher":True, "src":"rda"})
 
     for m in metrics:
         m["pct"] = round(min(100, (m["mine"]/m["top"]*100) if m["top"] else 0))
         m["status"] = "good" if m["mine"] >= m["top"]*0.95 else ("warn" if m["mine"] >= m["top"]*0.8 else "low")
-    weak = min(metrics, key=lambda m: m["pct"])
+    # 취약항목은 실측 기준(rda)이 있으면 그 안에서만 고른다 — derived 기준은 내 값에서
+    # 파생돼 비율이 구조적으로 고정(수확량은 늘 87%)이라 "취약"으로 뽑히면 오해를 준다.
+    _rda = [m for m in metrics if m.get("src") == "rda"]
+    weak = min(_rda or metrics, key=lambda m: m["pct"])
+    _weak_real = weak.get("src") == "rda"
+    _below = weak["mine"] < weak["top"]      # 기준 미달일 때만 "낮다"고 말한다
+    n_synth = sum(1 for m in metrics if m.get("src") != "rda")
+    if not _below:
+        _advice = ("모든 실측 비교 지표가 상위25% 기준 이상입니다 — 현 수준을 유지하세요."
+                   if _weak_real else
+                   "참고 기준 대비 미달 항목이 없습니다. ※ 실 피어 데이터가 아닌 참고값이므로 순위로 해석하지 마세요.")
+    elif _weak_real:
+        _advice = f"{weak['key']} 항목이 상위25% 농가 대비 낮습니다(내 {weak['mine']} / 상위 {weak['top']}). 해당 영역 화면에서 개선 조치를 확인하세요."
+    else:
+        _advice = f"{weak['key']} 항목이 참고 기준 대비 낮습니다(내 {weak['mine']} / 기준 {weak['top']}). ※ 이 기준은 실 피어 데이터가 아닌 참고값입니다."
     return {
         "farm_id": farm_id, "crop": crop, "metrics": metrics,
-        "weakest": weak["key"],
-        "advice": f"{weak['key']} 항목이 우수농가 대비 낮습니다(내 {weak['mine']} / 상위 {weak['top']}). 해당 영역 화면에서 개선 조치를 확인하세요.",
-        "note": (f"비교군: {real_src}" if real_src else "비교군은 RDA 표준·우수농가 기준. 익명 집계 데이터 확보 시 동일 작기 피어 비교로 자동 고도화."),
+        "weakest": weak["key"] if _below else "",
+        "advice": _advice,
+        # ★ 정직 표기: 실측(농진청 소득조사)과 합성 기준을 구분해 알린다.
+        #   구: "비교군은 RDA 표준·우수농가 기준" — 실제로는 수확량·마진율이 내 값에서
+        #   파생된 합성값인데 우수농가 실측처럼 읽혀 사용자가 "13% 부족"으로 오인했다.
+        "note": (
+            (f"실측 비교군: {real_src} (소득률·농가수취가). " if real_src else "")
+            + (f"나머지 {n_synth}개 지표는 실 피어 데이터가 없어 참고 기준(내 값 파생·고정값)입니다 — 순위 해석 금지. "
+               if n_synth else "")
+            + "익명 집계 데이터 확보 시 동일 작기 피어 비교로 고도화 예정."
+        ),
+        "has_real_peer": bool(real_src),
     }
 
 

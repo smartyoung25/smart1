@@ -28,7 +28,7 @@
 
 <div class="strat-band" data-cur="c9" style="display:flex;gap:6px;overflow-x:auto;margin-bottom:14px;"></div>
 
-<div class="mock-note" id="bmNote">벤치마킹 비교군: RDA 표준·우수농가 기준 <span class="trust-badge trust-model">🔵 기준대비</span></div>
+<div class="mock-note" id="bmNote">비교군 정보를 불러오는 중…</div>
 <div class="section-label">우수농가 대비 비교</div>
 <div class="card" style="padding:14px;" id="bmCard"><div style="text-align:center;color:var(--muted);font-size:12px;padding:10px;">불러오는 중…</div></div>
 <div class="section-label" style="margin-top:14px;">개선 포인트</div>
@@ -56,13 +56,26 @@ async function _load(token,farmId){
   const api=KaasaData.getApiBase?KaasaData.getApiBase():location.origin;
   let d; try{ d=await fetch(`${api}/api/farms/${farmId}/benchmark`,{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.json()); }
   catch(e){ document.getElementById('bmCard').innerHTML='<div style="color:var(--muted);font-size:12px;">벤치마킹 데이터를 불러오지 못했습니다.</div>'; return; }
+  // ★ 지표별 기준 출처 배지 — 실측(농진청 소득조사)과 참고값(내 값 파생·고정)을 구분.
+  //   구: 전부 "우수농가 기준"으로 보여, 내 값 ×1.15인 수확량을 두고 "13% 부족"이라 오인.
+  const _SRC={ rda:['🟢 실측 상위25%','var(--green)'], derived:['⚪ 참고(내 값 파생)','var(--muted)'],
+               fixed:['⚪ 참고(고정 기준)','var(--muted)'] };
+  const _srcBadge=s=>{ const v=_SRC[s]||_SRC.derived;
+    return `<span style="font-size:9.5px;color:${v[1]};border:1px solid currentColor;border-radius:6px;padding:1px 5px;margin-left:6px;vertical-align:middle;">${v[0]}</span>`; };
   document.getElementById('bmCard').innerHTML=(d.metrics||[]).map((m,i)=>`
-    <div style="font-size:12px;font-weight:700;${i?'margin-top:12px;':''}">${m.key}
-      <span style="float:right;color:${_color(m.status)}">내 ${m.mine}${m.unit} / 상위 ${m.top}${m.unit}</span></div>
+    <div style="font-size:12px;font-weight:700;${i?'margin-top:12px;':''}">${m.key}${_srcBadge(m.src)}
+      <span style="float:right;color:${_color(m.status)}">내 ${m.mine}${m.unit} / ${m.src==='rda'?'상위':'기준'} ${m.top}${m.unit}</span></div>
     <div class="bar-wrap"><div class="bar-fill" style="width:${m.pct}%;background:${_color(m.status)}"></div></div>`).join('');
+  // 미달 항목이 없으면 서버가 weakest를 빈 값으로 준다 → "⚡  개선 여지"가 뜨지 않게 분기
   document.getElementById('bmAdvice').innerHTML=`
-    <div style="font-size:13px;font-weight:800;">⚡ ${d.weakest} 개선 여지</div>
+    <div style="font-size:13px;font-weight:800;">${d.weakest ? `⚡ ${d.weakest} 개선 여지` : '✅ 기준 미달 항목 없음'}</div>
     <div style="font-size:12px;color:var(--muted);margin-top:4px;line-height:1.5;">${d.advice}</div>`;
+  // 서버가 실측/합성 구성을 알려주는 note 를 그대로 노출(구: "RDA 표준·우수농가 기준" 하드코딩)
+  const nEl=document.getElementById('bmNote');
+  if(nEl && d.note){
+    const real=!!d.has_real_peer;
+    nEl.innerHTML=`${d.note} <span class="trust-badge ${real?'trust-real':'trust-model'}">${real?'🟢 일부 실측':'⚪ 참고 기준'}</span>`;
+  }
 }
 </script>
 </body></html>
