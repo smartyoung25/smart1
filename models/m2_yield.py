@@ -24,6 +24,11 @@ from dataclasses import dataclass, field
 import numpy as np
 import pandas as pd
 
+try:                                    # 권위 지표 단일 출처 (pipeline/gates.py)
+    from pipeline.gates import read_stage2_metrics as _read_stage2_metrics
+except Exception:                       # 모듈 부재 시 pkl 내부 mape 사용(기존 동작)
+    _read_stage2_metrics = None
+
 logger = logging.getLogger(__name__)
 
 ARTS = os.path.join(os.path.dirname(__file__), "artifacts")
@@ -78,7 +83,12 @@ def _patch_imputer(imputer) -> None:
 # ---------------------------------------------------------------------------
 
 def _load(crop_ko: str) -> Optional[dict]:
-    """Format C pkl 로드. m2_yield_model.pkl → stage2_yield.pkl 순으로 시도."""
+    """Format C pkl 로드. m2_yield_model.pkl → stage2_yield.pkl 순으로 시도.
+
+    ※ 여기서 게이트로 하드 차단하지 말 것 — pkg=None이면 predict_yield가
+      하드코딩 stub(5,000kg)을 반환해 오히려 개악이 된다. 게이트 반영은
+      predict_yield의 RDA 통계 블렌딩(권위 MAPE 기준)으로 처리한다.
+    """
     key = CROP_MAP.get(crop_ko, crop_ko)
     if key in _cache:
         return _cache[key]
@@ -261,6 +271,20 @@ def predict_yield(
         }
 
     yield_total, mape_cv, source = _predict_format_c(pkg, season_env, area_m2, farm_id)
+
+    # ★ 블렌딩 판단은 권위 지표(stage2_meta.json) 기준. pkl 내부 mape는 학습 실행마다
+    #   달라 신뢰 불가하며 양방향으로 틀렸었다:
+    #     딸기  pkl 102.4 vs 권위 17.8 → 좋은 모델이 ML 0.10으로 과도 억제
+    #     참외  pkl  27.3 vs 권위 63.9 → 35 미만이라 블렌딩 미작동 → 100% ML 서빙
+    #   권위값 적용 시: 딸기·오이·파프리카·완숙(≤35)=ML 그대로, 방울 48.6→ml 0.46,
+    #   참외 63.9→ml 0.10(RDA 90%)으로 정상 degrade.
+    if _read_stage2_metrics is not None:
+        try:
+            _auth_mape = _read_stage2_metrics(ARTS, CROP_MAP.get(crop_ko, crop_ko)).get("mape")
+            if _auth_mape is not None:
+                mape_cv = float(_auth_mape)
+        except Exception:
+            pass
 
     # ── 게이트 미통과 시 통계 기반 블렌딩 ─────────────────────────────────────
     # MAPE > 35%이면 ML 예측과 RDA 통계 기준값을 신뢰도 비중으로 혼합.

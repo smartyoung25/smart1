@@ -137,6 +137,21 @@ def evaluate_crop(artifacts_dir, crop_en: str) -> dict:
                             m.get("n_train"), m.get("train_r2"))
 
 
+def should_serve_m2(artifacts_dir, crop_en: str) -> tuple:
+    """서빙 가드 전용 — (서빙여부, 판정dict).
+
+    ★ fail-open: 지표가 없는 구 아티팩트는 판정 불가이므로 기존 동작 유지(서빙).
+      evaluate_crop을 서빙 가드에 직접 쓰면 지표 없는 작목이 전부 차단되니 주의.
+    """
+    m = read_stage2_metrics(artifacts_dir, crop_en)
+    if m.get("mape") is None:
+        return True, {"verdict": SERVE, "label": "판정불가(지표없음)",
+                      "serve_m2": True, "gate_passed": False, "flags": [], "reasons": ["지표 없음 — fail-open"]}
+    v = evaluate_m2_gate(m.get("mape"), m.get("cv_r2_mean"),
+                         m.get("n_train"), m.get("train_r2"))
+    return v["serve_m2"], v
+
+
 # ── 드라이런: 현재 아티팩트 전 작목 판정 출력 ────────────────────────────────
 if __name__ == "__main__":
     import json
