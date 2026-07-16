@@ -89,10 +89,20 @@ async function _notify(){
   const api=(window.KaasaData&&KaasaData.getApiBase)?KaasaData.getApiBase():location.origin;
   const region=document.getElementById('fRegion').value, crop=document.getElementById('fCrop').value;
   try{
-    const d=await fetch(`${api}/api/admin/cluster/notify`,{method:'POST',
+    // ★ r.ok 검사 필수 — 구: .then(r=>r.json())로 바로 파싱해 403(데모 게이트)에도
+    //   d.recorded/d.note가 undefined인 채 "✓ undefined곳 지시 기록 · undefined"라는
+    //   가짜 성공을 표시했음. PC 콘솔(components/console_cluster.js:172-174)과 동일 처리.
+    const r=await fetch(`${api}/api/admin/cluster/notify`,{method:'POST',
       headers:{'Content-Type':'application/json',Authorization:`Bearer ${_tokG}`},
-      body:JSON.stringify({farm_ids:ids,region,crop,message:'위성·진단 기반 작황 이상 — 현장 점검 요망'})}).then(r=>r.json());
-    _msg(`✓ ${d.recorded}곳 지시 기록 · ${d.note}`, d.dispatched?'var(--green)':'var(--orange)');
+      body:JSON.stringify({farm_ids:ids,region,crop,message:'위성·진단 기반 작황 이상 — 현장 점검 요망'})});
+    if(r.ok){
+      const d=await r.json();
+      _msg(`✓ ${d.recorded}곳 지시 기록 · ${d.note||''}`, d.dispatched?'var(--green)':'var(--orange)');
+    } else if(r.status===403){
+      _msg('공개 데모에서는 알림 발송이 비활성화되어 있습니다 — 기록되지 않았습니다.','var(--orange)');
+    } else {
+      _msg(`알림 기록 실패 (${r.status}) — 관리자 권한이 필요합니다.`,'var(--red)');
+    }
   }catch(e){ _msg('알림 기록 실패: '+e.message,'var(--red)'); }
 }
 function _msg(t,c){ const el=document.getElementById('caMsg'); if(el){ el.style.color=c||'var(--text)'; el.textContent=t; } }

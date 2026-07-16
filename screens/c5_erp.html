@@ -319,11 +319,14 @@ async function _loadAll(token, farmId) {
   const _rev  = revenue?.revenue_krw ?? revenue?.predicted_revenue_krw ?? 0;
   const _cost = costs?.total_cost_krw ?? 0;
   const _yield= revenue?.yield_kg_forecast ?? 0;
+  const _bepPrice = revenue?.price_krw_kg ?? revenue?.kamis_price_krw_kg ?? 0;
   const erp = {
     cost_per_kg:     _yield > 0 ? _cost / _yield : 0,
     margin_per_kg:   _yield > 0 ? (_rev - _cost) / _yield : 0,
     income_rate_pct: _rev > 0 ? ((_rev - _cost) / _rev) * 100 : 0,
-    breakeven_kg:    revenue?.price_per_kg > 0 ? _cost / revenue.price_per_kg : 0,
+    // ★ /revenue 응답 키는 price_krw_kg (구: price_per_kg — 존재하지 않는 필드라
+    //   삼항식이 항상 0 → 손익분기가 늘 "0 kg"으로 표시되던 버그). KAMIS 시세로 폴백.
+    breakeven_kg:    _bepPrice > 0 ? _cost / _bepPrice : 0,
     crop_ko:         revenue?.crop_ko ?? costs?.crop_ko ?? '',
     area_m2:         revenue?.area_m2 ?? costs?.area_m2 ?? 0,
   };
@@ -437,9 +440,13 @@ function _renderProfitability(revenue, erp, costs) {
   const bepBar  = document.getElementById('bepBar');
   const bepLine = document.getElementById('bepLine');
   const bepFc   = document.getElementById('bepForecast');
-  if (bepEl)  bepEl.textContent   = `${Math.round(bep).toLocaleString()} kg`;
-  if (bepDesc)bepDesc.textContent = `예상 수확량(${Math.round(yFcast).toLocaleString()}kg)의 ${Math.round(bep/yFcast*100)}% 수준에서 흑자 전환`;
-  const bepPct = Math.min((bep / yFcast) * 100, 100);
+  // 가격·수확량 예측이 없으면 0 나눗셈으로 "0 kg"·"Infinity%"가 표시되므로 빈 상태로 처리
+  const _bepOk = bep > 0 && yFcast > 0;
+  if (bepEl)  bepEl.textContent   = _bepOk ? `${Math.round(bep).toLocaleString()} kg` : '—';
+  if (bepDesc)bepDesc.textContent = _bepOk
+    ? `예상 수확량(${Math.round(yFcast).toLocaleString()}kg)의 ${Math.round(bep/yFcast*100)}% 수준에서 흑자 전환`
+    : '시세 또는 수확량 예측이 없어 손익분기를 계산할 수 없습니다.';
+  const bepPct = _bepOk ? Math.min((bep / yFcast) * 100, 100) : 0;
   const yPct   = 100;
   if (bepBar)  bepBar.style.width    = `${yPct}%`;
   if (bepLine) bepLine.style.left    = `${bepPct}%`;
