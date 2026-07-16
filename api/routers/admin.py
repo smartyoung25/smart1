@@ -13,6 +13,7 @@ from uuid import uuid4
 from fastapi import APIRouter, Depends, HTTPException, Query, Body
 from pydantic import BaseModel
 
+from pipeline.gates import evaluate_m2_gate, MAPE_SERVE   # 게이트 단일 출처
 from api.middleware.auth import require_role, require_admin_view
 from api.schemas.admin import (
     AdminOverview,
@@ -239,13 +240,16 @@ def get_models():
         # mape(학습 MAPE) 우선
         mape = float(s2.get("mape") or s2.get("cv_mape_mean") or 999)
         r2   = float(s2.get("cv_r2_mean") or s2.get("cv_r2") or 0.0)
-        # 현재 게이트 기준(35%)으로 재산정 (저장된 gate_passed는 구 기준으로 세팅됐을 수 있음)
-        gate = (mape <= 35.0)
+        # ★ 게이트는 pipeline/gates.py 단일 정책으로 판정 (저장된 gate_passed는 구·완화
+        #   기준으로 세팅됐을 수 있어 신뢰하지 않음). 폴백 작목만 passed=False.
+        _n   = s2.get("n_train") or s2.get("n_season") or s2.get("n_samples")
+        _v   = evaluate_m2_gate(mape, r2, _n, s2.get("train_r2"))
+        gate = _v["serve_m2"]
         models.append(ModelStatus(
             module_id=crop_ko,
-            metric_name="MAPE",
+            metric_name=f"MAPE ({_v['label']})",
             metric_value=round(mape, 1),
-            threshold=35.0,
+            threshold=MAPE_SERVE,
             passed=gate,
             last_trained=_now(),
         ))

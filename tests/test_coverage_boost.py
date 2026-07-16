@@ -6070,14 +6070,29 @@ class TestModelRegistryExtra:
         assert reg["strawberry"]["active_version"] is None
 
     def test_register_version_gate_passed(self, monkeypatch, tmp_path):
+        """게이트 통과(MAPE·R² 양호) → 활성화."""
         import pipeline.model_registry as mr
         monkeypatch.setattr(mr, "ARTIFACTS_DIR", tmp_path / "artifacts")
         reg_file = tmp_path / "registry.json"
         monkeypatch.setattr(mr, "REGISTRY_FILE", reg_file)
-        ver = mr.register_version("tomato", mape_stage2=42.0, gate_passed=True)
+        ver = mr.register_version("tomato", mape_stage2=18.0, cv_r2=0.40, gate_passed=True)
         import json
         reg = json.loads(reg_file.read_text(encoding='utf-8'))
         assert reg["tomato"]["active_version"] == ver
+
+    def test_register_version_high_mape_not_activated(self, monkeypatch, tmp_path):
+        """★ 게이트 단일정책(pipeline/gates.py): MAPE 과대(>30%)면
+        호출자가 gate_passed=True를 넘겨도 폴백 처리되어 활성화되지 않는다.
+        (구 동작: s2_meta.gate_passed 맹신 → MAPE 60%대 모델까지 활성화되던 문제)"""
+        import pipeline.model_registry as mr
+        monkeypatch.setattr(mr, "ARTIFACTS_DIR", tmp_path / "artifacts")
+        reg_file = tmp_path / "registry.json"
+        monkeypatch.setattr(mr, "REGISTRY_FILE", reg_file)
+        mr.register_version("tomato", mape_stage2=42.0, gate_passed=True)
+        import json
+        reg = json.loads(reg_file.read_text(encoding='utf-8'))
+        assert reg["tomato"]["active_version"] is None
+        assert reg["tomato"]["versions"][-1]["verdict"] == "fallback"
 
     def test_rollback_no_versions(self, monkeypatch, tmp_path):
         import pipeline.model_registry as mr

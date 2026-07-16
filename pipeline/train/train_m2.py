@@ -375,17 +375,23 @@ tr_r2_final = r2_score(y_all, pred_tr)
 
 farm_mean_map = df.groupby("farm_id")["yield_kg"].mean().to_dict()
 
+try:                                     # 게이트 임계 단일 출처 (pipeline/gates.py)
+    sys.path.insert(0, str(_ROOT))
+    from pipeline.gates import MAPE_SERVE as _GATE_MAPE
+except Exception:
+    _GATE_MAPE = 25.0
+
 pkg = {"xgb": xm_f, "lgb": lm_f,
        "feat_cols": FEAT, "feat_median": med_all.to_dict(),
        "target": best_tgt, "mape": best_cv_mape, "train_r2": tr_r2_final,
-       "gate_pass": bool(best_cv_mape<=25),
+       "gate_pass": bool(best_cv_mape<=_GATE_MAPE),
        "farm_yield_mean": farm_mean_map,
        "best_params": best, "model_type": model_type}
 meta = {"crop": crop, "crop_en": CROP_DIR.get(crop,crop),
         "version": "v4c_leak_fix",
         "target": best_tgt, "feat_cols": FEAT,
         "mape": round(best_cv_mape,2), "train_r2": round(tr_r2_final,4),
-        "gate_pass": bool(best_cv_mape<=25), "n_season": int(len(df)),
+        "gate_pass": bool(best_cv_mape<=_GATE_MAPE), "n_season": int(len(df)),
         "best_params": best, "model_type": model_type,
         "n_trials": N_TRIALS}
 

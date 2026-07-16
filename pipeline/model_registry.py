@@ -19,6 +19,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
+try:                                    # 게이트 단일 출처 (pipeline/gates.py)
+    from pipeline.gates import evaluate_m2_gate
+except ImportError:                     # 스크립트 직접 실행 등 경로 미설정 시
+    from gates import evaluate_m2_gate
+
 logger = logging.getLogger(__name__)
 
 ROOT          = Path(__file__).parent.parent
@@ -135,7 +140,15 @@ def register_version(
     mape_stage2 = mape_stage2 if mape_stage2 is not None else s2_meta.get("mape")
     mape_stage3 = mape_stage3 if mape_stage3 is not None else s3_meta.get("mape")
     cv_r2       = cv_r2       if cv_r2       is not None else s2_meta.get("cv_r2_mean")
-    gate_passed = gate_passed and s2_meta.get("gate_passed", True)
+
+    # ★ 게이트는 pipeline/gates.py 단일 정책으로 판정 (구: s2_meta.gate_passed 맹신 →
+    #   완화기준으로 MAPE 60%대 모델까지 활성화되던 문제). 호출자가 gate_passed=False를
+    #   명시하면(재학습 실패 등) 그대로 폴백 유지.
+    _n_train  = s2_meta.get("n_train") or s2_meta.get("n_season") or s2_meta.get("n_samples")
+    _verdict  = evaluate_m2_gate(mape_stage2, cv_r2, _n_train, s2_meta.get("train_r2"))
+    gate_passed = gate_passed and _verdict["serve_m2"]
+    logger.info("[registry] %s 게이트 판정=%s (%s)", crop_en, _verdict["label"],
+                "; ".join(_verdict["reasons"] + _verdict["flags"]))
 
     reg = _load_registry()
     crop_entry = reg.setdefault(crop_en, {"active_version": None, "versions": []})
@@ -150,6 +163,9 @@ def register_version(
         "mape_stage2":      round(mape_stage2, 4) if mape_stage2 is not None else None,
         "mape_stage3":      round(mape_stage3, 4) if mape_stage3 is not None else None,
         "cv_r2":            round(cv_r2, 4)        if cv_r2       is not None else None,
+        "n_train":          _n_train,
+        "verdict":          _verdict["verdict"],       # serve | conditional | fallback
+        "gate_flags":       _verdict["flags"],
         "gate_passed":      gate_passed,
         "is_active":        gate_passed,
         "snapshot_version": snapshot_version,
