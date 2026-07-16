@@ -62,13 +62,20 @@
   const energyY=energyM*12;
   document.getElementById('kRev').innerHTML=`${fmt(annualRev/10000)}<span style="font-size:11px;font-weight:400">만원</span>`;
   document.getElementById('kEnergy').innerHTML=`${fmt(energyY/10000)}<span style="font-size:11px;font-weight:400">만원</span>`;
-  document.getElementById('roiNote').textContent='✅ 농장 ERP 실매출·에너지비 기반 ROI 산출 완료';
+  // ★ 실데이터인 것은 곱해지는 매출·에너지비뿐이고, 투자비·효과율은 전부 가정값이다.
+  //   구: "✅ 농장 ERP 실매출·에너지비 기반 ROI 산출 완료" — 전체가 실측인 것처럼 읽혀
+  //   농가가 즉시 실행을 권고받는 것으로 오인했다.
+  document.getElementById('roiNote').innerHTML=
+    '내 농장 실매출·에너지비에 <b>표준 가정치</b>(투자비·효과율)를 적용한 <b>참고 추정</b>입니다. '
+    + '실제 견적·효과는 설비·시공 조건에 따라 달라집니다.';
 
-  // 투자안: 효과를 농장 실데이터에 비례 산출
+  // 투자안: 효과는 농장 실데이터(매출·에너지비)에 비례하되, 투자비와 효과율은 표준 가정치.
+  // ★ cost(만원)·효과율(+5%·-15% 등)은 농장 규모·작목·기존 설비와 무관한 하드코딩 상수다.
+  //   출처가 없으므로 카드에 '가정' 각주를 달아 실측과 구분한다.
   const INV=[
-    {ic:'🌡️',name:'환경 자동제어',cost:1800, gain: Math.round((annualRev*0.05+energyY*0.15)/10000), c:'var(--green)', desc:'수확 +5%·에너지 -15%'},
-    {ic:'💧',name:'관수 자동화',  cost:1200, gain: Math.round((annualRev*0.03+energyY*0.05)/10000), c:'var(--blue)', desc:'수확 +3%·인건비↓'},
-    {ic:'⚡',name:'에너지 절감설비',cost:1500, gain: Math.round((energyY*0.25)/10000), c:'var(--orange)', desc:'에너지 -25%'},
+    {ic:'🌡️',name:'환경 자동제어',cost:1800, gain: Math.round((annualRev*0.05+energyY*0.15)/10000), c:'var(--green)', desc:'가정: 수확 +5%·에너지 -15%'},
+    {ic:'💧',name:'관수 자동화',  cost:1200, gain: Math.round((annualRev*0.03+energyY*0.05)/10000), c:'var(--blue)', desc:'가정: 수확 +3%·인건비↓'},
+    {ic:'⚡',name:'에너지 절감설비',cost:1500, gain: Math.round((energyY*0.25)/10000), c:'var(--orange)', desc:'가정: 에너지 -25%'},
   ];
   // 추천 통찰: 회수기간 최단 투자안
   const ranked=INV.map(v=>({...v, months: v.gain>0?Math.round(v.cost/(v.gain/12)):999, roi: v.gain>0?Math.round(v.gain/v.cost*100):0}))

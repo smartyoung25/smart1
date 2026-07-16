@@ -505,6 +505,25 @@ const KaasaData = (() => {
     }
   }
 
+  // ── 작목 단일 출처 ──────────────────────────────────────────────────────────
+  // ★ 화면마다 '토마토'/'딸기'/'오이'를 제각각 하드코딩해, 한 여정 안에서 작목이
+  //   3번 바뀌는데도 사용자에겐 아무 표시가 없었다(딸기 농가가 G1에서 토마토 기준
+  //   AI 추천을 받고, G6은 오이로 계산). 서버 meta(권위) → sf_profile(온보딩) 순으로
+  //   해석해 캐시한다. 어느 쪽도 없으면 null — 임의 작목으로 추측하지 않는다.
+  var _cropKo = null;
+  async function getCrop() {
+    if (_cropKo) return _cropKo;
+    try {
+      const m = await apiFetch(`/api/farms/${_farmId}/meta`);
+      if (m && m.crop) { _cropKo = m.crop; return _cropKo; }
+    } catch (e) {}
+    try {
+      const p = JSON.parse(localStorage.getItem('sf_profile') || '{}');
+      if (p.crop_ko) { _cropKo = p.crop_ko; return _cropKo; }
+    } catch (e) {}
+    return null;
+  }
+
   // ── 활동 기록 ───────────────────────────────────────────────────────────────
   // 사용자의 결정·이행(관수 승인·제어 확인·보정·신청 등)을 서버에 남긴다.
   // ★ 규약: 성공 표시(토스트·라벨)는 이 함수가 resolve된 뒤에만 할 것.
@@ -954,7 +973,7 @@ const KaasaData = (() => {
     toggleTheme, currentTheme,
     // 데이터 로드
     loadPrivaSchedule, loadRecommend, loadEnvironment,
-    submitIrrigation, loadIrrigationAnalysis, logActivity,
+    submitIrrigation, loadIrrigationAnalysis, logActivity, getCrop,
     // 현재 센서
     getSensorValue, getLatestPriva, getFarmId, getApiBase,
     // 유틸

@@ -72,8 +72,11 @@ async function _loadSoil(token){
     });
     // 필지 수만큼 채우고 12셀로 보간(반복)
     CELLS = Array.from({length:12},(_,i)=> +(vals[i%vals.length]).toFixed(2));
+    // ★ 흙토람은 '토양수분' 실측일 뿐 위성·드론 관측이 아니다. 구: live 이면 배지를
+    //   '🟢 흙토람'(실측)으로 승격시켜, 위성 미연동인데도 NDVI가 실측 관측치처럼 보였다.
+    //   → 토양수분 환산값임을 배지에 명시하고 실측(trust-live)으로 승격하지 않는다.
     document.querySelectorAll('.map-mock-tag, .trust-badge.trust-mock').forEach(b=>{
-      if(live){ b.textContent = (_layer+' 흙토람'); if(b.classList.contains('trust-badge')){ b.className='trust-badge trust-live'; b.textContent='🟢 흙토람'; } }
+      if(live){ b.textContent = '🟡 흙토람 토양수분 환산 (위성 미연동)'; }
     });
     _renderMap(); _renderCheck();
   }catch(e){ /* 예시값 유지 */ }
@@ -118,7 +121,7 @@ function _renderCheck(){
   const low=CELLS.map((v,i)=>({v,i})).filter(x=>x.v<0.5);
   const el=document.getElementById('checkList');
   if(!low.length){el.innerHTML='<div class="card" style="padding:14px;text-align:center;color:var(--green);">✅ 저활력 구역 없음</div>';return;}
-  el.innerHTML=low.map(x=>`<div class="check-item"><span style="font-size:20px;">📍</span><div><div class="ci-t">${Math.floor(x.i/4)+1}행 ${x.i%4+1}열 구역 — 생육 저조</div><div class="ci-d">NDVI ${x.v.toFixed(2)} (저활력) · 현장 확인 권장. 관수·시비 점검 또는 병해 의심.</div></div></div>`).join('');
+  el.innerHTML=low.map(x=>`<div class="check-item"><span style="font-size:20px;">📍</span><div><div class="ci-t">${Math.floor(x.i/4)+1}행 ${x.i%4+1}열 구역 — 생육 저조</div><div class="ci-d">생육활력 ${x.v.toFixed(2)} (저활력) · <span style="opacity:.75">토양수분 환산 추정</span> · 현장 확인 권장. 관수·시비 점검 또는 병해 의심.</div></div></div>`).join('');
 }
 </script>
 </body>

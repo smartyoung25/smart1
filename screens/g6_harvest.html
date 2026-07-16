@@ -308,7 +308,7 @@ async function _loadAll(token, farmId) {
     fetch(`${api}/api/farms/${farmId}/market/price-history`,  {headers:H}).then(r=>r.ok?r.json():null).catch(()=>null),
   ]);
 
-  const crop = revenue?.crop_ko || wholesale?.crop_ko || '오이';
+  const crop = revenue?.crop_ko || wholesale?.crop_ko || '';   // ★ 구: '오이' 폴백
   window._revenue = revenue;   // 수확기록 전송 시 작물·면적 참조
   const lbl = document.getElementById('cropBadge');
   if (lbl) lbl.textContent = `(${crop})`;
@@ -438,7 +438,7 @@ function _renderPriceChart(history) {
   if (!history) return;
   const items = history.history || [];
   const stats = history.stats || {};
-  const crop  = history.crop || history.crop_ko || '오이';
+  const crop  = history.crop || history.crop_ko || '';   // ★ 구: '오이' 폴백
 
   const setEl = (id, v) => { const el=document.getElementById(id); if(el) el.textContent=v; };
   setEl('trendCrop', crop);
@@ -499,7 +499,7 @@ async function _submitHarvest() {
   const api = KaasaData.getApiBase();
   const token = sessionStorage.getItem('sf_token') || '';
   const farmId = KaasaData.getFarmId();
-  const crop = (window._revenue && window._revenue.crop_ko) || '오이';
+  const crop = (window._revenue && window._revenue.crop_ko) || '';   // ★ 구: '오이' 폴백
   const area = (window._revenue && window._revenue.area_m2) || 1200;
   const today = new Date().toISOString().slice(0,10);
   // qty(입력) → kg/m² 환산 (총 수확량으로 입력했다고 가정)

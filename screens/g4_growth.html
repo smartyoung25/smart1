@@ -391,7 +391,7 @@ function _renderHarvest(d) {
   const today    = new Date();
   const ddays    = predDate ? Math.round((predDate - today) / 86400000) : null;
   const conf     = d.confidence ? Math.round(d.confidence * 100) : 0;
-  const crop     = d.crop_ko || '오이';
+  const crop     = d.crop_ko || '';   // ★ 구: '오이' 하드코딩 폴백 — 남의 작목 표시
 
   // 히어로
   const setEl = (id, v) => { const el = document.getElementById(id); if(el) el.textContent = v; };
@@ -608,7 +608,9 @@ async function _submitHarvest(){
     if(!_tokenG) _tokenG=sessionStorage.getItem('sf_token')||'';
     const api=KaasaData.getApiBase(); const H={'Content-Type':'application/json',Authorization:`Bearer ${_tokenG}`};
     // 작물 조회
-    let crop='딸기'; try{ const hv=await fetch(`${api}/api/farms/${_farmG}/harvest`,{headers:H}).then(r=>r.ok?r.json():null).catch(()=>null); if(hv&&hv.crop_ko) crop=hv.crop_ko; }catch(_){}
+    // ★ 구: let crop='딸기' — 응답에 crop_ko가 없으면 남의 작목으로 저장됐다.
+    let crop=(await KaasaData.getCrop())||'';
+    try{ const hv=await fetch(`${api}/api/farms/${_farmG}/harvest`,{headers:H}).then(r=>r.ok?r.json():null).catch(()=>null); if(hv&&hv.crop_ko) crop=hv.crop_ko; }catch(_){}
     const body={farm_id:_farmG, crop_ko:crop, yield_kg_m2:y,
       harvest_date:(document.getElementById('hvDate').value)||new Date().toISOString().slice(0,10),
       source:'manual'};

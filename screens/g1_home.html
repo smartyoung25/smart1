@@ -209,7 +209,9 @@ window.addEventListener('DOMContentLoaded', () => {
     _tokenG = token;
     KaasaData.init({ farmId, token, onSensor:_onSensor, onRecommend:_onRecommend, onStatus:_onWsStatus });
     KaasaData.loadEnvironment();
-    KaasaData.loadRecommend && KaasaData.loadRecommend({ crop:'토마토', tier:'semi_auto', areaMeter:1000 });
+    // ★ 구: crop:'토마토' 하드코딩 — 딸기 농가도 토마토 기준 AI 추천을 받았다.
+    KaasaData.loadRecommend && KaasaData.getCrop().then(c =>
+      KaasaData.loadRecommend({ crop: c || undefined, tier:'semi_auto', areaMeter:1000 }));
     _loadSummaries(token, farmId);
   });
 });

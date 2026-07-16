@@ -415,6 +415,17 @@ async function _ensureToken(){
     if(r.ok){const d=await r.json();sessionStorage.setItem('sf_token',d.access_token);return d.access_token;}}catch{}return '';
 }
 
+// 익명 둘러보기(데모) 토큰 여부 — JWT payload 의 demo/role/user_id 로 판별.
+// 데모 토큰은 user_id=0 이라 서버가 온보딩 저장을 400 으로 거부한다(계정이 없으므로 정상).
+function _isDemoToken(){
+  try{
+    const t=sessionStorage.getItem('sf_token')||'';
+    const b=t.split('.')[1]; if(!b) return false;
+    const p=JSON.parse(decodeURIComponent(escape(atob(b.replace(/-/g,'+').replace(/_/g,'/')))));
+    return p.demo===true || p.role==='demo' || !p.user_id;
+  }catch(e){ return false; }
+}
+
 function _renderOpts(){
   document.getElementById('cropGrid').innerHTML=CROPS.map(([c,i])=>`<div class="opt-card" data-crop="${c}" onclick="_selCrop('${c}',this)"><span class="opt-ico">${i}</span>${c}</div>`).join('');
   document.getElementById('irrigGrid').innerHTML=IRRIGS.map(([c,i])=>`<div class="opt-card" data-irr="${c}" onclick="_selIrrig('${c}',this)"><span class="opt-ico">${i}</span>${c}</div>`).join('');
@@ -900,9 +911,22 @@ async function _save(){
       localStorage.removeItem('sf_onboarding_draft');   // 저장 성공 시 초안 삭제
       _postSaveCTA();
     } else {
-      const t=await r.text();
-      res.style.color='var(--orange)'; res.innerHTML=`저장 응답 ${r.status} — 로컬 저장됨`;
       localStorage.setItem('sf_onboarding', JSON.stringify(form));
+      // ★ 둘러보기(데모) 토큰은 user_id=0 이라 서버가 400 으로 거부한다(정상 동작 —
+      //   계정이 없으니 저장할 곳이 없다). 구: "저장 응답 400 — 로컬 저장됨" 이라는
+      //   상태코드만 노출하고 다음 CTA를 그대로 띄워, 8단계를 다 입력한 농가가
+      //   저장된 줄 알고 떠났다가 기기를 바꾸면 전부 잃었다.
+      if(r.status===400 && _isDemoToken()){
+        res.style.color='var(--orange)';
+        res.innerHTML='⚠ <b>둘러보기 모드에서는 서버에 저장되지 않습니다.</b><br>'
+          + '입력하신 내용은 이 기기에만 보관됩니다 — 회원가입하시면 그대로 저장됩니다.'
+          + '<div style="margin-top:10px;"><button style="padding:10px 16px;background:var(--green);color:#fff;border:none;'
+          + 'border-radius:8px;font-size:14px;font-weight:800;cursor:pointer;" '
+          + 'onclick="location.href=\'c0_signup.html\'">회원가입하고 저장하기 →</button></div>';
+      } else {
+        res.style.color='var(--orange)';
+        res.innerHTML=`⚠ 저장하지 못했습니다(${r.status}) — 입력값은 이 기기에 보관됩니다. 잠시 후 다시 시도해 주세요.`;
+      }
       _postSaveCTA();
     }
   }catch(e){

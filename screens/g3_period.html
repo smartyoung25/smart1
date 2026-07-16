@@ -381,7 +381,9 @@ function setHorizon(d){
 }
 function loadAll() {
   KaasaData.loadPrivaSchedule({ growthStage: 'mid', plantSizePct: 100 });
-  KaasaData.loadRecommend({ crop: '토마토', tier: 'semi_auto', areaMeter: 1000 });
+  // ★ 구: crop:'토마토' 하드코딩 — 내 작목과 무관한 기준으로 관수 추천이 나왔다.
+  KaasaData.getCrop().then(c =>
+    KaasaData.loadRecommend({ crop: c || undefined, tier: 'semi_auto', areaMeter: 1000 }));
   KaasaData.loadIrrigationAnalysis(_horizon).then(renderAnalysis);
 }
 
@@ -837,6 +839,14 @@ async function recordSkip(periodId) {
 }
 
 /* ── 관수 기록 시트 ── */
+// 기록 시트의 작목 입력을 내 작목(서버 meta → 온보딩 프로필)으로 채운다.
+// ★ 구: value="토마토" 고정 — 딸기 농가가 관수를 기록하면 토마토로 적재됐다.
+function _fillRecCrop() {
+  const el = document.getElementById('recCrop');
+  if (!el || el.value) return;
+  KaasaData.getCrop().then(c => { if (c && !el.value) el.value = c; });
+}
+
 function buildRecordFields() {
   const container = document.getElementById('recordFields');
   container.innerHTML = `
@@ -846,7 +856,7 @@ function buildRecordFields() {
     </div>
     <div class="field-group">
       <label class="field-label">작목</label>
-      <input type="text" class="input-field" id="recCrop" value="토마토"/>
+      <input type="text" class="input-field" id="recCrop" value="" placeholder="내 작목"/>
     </div>
     <div style="margin-bottom:10px;padding:12px;background:var(--panel-soft);border-radius:12px;border:1px solid var(--border);">
       <div style="font-size:13px;font-weight:800;margin-bottom:8px;">⚖️ 슬랩 무게 (dry-back 산출)</div>
@@ -893,7 +903,14 @@ function buildRecordFields() {
 
 async function submitRecord() {
   const date = document.getElementById('recDate')?.value;
-  const crop = document.getElementById('recCrop')?.value || '토마토';
+  // ★ 구: || '토마토' — 작목이 비면 남의 작목으로 적재됐다. 추측하지 않고 입력을 요구.
+  const crop = (document.getElementById('recCrop')?.value || '').trim()
+               || (await KaasaData.getCrop()) || '';
+  if (!crop) {
+    const _r = document.getElementById('recordResult');
+    if (_r) { _r.style.color = 'var(--orange)'; _r.textContent = '작목을 입력해 주세요.'; }
+    return;
+  }
   const periods = KaasaData.PERIODS
     .filter(p => p.adapterPeriod)
     .map((p, i) => ({
@@ -947,6 +964,7 @@ function openSheet(id) {
   document.getElementById('backdrop' + id.replace('sheet','')).classList.add('open');
   document.getElementById(id).classList.add('open');
   document.body.style.overflow = 'hidden';
+  if (id === 'sheetRecord') _fillRecCrop();
 }
 function closeSheet(id) {
   document.getElementById('backdrop' + id.replace('sheet','')).classList.remove('open');

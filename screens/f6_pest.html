@@ -33,7 +33,9 @@
     <div class="f6-kpi"><div class="f6-kpi-ico">🐛</div><div class="f6-kpi-val" id="kPest" style="color:var(--green)">낮음</div><div class="f6-kpi-label">해충 위험</div></div>
     <div class="f6-kpi"><div class="f6-kpi-ico">🚿</div><div class="f6-kpi-val" id="kSpray" style="color:var(--green)">가능</div><div class="f6-kpi-label">방제 가능</div></div>
   </div>
-  <div class="mock-note">병해 위험도는 M5 모델 실연동, 해충·방제 윈도우는 기상 기반 추정입니다.</div>
+  <!-- ★ 구: "해충·방제 윈도우는 기상 기반 추정" — 실제로는 기상 입력이 없는 고정 목록이라
+       매일·모든 농가에 동일하게 뜬다. 농가가 오늘의 예찰 결과로 오인하므로 정직하게 표기. -->
+  <div class="mock-note">병해 위험도는 M5 모델 실연동. 아래 <b>해충 목록·방제 윈도우는 작목 일반 발생경향(참고용)</b>으로, 실시간 예찰·기상 반영이 아닙니다.</div>
   <div class="section-label">오늘의 방제 알림 <span class="trust-badge trust-model">🔵 모델</span></div>
   <div class="card" style="padding:14px;border-left:4px solid var(--green);margin-bottom:14px;">
     <div style="font-size:13px;font-weight:800;" id="alertTitle">분석 중…</div>
@@ -119,7 +121,7 @@ function _renderSpray(){
 }
 function _renderPests(){
   const P=[['진딧물','고온건조 시 급증','ok'],['응애','건조·고온 환경','ok'],['노린재','개화·결실기 유입','warn'],['담배가루이','시설 인접 시 유입','ok']];
-  document.getElementById('pestList').innerHTML=P.map(([n,c,s])=>`<div class="pest-item"><div style="flex:1;"><div class="pest-name">${n}</div><div class="pest-cond">${c}</div></div><span class="pest-badge ${s==='ok'?'pb-ok':'pb-warn'}">${s==='ok'?'정상':'주의'}</span></div>`).join('');
+  document.getElementById('pestList').innerHTML=P.map(([n,c,s])=>`<div class="pest-item"><div style="flex:1;"><div class="pest-name">${n}</div><div class="pest-cond">${c}</div></div><span class="pest-badge ${s==='ok'?'pb-ok':'pb-warn'}">${s==='ok'?'평시':'유의시기'}</span></div>`).join('');
 }
 </script>
 </body>
