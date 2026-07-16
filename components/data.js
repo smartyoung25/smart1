@@ -892,10 +892,24 @@ const KaasaData = (() => {
     });
   }
 
+  // 저작권 표기 — 전 화면 하단에 1회 주입(중복 가드). (주)이암허브·한국스마트농업AI협회 귀속.
+  //   base.css 미변경(인라인 스타일) → SW 캐시 bump 불필요(data.js는 network-first).
+  function _installCopyright() {
+    if (document.querySelector('.sf-copyright')) return;
+    var host = document.querySelector('main') || document.body;
+    if (!host) return;
+    var hasNav = !!document.querySelector('.sf-bottom-nav');   // 하단탭 있으면 여백 확보
+    var el = document.createElement('div');
+    el.className = 'sf-copyright';
+    el.setAttribute('style', 'margin:22px auto ' + (hasNav ? '92px' : '24px') + ';max-width:520px;padding:0 16px;text-align:center;font-size:11px;line-height:1.6;color:var(--muted,#8a8f98);opacity:.8');
+    el.innerHTML = '© 2026 (주)이암허브 · 한국스마트농업AI협회. All rights reserved.';
+    host.appendChild(el);
+  }
+
   if (typeof document !== 'undefined') {
     document.addEventListener('DOMContentLoaded', () => {
       try {
-        _buildDrawer(); _bindMenuTab(); _renderStratBands(); _installPwa(); _syncFarmSelectors(); _installFab(); _installSidebar(); _installStageFlow();
+        _buildDrawer(); _bindMenuTab(); _renderStratBands(); _installPwa(); _syncFarmSelectors(); _installFab(); _installSidebar(); _installStageFlow(); _installCopyright();
         if (navigator && navigator.onLine === false) _setNet(false);  // 진입 시 오프라인이면 즉시 표시
       } catch (e) {}
     });
