@@ -186,8 +186,13 @@ services:
     image: smart-farm-api:latest
     container_name: smart-farm-api
     <<: *common-env
-    expose:
-      - "8000"
+    # ★ 터널(cloudflared)이 host의 localhost:8000 으로 접속하므로 반드시 게시해야 한다.
+    #   expose 는 컨테이너 간 노출일 뿐 host 게시가 아니다 — 구성상 expose 였던 탓에
+    #   운영 서버에서 수동으로 ports 로 고쳐 쓰고 있었고, 그 로컬 수정을 git checkout 이
+    #   덮어써 502(호스트에서 8000 도달 불가)가 발생했다. 레포에 영구 반영한다.
+    #   (외부 노출은 ACG 방화벽이 22 외 전부 차단하므로 안전)
+    ports:
+      - "8000:8000"
     volumes:
       - model_artifacts:/app/models/artifacts
       # ★ api/data 는 읽기 전용이면 안 된다 — POST /activity·기록류가 여기에 적재된다.
