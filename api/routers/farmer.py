@@ -2311,8 +2311,18 @@ def post_activity(farm_id: str, body: ActivityLog):
     logs.append(rec)
     # 최근 1000건 유지
     logs = logs[-1000:]
-    try: fp.write_text(_json.dumps(logs, ensure_ascii=False, indent=2), encoding="utf-8")
-    except Exception: pass
+    # ★ 쓰기 실패를 삼키면 안 된다 — 구: except: pass 로 무시하고 200을 반환해,
+    #   운영(api/data 가 :ro 로 마운트됨)에서 모든 이행 기록이 조용히 사라지는데도
+    #   화면은 "✓ 기록됨"을 표시했다. 폐루프 학습 데이터가 통째로 유실된 원인.
+    try:
+        fp.parent.mkdir(parents=True, exist_ok=True)
+        fp.write_text(_json.dumps(logs, ensure_ascii=False, indent=2), encoding="utf-8")
+    except OSError as e:
+        logger.error("[activity] 적재 실패 farm=%s kind=%s: %s", farm_id, body.kind, e)
+        raise HTTPException(
+            status_code=503,
+            detail="활동 기록을 저장할 수 없습니다(서버 저장소 쓰기 불가). 관리자에게 문의해 주세요.",
+        )
 
     # 기여 점수 (kind별 가중)
     _pts = {"harvest": 30, "irrigation": 20, "education": 25,
