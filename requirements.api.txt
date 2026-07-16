@@ -17,9 +17,14 @@ python-dotenv>=1.0.0
 pandas>=2.0.0
 pyarrow>=15.0.0
 numpy>=1.26.0
-scikit-learn>=1.4.0
-xgboost>=2.0.0
-lightgbm>=4.3.0
+# ★ pickle 호환 고정 — 아티팩트(models/artifacts/*.pkl)는 학습 환경 버전으로 직렬화된다.
+#   상한이 없으면 재빌드 때 최신본이 깔려 unpickle 경고/무효 결과가 난다. 실제로 컨테이너가
+#   sklearn 1.9.0 을 설치해 1.8.0 아티팩트와 어긋났다(InconsistentVersionWarning:
+#   "might lead to breaking code or invalid results"). 학습 환경과 동일 버전으로 고정한다.
+#   ※ 재학습으로 버전을 올릴 때 이 핀도 함께 올릴 것(학습=서빙 동기).
+scikit-learn==1.8.0
+xgboost==3.2.0
+lightgbm==4.6.0
 
 # ── WebSocket / 실시간 ───────────────────────────────────────────────────────
 websockets>=12.0
