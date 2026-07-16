@@ -23,6 +23,7 @@ x-common-env: &common-env
 
 volumes:
   model_artifacts:
+  api_data:          # 이행 기록·기록류 영속(이미지 /app/api/data 로 자동 시딩)
   pipeline_state:
   app_logs:
   certbot_www:
@@ -189,7 +190,12 @@ services:
       - "8000"
     volumes:
       - model_artifacts:/app/models/artifacts
-      - ./api/data:/app/api/data:ro
+      # ★ api/data 는 읽기 전용이면 안 된다 — POST /activity·기록류가 여기에 적재된다.
+      #   구: ./api/data:/app/api/data:ro → 모든 쓰기가 OSError(Read-only file system)로
+      #   실패했고 핸들러가 이를 삼켜 200을 반환, 이행 기록이 조용히 유실됐다.
+      #   named volume 사용: 최초 기동 시 이미지의 /app/api/data(Dockerfile COPY api/)로
+      #   자동 시딩되고, 이후 쓰기가 볼륨에 영속된다(호스트 git 트리를 더럽히지 않음).
+      - api_data:/app/api/data
       - ./engine/data:/app/engine/data:ro
       - app_logs:/app/logs
     depends_on:
