@@ -860,9 +860,11 @@ const KaasaData = (() => {
   //   (stage_flow.STAGES 의 key 와 일치. 개별 화면 편집 없이 흐름 연속화.)
   var SCREEN_STAGE = {
     'g2_env.html': ['greenhouse', 'gh_env'], 'g3_period.html': ['greenhouse', 'gh_irr'],
-    'g4_growth.html': ['greenhouse', 'gh_growth'], 'g6_harvest.html': ['greenhouse', 'gh_harv'],
+    'g4_growth.html': ['greenhouse', 'gh_growth'], 'g5_disease.html': ['greenhouse', 'gh_dis'],
+    'g6_harvest.html': ['greenhouse', 'gh_harv'],
     'f3_weather.html': ['field', 'fd_wx'], 'f4_soil.html': ['field', 'fd_soil'],
-    'f5_remote.html': ['field', 'fd_ndvi'], 'f7_harvest.html': ['field', 'fd_harv'],
+    'f5_remote.html': ['field', 'fd_ndvi'], 'f6_pest.html': ['field', 'fd_pest'],
+    'f7_harvest.html': ['field', 'fd_harv'],
     'c17_diagnosis.html': ['management', 'mg_diag'], 'c5_erp.html': ['management', 'mg_erp'],
     'c9_benchmark.html': ['management', 'mg_bench'], 'c25_pdca.html': ['management', 'mg_pdca'],
     'c11_pool_join.html': ['market', 'mk_join'], 'c12_joint.html': ['market', 'mk_ops']

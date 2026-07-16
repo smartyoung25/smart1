@@ -12,12 +12,16 @@
       { key: 'gh_env',    label: '환경',   icon: '🌡️', screen: 'g2_env.html' },
       { key: 'gh_irr',    label: '관수',   icon: '💧', screen: 'g3_period.html' },
       { key: 'gh_growth', label: '생육',   icon: '🌿', screen: 'g4_growth.html' },
+      // ★ 병해는 여정 밖 섬이었다 — g4에서 "다음 단계"를 누르면 g5를 건너뛰고 g6로 갔고,
+      //   g5에 들어와도 스테퍼·CTA가 없어 하단탭으로만 탈출 가능했다. 수확 전 점검 단계로 편입.
+      { key: 'gh_dis',    label: '병해',   icon: '🐛', screen: 'g5_disease.html' },
       { key: 'gh_harv',   label: '수확',   icon: '🚜', screen: 'g6_harvest.html' }
     ],
     field: [
       { key: 'fd_wx',     label: '기상',      icon: '🌦️', screen: 'f3_weather.html' },
       { key: 'fd_soil',   label: '토양·관개', icon: '💧', screen: 'f4_soil.html' },
       { key: 'fd_ndvi',   label: '작황',      icon: '🛰️', screen: 'f5_remote.html' },
+      { key: 'fd_pest',   label: '병해충',    icon: '🐛', screen: 'f6_pest.html' },
       { key: 'fd_harv',   label: '수확',      icon: '🚜', screen: 'f7_harvest.html' }
     ],
     management: [
@@ -32,19 +36,16 @@
     ]
   };
 
-  // 가치사슬 도메인 순서: 생산(택1) → 경영 → 유통. 생산 도메인은 farm_type 로 결정.
+  // 가치사슬 도메인 순서: 생산(온실 또는 노지) → 경영 → 유통.
+  // ★ 구: _order()가 [_prodDomain(), 'management', 'market'] 라 생산 도메인이 하나만
+  //   들어갔고, sf_profile.farm_type 과 다른 쪽 생산 도메인은 indexOf=-1 → null 이 되어
+  //   "다음 단계"가 사라지고 "✅ 가치사슬 전 단계 완료"라는 거짓 종료가 떴다.
+  //   sf_profile 은 c1_setup 에서만 기록되는데 하단탭은 온실·노지를 모두 노출하므로
+  //   C1 미완료 노지 농가는 f7_harvest 에서 경영으로 넘어가지 못했다.
+  //   생산 도메인은 어느 쪽이든 다음이 '경영'이다 — 프로필에 의존시키지 않는다.
   var DOMAIN_LABEL = { greenhouse: '온실 생산', field: '노지 생산', management: '경영', market: '유통' };
-  function _prodDomain() {
-    try {
-      var p = JSON.parse(localStorage.getItem('sf_profile') || '{}');
-      return p.farm_type === 'field' ? 'field' : 'greenhouse';
-    } catch (e) { return 'greenhouse'; }
-  }
-  function _order() { return [_prodDomain(), 'management', 'market']; }
-  function nextDomain(domain) {
-    var o = _order(), i = o.indexOf(domain);
-    return (i >= 0 && i < o.length - 1) ? o[i + 1] : null;
-  }
+  var _CHAIN = { greenhouse: 'management', field: 'management', management: 'market', market: null };
+  function nextDomain(domain) { return _CHAIN[domain] || null; }
 
   function _doneSet() {
     try { return new Set(JSON.parse(localStorage.getItem('sf_stage_done') || '[]')); }
