@@ -22,6 +22,7 @@ serve_m2 = (검증적용 OR 조건부) → is_active/서비스 대상. 폴백만
 """
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Optional
 
@@ -97,6 +98,43 @@ def evaluate_m2_gate(
 def passes_gate(mape, cv_r2=None, n_train=None, train_r2=None) -> bool:
     """서비스 대상 여부(검증적용 또는 조건부). 폴백만 False."""
     return evaluate_m2_gate(mape, cv_r2, n_train, train_r2)["serve_m2"]
+
+
+# ── 지표 로딩 단일 경로 ───────────────────────────────────────────────────────
+# ★ stage2_meta.json 이 권위 파일이다. pipeline_meta.json 의 stage2.mape 는
+#   "다른 학습 실행 결과일 수 있음"(admin._load_all_meta 주석) — 실제로 참외는
+#   pipeline_meta 8.7% vs stage2_meta 63.9% 로 크게 다르다. 게이트 판정은 반드시
+#   이 함수로 얻은 권위값을 쓸 것(직접 pipeline_meta 를 읽지 말 것).
+_AUTH_KEYS = ("mape", "cv_mape_mean", "cv_r2_mean", "n_train", "train_r2", "gate_passed")
+
+
+def read_stage2_metrics(artifacts_dir, crop_en: str) -> dict:
+    """stage2 지표 로드 — pipeline_meta.stage2 위에 stage2_meta.json(권위)을 덮어씀."""
+    base = Path(artifacts_dir) / crop_en
+    out: dict = {}
+    pm = base / "pipeline_meta.json"
+    if pm.exists():
+        try:
+            out.update((json.loads(pm.read_text(encoding="utf-8")).get("stage2") or {}))
+        except Exception:
+            pass
+    s2 = base / "stage2_meta.json"
+    if s2.exists():
+        try:
+            real = json.loads(s2.read_text(encoding="utf-8"))
+            for k in _AUTH_KEYS:
+                if real.get(k) is not None:
+                    out[k] = real[k]
+        except Exception:
+            pass
+    return out
+
+
+def evaluate_crop(artifacts_dir, crop_en: str) -> dict:
+    """작목 아티팩트에서 권위 지표를 읽어 M2 게이트 판정."""
+    m = read_stage2_metrics(artifacts_dir, crop_en)
+    return evaluate_m2_gate(m.get("mape"), m.get("cv_r2_mean"),
+                            m.get("n_train"), m.get("train_r2"))
 
 
 # ── 드라이런: 현재 아티팩트 전 작목 판정 출력 ────────────────────────────────

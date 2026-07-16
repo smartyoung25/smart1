@@ -19,10 +19,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
-try:                                    # 게이트 단일 출처 (pipeline/gates.py)
-    from pipeline.gates import evaluate_m2_gate
+try:                                    # 게이트·권위지표 단일 출처 (pipeline/gates.py)
+    from pipeline.gates import evaluate_m2_gate, read_stage2_metrics
 except ImportError:                     # 스크립트 직접 실행 등 경로 미설정 시
-    from gates import evaluate_m2_gate
+    from gates import evaluate_m2_gate, read_stage2_metrics
 
 logger = logging.getLogger(__name__)
 
@@ -137,15 +137,21 @@ def register_version(
     s2_meta = meta.get("stage2", {})
     s3_meta = meta.get("stage3", {})
 
-    mape_stage2 = mape_stage2 if mape_stage2 is not None else s2_meta.get("mape")
+    # ★ 지표는 권위 파일(stage2_meta.json) 기준 — pipeline_meta.stage2 는 다른 학습 실행
+    #   결과일 수 있어 신뢰 금지(예: 참외 pipeline_meta 8.7% vs stage2_meta 63.9%).
+    _auth = read_stage2_metrics(ARTIFACTS_DIR, crop_en)
+
+    mape_stage2 = mape_stage2 if mape_stage2 is not None else (_auth.get("mape") or s2_meta.get("mape"))
     mape_stage3 = mape_stage3 if mape_stage3 is not None else s3_meta.get("mape")
-    cv_r2       = cv_r2       if cv_r2       is not None else s2_meta.get("cv_r2_mean")
+    cv_r2       = cv_r2       if cv_r2       is not None else (_auth.get("cv_r2_mean") or s2_meta.get("cv_r2_mean"))
 
     # ★ 게이트는 pipeline/gates.py 단일 정책으로 판정 (구: s2_meta.gate_passed 맹신 →
     #   완화기준으로 MAPE 60%대 모델까지 활성화되던 문제). 호출자가 gate_passed=False를
     #   명시하면(재학습 실패 등) 그대로 폴백 유지.
-    _n_train  = s2_meta.get("n_train") or s2_meta.get("n_season") or s2_meta.get("n_samples")
-    _verdict  = evaluate_m2_gate(mape_stage2, cv_r2, _n_train, s2_meta.get("train_r2"))
+    _n_train  = (_auth.get("n_train") or s2_meta.get("n_train")
+                 or s2_meta.get("n_season") or s2_meta.get("n_samples"))
+    _verdict  = evaluate_m2_gate(mape_stage2, cv_r2, _n_train,
+                                 _auth.get("train_r2") or s2_meta.get("train_r2"))
     gate_passed = gate_passed and _verdict["serve_m2"]
     logger.info("[registry] %s 게이트 판정=%s (%s)", crop_en, _verdict["label"],
                 "; ".join(_verdict["reasons"] + _verdict["flags"]))

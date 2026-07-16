@@ -18,6 +18,11 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Optional
 
+try:                                    # 게이트 단일 출처 (pipeline/gates.py)
+    from pipeline.gates import evaluate_crop as _gate_evaluate_crop
+except Exception:                       # 게이트 모듈 부재 시 기존 동작 유지(fail-open)
+    _gate_evaluate_crop = None
+
 logger = logging.getLogger(__name__)
 
 ROOT          = Path(__file__).parent.parent.parent
@@ -124,6 +129,20 @@ def load_4stage_model(crop_ko: str) -> Optional[dict]:
         s2 = pickle.loads(s2_path.read_bytes())
         s3 = pickle.loads(s3_path.read_bytes())
         meta = json.loads(meta_path.read_text(encoding="utf-8")) if meta_path.exists() else {}
+
+        # ★ 게이트 미달(폴백 판정) 모델은 서빙하지 않는다 — None 반환 시 호출측이
+        #   구형 앙상블 → stats_fallback(농진청 표준) 순으로 내려감.
+        #   (구: registry 게이트가 서빙에 미연결이라 MAPE 60%대 모델도 그대로 서빙되던 문제)
+        #   ※ 지표는 반드시 gates.evaluate_crop(권위=stage2_meta.json)로 판정할 것.
+        #     meta(pipeline_meta.json)의 stage2.mape는 다른 학습 실행 결과일 수 있음.
+        #     지표가 없는 구 아티팩트는 판정 불가 → 기존대로 서빙(fail-open).
+        if _gate_evaluate_crop is not None:
+            _v = _gate_evaluate_crop(ARTIFACTS_DIR, crop_en)
+            if not _v["serve_m2"]:
+                logger.warning("[model_loader] %s 4-stage 게이트 미달(%s) — M2 미서빙 → 폴백. 사유: %s",
+                               crop_ko, _v["label"], "; ".join(_v["reasons"]))
+                return None
+
         # sklearn 1.5+ 호환: SimpleImputer._fill_dtype 누락 시 보정
         _patch_imputer(s2.get("imputer"))
         logger.info("[model_loader] 4-stage 로드: %s (s2 feats=%d)",
