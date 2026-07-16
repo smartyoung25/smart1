@@ -31,11 +31,33 @@ PERIODS = [
 #   Priva/Hoogendoorn 광연동 승온(lichtverhoging): 일사 ref 초과분 100W/m²당 +Δ℃, 상한 cap
 _LIGHT_BOOST = {"ref_wm2": 200, "slope_per_100wm2": 0.6, "cap_c": 3.0}
 #   Het Nieuwe Telen 24h 평균기온·VPD 권장 밴드 (작물군별, 단계키 기준)
+# 작목별 권장 밴드.
+#   딸기 = 기존 유지(겨울 시설 촉성·야간저온 화아분화 기준).
+#   완숙토마토·방울토마토·오이·파프리카 = 「스마트농업컨설턴트 교재(2025-06-30) [별첨1]
+#     작목별 스마트팜 환경 제어값 기준표」(㈜이암허브·한국스마트농업AI협회, 자사 자료) 근거.
+#     교재의 주/야 온도·습도를 이 파일의 PERIODS 가중과 vpd() 로 환산(scripts/build_crop_recommend.py).
+#     구: 이 4작목이 전부 _default(동일한 일반값)를 받아 작목별 차이가 없었다.
+#   ★ 미적용(추측하지 않음):
+#     · 딸기  — 교재(일반재배)와 제품(겨울촉성) 활착기가 5℃ 차이. 전제가 달라 도메인 판단 필요.
+#     · 참외  — 교재 별첨1의 6번은 '멜론(Melon)'이며 교재는 참외를 별개 작목으로 다룬다.
+#     · 완숙토마토 활착기·생장기 — 원본 PDF 텍스트 손상('16~218℃'). _default 로 폴백됨.
 _RECOMMEND = {
-    "딸기":     {"avg24": {"establish": [13, 15], "veg": [12, 15], "flower": [11, 14], "harvest": [12, 14]},
-                "vpd":   {"establish": [0.4, 0.7], "veg": [0.6, 0.9], "flower": [0.7, 1.0], "harvest": [0.6, 0.9]}},
-    "_default": {"avg24": {"establish": [17, 20], "veg": [18, 21], "flower": [18, 21], "harvest": [17, 20]},
-                "vpd":   {"establish": [0.4, 0.8], "veg": [0.6, 1.0], "flower": [0.8, 1.2], "harvest": [0.7, 1.1]}},
+    "딸기":       {"avg24": {"establish": [13, 15], "veg": [12, 15], "flower": [11, 14], "harvest": [12, 14]},
+                  "vpd":   {"establish": [0.4, 0.7], "veg": [0.6, 0.9], "flower": [0.7, 1.0], "harvest": [0.6, 0.9]}},
+    # 교재 p448 「1. 토마토(대과)」 — 활착기·생장기는 원본 손상으로 제외(→ _default 병합)
+    "완숙토마토":  {"avg24": {"flower": [16.2, 19.7], "harvest": [14.8, 17.7]},
+                  "vpd":   {"flower": [0.7, 1.19], "harvest": [0.62, 1.06]}},
+    # 교재 p449 「4. 방울토마토(Mini Tomato)」
+    "방울토마토":  {"avg24": {"establish": [19.2, 21.2], "veg": [17.2, 20.2], "flower": [15.2, 18.7], "harvest": [13.2, 17.2]},
+                  "vpd":   {"establish": [0.42, 0.79], "veg": [0.62, 1.04], "flower": [0.66, 1.12], "harvest": [0.58, 0.99]}},
+    # 교재 p449 「5. 오이(Cucumber)」
+    "오이":       {"avg24": {"establish": [21.7, 23.7], "veg": [19.7, 21.7], "flower": [17.7, 20.1], "harvest": [15.7, 18.1]},
+                  "vpd":   {"establish": [0.5, 0.76], "veg": [0.6, 1.01], "flower": [0.66, 1.11], "harvest": [0.7, 1.12]}},
+    # 교재 p448 「3. 파프리카」
+    "파프리카":    {"avg24": {"establish": [21.2, 23.2], "veg": [18.8, 21.2], "flower": [16.8, 19.7], "harvest": [14.8, 17.7]},
+                  "vpd":   {"establish": [0.48, 0.71], "veg": [0.53, 0.95], "flower": [0.58, 1.04], "harvest": [0.62, 1.06]}},
+    "_default":   {"avg24": {"establish": [17, 20], "veg": [18, 21], "flower": [18, 21], "harvest": [17, 20]},
+                  "vpd":   {"establish": [0.4, 0.8], "veg": [0.6, 1.0], "flower": [0.8, 1.2], "harvest": [0.7, 1.1]}},
 }
 _BENCH_METHOD = ("Het Nieuwe Telen(차세대 재배)·Plant Empowerment · "
                  "Priva 광연동 승온 · 농진청 시설표준")
@@ -62,10 +84,21 @@ def segment_metrics(seg: dict) -> dict:
 
 
 def _recommend_for(crop: str) -> dict:
+    """작목별 권장 밴드. 작목값이 없는 단계는 _default 로 메운다(단계 단위 병합).
+
+    ★ 부분 데이터 안전장치: 완숙토마토처럼 일부 단계만 확보된 작목이 있다(교재 별첨1의
+      활착기·생장기가 원본 손상이라 제외). 통째로 교체하면 그 단계가 None 이 되어
+      기존에 _default 로 안내받던 농가가 오히려 안내를 잃는다 — 회귀를 막는다.
+    """
+    base = _RECOMMEND["_default"]
     for k in _RECOMMEND:
         if k != "_default" and k in (crop or ""):
-            return _RECOMMEND[k]
-    return _RECOMMEND["_default"]
+            c = _RECOMMEND[k]
+            return {
+                "avg24": {**base["avg24"], **(c.get("avg24") or {})},
+                "vpd":   {**base["vpd"],   **(c.get("vpd") or {})},
+            }
+    return base
 
 
 def current_period_key(hour: int, periods: list | None = None) -> str:
