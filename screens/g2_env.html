@@ -958,7 +958,7 @@ function _renderControls(container, results, planBased) {
     const conf = Math.round(result.conf * 100);
     const actionBtns = _mode !== 'manual' ? `
       <div class="action-row">
-        <button class="btn-accept" onclick="_acceptControl('${rule.id}','${result.action.replace(/'/g,"\\'")}')">✓ 적용 (${_mode === 'auto' ? '자동' : '수동'})</button>
+        <button class="btn-accept" onclick="_acceptControl('${rule.id}','${result.action.replace(/'/g,"\\'")}')">✓ 확인·기록</button>
         <button class="btn-hold" onclick="_holdControl('${rule.id}')">보류</button>
       </div>` : `<div style="font-size:11px;color:var(--muted);">수동 모드 — 직접 제어하세요</div>`;
 
@@ -980,15 +980,24 @@ function _renderControls(container, results, planBased) {
   }).join('');
 }
 
-function _acceptControl(id, action) {
+// ★ 기기 제어 연동은 아직 없다. 따라서 "적용 완료"라고 말하면 거짓이다 —
+//   구: console.log만 하고 "✓ 적용 완료"를 표시해, 농가가 난방이 켜진 줄 알고
+//   온실을 떠나는 문제가 있었음. 지금은 (1) 확인 사실을 서버에 기록하고
+//   (2) 라벨을 '확인함 — 직접 실행 필요'로 정직하게 표기한다.
+async function _acceptControl(id, action) {
   const card = document.getElementById(`ctrl-${id}`);
-  if (card) {
-    card.style.opacity = '.5';
-    card.querySelector('.action-row').innerHTML =
-      `<div style="font-size:13px;color:var(--green);font-weight:700;padding:8px 0;">✓ 적용 완료 — ${action}</div>`;
+  const row  = card?.querySelector('.action-row');
+  if (row) row.innerHTML = `<div style="font-size:13px;color:var(--muted);padding:8px 0;">기록 중…</div>`;
+  try {
+    await KaasaData.logActivity('env_setpoint', id, null, `제어 권고 확인 — ${action}`);
+    if (card) card.style.opacity = '.6';
+    if (row) row.innerHTML =
+      `<div style="font-size:13px;color:var(--green);font-weight:700;padding:8px 0;">✓ 확인함 — ${action}</div>
+       <div style="font-size:11px;color:var(--muted);padding-bottom:6px;">기록됨 · 기기 미연동이라 <b>직접 실행</b>이 필요합니다</div>`;
+  } catch (e) {
+    if (row) row.innerHTML =
+      `<div style="font-size:12px;color:var(--orange);font-weight:600;padding:8px 0;">⚠ 기록 실패 — ${(e.message||'오류').slice(0,50)}</div>`;
   }
-  // 실제 기기 연동 시 여기서 API 호출
-  console.log(`[G2] 제어 적용: ${id} → ${action}`);
 }
 
 function _holdControl(id) {

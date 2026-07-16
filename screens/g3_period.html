@@ -809,18 +809,31 @@ function confirmApply(periodId) {
   openSheet('sheetApply');
 }
 
-function applyIrrigation(periodId, pp) {
-  // 실행 기록 저장 (apply API)
+// ★ 서버 저장 성공 후에만 성공 토스트 — 구: _periodData(메모리)에만 대입하고
+//   fetch 없이 "✅ 관수 실행 기록됨"을 띄워, 새로고침하면 흔적이 사라지고
+//   이행 이력·폐루프 학습에서 통째로 누락되던 문제.
+async function applyIrrigation(periodId, pp) {
+  const supply = pp?.supplyMl ?? 0;
   _periodData[periodId] = {
     period: KaasaData.PERIODS.findIndex(x => x.id === periodId) + 1,
-    supply_ml: pp?.supplyMl ?? 0,
-    drain_ml: 0, ec: null, ph: null, slab_wt_kg: null
+    supply_ml: supply, drain_ml: 0, ec: null, ph: null, slab_wt_kg: null
   };
-  showToast(`✅ ${periodId} 관수 실행 기록됨`);
+  showToast(`⏳ ${periodId} 관수 기록 중…`);
+  try {
+    await KaasaData.logActivity('irrigation', periodId, supply, `AI 추천 관수 승인 — 급액 ${supply}mL`);
+    showToast(`✅ ${periodId} 관수 실행 기록됨`);
+  } catch (e) {
+    showToast(`❌ 기록 실패: ${(e.message || '오류').slice(0, 60)}`);
+  }
 }
 
-function recordSkip(periodId) {
-  showToast(`⏭ ${periodId} 건너뜀 기록됨`);
+async function recordSkip(periodId) {
+  try {
+    await KaasaData.logActivity('irrigation', periodId, 0, '관수 건너뜀(사용자 판단)');
+    showToast(`⏭ ${periodId} 건너뜀 기록됨`);
+  } catch (e) {
+    showToast(`❌ 기록 실패: ${(e.message || '오류').slice(0, 60)}`);
+  }
 }
 
 /* ── 관수 기록 시트 ── */

@@ -177,14 +177,32 @@ function _renderSummary(){
     ['출하시작',form.ship_date||'—'],['최저등급',form.min_grade],['약정동의','3/3 완료 ✓']];
   document.getElementById('summaryCard').innerHTML=rows.map(([k,v])=>`<div class="summary-row"><span class="k">${k}</span><span class="v">${v}</span></div>`).join('');
 }
-function _save(){
+// ★ 공동출하 가입 전용 API는 아직 없다. 구: localStorage에만 쓰고 "담당자 확인 후
+//   승인됩니다"라고 표시 → 승인할 담당자에게 도달하는 데이터가 없고, 캐시를 지우면
+//   가입 사실이 소멸했다. 지금은 /activity 에 신청을 기록해 최소 폐루프를 연결하고,
+//   기록이 실패하면 성공이라 말하지 않는다.
+async function _save(){
   const res=document.getElementById('saveResult');
-  // 공동출하 가입 전용 API 미구현 → localStorage 저장 (실 연동 시 POST 교체)
   const rec={...form, ts:Date.now(), date:new Date().toISOString().slice(0,10)};
-  // ★ 키 통일: C12 운영화면이 'sf_pool_joined'를 읽어 가입 전/후 분기 → C11도 동일 키 사용(구: sf_pool_join 불일치로 가입 미반영)
-  const arr=JSON.parse(localStorage.getItem('sf_pool_joined')||'[]'); arr.push(rec); localStorage.setItem('sf_pool_joined',JSON.stringify(arr));
-  res.style.color='var(--green)'; res.innerHTML='✓ 공동출하 가입 신청 완료! 담당자 확인 후 승인됩니다.';
+  res.style.color='var(--muted)'; res.innerHTML='⏳ 가입 신청 기록 중…';
+  try{
+    await KaasaData.logActivity('pool_join', form.org || '', form.volume_kg ?? null,
+      `공동출하 가입 신청 — ${form.crop_ko||''} ${form.volume_kg?form.volume_kg+'kg':''} 최저등급 ${form.min_grade||'—'}`);
+  }catch(e){
+    res.style.color='var(--orange)';
+    res.innerHTML='⚠ 신청이 서버에 기록되지 않았습니다 — '+((e.message||'오류').slice(0,60))+'<br>입력값은 이 기기에 임시 저장됩니다.';
+    _persist(rec);
+    return;
+  }
+  _persist(rec);
+  res.style.color='var(--green)'; res.innerHTML='✓ 공동출하 가입 신청이 기록되었습니다 — 담당자 확인 예정';
   setTimeout(()=>location.href='c12_joint.html', 2000);
+}
+// ★ 키 통일: C12 운영화면이 'sf_pool_joined'를 읽어 가입 전/후 분기 → 동일 키 사용
+//   (구: sf_pool_join 불일치로 가입 미반영)
+function _persist(rec){
+  const arr=JSON.parse(localStorage.getItem('sf_pool_joined')||'[]'); arr.push(rec);
+  localStorage.setItem('sf_pool_joined',JSON.stringify(arr));
 }
 </script>
 </body>

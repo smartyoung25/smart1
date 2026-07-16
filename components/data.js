@@ -505,6 +505,25 @@ const KaasaData = (() => {
     }
   }
 
+  // ── 활동 기록 ───────────────────────────────────────────────────────────────
+  // 사용자의 결정·이행(관수 승인·제어 확인·보정·신청 등)을 서버에 남긴다.
+  // ★ 규약: 성공 표시(토스트·라벨)는 이 함수가 resolve된 뒤에만 할 것.
+  //   실패는 반드시 사용자에게 노출한다 — 구: 여러 화면이 fetch 없이 "✓ 기록됨"만
+  //   띄워, 폐루프 학습 데이터가 조용히 새고 사용자는 저장된 줄 알던 문제가 있었음.
+  async function logActivity(kind, item, value, detail) {
+    try {
+      return await apiFetch(`/api/farms/${_farmId}/activity`, {
+        method: 'POST',
+        body: JSON.stringify({ kind, item: item || '', value: value ?? null, detail: detail || '' })
+      });
+    } catch (e) {
+      if (/HTTP 403/.test(e.message || '')) {
+        throw new Error('데모(읽기 전용) 모드 — 기록이 저장되지 않았습니다.');
+      }
+      throw e;
+    }
+  }
+
   // ── 관수 분석 조회 ──────────────────────────────────────────────────────────
   async function loadIrrigationAnalysis(days = 7) {
     return apiFetch(`/api/farms/${_farmId}/irrigation/analysis?days=${days}`);
@@ -933,7 +952,7 @@ const KaasaData = (() => {
     toggleTheme, currentTheme,
     // 데이터 로드
     loadPrivaSchedule, loadRecommend, loadEnvironment,
-    submitIrrigation, loadIrrigationAnalysis,
+    submitIrrigation, loadIrrigationAnalysis, logActivity,
     // 현재 센서
     getSensorValue, getLatestPriva, getFarmId, getApiBase,
     // 유틸

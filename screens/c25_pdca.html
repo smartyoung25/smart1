@@ -319,7 +319,7 @@
         <span>⚙️</span><span class="corr-title">농장 보정값 조정</span>
       </div>
       <div class="corr-body">
-        <p class="corr-hint">M2 예측에 곱해지는 농장별 보정 계수입니다.<br>실측 수확량과 예측의 괴리를 줄일 때 사용하세요.</p>
+        <p class="corr-hint">실측 수확량과 예측의 괴리를 기록하는 농장별 보정 계수입니다.<br>기록은 담당자 검토 후 예측 개선에 반영됩니다(자동 즉시 반영 아님).</p>
         <div class="corr-row">
           <span class="corr-label">수량 보정 계수</span>
           <input type="number" id="corrYield" class="corr-input" value="1.00" step="0.05" min="0.5" max="2.0">
@@ -330,7 +330,7 @@
           <input type="number" id="corrPrice" class="corr-input" value="1.00" step="0.05" min="0.5" max="2.0">
           <span class="corr-unit">×배율</span>
         </div>
-        <button class="btn-corr-save" onclick="_saveCorrection()">✅ 보정값 저장 (이번 작기 적용)</button>
+        <button class="btn-corr-save" onclick="_saveCorrection()">✅ 보정값 기록</button>
       </div>
     </div>
   </div>
@@ -778,29 +778,45 @@ function _toggleCorrection() {
 }
 
 // 전문가 점검 요청 토스트
-function _requestConsult() {
+// ★ 구: 두 함수 모두 fetch 없이 토스트만 띄웠음 — "전송되었습니다"·"보정 적용"이라
+//   말하지만 전송처도 저장도 없어, 새로고침하면 되돌아가고 서버엔 흔적이 없었다.
+//   지금은 /activity 에 기록하고, 성공 후에만 성공 문구를 표시한다.
+function _toast(text, bg) {
   const t = document.createElement('div');
   t.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);' +
-    'background:#1f2937;color:#fff;padding:11px 20px;border-radius:24px;' +
+    'background:' + (bg || '#1f2937') + ';color:#fff;padding:11px 20px;border-radius:24px;' +
     'font-size:13px;font-weight:700;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.3);' +
-    'white-space:nowrap;';
-  t.textContent = '📞 컨설턴트 점검 요청이 전송되었습니다';
+    'max-width:90vw;text-align:center;';
+  t.textContent = text;
   document.body.appendChild(t);
-  setTimeout(() => t.remove(), 3000);
+  setTimeout(() => t.remove(), 3200);
+  return t;
 }
 
-// 보정값 저장
-function _saveCorrection() {
+async function _requestConsult() {
+  const t = _toast('⏳ 점검 요청 기록 중…');
+  try {
+    await KaasaData.logActivity('consult', 'pdca_review', null, 'PDCA 화면에서 전문가 점검 요청');
+    t.remove(); _toast('📞 점검 요청이 기록되었습니다 — 담당자 확인 예정', '#059669');
+  } catch (e) {
+    t.remove(); _toast('❌ 요청 실패: ' + (e.message || '오류').slice(0, 50), '#dc2626');
+  }
+}
+
+// 보정값 저장 — 서버 기록 + 로컬 유지(새로고침 후에도 입력값 보존)
+async function _saveCorrection() {
   const y = parseFloat(document.getElementById('corrYield').value) || 1.0;
   const p = parseFloat(document.getElementById('corrPrice').value) || 1.0;
-  const t = document.createElement('div');
-  t.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);' +
-    'background:#059669;color:#fff;padding:11px 20px;border-radius:24px;' +
-    'font-size:13px;font-weight:700;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.3);';
-  t.textContent = `✅ 보정 적용: 수량 ×${y.toFixed(2)}  가격 ×${p.toFixed(2)}`;
-  document.body.appendChild(t);
-  setTimeout(() => t.remove(), 3000);
-  document.getElementById('correctionPanel').style.display = 'none';
+  const t = _toast('⏳ 보정값 기록 중…');
+  try {
+    await KaasaData.logActivity('correction', 'yield_price', y,
+      `농장 보정계수 — 수량 ×${y.toFixed(2)} / 가격 ×${p.toFixed(2)}`);
+    try { localStorage.setItem('sf_correction', JSON.stringify({ yield: y, price: p })); } catch (_) {}
+    t.remove(); _toast(`✅ 보정값 기록됨: 수량 ×${y.toFixed(2)} 가격 ×${p.toFixed(2)}`, '#059669');
+    document.getElementById('correctionPanel').style.display = 'none';
+  } catch (e) {
+    t.remove(); _toast('❌ 저장 실패: ' + (e.message || '오류').slice(0, 50), '#dc2626');
+  }
 }
 </script>
 </body>
