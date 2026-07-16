@@ -26,6 +26,11 @@ from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Optional
 
+try:                                    # 게이트·권위지표 단일 출처
+    from pipeline.gates import evaluate_m2_gate, read_stage2_metrics
+except ImportError:                     # 스크립트 직접 실행 등 경로 미설정 시
+    from gates import evaluate_m2_gate, read_stage2_metrics
+
 logger = logging.getLogger(__name__)
 
 ROOT         = Path(__file__).parent.parent
@@ -70,19 +75,23 @@ def _collect_model_summary() -> list[dict]:
         versions   = entry.get("versions", [])
         active_v   = next((v for v in versions if v["version"] == active_num), None)
 
-        # pipeline_meta.json에서 추가 지표
-        meta_path  = ARTIFACTS / crop_en / "pipeline_meta.json"
-        meta       = _load_json(meta_path)
-        s2         = meta.get("stage2", {})
+        # ★ 지표·게이트는 권위 파일(stage2_meta.json)과 gates 단일정책 기준.
+        #   구: registry.mape_stage2(frozen — 재학습해도 갱신 안 됨)를 1순위로,
+        #       pipeline_meta.stage2(다른 학습 실행 결과일 수 있음)를 2순위로 읽어
+        #       주간 리포트에 틀린 MAPE/게이트가 실렸음.
+        _auth = read_stage2_metrics(ARTIFACTS, crop_en)
+        _v    = evaluate_m2_gate(_auth.get("mape"), _auth.get("cv_r2_mean"),
+                                 _auth.get("n_train"), _auth.get("train_r2"))
 
         rows.append({
             "crop_ko":    crop_ko,
             "crop_en":    crop_en,
             "version":    active_num,
-            "mape":       active_v.get("mape_stage2") if active_v else s2.get("mape"),
-            "cv_r2":      active_v.get("cv_r2")       if active_v else s2.get("cv_r2_mean"),
-            "gate":       s2.get("gate_passed", False),
-            "n_train":    s2.get("n_train"),
+            "mape":       _auth.get("mape"),
+            "cv_r2":      _auth.get("cv_r2_mean"),
+            "gate":       _v["serve_m2"],
+            "verdict":    _v["label"],
+            "n_train":    _auth.get("n_train"),
             "updated_at": active_v.get("timestamp") if active_v else None,
         })
     return rows

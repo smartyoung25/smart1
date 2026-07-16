@@ -18,10 +18,12 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Optional
 
-try:                                    # 게이트 단일 출처 (pipeline/gates.py)
+try:                                    # 게이트·권위지표 단일 출처 (pipeline/gates.py)
     from pipeline.gates import should_serve_m2 as _should_serve_m2
+    from pipeline.gates import read_stage2_metrics as _read_stage2_metrics
 except Exception:                       # 게이트 모듈 부재 시 기존 동작 유지(fail-open)
     _should_serve_m2 = None
+    _read_stage2_metrics = None
 
 logger = logging.getLogger(__name__)
 
@@ -142,6 +144,18 @@ def load_4stage_model(crop_ko: str) -> Optional[dict]:
                 logger.warning("[model_loader] %s 4-stage 게이트 미달(%s) — M2 미서빙 → 폴백. 사유: %s",
                                crop_ko, _v["label"], "; ".join(_v["reasons"]))
                 return None
+
+        # ★ 번들의 meta.stage2 를 권위값(stage2_meta.json)으로 덮어씀.
+        #   meta 원본은 pipeline_meta.json 이라 stage2 지표가 다른 학습 실행 결과일 수 있음
+        #   (참외: pipeline_meta 8.7% vs 권위 63.9%). 이걸 안 하면 get_model_meta 등
+        #   번들 소비자가 stale MAPE를 그대로 API로 노출한다. 여기서 한 번 정합화하면
+        #   모든 번들 소비자가 자동으로 권위값을 본다.
+        if _read_stage2_metrics is not None:
+            _auth = _read_stage2_metrics(ARTIFACTS_DIR, crop_en)
+            if _auth:
+                if not isinstance(meta, dict):
+                    meta = {}
+                meta["stage2"] = {**(meta.get("stage2") or {}), **_auth}
 
         # sklearn 1.5+ 호환: SimpleImputer._fill_dtype 누락 시 보정
         _patch_imputer(s2.get("imputer"))

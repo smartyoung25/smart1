@@ -27,6 +27,13 @@ from sklearn.linear_model import Ridge
 from sklearn.model_selection import cross_val_score
 from sklearn.preprocessing import StandardScaler
 
+try:                                    # 게이트 단일 출처 (pipeline/gates.py)
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+    from pipeline.gates import passes_gate as _gate_serve
+except Exception:                       # import 실패해도 학습이 깨지지 않도록
+    def _gate_serve(mape, cv_r2=None, n_train=None):  # type: ignore
+        return bool(mape is not None and mape <= 25.0)
+
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
 
@@ -204,7 +211,8 @@ def main():
         "model_type": "gbm_synthetic", "feature_count": 6,
         "n_train": N, "log_transform": True,
         "cv_r2_mean": s2["cv_r2_mean"], "mape": s2["mape"],
-        "gate_passed": s2["cv_r2_mean"] > 0.3,
+        # 게이트는 pipeline/gates.py 단일 정책 (구: cv_r2>0.3 자체 기준 — 또 다른 변종이었음)
+        "gate_passed": _gate_serve(s2["mape"], s2["cv_r2_mean"], N),
         "note": "합성 데이터 기반 — 실 농진청 데이터 수집 후 재학습 권장",
     }
     (OUT_DIR / "stage2_meta.json").write_text(

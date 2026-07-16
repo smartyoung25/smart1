@@ -152,9 +152,50 @@ def should_serve_m2(artifacts_dir, crop_en: str) -> tuple:
     return v["serve_m2"], v
 
 
+# ── 지표 출처 괴리 감지 ──────────────────────────────────────────────────────
+# MAPE가 기록되는 곳이 4군데(권위 stage2_meta / pipeline_meta / registry / pkl 내부)라
+# 값이 조용히 어긋나면 게이트·블렌딩·보고서가 동시에 틀어진다(실제로 그랬음).
+# 이 함수로 괴리를 드러내고, 테스트가 이를 회귀 감시한다.
+def check_consistency(root, crop_en: str, tol: float = 1.0) -> dict:
+    """작목별 MAPE 4중 출처 비교. 반환: {authoritative, sources, diverged}."""
+    root = Path(root)
+    arts = root / "models" / "artifacts"
+    auth = read_stage2_metrics(arts, crop_en).get("mape")
+    src: dict = {}
+
+    pm = arts / crop_en / "pipeline_meta.json"
+    if pm.exists():
+        try:
+            src["pipeline_meta"] = (json.loads(pm.read_text(encoding="utf-8")).get("stage2") or {}).get("mape")
+        except Exception:
+            pass
+
+    reg = root / "models" / "registry.json"
+    if reg.exists():
+        try:
+            e = (json.loads(reg.read_text(encoding="utf-8")) or {}).get(crop_en, {})
+            act = next((v for v in e.get("versions", []) if v.get("is_active")), None)
+            src["registry"] = (act or {}).get("mape_stage2")
+        except Exception:
+            pass
+
+    for fname in ("m2_yield_model.pkl", "stage2_yield.pkl"):
+        p = arts / crop_en / fname
+        if p.exists():
+            try:
+                import pickle
+                src["pkl"] = (pickle.loads(p.read_bytes()) or {}).get("mape")
+            except Exception:
+                pass
+            break
+
+    diverged = {k: v for k, v in src.items()
+                if v is not None and auth is not None and abs(float(v) - float(auth)) > tol}
+    return {"crop_en": crop_en, "authoritative": auth, "sources": src, "diverged": diverged}
+
+
 # ── 드라이런: 현재 아티팩트 전 작목 판정 출력 ────────────────────────────────
 if __name__ == "__main__":
-    import json
     root = Path(__file__).resolve().parent.parent
     metas = sorted((root / "models" / "artifacts").glob("*/stage2_meta.json"))
     print(f"{'작목':<14}{'MAPE':>7}{'CV_R2':>8}{'n':>7}  {'판정':<8} 근거/플래그")
