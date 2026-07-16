@@ -83,17 +83,20 @@
         "version": 8,
         "timestamp": "2026-06-14T06:25:27.061513+00:00",
         "triggered_by": "retrain_trigger",
-        "mape_stage2": 19.8,
+        "mape_stage2": 17.8,
         "mape_stage3": 17.9,
-        "cv_r2": 0.25,
-        "gate_passed": false,
+        "cv_r2": 0.295,
+        "gate_passed": true,
         "is_active": true,
-        "snapshot_version": 8
+        "snapshot_version": 8,
+        "n_train": 6427,
+        "verdict": "serve",
+        "gate_flags": []
       }
     ]
   },
   "cherry_tomato": {
-    "active_version": 8,
+    "active_version": null,
     "versions": [
       {
         "version": 1,
@@ -176,12 +179,17 @@
         "version": 8,
         "timestamp": "2026-06-14T06:25:31.684579+00:00",
         "triggered_by": "retrain_trigger",
-        "mape_stage2": 8.8,
+        "mape_stage2": 48.6,
         "mape_stage3": 18.2,
-        "cv_r2": 0.167,
+        "cv_r2": 0.846,
         "gate_passed": false,
-        "is_active": true,
-        "snapshot_version": 8
+        "is_active": false,
+        "snapshot_version": 8,
+        "n_train": 49,
+        "verdict": "fallback",
+        "gate_flags": [
+          "소표본 n=49<60 (LOGO 재검증 권장)"
+        ]
       }
     ]
   },
@@ -269,17 +277,20 @@
         "version": 8,
         "timestamp": "2026-06-14T06:25:36.316618+00:00",
         "triggered_by": "retrain_trigger",
-        "mape_stage2": 17.1,
+        "mape_stage2": 28.1,
         "mape_stage3": 26.0,
-        "cv_r2": 0.366,
-        "gate_passed": false,
+        "cv_r2": 0.099,
+        "gate_passed": true,
         "is_active": true,
-        "snapshot_version": 8
+        "snapshot_version": 8,
+        "n_train": 177,
+        "verdict": "conditional",
+        "gate_flags": []
       }
     ]
   },
   "melon": {
-    "active_version": 8,
+    "active_version": null,
     "versions": [
       {
         "version": 1,
@@ -362,12 +373,17 @@
         "version": 8,
         "timestamp": "2026-06-14T06:25:40.907680+00:00",
         "triggered_by": "retrain_trigger",
-        "mape_stage2": 8.7,
+        "mape_stage2": 63.9,
         "mape_stage3": 12.8,
-        "cv_r2": 0.225,
+        "cv_r2": 0.592,
         "gate_passed": false,
-        "is_active": true,
-        "snapshot_version": 8
+        "is_active": false,
+        "snapshot_version": 8,
+        "n_train": 42,
+        "verdict": "fallback",
+        "gate_flags": [
+          "소표본 n=42<60 (LOGO 재검증 권장)"
+        ]
       }
     ]
   },
@@ -455,12 +471,17 @@
         "version": 8,
         "timestamp": "2026-06-14T06:25:45.560468+00:00",
         "triggered_by": "retrain_trigger",
-        "mape_stage2": 11.8,
+        "mape_stage2": 29.2,
         "mape_stage3": 16.0,
-        "cv_r2": 0.204,
-        "gate_passed": false,
+        "cv_r2": 0.802,
+        "gate_passed": true,
         "is_active": true,
-        "snapshot_version": 8
+        "snapshot_version": 8,
+        "n_train": 48,
+        "verdict": "conditional",
+        "gate_flags": [
+          "소표본 n=48<60 (LOGO 재검증 권장)"
+        ]
       }
     ]
   }
