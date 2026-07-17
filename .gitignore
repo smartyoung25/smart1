@@ -22,14 +22,20 @@ build/
 api/data/telemetry/
 
 # 비밀·개인정보 — 커밋 금지
-api/data/password_resets.json    # 비밀번호 재설정 토큰
-api/data/user_contacts.json      # 가입자 전화·이메일(PII)
+# ★ .gitignore 는 줄 끝 주석을 지원하지 않는다(주석이 패턴에 붙어 매칭 실패).
+#   설명은 반드시 별도 줄에 쓸 것.
+# password_resets.json: 비밀번호 재설정 토큰
+api/data/password_resets.json
+# user_contacts.json: 가입자 전화·이메일(PII)
+api/data/user_contacts.json
 
 # 재생성 가능한 캐시 (외부 API·계산 결과)
 api/data/kamis_price_cache.json
 api/data/quota_cache.json
-api/data/sun_times/              # 위경도로 재계산됨
-api/data/ext_weather/            # 외부 예보 재조회됨
+# sun_times: 위경도로 재계산됨
+api/data/sun_times/
+# ext_weather: 외부 예보 재조회됨
+api/data/ext_weather/
 
 # 외부 설치 스킬 (개발 도구, 제품 저장소 제외 — 자체 .git 보유)
 .claude/skills/ui-ux-pro-max-skill/
