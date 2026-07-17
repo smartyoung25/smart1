@@ -7,11 +7,17 @@
 ## 브랜드 & 운영
 
 - **제품명**: KAASA Farmingsight
-- **도메인**: https://farmingsight.org (Cloudflare Named Tunnel, kaasa-smartos)
-- **서버**: `PYTHONPATH=C:\smart_farm PUBLIC_DEMO=1 python -m uvicorn api.main:app --port 8000`
-- **터널**: `cloudflared tunnel --config deploy/cloudflare/config.yml run kaasa-smartos`
-- **SW 캐시**: 현재 v16 — 화면 변경 시 반드시 bump (base.css 또는 data.js CACHE_VERSION)
-- **감시**: `deploy/cloudflare/watchdog.ps1` 30초 주기 자동재기동 (Mutex 단일인스턴스 가드)
+- **운영**: https://farmingsight.org — **iwinv Ubuntu 서버**(115.68.226.231, Docker)가 서빙.
+  터널은 iwinv 의 systemd `cloudflared-kaasa.service` 가 담당.
+- **★ 이 PC 에서 cloudflared 를 띄우지 말 것**: config.yml 이 iwinv 와 **같은 터널 UUID** 라
+  farmingsight.org 트래픽이 이 PC(개발 코드)로 넘어온다. 2026-07-17 실제 사고 —
+  운영 요청 10/10 이 이 PC 로 갔고 iwinv 배포분이 사용자에게 닿지 않았다.
+  증상이 조용하다(도메인 200·SW 버전 동일) → **배포 검증은 `curl localhost:8000`(iwinv 실체)와
+  `curl https://farmingsight.org` 를 반드시 대조**할 것. 다르면 터널이 다른 연결자를 보고 있다.
+- **로컬 개발 서버**: `PYTHONPATH=C:\smart_farm PUBLIC_DEMO=1 python -m uvicorn api.main:app --port 8000`
+- **SW 캐시**: 현재 **v81** — 화면 변경 시 반드시 bump (`sw.js` 의 `CACHE`)
+- **감시**: `deploy/cloudflare/watchdog.ps1` — **로컬 uvicorn:8000 전용**(30초 주기).
+  cloudflared 는 관리하지 않는다(위 사고). 발견 시 경고 로그만 남긴다.
 
 ## 영구 제약 (위반 시 서비스 장애)
 
@@ -89,5 +95,7 @@ deploy/cloudflare/ ← config.yml·watchdog.ps1
 ## 사용자 조치 필요 (내가 못함)
 
 - **SMTP**: `.env` `SMTP_USER`·`SMTP_PASSWORD` 미설정 (Gmail 앱비번 16자 필요)
-- **LLM**: `ANTHROPIC_API_KEY` 미설정 → 챗봇 규칙 기반 폴백
-- **터널 영속**: `cloudflared service install` (관리자 권한 선택사항)
+- **LLM**: `ANTHROPIC_API_KEY` 는 설정돼 있으나 **크레딧 소진**(`credit balance is too low`)
+  → 챗봇이 규칙 기반 + 지식베이스 원문 발췌로 폴백 중. 충전하면 LLM 답변 복구.
+- ~~터널 영속: `cloudflared service install`~~ — **이 PC 에서 실행 금지**. 운영 터널을
+  영구 가로채게 된다(위 브랜드·운영 절 참조). 운영 터널은 iwinv systemd 가 담당.
