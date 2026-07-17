@@ -1,6 +1,29 @@
-tunnel: c3970739-1e23-4640-b88a-b5c7741131c0
-credentials-file: C:\Users\IIamHub3\.cloudflared\c3970739-1e23-4640-b88a-b5c7741131c0.json
+# cloudflared named tunnel 설정 — ★ 치환 템플릿 (실 UUID 를 넣어두지 않는다)
+#
+# ★★ 이 PC(개발기)에서 운영 터널에 붙지 말 것.
+#   운영은 2026-07-05 iwinv Ubuntu(115.68.226.231)로 이전됐고, 터널은 iwinv 의
+#   systemd `cloudflared-kaasa.service` 가 /root/.cloudflared/config.yml 로 담당한다.
+#   이 파일에 운영 UUID(c3970739-…)가 박혀 있었고, 이 PC 에서 cloudflared 가 뜨면
+#   Cloudflare 가 farmingsight.org 트래픽을 이 PC 로 보낸다.
+#   2026-07-17 실제 사고: watchdog 이 cloudflared 를 되살려 운영 요청 10/10 이
+#   이 PC(개발 코드)로 갔고 iwinv 배포분이 사용자에게 닿지 않았다. 도메인은 200 이고
+#   SW 버전도 같아 증상이 조용했다 — 동작 차이로만 드러났다.
+#   → 재발 방지로 UUID·credentials 경로를 placeholder 로 되돌린다(런북의 원형).
+#
+# ⚠ 이것만으로 완전히 막히지는 않는다:
+#   `cloudflared tunnel run <터널이름>` 은 이름을 인자로 받아 ~/.cloudflared/cert.pem 으로
+#   UUID 를 되찾고 자격증명(<UUID>.json)을 찾는다. 이 PC 에 둘 다 남아 있는 한
+#   config.yml 과 무관하게 붙을 수 있다(run_named.bat 이 그 형태다).
+#   확실히 막으려면 ~/.cloudflared/ 의 cert.pem·<UUID>.json 을 옮길 것
+#   — 단, 수동 페일오버 수단도 함께 사라진다.
+#
+# 신규 환경 세팅(운영 서버에서만):
+#   cloudflared tunnel login / create / route dns 후 아래 placeholder 치환.
+#   자동: deploy/cloudflare/setup_named_tunnel.ps1 (도메인만 넘기면 생성·DNS·config 자동)
+
+tunnel: {TUNNEL_ID}
+credentials-file: {CREDENTIALS_FILE}
 ingress:
-  - hostname: farmingsight.org
+  - hostname: {DOMAIN}
     service: http://localhost:8000
   - service: http_status:404
