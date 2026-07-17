@@ -1,13 +1,26 @@
 ﻿# ============================================================
-#  KAASA Farmingsight — 자동복구 watchdog
-#  uvicorn(API 8000) + cloudflared(named tunnel) 가 죽으면 자동 재기동.
-#  시스템 서비스 미사용. 작업 스케줄러(로그온 시) 로 기동 권장.
-#  수동 실행:  powershell -ExecutionPolicy Bypass -File watchdog.ps1
+#  KAASA Farmingsight — 로컬 개발 API 자동복구 watchdog
+#  로컬 uvicorn(API 8000) 이 죽거나 행(hang) 이면 재기동한다.
+#
+#  ★★ cloudflared(터널) 는 관리하지 않는다 — 절대 되살리지 말 것.
+#     2026-07-05 운영은 iwinv Ubuntu 서버로 이전됐고, 이 PC 의 config.yml 은
+#     iwinv 와 **같은 터널 UUID** 를 쓴다. 이 PC 에서 cloudflared 를 띄우면
+#     farmingsight.org 트래픽이 이 PC(개발 코드)로 넘어온다.
+#     2026-07-17 실제 사고: 이 watchdog 이 cloudflared 를 되살려 운영 요청
+#     10/10 이 전부 이 PC 로 갔고, iwinv 배포분이 사용자에게 닿지 않았다.
+#     증상이 조용하다 — 도메인은 200 이고 SW 버전도 같아 동작 차이로만 드러났다.
+#     ※ 구 Test-Tunnel 은 https://farmingsight.org/health 를 찔렀는데, 이제 그 응답은
+#       iwinv 가 준다. 즉 이 PC 터널이 끊겨 있어도 200 이라 '정상'으로 오판한다.
+#       터널 상태 판정 자체가 성립하지 않으므로 제거했다.
+#     운영 터널 장애는 iwinv 의 systemd(cloudflared-kaasa.service)가 담당한다.
+#
+#  시스템 서비스 미사용. 수동 실행:
+#     powershell -ExecutionPolicy Bypass -File watchdog.ps1
 #  중지: 이 프로세스 종료(작업관리자) 또는 스케줄 작업 해제.
 # ============================================================
 $ErrorActionPreference = "SilentlyContinue"
 
-# ── 단일 인스턴스 가드 (중복 watchdog → cloudflared 중복기동·터널충돌 방지) ──
+# ── 단일 인스턴스 가드 (중복 watchdog → uvicorn 중복기동·포트 충돌 방지) ──
 #   1차: 프로세스 기반 — 이미 다른 watchdog(-File ...watchdog.ps1)가 살아있으면 즉시 종료.
 #        (Mutex만으로는 강제종료 시 'abandoned' 상태가 되어 중복 획득이 허용되던 문제 보완.)
 $__selfPid = $PID
@@ -26,11 +39,9 @@ try {
 
 $SMART = "C:\smart_farm"
 $PY    = "C:\tools\python311\python.exe"
-$CF    = "$SMART\deploy\cloudflare\bin\cloudflared.exe"
-$CFG   = "$SMART\deploy\cloudflare\config.yml"
-$TUN   = "kaasa-smartos"
-$CFLOG = "$SMART\deploy\cloudflare\tunnel.log"
 $WDLOG = "$SMART\deploy\cloudflare\watchdog.log"
+# ★ cloudflared 경로·config·터널명 상수는 두지 않는다 — 남겨두면 '되붙여도 된다'는
+#   오해를 준다. 이 PC 는 운영 터널에 붙지 않는다(헤더 참조).
 
 function Log($m) { "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')  $m" | Out-File -FilePath $WDLOG -Append -Encoding utf8 }
 
@@ -56,27 +67,19 @@ function Start-Api {
     catch { Log "uvicorn 재기동 실패: $_" }
 }
 
-function Stop-Tunnel {
-    # 좀비/끊긴 cloudflared 정리 — 새 인스턴스가 'credentials already in use'로 실패하는 것 방지
-    Get-Process cloudflared -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+# ★ cloudflared 를 기동/재기동하는 함수는 두지 않는다(위 헤더 참조).
+#   있으면 언젠가 호출된다 — 실제로 그래서 운영을 가로챘다.
+
+# 이 PC 에 cloudflared 가 떠 있으면 운영 트래픽을 가로채는 중이다.
+#   ※ 임의로 죽이지 않고 경고만 남긴다 — watchdog 이 남의 프로세스를 예고 없이
+#     종료하는 건 놀라운 동작이다. 조치는 사람이 판단한다.
+function Warn-IfTunnelRunning {
+    if (Get-Process cloudflared -ErrorAction SilentlyContinue) {
+        Log "[경고] 이 PC 에서 cloudflared 실행 중 — farmingsight.org 트래픽을 가로챌 수 있음(운영은 iwinv). 확인 후 종료 요망"
+    }
 }
 
-function Start-Tunnel {
-    # RedirectStandardError 제거 — tunnel.log 파일잠금으로 Start-Process 실패하던 문제 방지
-    $tunArgs = @("tunnel","--config",$CFG,"run",$TUN)
-    try { Start-Process -WindowStyle Hidden -FilePath $CF -ArgumentList $tunArgs -WorkingDirectory $SMART; Log "cloudflared 재기동" }
-    catch { Log "cloudflared 재기동 실패: $_" }
-}
-
-# 외부 연결성 검증: 공개 도메인 /health 가 200 이면 터널 정상.
-#   프로세스 존재 체크만으로는 'cloudflared 는 살아있으나 edge 연결이 끊긴' 상태(530)를 못 잡음.
-function Test-Tunnel {
-    try { (Invoke-WebRequest "https://farmingsight.org/health" -UseBasicParsing -TimeoutSec 8).StatusCode -eq 200 }
-    catch { $false }
-}
-
-Log "watchdog 시작"
-$tunFail = 0
+Log "watchdog 시작 (로컬 uvicorn:8000 전용 — cloudflared 미관리)"
 $apiFail = 0
 while ($true) {
     if (Test-Api) {
@@ -97,21 +100,6 @@ while ($true) {
         }
     }
 
-    $proc = [bool](Get-Process cloudflared -ErrorAction SilentlyContinue)
-    if (-not $proc) {
-        # 프로세스 자체가 없음 → 즉시 기동
-        Start-Tunnel; $tunFail = 0; Start-Sleep -Seconds 8
-    }
-    elseif (Test-Api) {
-        # 로컬은 정상인데 공개 도메인이 안 열리면 터널 연결만 끊긴 것 → 강제 재기동
-        if (-not (Test-Tunnel)) {
-            $tunFail++
-            Log "터널 외부 연결 실패 ($tunFail/2) — 로컬 정상, edge 미연결"
-            if ($tunFail -ge 2) {
-                Log "터널 강제 재기동(좀비 정리 후)"
-                Stop-Tunnel; Start-Sleep -Seconds 3; Start-Tunnel; $tunFail = 0; Start-Sleep -Seconds 8
-            }
-        } else { $tunFail = 0 }
-    }
+    Warn-IfTunnelRunning
     Start-Sleep -Seconds 30
 }
