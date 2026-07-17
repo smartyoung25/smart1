@@ -17,6 +17,8 @@
     .msg.ai .bubble{background:var(--panel);color:var(--text);border:1px solid var(--border);border-bottom-left-radius:4px;box-shadow:var(--shadow);}
     .msg-meta{font-size:10px;color:var(--muted);margin-top:4px;}
     .ref-badge{display:inline-block;font-size:9px;font-weight:700;background:var(--blue-soft);color:var(--blue);padding:2px 7px;border-radius:8px;margin:2px 3px 0 0;}
+    /* 문헌 출처 — ref-badge(농장 데이터 태그)와 다른 축이라 시각적으로 구분한다 */
+    .src-badge{display:inline-block;font-size:9px;font-weight:700;background:var(--green-soft);color:var(--green-dark);padding:2px 7px;border-radius:8px;margin:2px 3px 0 0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom;}
     /* 후속 질문 칩 */
     .sugg-wrap{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;}
     .sugg-chip{font-size:12px;padding:7px 12px;border:1.5px solid var(--green);border-radius:16px;color:var(--green-dark);background:var(--green-soft);cursor:pointer;}
@@ -54,12 +56,14 @@
 
 <div class="chat-main" id="chatMain">
   <!-- 인사 + 후속질문 칩 -->
-  <!-- ★ 구: "농진청 자료·병해충 DB(RAG 검색)를 결합해 답변" / "출처: 농진청 표준·병해충 DB"
-       → RAG·지식베이스는 미구현이다(벡터DB·임베딩 없음). 실제 근거는 이 농장의 실시간
-       데이터뿐이며, 그 외는 모델의 일반 지식이다. 없는 출처를 표기하면 안 된다. -->
-  <div class="msg ai"><div class="bubble">안녕하세요 👋 KAASA AI 영농 비서입니다.<br><b>내 농장의 실시간 데이터</b>(환경·관수·생육·경영)를 근거로 답변합니다. 무엇이 궁금하세요?
-    <div style="margin-top:6px;font-size:10.5px;color:var(--muted);">🔎 근거: 내 농장 센서 실측 · 관수·생육 기록 · 경영 지표</div>
-    <div style="margin-top:4px;font-size:10.5px;color:var(--orange);">ℹ️ 농진청 재배지침·병해충 DB 연동은 준비 중입니다. 농장 데이터 밖의 답변은 일반 지식 기반이므로 <b>현장 확인</b>이 필요하며, <b>농약 사용은 반드시 등록 정보를 확인</b>하세요.</div></div></div>
+  <!-- ★ 표기는 실제 보유 근거와 정확히 일치시킬 것. 과거 "농진청 자료·병해충 DB(RAG 검색)를
+       결합해 답변"이라 적었으나 그런 연동은 없었다(없는 출처 표기 = 신뢰 파괴).
+       현재 실제 보유: ① 농장 실측 데이터 ② 지식베이스 750청크 BM25 검색
+       (스마트농업컨설턴트 교재 735 + 제품 도메인 규칙 15). 임베딩·벡터DB 는 아직 없다.
+       미보유: 농진청 재배지침 · NCPMS 병해충 DB → "준비 중"이라 쓰지 말고 그냥 적지 말 것. -->
+  <div class="msg ai"><div class="bubble">안녕하세요 👋 KAASA AI 영농 비서입니다.<br><b>내 농장의 실시간 데이터</b>와 <b>영농 지식베이스</b>를 근거로 답변합니다. 무엇이 궁금하세요?
+    <div style="margin-top:6px;font-size:10.5px;color:var(--muted);">🔎 근거: 내 농장 센서 실측·관수·생육·경영 지표 · 스마트농업컨설턴트 교재 · P1~P6 관수 규칙<br>답변에 사용한 자료는 <b>출처와 쪽수</b>를 함께 표기합니다.</div>
+    <div style="margin-top:4px;font-size:10.5px;color:var(--orange);">ℹ️ 자료에 없는 내용은 일반 지식 기반이라 <b>현장 확인</b>이 필요하며, <b>농약 사용은 반드시 등록 정보(PLS·희석배수·안전사용기준)를 확인</b>하세요.</div></div></div>
   <div style="font-size:11px;font-weight:700;color:var(--muted);margin:4px 0 6px;">💡 이런 걸 물어보세요 (활용 사례)</div>
   <div class="sugg-wrap" id="ucSugg" style="max-height:none;"></div>
   <div class="sugg-wrap" id="initSugg" style="margin-top:6px;"></div>
@@ -165,7 +169,14 @@ async function _send(){
       //   구: 흐릿한 작은 글씨 "모델: rule_based" 뿐이라 사용자는 AI가 답한 줄 알았다.
       const _fb=['fallback','rule_based','stub','rule-v2'].includes((d.model_used||'').toLowerCase());
       const mode=_fb?`<span style="display:inline-block;background:var(--orange-soft);color:var(--orange);font-weight:800;font-size:10px;padding:2px 7px;border-radius:8px;margin-bottom:3px;">🔸 기본 응답 모드 — AI 미연결</span><br>`:'';
-      const meta=`${mode}${refs}${refs?'<br>':''}<span style="opacity:.7">모델: ${d.model_used||'?'}${conf}</span>`;
+      // 문헌 출처 — 서버가 '실제 답변에 사용한' 근거만 보낸다(추측 표기 금지).
+      // 비어 있으면 아무것도 그리지 않는다: 없는 출처를 만들어내지 않기 위함.
+      // cite 중복 제거 — 제품 규칙 청크는 여러 건이 같은 출처라 뱃지가 겹친다(교재는 쪽수로 갈림).
+      const _seen=new Set();
+      const srcs=(d.sources||[]).filter(s=>{const c=s.cite||s.title||'';
+        if(!c||_seen.has(c))return false; _seen.add(c); return true;}).map(s=>
+        `<span class="src-badge" title="${_esc(s.title||'')} — ${_esc(s.cite||'')}">📖 ${_esc(s.cite||s.title||'')}</span>`).join('');
+      const meta=`${mode}${refs}${refs?'<br>':''}${srcs}${srcs?'<br>':''}<span style="opacity:.7">모델: ${d.model_used||'?'}${conf}</span>`;
       _addMsg('ai', _esc(d.reply||'(응답 없음)'), meta);
       // 후속 질문 칩
       if(d.suggestions&&d.suggestions.length){

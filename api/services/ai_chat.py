@@ -123,6 +123,29 @@ def _build_system_prompt(ctx: dict) -> str:
                      f"강수 {clim.get('rain')}mm·GDD {clim.get('gdd')} ({'·'.join(clim.get('regions',[]))} 주산지)")
     extra_section = ("\n" + "\n".join(extra)) if extra else ""
 
+    # ── 지식베이스 근거(BM25 검색 결과) ──────────────────────────────────────
+    #   call_ai 가 질문으로 검색해 ctx["kb_hits"] 에 넣어준다(없으면 빈 값).
+    #   ★ 근거가 있으면 반드시 인용하고, 없으면 "모른다"고 답하도록 지시한다 —
+    #     화면이 실재하지 않는 'RAG·농진청 DB'를 출처로 표기하던 문제의 재발 방지.
+    kb_hits = ctx.get("kb_hits") or []
+    if kb_hits:
+        from api.services.kb_search import format_for_prompt
+        kb_section = f"""
+
+[참고 자료 — 아래 근거에서만 인용할 것]
+{format_for_prompt(kb_hits)}
+
+[근거 사용 규칙]
+- 위 근거로 답할 수 있으면 반드시 근거 번호와 출처를 함께 밝혀라. 예: "…입니다([근거2] 교재 p151)".
+- 위 근거에 없는 내용은 농장 데이터로만 답하고, 그 사실을 밝혀라("자료에 없어 일반 지식으로 답합니다").
+- 근거와 농장 실측이 충돌하면 농장 실측을 우선하되 둘 다 제시하라."""
+    else:
+        kb_section = """
+
+[참고 자료]
+이 질문에 해당하는 자료를 찾지 못했다. 농장 데이터로만 답하고, 자료 근거가 없음을 밝혀라.
+추측으로 단정하지 말 것."""
+
     return f"""당신은 한국 스마트팜 전문 AI 컨설턴트입니다.
 
 [농장 정보]
@@ -140,9 +163,14 @@ def _build_system_prompt(ctx: dict) -> str:
   운영비: {cost:,.0f}원/m²
   예상 월 순이익: {profit:,}만원
 {extra_section}
+{kb_section}
 
 [데이터 입력 안내]
 농가가 데이터 입력 방법을 물으면: 각 화면 '기록' 버튼(관수G3·환경G2·생육G4·방제F6·관개F4·수확F7), 현장 점검은 C18, 장비 연동은 C16. 입력은 모델 재학습 폐루프에 반영됨.
+
+[안전 지침]
+- 농약·방제 권고 시: 반드시 "등록 정보(PLS 적용작물·희석배수·안전사용기준)를 확인하세요"를 덧붙일 것. 구체 약제명·희석배수를 단정하지 말 것(참고 자료가 최신 등록정보와 다를 수 있음).
+- 병해 진단은 확정 진단이 아니며 현장 확인이 필요함을 밝힐 것.
 
 [지시사항]
 - 반드시 한국어로 답변하세요.
@@ -268,6 +296,44 @@ def _error_fallback(detail: str) -> dict:
     }
 
 
+# 규칙형 응답에 발췌해 넣을 근거 수 — 화면 가독성 상한(LLM 경로는 프롬프트 char 상한이 막는다)
+_RULE_KB_MAX = 3
+
+
+def attach_kb(message: str, context: dict | None) -> dict:
+    """질문으로 지식베이스를 검색해 context["kb_hits"] 에 싣는다(1회, 멱등).
+
+    ★ 티어와 무관하게 호출한다 — 검색은 LLM 비용이 들지 않으므로 basic 티어의 규칙형
+      응답에서도 원문을 찾아줄 수 있다. 그래서 call_ai 안이 아니라 별도 헬퍼다
+      (라우터의 규칙형 경로는 call_ai 를 우회해 티어 게이트를 지킨다).
+    ★ 검색 실패로 대화가 끊기면 안 되므로 예외는 삼킨다. 대신 kb_hits 를 빈 값으로 둬
+      프롬프트가 "근거 없음"을 명시하게 한다(없는 출처를 지어내지 않기 위함).
+    """
+    ctx = dict(context or {})
+    if "kb_hits" in ctx:
+        return ctx
+    try:
+        from api.services.kb_search import search as _kb_search
+        ctx["kb_hits"] = _kb_search(message, crop=ctx.get("crop"))
+    except Exception as e:
+        logger.warning("[ai_chat] 지식베이스 검색 실패(근거 없이 진행): %s", e)
+        ctx["kb_hits"] = []
+    return ctx
+
+
+def kb_sources(context: dict | None) -> list[dict]:
+    """응답에 실을 출처 목록 — 프롬프트에 실제로 들어간 근거만.
+
+    referenced_data 와는 다른 축이다: 그쪽은 '농장 데이터' 태그(environment·harvest…),
+    이쪽은 '문헌 출처'(교재 p151·제품 규칙)다. 섞지 말 것.
+    """
+    hits = (context or {}).get("kb_hits") or []
+    if not hits:
+        return []
+    from api.services.kb_search import cite as _cite
+    return [{"title": h["title"], "cite": _cite(h), "id": h["id"]} for h in hits]
+
+
 def call_ai(
     farm_id: str,
     message: str,
@@ -279,6 +345,22 @@ def call_ai(
 
     우선순위: Anthropic Claude → OpenAI GPT → 규칙 기반 stub
     """
+    context = attach_kb(message, context)
+    result = _dispatch(farm_id, message, history, context, tier)
+    # 프로바이더가 스스로 출처를 실었으면 존중한다(규칙형은 일부만 발췌해 쓴다).
+    # LLM 경로는 근거 전부가 프롬프트에 들어가므로 여기서 전체를 싣는다.
+    result.setdefault("sources", kb_sources(context))
+    return result
+
+
+def _dispatch(
+    farm_id: str,
+    message: str,
+    history: list[dict],
+    context: dict,
+    tier: str,
+) -> dict:
+    """프로바이더 폴백 체인만 담당(근거 부착은 call_ai 가 단일 지점에서 한다)."""
     # ① Anthropic (기본)
     anthropic_key = _cfg("ANTHROPIC_API_KEY")
     if anthropic_key:
@@ -566,12 +648,30 @@ def _rule_based_reply(message: str, context: dict) -> dict:
                  "관수·환경·수확·수익·병해·알림·평년기상·에너지에 대해 물어보세요. 농장 실데이터로 답변합니다.\n"
                  "※ 더 정밀한 대화형 분석은 LLM 연동(ANTHROPIC_API_KEY) 시 제공됩니다.")
 
+    # 지식베이스에서 찾은 자료를 덧붙인다.
+    #   ★ 왜 규칙형에도 붙이나: LLM 이 꺼져 있으면(키 없음·크레딧 소진) 이 경로가 실제 운영
+    #     경로다. 검색은 LLM 없이도 동작하므로, 생성은 못 해도 '원문을 찾아주는' 값은 낼 수 있다.
+    #   ★ 정직성: call_ai 가 응답에 sources 를 싣는데, 이 경로가 근거를 실제로 쓰지 않으면
+    #     '쓰지도 않은 출처'를 표기하게 된다. 그래서 여기서 실제로 노출한다(요약·생성은 하지
+    #     않는다 — 원문 발췌임을 명시).
+    hits = (context.get("kb_hits") or [])[:_RULE_KB_MAX]
+    if hits:
+        from api.services.kb_search import cite as _cite
+        lines = ["", "", "📚 관련 자료 (원문 발췌 — AI 요약 아님)"]
+        for h in hits:
+            head = " ".join((h.get("text") or "").split())[:140]
+            lines.append(f"\n· {h['title']} ({_cite(h)})\n  {head}…")
+        reply += "\n".join(lines)
+
     return {
         "reply": reply,
         "suggestions": sugg,
         "model_used": "rule_based",
         "tokens_used": 0,
         "referenced_data": _infer_referenced(message),
+        # 실제 노출한 것만 싣는다 — LLM 경로는 근거 전부를 프롬프트에 넣지만 이 경로는
+        # 상위 몇 건만 발췌하므로, 전체를 출처로 보고하면 쓰지 않은 것까지 표기하게 된다.
+        "sources": kb_sources({"kb_hits": hits}),
     }
 
 

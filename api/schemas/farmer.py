@@ -315,6 +315,10 @@ class ChatResponse(BaseModel):
     suggestions: list[str] = []
     # 어떤 농장 데이터를 참조했는지 (UI 뱃지용)
     referenced_data: list[str] = []
+    # 답변에 실제로 사용된 문헌 근거 — [{title, cite, id}]
+    #   referenced_data 와 별개 축이다(그쪽=농장 데이터, 이쪽=교재·제품 규칙 출처).
+    #   검색 결과가 없으면 빈 리스트 — 화면은 없는 출처를 표기해선 안 된다.
+    sources: list[dict] = []
     # 나중에 실제 AI 연결 시 사용할 메타
     model_used: str = "stub-v1"   # e.g. "gpt-4o", "claude-3-5-sonnet"
     confidence: Optional[float] = None

@@ -1878,19 +1878,23 @@ def post_chat(farm_id: str, body: ChatRequest):
             suggestions     = _result.get("suggestions", []),
             model_used      = _result.get("model_used", "claude"),
             referenced_data = _result.get("referenced_data", []),
+            sources         = _result.get("sources", []),
         )
 
     # Smart 이하 또는 API 키 미설정 → 컨텍스트 기반 규칙형 응답(진단·역량·작황·경영전략 포함)
+    # 지식베이스 검색은 여기서도 붙인다 — LLM 비용이 들지 않으므로 티어로 막을 이유가 없다.
+    # (call_ai 를 쓰면 pro 전용 LLM 이 호출돼 티어 게이트가 무너지므로 우회한다)
     try:
-        from api.services.ai_chat import build_farm_context, _rule_based_reply
+        from api.services.ai_chat import build_farm_context, _rule_based_reply, attach_kb
         _meta   = _FARM_META.get(farm_id, {})
         _env    = _get_env(farm_id) or {}
         _alerts = _detect_alerts(farm_id, _env, crop_ko=_meta.get("crop", "딸기")) if _env else []
-        _ctx    = build_farm_context(farm_id, _meta, _env, _alerts)
+        _ctx    = attach_kb(body.message, build_farm_context(farm_id, _meta, _env, _alerts))
         _r      = _rule_based_reply(body.message, _ctx)
         return ChatResponse(reply=_r["reply"], suggestions=_r.get("suggestions", []),
                             model_used=_r.get("model_used", "rule-v2"),
-                            referenced_data=_r.get("referenced_data", []))
+                            referenced_data=_r.get("referenced_data", []),
+                            sources=_r.get("sources", []))
     except Exception:
         return _stub_reply(farm_id, body.message)
 
