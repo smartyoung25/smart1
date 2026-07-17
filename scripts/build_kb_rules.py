@@ -31,6 +31,8 @@ OUT = ROOT / "out" / "kb_rules_chunks.json"
 # ★ 서빙본은 api/data/kb/ 다 — out/ 은 .gitignore 대상이라 배포 서버에 안 올라간다.
 #   여기 함께 쓰지 않으면 재생성해도 챗봇이 보는 지식베이스는 그대로다(조용히 어긋남).
 KB_SERVE = ROOT / "api" / "data" / "kb"
+# 검색용 청크(텍스트)와 별개로, 프로그램이 목표값을 직접 읽는 구조체
+STRUCT = KB_SERVE / "domain_rules.json"
 
 
 SRC_LABEL = "KAASA Farmingsight 제품 도메인 규칙"
@@ -205,6 +207,16 @@ def main() -> int:
         OUT.write_text(_blob, encoding="utf-8")
         KB_SERVE.mkdir(parents=True, exist_ok=True)
         (KB_SERVE / OUT.name).write_text(_blob, encoding="utf-8")  # 서빙본 동기화
+
+        # ★ 기계 판독용 구조체도 서버로 — 청크는 '검색'용 텍스트라 P1~P6 목표값을
+        #   프로그램이 쓸 수 없다. 작업추천은 targets.drainPct 같은 값을 직접 읽어야 한다.
+        #   data.js 를 단일 출처로 두고 여기서 파생시킨다(수기 사본이면 조용히 어긋난다).
+        raw = json.loads(RAW.read_text(encoding="utf-8"))
+        (KB_SERVE / STRUCT.name).write_text(
+            json.dumps({k: raw[k] for k in
+                        ("_source", "PERIODS", "IRRIGATION_START", "PDCA_THRESHOLDS")
+                        if k in raw}, ensure_ascii=False, indent=2), encoding="utf-8")
+        print(f"구조체: {KB_SERVE / STRUCT.name}")
         print(f"\n저장: {OUT} ({OUT.stat().st_size:,} bytes)")
     else:
         print("\n(미리보기 — 저장하려면 --write)")
