@@ -10,8 +10,26 @@ build/
 *.log
 *.err
 
-# 런타임 텔레메트리 (일별 누적, 커밋 불필요)
+# ── api/data 런타임 산출물 ────────────────────────────────────────────────────
+# ★ api/data 는 데모 시드(추적)와 런타임 쓰기(비추적)가 한 경로에 섞여 있다.
+#   운영은 named volume(api_data)에 쓰므로 git 트리가 더러워지지 않지만, 로컬에서
+#   서버를 돌리면 여기에 직접 쓰여 커밋에 딸려온다(실제로 그렇게 섞여 들어왔다).
+#   아래는 '재생성 가능하거나 커밋돼선 안 되는' 것만 제외한다.
+#   데모 시드(real/·reference/·diagnosis/·kb/·farm_registry 등)는 이미지에 구워져
+#   볼륨 최초 시딩원이 되므로 계속 추적한다 — 빼면 새 배포에서 데모가 빈다.
+
+# 일별 누적 텔레메트리
 api/data/telemetry/
+
+# 비밀·개인정보 — 커밋 금지
+api/data/password_resets.json    # 비밀번호 재설정 토큰
+api/data/user_contacts.json      # 가입자 전화·이메일(PII)
+
+# 재생성 가능한 캐시 (외부 API·계산 결과)
+api/data/kamis_price_cache.json
+api/data/quota_cache.json
+api/data/sun_times/              # 위경도로 재계산됨
+api/data/ext_weather/            # 외부 예보 재조회됨
 
 # 외부 설치 스킬 (개발 도구, 제품 저장소 제외 — 자체 .git 보유)
 .claude/skills/ui-ux-pro-max-skill/
