@@ -530,9 +530,16 @@ def build_stage2_matrix(
         df["greenhouse_code"] = df.apply(
             lambda r: _GREENHOUSE_MAP.get(_meta_get(r, "greenhouse_type", ""), 0), axis=1
         ).astype(int)
+        # ★ 정식월 결측을 0 으로 채우지 않는다 — 0월은 존재하지 않는다.
+        #   구: 기본값 0 + astype(int) → 모델이 '1월보다 이른 달'로 해석했다.
+        #   실측: 결측이 최대 그룹이었다(딸기 70/206·완숙 60/177·파프리카 41/113·참외 225/510).
+        #   그 탓에 "정식이 이를수록 수확량이 높다"는 가짜 신호가 생겼다 —
+        #   결측 포함 상관 -0.249(딸기) 가 결측 제외 시 -0.055 로 사라진다.
+        #   NaN 으로 두면 imputer 가 중앙값으로 채우고, 아래 plant_month_missing 이
+        #   '모름'을 별도 신호로 남긴다. float 이어야 NaN 을 담을 수 있다.
         df["plant_month"] = df.apply(
-            lambda r: _meta_get(r, "plant_month", 0), axis=1
-        ).astype(int)
+            lambda r: _meta_get(r, "plant_month", None), axis=1
+        ).astype(float)
         n_meta = sum(
             1 for _, r in df.iterrows()
             if f"{int(r['year'])}_{r['farm_id']}" in cultiv_meta
@@ -1114,8 +1121,9 @@ def build_stage2_matrix_annual(
         prod_ann["greenhouse_code"] = prod_ann.apply(
             lambda r: _GREENHOUSE_MAP.get(_meta_get_ann(r, "greenhouse_type", ""), 0), axis=1
         )
+        # ★ 결측을 0 으로 채우지 않는다(0월은 없다). 아래 sin/cos 주석 참조.
         prod_ann["plant_month"] = prod_ann.apply(
-            lambda r: _meta_get_ann(r, "plant_month", 0), axis=1
+            lambda r: _meta_get_ann(r, "plant_month", None), axis=1
         )
 
         # 품종 평균 yield 인코딩 — LOYO 누수 방지용 시계열 안전 expanding mean
@@ -1134,9 +1142,19 @@ def build_stage2_matrix_annual(
         prod_ann.drop(columns=["_variety_raw"], inplace=True)
 
         # plant_month 사인/코사인 (순환 특성 보존: 12월~1월 연속성)
+        # ★ 결측(0)을 숫자로 채우면 안 된다. 0월은 존재하지 않는 값이다.
+        #   구: .fillna(0) → 결측이 sin=0·cos=0 이라는 '있지도 않은 좌표'에 놓였다.
+        #       (정상 월은 sin²+cos²=1 인 단위원 위에 있는데 원점에 찍힌다)
+        #       원시 plant_month 도 0 으로 남아 모델이 '1월보다 이른 달'로 해석했다.
+        #   참외는 결측이 44.1%(225/510)이고 plant_month·sin·cos 3개를 모두 쓰므로
+        #   영향이 크다(다른 5작목은 피처 선택에서 탈락해 서빙 영향 없음).
+        #   지금: NaN 으로 두고 imputer 가 처리하게 하되, '모름' 자체를 신호로 남긴다
+        #        (결측이 무작위가 아닐 수 있다 — 기록이 부실한 농가군이 따로 있을 수 있음).
         pm = prod_ann["plant_month"].astype(float).replace(0, np.nan)
-        prod_ann["plant_month_sin"] = np.sin(2 * np.pi * pm / 12).fillna(0)
-        prod_ann["plant_month_cos"] = np.cos(2 * np.pi * pm / 12).fillna(0)
+        prod_ann["plant_month"] = pm
+        prod_ann["plant_month_sin"] = np.sin(2 * np.pi * pm / 12)
+        prod_ann["plant_month_cos"] = np.cos(2 * np.pi * pm / 12)
+        prod_ann["plant_month_missing"] = pm.isna().astype(int)
 
     # ⑥ 면적 피처 (규모 효과: 대규모 농장은 집약도↑ or ↓)
     prod_ann["log_area_m2"] = np.log1p(prod_ann["area_m2"].astype(float))
