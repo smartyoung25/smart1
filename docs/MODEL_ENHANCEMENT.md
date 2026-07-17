@@ -65,6 +65,7 @@
   · VPD = 0.6108·e^(17.27T/(T+237.3))·(1−RH/100), 월주기 = sin/cos(2π·month/12)
 
 ### 🟡 중기 (데이터 기반)
+> ★ 데이터 확보 설계(6축·필요표본·환경 처치 실험)는 [DATA_ACQUISITION_DESIGN.md](DATA_ACQUISITION_DESIGN.md)(2026-07-18)로 구체화·대체.
 5. **feature 보강** — VPD, 누적 DLI, 월 sin/cos, 온도×습도, 14일 std. (VPD·월주기성은 위에서 효과 검증)
 6. **소표본 계층모델** — 작물군 글로벌 + 작물별 오프셋(hierarchical/transfer), Bayesian prior.
 7. **신규 운영기록 활용** — 관수·생육측정·야간 dry-back(이번 세션 적재 시작) 누적 시 입력 feature 편입.
