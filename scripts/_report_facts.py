@@ -38,7 +38,9 @@ CROPS = ["딸기", "오이", "파프리카", "완숙토마토", "방울토마토
 # stage2_meta 의 model_type → 보고서 표기명
 _MODEL_KO = {
     "lgb": "LightGBM",
+    "xgb": "XGBoost",
     "xgb_lgb_ensemble": "XGBoost+LightGBM 앙상블",
+    "ridge_cv_winner": "Ridge(CV 최우수)",
     "ridge_fallback": "Ridge(폴백)",
 }
 
