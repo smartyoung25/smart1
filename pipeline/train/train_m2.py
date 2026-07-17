@@ -375,16 +375,19 @@ tr_r2_final = r2_score(y_all, pred_tr)
 
 farm_mean_map = df.groupby("farm_id")["yield_kg"].mean().to_dict()
 
-try:                                     # 게이트 임계 단일 출처 (pipeline/gates.py)
+# ★ 이 스크립트는 CV R² 를 산출하지 않아 게이트(CV R² 중심)를 계산할 수 없다.
+#   gate_pass 는 '참고 통과'일 뿐 권위가 아니다 — 실제 판정은 서빙·보고 시점에
+#   pipeline/gates.py 의 evaluate_crop(stage2_meta 기준)이 한다.
+try:                                     # 참고 임계 단일 출처 (pipeline/gates.py)
     sys.path.insert(0, str(_ROOT))
-    from pipeline.gates import MAPE_SERVE as _GATE_MAPE
+    from pipeline.gates import MAPE_ADVISORY as _ADVISORY_MAPE
 except Exception:
-    _GATE_MAPE = 25.0
+    _ADVISORY_MAPE = 50.0
 
 pkg = {"xgb": xm_f, "lgb": lm_f,
        "feat_cols": FEAT, "feat_median": med_all.to_dict(),
        "target": best_tgt, "mape": best_cv_mape, "train_r2": tr_r2_final,
-       "gate_pass": bool(best_cv_mape<=_GATE_MAPE),
+       "gate_pass": bool(best_cv_mape<=_ADVISORY_MAPE),   # 참고용 — 권위 판정 아님
        "farm_yield_mean": farm_mean_map,
        "best_params": best, "model_type": model_type}
 meta = {"crop": crop, "crop_en": CROP_DIR.get(crop,crop),

@@ -23,8 +23,8 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from pipeline.gates import (          # noqa: E402
-    CV_R2_MIN, MAPE_FALLBACK, MAPE_SERVE, N_MIN, OVERFIT_GAP,
-    evaluate_crop, read_stage2_metrics,
+    CV_R2_FALLBACK, CV_R2_MIN, MAPE_ADVISORY, N_MIN, OVERFIT_GAP,
+    evaluate_crop, gate_mape, read_stage2_metrics,
 )
 from models.m2_yield import CROP_MAP  # noqa: E402
 
@@ -67,12 +67,14 @@ def m2_table() -> list[dict]:
         en = CROP_MAP.get(ko, ko)
         m = read_stage2_metrics(ARTS, en)
         d = evaluate_crop(ARTS, en)
-        if m.get("mape") is None:
-            print(f"  ! {ko}({en}) 지표 없음 — 표에서 제외")
+        if m.get("cv_r2_mean") is None:
+            print(f"  ! {ko}({en}) 검증지표(CV R²) 없음 — 표에서 제외")
             continue
         rows.append({
             "crop": ko, "crop_en": en,
-            "mape": round(float(m["mape"]), 1),
+            # ★ 보고서에는 교차검증 MAPE 를 싣는다. m["mape"] 는 학습값이라 보고 금지.
+            "cv_mape": (round(float(gate_mape(m)), 1) if gate_mape(m) is not None else None),
+            "train_mape": round(float(m["mape"]), 1),   # 진단용(보고서 본문에 쓰지 말 것)
             "cv_r2": (round(float(m["cv_r2_mean"]), 3) if m.get("cv_r2_mean") is not None else None),
             "n_train": m.get("n_train"),
             "model": _model_of(en),
@@ -126,9 +128,11 @@ def main() -> int:
         "generated": date.today().isoformat(),
         "report_month": f"{date.today():%Y. %m.}",
         "farms": farms(),
+        # ★ 게이트는 CV R² 중심(2026-07-17 재편). MAPE 는 참고 지표다 —
+        #   구 게이트는 학습(in-sample) MAPE 로 판정했다(딸기 학습 17.8% vs CV 107.3%).
         "gate": {
-            "mape_serve": MAPE_SERVE, "mape_fallback": MAPE_FALLBACK,
-            "cv_r2_min": CV_R2_MIN, "n_min": N_MIN, "overfit_gap": OVERFIT_GAP,
+            "cv_r2_min": CV_R2_MIN, "cv_r2_fallback": CV_R2_FALLBACK,
+            "mape_advisory": MAPE_ADVISORY, "n_min": N_MIN, "overfit_gap": OVERFIT_GAP,
         },
         "stack": stack(),
         "kb": kb(),
@@ -138,14 +142,14 @@ def main() -> int:
     OUT.write_text(json.dumps(facts, ensure_ascii=False, indent=2), encoding="utf-8")
 
     g, s, k = facts["gate"], facts["stack"], facts["kb"]
-    print(f"게이트 : MAPE<={g['mape_serve']} / 폴백>{g['mape_fallback']} · "
-          f"CV R²>={g['cv_r2_min']} · n>={g['n_min']}(경고) · gap<={g['overfit_gap']}")
+    print(f"게이트 : CV R²>={g['cv_r2_min']} 검증적용 · <={g['cv_r2_fallback']} 폴백 · "
+          f"gap<={g['overfit_gap']} | 참고: CV MAPE>{g['mape_advisory']} 경보 · n<{g['n_min']} 소표본")
     print(f"스택   : 화면 {s['screens']} · 라우터 {s['routers']} · 서비스 {s['services']}")
     print(f"지식   : 교재 {k['textbook']} + 규칙 {k['rules']} = {k['total']}")
     print("M2 :")
     for r in facts["m2"]:
-        print(f"  {r['crop']:<6}{r['mape']:>6.1f}%  CV R² {str(r['cv_r2']):>6}  "
-              f"n={str(r['n_train']):>5}  {r['label']}")
+        print(f"  {r['crop']:<6} CV R² {str(r['cv_r2']):>7}  CV MAPE {str(r['cv_mape']):>6}%  "
+              f"n={str(r['n_train']):>5}  {r['label']:<7} (학습MAPE {r['train_mape']})")
     print(f"\n저장: {OUT}")
     return 0
 

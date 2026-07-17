@@ -278,6 +278,16 @@ def predict_yield(
     #     참외  pkl  27.3 vs 권위 63.9 → 35 미만이라 블렌딩 미작동 → 100% ML 서빙
     #   권위값 적용 시: 딸기·오이·파프리카·완숙(≤35)=ML 그대로, 방울 48.6→ml 0.46,
     #   참외 63.9→ml 0.10(RDA 90%)으로 정상 degrade.
+    # ★★ 여기서 쓰는 stage2_meta 의 `mape` 는 **학습(in-sample) MAPE** 다(2026-07-17 확인).
+    #   변수명이 mape_cv 지만 교차검증값이 아니다. 게이트(pipeline/gates.py)는 이 사고로
+    #   cv_mape_mean 을 쓰도록 정정했으나, **이 블렌딩은 의도적으로 학습 MAPE 를 유지한다**:
+    #     · 딸기 CV MAPE 107.3% (monthly) → 임계 35 초과 → ML 비중 0.10 = 예측이 사실상
+    #       RDA 통계로 대체된다. 그러나 딸기 CV R² 0.295 로 신호는 있다.
+    #     · monthly 는 수확 초·말기 수확량이 0 에 가까워 MAPE 가 구조적으로 폭발한다
+    #       (작은 값으로 나누기) — 모델 부실이 아니라 지표 특성이다.
+    #   즉 CV MAPE 로 바꾸면 정직해 보이지만 예측 품질은 나빠질 수 있다.
+    #   → 블렌딩 임계는 monthly 에 견디는 지표(WAPE/sMAPE)로 바꾼 뒤 함께 조정할 것.
+    #      그 전까지 이 줄을 CV MAPE 로 바꾸지 말 것.
     if _read_stage2_metrics is not None:
         try:
             _auth_mape = _read_stage2_metrics(ARTS, CROP_MAP.get(crop_ko, crop_ko)).get("mape")

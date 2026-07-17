@@ -13,7 +13,7 @@ from uuid import uuid4
 from fastapi import APIRouter, Depends, HTTPException, Query, Body
 from pydantic import BaseModel
 
-from pipeline.gates import evaluate_m2_gate, MAPE_SERVE   # 게이트 단일 출처
+from pipeline.gates import evaluate_m2_gate, CV_R2_MIN   # 게이트 단일 출처(CV R² 중심)
 from api.middleware.auth import require_role, require_admin_view
 from api.schemas.admin import (
     AdminOverview,
@@ -237,19 +237,22 @@ def get_models():
     # 작목별 M2 행
     for crop_ko, meta in all_meta.items():
         s2   = meta.get("stage2", {})
-        # mape(학습 MAPE) 우선
-        mape = float(s2.get("mape") or s2.get("cv_mape_mean") or 999)
-        r2   = float(s2.get("cv_r2_mean") or s2.get("cv_r2") or 0.0)
+        # ★ 게이트 지표는 교차검증값만 쓴다.
+        #   구: mape = s2["mape"](학습 MAPE) 우선 → 학습 오차로 판정·표시했다.
+        #   실측: 딸기 학습 17.8% vs CV 107.3%. '검증 적용'이 검증이 아니었다.
+        #   판정은 CV R² 중심(pipeline/gates.py) — CV MAPE 는 참고로만 표시.
+        cv_mape = s2.get("cv_mape_mean")
+        cv_r2   = s2.get("cv_r2_mean")
         # ★ 게이트는 pipeline/gates.py 단일 정책으로 판정 (저장된 gate_passed는 구·완화
         #   기준으로 세팅됐을 수 있어 신뢰하지 않음). 폴백 작목만 passed=False.
         _n   = s2.get("n_train") or s2.get("n_season") or s2.get("n_samples")
-        _v   = evaluate_m2_gate(mape, r2, _n, s2.get("train_r2"))
+        _v   = evaluate_m2_gate(cv_mape, cv_r2, _n, s2.get("train_r2"))
         gate = _v["serve_m2"]
         models.append(ModelStatus(
             module_id=crop_ko,
-            metric_name=f"MAPE ({_v['label']})",
-            metric_value=round(mape, 1),
-            threshold=MAPE_SERVE,
+            metric_name=f"CV R² ({_v['label']})",
+            metric_value=(round(float(cv_r2), 3) if cv_r2 is not None else 0.0),
+            threshold=CV_R2_MIN,
             passed=gate,
             last_trained=_now(),
         ))

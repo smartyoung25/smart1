@@ -1492,20 +1492,51 @@ def train_stage2(
         logger.warning("  샘플 부족(%d) — Ridge 폴백", n_samples)
         scaler = StandardScaler()
         X_sc = scaler.fit_transform(X)
+
+        # ★ 실제 교차검증을 수행한다.
+        #   구: 전체 데이터로 fit 한 뒤 같은 데이터로 predict 해서 나온 학습(in-sample)
+        #       R²·MAPE 를 cv_r2_mean·mape 라는 '검증' 이름으로 저장했다(cv_r2_std=0.0 이 지문).
+        #       p>n 인 소표본에서 학습 R² 는 당연히 높아, 오이(n=30·p=64) 0.826 ·
+        #       방울토마토(n=49·p=73) 0.846 처럼 검증된 적 없는 값이 게이트를 통과했다.
+        #   위에서 이미 정한 CV 전략(_manual_splits / _cv_splitter)을 그대로 쓴다.
+        _fb_r2, _fb_mape = [], []
+        _fb_splits = (list(_manual_splits) if _manual_splits is not None
+                      else list(_cv_splitter.split(X_sc, y, groups=_cv_groups)))
+        for _tr, _vl in _fb_splits:
+            if len(_tr) < 2 or len(_vl) < 1:
+                continue
+            _m = Ridge(alpha=10.0)
+            _m.fit(X_sc[_tr], np.log1p(y[_tr]))
+            _pv = np.expm1(_m.predict(X_sc[_vl]))
+            _fb_r2.append(float(r2_score(y[_vl], _pv)))
+            _fb_mape.append(_mape(y[_vl], _pv))
+
         model = Ridge(alpha=10.0)
         model.fit(X_sc, np.log1p(y))
-        y_pred = np.expm1(model.predict(X_sc))
-        r2   = float(r2_score(y, y_pred))
-        mape = _mape(y, y_pred)
+        y_pred = np.expm1(model.predict(X_sc))          # 최종 모델은 전체 데이터로 적합
+        _tr_r2_fb   = float(r2_score(y, y_pred))        # ← 학습 지표(진단용, 게이트 아님)
+        _tr_mape_fb = _mape(y, y_pred)
         _rmse_fb2 = float(np.sqrt(_mse_s2(y, y_pred)))
         _mae_fb2  = float(_mae_s2(y, y_pred))
+        if not _fb_r2:
+            logger.warning("  CV 폴드 구성 실패(n=%d) — 검증 지표 없음(게이트 판정 불가)", n_samples)
+        else:
+            logger.info("  Ridge 폴백 CV: R²=%.3f(±%.3f)  MAPE=%.1f%%  |  학습 R²=%.3f MAPE=%.1f%%",
+                        float(np.mean(_fb_r2)), float(np.std(_fb_r2)), float(np.mean(_fb_mape)),
+                        _tr_r2_fb, _tr_mape_fb)
         return {
             "type": "ridge_fallback",
             "model": model, "imputer": imputer, "scaler": scaler,
             "feature_cols": feature_cols,
             "log_transform": True,
-            "cv_r2_mean": round(r2, 3), "cv_r2_std": 0.0,
-            "mape": round(mape, 1), "n_train": n_samples,
+            # 검증 지표(게이트용) — 폴드 구성 실패 시 None(판정 불가). 학습값으로 대체하지 않는다.
+            "cv_r2_mean":   (round(float(np.mean(_fb_r2)), 3) if _fb_r2 else None),
+            "cv_r2_std":    (round(float(np.std(_fb_r2)), 3)  if _fb_r2 else None),
+            "cv_mape_mean": (round(float(np.mean(_fb_mape)), 1) if _fb_mape else None),
+            # 학습 지표(진단용) — 이름을 정직하게 분리
+            "final_r2": round(_tr_r2_fb, 3),
+            "mape":     round(_tr_mape_fb, 1),
+            "n_train": n_samples,
             "train_rmse": round(_rmse_fb2, 4), "train_mae": round(_mae_fb2, 4),
             "farm_encoding": farm_encoding,
         }
