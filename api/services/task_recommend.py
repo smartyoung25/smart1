@@ -22,11 +22,22 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional
 
 logger = logging.getLogger(__name__)
+
+# ★ 컨테이너는 UTC 로 돈다(TZ 미설정 — 실측: 호스트 16:08 KST 인데 컨테이너 now() 는 07:08).
+#   naive datetime.now() 를 쓰면 Period 판정이 9시간 어긋나 운영에서 조용히 틀린다.
+#   로컬 개발기는 KST 라 이 버그가 드러나지 않는다 — 반드시 KST 를 명시할 것.
+#   (같은 이유로 main.py 의 KAMIS 스케줄러·kma_service 도 tz 를 명시한다.)
+_KST = timezone(timedelta(hours=9))
+
+
+def now_kst() -> datetime:
+    """농장 기준 현재시각(KST). tz-naive 로 돌려준다 — 이후 계산은 시각 산술만 한다."""
+    return datetime.now(tz=_KST).replace(tzinfo=None)
 
 ROOT = Path(__file__).resolve().parents[2]
 _RULES_PATH = ROOT / "api" / "data" / "kb" / "domain_rules.json"
@@ -69,31 +80,30 @@ def _hhmm(h: float) -> str:
 def _current_period(hour: float, sunrise: float, sunset: float) -> Optional[dict]:
     """지금 몇 번 Period 인가.
 
-    ★ 트리거 원칙(CLAUDE.md): 일사 적산(J/cm²) 우선, 시각은 폴백.
-      여기서는 실시간 일사 적산을 받지 못하므로 시각 폴백으로 판정하고, 그 사실을
-      why 에 밝힌다 — 일사 기반이라고 표기하면 거짓이 된다.
+    ★ 경계는 제품 구현(components/data.js 의 getCurrentPeriod)과 동일하게 유지한다.
+      화면과 추천이 서로 다른 Period 를 말하면 농가가 신뢰하지 않는다.
+        P6: hour>=19 또는 <5 / P1: <7 / P2: <10 / P3: <12 / P4: <15 / P5: 그 외
+    ★ timeRange 문자열을 파싱하면 안 된다 — 숫자 범위인 것은 P1·P4 뿐이고 나머지는
+      "일출 후 2~3h"·"15:00~일몰" 같은 서술이라 P2·P3·P5·P6 가 통째로 안 잡힌다
+      (실측: 16:08 에 Period=None).
+    ★ 트리거 원칙(CLAUDE.md)은 일사 적산 우선·시각 폴백이다. 여기서는 실시간 적산을
+      받지 못해 시각으로만 판정하며, 그 사실을 why 에 밝힌다(일사 기반이라 하면 거짓).
     """
     periods = _rules().get("PERIODS") or []
-    if not periods:
+    if len(periods) < 6:
         return None
-    # timeRange("12:00~15:00") 파싱 — 야간(P6)은 자정을 넘어간다
-    for p in periods:
-        tr = (p.get("timeRange") or "").replace(" ", "")
-        if "~" not in tr:
-            continue
-        a, b = tr.split("~", 1)
-        try:
-            sh = int(a.split(":")[0]) + int(a.split(":")[1]) / 60
-            eh = int(b.split(":")[0]) + int(b.split(":")[1]) / 60
-        except Exception:
-            continue
-        if sh <= eh:
-            if sh <= hour < eh:
-                return p
-        else:                                  # 자정 넘김
-            if hour >= sh or hour < eh:
-                return p
-    return None
+    by_id = {p.get("id"): p for p in periods}
+    if hour >= 19 or hour < 5:
+        return by_id.get("P6")
+    if hour < 7:
+        return by_id.get("P1")
+    if hour < 10:
+        return by_id.get("P2")
+    if hour < 12:
+        return by_id.get("P3")
+    if hour < 15:
+        return by_id.get("P4")
+    return by_id.get("P5")
 
 
 def _irrigation_tasks(farm_id: str, crop: str, hour: float,
@@ -191,7 +201,7 @@ def daily_tasks(farm_id: str, crop: str = "딸기", env: dict | None = None,
                 sun: tuple[float, float] | None = None) -> dict:
     """오늘의 작업 목록. 심각도 순 정렬."""
     env = env or {}
-    now = now or datetime.now()
+    now = now or now_kst()
     hour = now.hour + now.minute / 60
     sunrise, sunset = sun or (6.0, 19.0)
 
@@ -222,7 +232,7 @@ def weekly_tasks(farm_id: str, crop: str = "딸기",
       관수 Period 점검·환경 전략표 대비 주간 리뷰·기록 완결성.
       작목별 농작업은 교재 지식베이스 연계로 별도 확장한다(미구현).
     """
-    today = today or date.today()
+    today = today or now_kst().date()   # UTC 로 돌면 자정 전후로 주가 어긋난다
     monday = today - timedelta(days=today.weekday())
     plan = []
     for i in range(7):
