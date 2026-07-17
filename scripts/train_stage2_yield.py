@@ -1382,6 +1382,8 @@ def train_stage2(
     df: pd.DataFrame,
     config: CropConfig,
     target_mode: str = "absolute",   # "absolute" | "residual"
+    hp_override: dict | None = None,     # ★ 튜닝 실험용 — XGB 하이퍼파라미터 덮어쓰기(정상 학습은 None)
+    extra_exclude: set | None = None,    # ★ 튜닝 실험용 — 피처 추가 제외(정상 학습은 None)
 ) -> dict:
     """GroupKFold(year) + XGB early stopping + log1p + SHAP.
 
@@ -1423,6 +1425,7 @@ def train_stage2(
         {"farm_id", "year", "month", "yield_kg", "area_m2",
          "yield_per_m2", "yield_ratio", "yield_residual"}
         | _residual_exclude_extra
+        | (extra_exclude or set())
     )
     feature_cols = [c for c in df.columns if c not in exclude
                     and df[c].dtype in [np.float64, np.int64, "Int64", float, int]]
@@ -1614,6 +1617,19 @@ def train_stage2(
             xgb_reg_l1   = 0.1
             xgb_gamma    = 0.0
             xgb_n_est    = 500
+        # ★ 튜닝 실험 override — 정상 학습은 hp_override=None 이라 무영향
+        if hp_override:
+            xgb_lr      = hp_override.get("lr",      xgb_lr)
+            xgb_depth   = hp_override.get("depth",   xgb_depth)
+            xgb_mcw     = hp_override.get("mcw",     xgb_mcw)
+            xgb_es      = hp_override.get("es",      xgb_es)
+            xgb_sub     = hp_override.get("sub",     xgb_sub)
+            xgb_colsamp = hp_override.get("colsamp", xgb_colsamp)
+            xgb_reg_l2  = hp_override.get("reg_l2",  xgb_reg_l2)
+            xgb_reg_l1  = hp_override.get("reg_l1",  xgb_reg_l1)
+            xgb_gamma   = hp_override.get("gamma",   xgb_gamma)
+            xgb_n_est   = hp_override.get("n_est",   xgb_n_est)
+
         logger.info(
             "  XGB 파라미터: lr=%.2f depth=%d mcw=%d es=%d sub=%.2f "
             "λ=%.1f α=%.1f γ=%.1f n_est=%d (n=%d)",
@@ -2281,6 +2297,11 @@ def run_crop(crop_ko: str, use_cache: bool = True) -> dict | None:
 
     if result_monthly and result_annual:
         # CV MAPE 우선 (없으면 training MAPE 폴백)
+        # ★ 주의(2026-07-18 검증): 여기서 CV R²로 바꾸면 전 작목이 monthly 를 선택하며
+        #   R²가 급등하나(참외 -0.122→0.506 등), 이는 신호가 아니라 자기상관 신기루다.
+        #   monthly SHAP 상위가 yield_lag1·yield_ewm3(지난달 수확)·month_sin/cos(계절모양)·
+        #   farm_yield_hist_mean(농가정체성)뿐 — 환경/경영 변수 없음. 서빙/계획 시점엔
+        #   지난달 실측이 없어 예측력을 과장한다. annual 이 의사결정에 맞는 질문을 잰다.
         m_cv_mape = result_monthly.get("cv_mape_mean", result_monthly.get("mape", 999.0))
         a_cv_mape = result_annual.get("cv_mape_mean",  result_annual.get("mape",  999.0))
         if a_cv_mape < m_cv_mape:
