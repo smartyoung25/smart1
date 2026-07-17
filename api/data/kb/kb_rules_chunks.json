@@ -1,0 +1,284 @@
+[
+  {
+    "title": "P1 일출 前 점검 — 관수 Period",
+    "text": "시간대: 05:00~07:00\n일사 적산 트리거: 일사 적산 시작 前\n설명: 일출 前 — 야간 dry-back(10~20%) 결과 확인, EC/pH 기준값 점검, 첫 관수량 산정\n\n[목표값]\n  배액률: 0%\n  배액 EC: 3.5~5.5 dS/m\n  dry-back: 10~20%\n  급액: 무관수\n\n[스티어링] 야간 농축 EC 최고점 — 과다 시 P2 첫 관수량 상향으로 보정\n\n[관수 시작 조건]\n  · 무관수 — 야간 dry-back 결과 확인\n  · 첫 관수량 산정\n\n[경보 규칙]\n  · dryback min=25 [warn] 야간 dry-back 과다(>25%) — 첫 관수 앞당김 권장",
+    "path": "관수 관리 > P1~P6 일사적산 Period",
+    "tags": [
+      "관수",
+      "일사적산",
+      "배액률",
+      "dry-back",
+      "EC",
+      "P1"
+    ],
+    "id": "kb_rule_000",
+    "source": "KAASA Farmingsight 제품 도메인 규칙",
+    "copyright": "㈜이암허브·한국스마트농업AI협회",
+    "crops": [],
+    "chars": 335,
+    "origin": "components/data.js"
+  },
+  {
+    "title": "P2 첫 관수(재포화) — 관수 Period",
+    "text": "시간대: 일출 후 2~3h\n일사 적산 트리거: 일사 적산 ~100 J/cm² 또는 함수율 하한\n설명: 재포화·염류 세척 — 큰 급액(슬랩량 4~6%)으로 EC 낮추고 근권 리셋. 첫 배액 前\n\n[목표값]\n  배액률: 0~10%\n  배액 EC: 2.8~4 dS/m\n  dry-back: —\n  급액: —\n\n[스티어링] 큰 급액 = EC↓·세척. 시작 시각이 빠를수록 영양생장(vegetative)\n\n[관수 시작 조건]\n  · 적산일사 ~100 J/cm² 또는 수분 하한\n  · 큰 급액으로 EC 세척(첫 배액 前)\n\n[경보 규칙]\n  · drainPct max=0 [info] 첫 배액 전 — 함수율 회복 확인",
+    "path": "관수 관리 > P1~P6 일사적산 Period",
+    "tags": [
+      "관수",
+      "일사적산",
+      "배액률",
+      "dry-back",
+      "EC",
+      "P2"
+    ],
+    "id": "kb_rule_001",
+    "source": "KAASA Farmingsight 제품 도메인 규칙",
+    "copyright": "㈜이암허브·한국스마트농업AI협회",
+    "crops": [],
+    "chars": 340,
+    "origin": "components/data.js"
+  },
+  {
+    "title": "P3 오전 관수(첫 배액) — 관수 Period",
+    "text": "시간대: 일출 후 4~5h\n일사 적산 트리거: 일사 적산 ≈400 J/cm² (≈600 W/m²) — 첫 배액 개시\n설명: 일사 상승 대응 — 첫 배액 시작, 최고 일사대에서 배액 EC 최저로 유도(스트레스 방지)\n\n[목표값]\n  배액률: 20~30%\n  배액 EC: 3~4.5 dS/m\n  dry-back: —\n  급액: —\n\n[스티어링] 최고 광량 = 배액 EC 최저. 흐린 날 EC 무리하게 낮추지 않음\n\n[관수 시작 조건]\n  · 적산일사 ≈400 J/cm² → 첫 배액 개시\n  · 배액률 피드백 보정\n\n[경보 규칙]\n  · vpd max=1.2 [warn] VPD 낮음 — 환기 강화 권장\n  · vpd min=2 [danger] VPD 높음 — 증산 과다, 급액 증가",
+    "path": "관수 관리 > P1~P6 일사적산 Period",
+    "tags": [
+      "관수",
+      "일사적산",
+      "배액률",
+      "dry-back",
+      "EC",
+      "P3"
+    ],
+    "id": "kb_rule_002",
+    "source": "KAASA Farmingsight 제품 도메인 규칙",
+    "copyright": "㈜이암허브·한국스마트농업AI협회",
+    "crops": [],
+    "chars": 380,
+    "origin": "components/data.js"
+  },
+  {
+    "title": "P4 정오 고부하(유지) — 관수 Period",
+    "text": "시간대: 12:00~15:00\n일사 적산 트리거: 일사 피크 — 소량·빈번 급액(슬랩량 ~3%)\n설명: 최대 증산·고부하 — 함수율 64~65% 안정 유지, 배액률 20~30%(고EB 시 25~50% 세척). 12% 미만 시 즉시 추가 관수\n\n[목표값]\n  배액률: 20~35%\n  배액 EC: 3~5 dS/m\n  dry-back: —\n  급액: —\n\n[스티어링] 소량·빈번 급액으로 산소 확보(샷 사이 1.5~2% 함수율 변동)\n\n[관수 시작 조건]\n  · 최대 휴지시간\n  · 증산물량(VPD·일사)\n  · 함수율 하한\n\n[경보 규칙]\n  · drainPct max=12 [danger] ⚠ P4 배액률 위험 — 즉시 추가 관수 필요\n  · ecDrain min=5 [warn] 배액 EC 높음 — EC 낮추기 고려",
+    "path": "관수 관리 > P1~P6 일사적산 Period",
+    "tags": [
+      "관수",
+      "일사적산",
+      "배액률",
+      "dry-back",
+      "EC",
+      "P4"
+    ],
+    "id": "kb_rule_003",
+    "source": "KAASA Farmingsight 제품 도메인 규칙",
+    "copyright": "㈜이암허브·한국스마트농업AI협회",
+    "crops": [],
+    "chars": 402,
+    "origin": "components/data.js"
+  },
+  {
+    "title": "P5 오후 dry-down — 관수 Period",
+    "text": "시간대: 15:00~일몰\n일사 적산 트리거: 조기 종료(early stop) — 일몰까지 2~5% dry-back 도달\n설명: 관수 조기 종료 — 일몰 전 2~5% dry-back으로 생식생장 유도, EC 상향 허용, 마지막 급액 확정\n\n[목표값]\n  배액률: 0~25%\n  배액 EC: 3.5~5.5 dS/m\n  dry-back: 2~5%\n  급액: —\n\n[스티어링] 조기 종료가 이를수록 생식생장(generative)·EC 상승\n\n[관수 시작 조건]\n  · 조기 종료(early stop) — 적산일사 감소\n  · dry-back 2~5% 목표\n\n[경보 규칙]\n  · slabWt  [None] 마감 슬랩 무게·dry-back 목표 확인",
+    "path": "관수 관리 > P1~P6 일사적산 Period",
+    "tags": [
+      "관수",
+      "일사적산",
+      "배액률",
+      "dry-back",
+      "EC",
+      "P5"
+    ],
+    "id": "kb_rule_004",
+    "source": "KAASA Farmingsight 제품 도메인 규칙",
+    "copyright": "㈜이암허브·한국스마트농업AI협회",
+    "crops": [],
+    "chars": 358,
+    "origin": "components/data.js"
+  },
+  {
+    "title": "P6 야간 dry-back — 관수 Period",
+    "text": "시간대: 일몰~05:00\n일사 적산 트리거: 무관수 기본 (일사 없음)\n설명: 야간 건조 — 함수율 10~20% dry-back으로 생식/영양 생장 조절·뿌리 산소화, 배액 0%·EC 상향. 야간 관수는 예외(과도 dry-back·고EC 억제 시에만)\n\n[목표값]\n  배액률: 0%\n  배액 EC: 3.5~6 dS/m\n  dry-back: 10~20%\n  급액: 무관수\n\n[스티어링] 큰 dry-back=생식, 작은 dry-back=영양. 3시간당 ~3% 감소가 기준\n\n[관수 시작 조건]\n  · 무관수(야간 dry-back)\n  · 예외: 과도 dry-back·고EC 시 1회\n\n[경보 규칙]\n  · dryback min=25 [warn] 야간 dry-back 과다 — 영양작물·경량배지 시 야간 소량 관수 검토\n  · ecDrain min=6 [danger] 야간 EC 과다 상승 — 새벽 관수량 상향 또는 야간 1회 관수",
+    "path": "관수 관리 > P1~P6 일사적산 Period",
+    "tags": [
+      "관수",
+      "일사적산",
+      "배액률",
+      "dry-back",
+      "EC",
+      "P6"
+    ],
+    "id": "kb_rule_005",
+    "source": "KAASA Farmingsight 제품 도메인 규칙",
+    "copyright": "㈜이암허브·한국스마트농업AI협회",
+    "crops": [],
+    "chars": 462,
+    "origin": "components/data.js"
+  },
+  {
+    "title": "관수 시작 조건 우선순위 (일사 적산 우선)",
+    "text": "관수 시작 조건은 아래 우선순위로 판정한다(일사 적산 우선, 시각은 폴백).\n\n1. 적산일사량 + 배액 보정 — 측정 적산일사(J/cm²)가 한계 초과 시 시작. 배액률로 한계 보정, 첫 관수 후 0 리셋\n2. 증산물량(Transpiration sum) — VPD·일사·환기 기반 증산 적산이 한계 초과 시 시작\n3. 최대 휴지시간(Interval) — 마지막 관수 후 경과시간 초과 시 폴백 시작\n4. 수분/장력(Moisture·Tensio) — 함수율 하한 또는 수분장력 초과 시 시작",
+    "path": "관수 관리 > 시작 조건",
+    "tags": [
+      "관수",
+      "일사적산",
+      "증산",
+      "함수율",
+      "트리거"
+    ],
+    "id": "kb_rule_006",
+    "source": "KAASA Farmingsight 제품 도메인 규칙",
+    "copyright": "㈜이암허브·한국스마트농업AI협회",
+    "crops": [],
+    "chars": 273,
+    "origin": "components/data.js"
+  },
+  {
+    "title": "환경·관수 임계값 (PDCA 경보 기준)",
+    "text": "실측값이 아래 범위를 벗어나면 주의(warn)·위험(crit)으로 판정한다.\n\n지표            단위      주의(warn)          위험(crit)\n내부 온도         °C      [16, 30]          [12, 35]\nVPD           kPa     [0.4, 1.5]        [0.2, 2]\nCO₂           ppm     [400, 1500]       [300, 2000]\n급액 EC         dS/m    [2, 4]            [1.5, 4.5]\n배액률           %       [15, 40]          [10, 50]\n내부 습도         %       [60, 90]          [50, 95]\neffectiveness —       0.6               0.4\nefficiency    —       0.5               0.3",
+    "path": "모니터링 > 임계값",
+    "tags": [
+      "임계값",
+      "경보",
+      "VPD",
+      "EC",
+      "배액률",
+      "CO2",
+      "온도"
+    ],
+    "id": "kb_rule_007",
+    "source": "KAASA Farmingsight 제품 도메인 규칙",
+    "copyright": "㈜이암허브·한국스마트농업AI협회",
+    "crops": [],
+    "chars": 479,
+    "origin": "components/data.js"
+  },
+  {
+    "title": "환경관리 전략표 — 하루 4구간과 광연동 승온",
+    "text": "환경관리 전략표는 '생육시기 × 하루 4구간' 2축으로 목표(온도·습도·CO₂)를 정의한다.\n\n· 야간(night) 20~5시 — 일몰~일출 · 호흡·생식 조절\n· 일출(dawn) 5~9시 — 일출 후 2~3h · 완만 승온\n· 주간(day) 9~16시 — 고일사 · 광합성 최대\n· 일몰전(prenight) 16~20시 — 일몰 2~3h 전 · 예비 강하(DROP)\n\n벤치마크: Het Nieuwe Telen(차세대 재배)·Plant Empowerment · Priva 광연동 승온 · 농진청 시설표준\n\n[광연동 승온(Priva lichtverhoging)]\n  기준 일사 200 W/m² 초과분 100W/m² 당 +0.6℃, 상한 +3.0℃",
+    "path": "환경 관리 > 전략표",
+    "tags": [
+      "환경관리",
+      "전략표",
+      "광연동",
+      "승온",
+      "구간"
+    ],
+    "id": "kb_rule_008",
+    "source": "KAASA Farmingsight 제품 도메인 규칙",
+    "copyright": "㈜이암허브·한국스마트농업AI협회",
+    "crops": [],
+    "chars": 360,
+    "origin": "api/services/climate_plan.py"
+  },
+  {
+    "title": "딸기 생육단계별 환경 권장 밴드 (avg24·VPD)",
+    "text": "딸기의 생육단계별 24시간 평균기온(avg24)·VPD 권장 밴드.\n\n· 활착기(establish): avg24 [13, 15]℃ · VPD [0.4, 0.7] kPa\n· 생장기(veg): avg24 [12, 15]℃ · VPD [0.6, 0.9] kPa\n· 착과·개화기(flower): avg24 [11, 14]℃ · VPD [0.7, 1.0] kPa\n· 수확기(harvest): avg24 [12, 14]℃ · VPD [0.6, 0.9] kPa\n\n※ 겨울 시설 촉성 기준 — 야간 저온으로 화아분화를 유도한다.",
+    "path": "환경 관리 > 작목별 권장값",
+    "tags": [
+      "환경관리",
+      "avg24",
+      "VPD",
+      "딸기"
+    ],
+    "crops": [
+      "딸기"
+    ],
+    "id": "kb_rule_009",
+    "source": "KAASA Farmingsight 제품 도메인 규칙",
+    "copyright": "㈜이암허브·한국스마트농업AI협회",
+    "chars": 287,
+    "origin": "api/services/climate_plan.py"
+  },
+  {
+    "title": "완숙토마토 생육단계별 환경 권장 밴드 (avg24·VPD)",
+    "text": "완숙토마토의 생육단계별 24시간 평균기온(avg24)·VPD 권장 밴드.\n\n· 착과·개화기(flower): avg24 [16.2, 19.7]℃ · VPD [0.7, 1.19] kPa\n· 수확기(harvest): avg24 [14.8, 17.7]℃ · VPD [0.62, 1.06] kPa\n\n※ 출처: 스마트농업컨설턴트 교재 [별첨1] 작목별 스마트팜 환경 제어값 기준표.",
+    "path": "환경 관리 > 작목별 권장값",
+    "tags": [
+      "환경관리",
+      "avg24",
+      "VPD",
+      "완숙토마토"
+    ],
+    "crops": [
+      "완숙토마토"
+    ],
+    "id": "kb_rule_010",
+    "source": "KAASA Farmingsight 제품 도메인 규칙",
+    "copyright": "㈜이암허브·한국스마트농업AI협회",
+    "chars": 207,
+    "origin": "api/services/climate_plan.py"
+  },
+  {
+    "title": "방울토마토 생육단계별 환경 권장 밴드 (avg24·VPD)",
+    "text": "방울토마토의 생육단계별 24시간 평균기온(avg24)·VPD 권장 밴드.\n\n· 활착기(establish): avg24 [19.2, 21.2]℃ · VPD [0.42, 0.79] kPa\n· 생장기(veg): avg24 [17.2, 20.2]℃ · VPD [0.62, 1.04] kPa\n· 착과·개화기(flower): avg24 [15.2, 18.7]℃ · VPD [0.66, 1.12] kPa\n· 수확기(harvest): avg24 [13.2, 17.2]℃ · VPD [0.58, 0.99] kPa\n\n※ 출처: 스마트농업컨설턴트 교재 [별첨1] 작목별 스마트팜 환경 제어값 기준표.",
+    "path": "환경 관리 > 작목별 권장값",
+    "tags": [
+      "환경관리",
+      "avg24",
+      "VPD",
+      "방울토마토"
+    ],
+    "crops": [
+      "방울토마토"
+    ],
+    "id": "kb_rule_011",
+    "source": "KAASA Farmingsight 제품 도메인 규칙",
+    "copyright": "㈜이암허브·한국스마트농업AI협회",
+    "chars": 324,
+    "origin": "api/services/climate_plan.py"
+  },
+  {
+    "title": "오이 생육단계별 환경 권장 밴드 (avg24·VPD)",
+    "text": "오이의 생육단계별 24시간 평균기온(avg24)·VPD 권장 밴드.\n\n· 활착기(establish): avg24 [21.7, 23.7]℃ · VPD [0.5, 0.76] kPa\n· 생장기(veg): avg24 [19.7, 21.7]℃ · VPD [0.6, 1.01] kPa\n· 착과·개화기(flower): avg24 [17.7, 20.1]℃ · VPD [0.66, 1.11] kPa\n· 수확기(harvest): avg24 [15.7, 18.1]℃ · VPD [0.7, 1.12] kPa\n\n※ 출처: 스마트농업컨설턴트 교재 [별첨1] 작목별 스마트팜 환경 제어값 기준표.",
+    "path": "환경 관리 > 작목별 권장값",
+    "tags": [
+      "환경관리",
+      "avg24",
+      "VPD",
+      "오이"
+    ],
+    "crops": [
+      "오이"
+    ],
+    "id": "kb_rule_012",
+    "source": "KAASA Farmingsight 제품 도메인 규칙",
+    "copyright": "㈜이암허브·한국스마트농업AI협회",
+    "chars": 318,
+    "origin": "api/services/climate_plan.py"
+  },
+  {
+    "title": "파프리카 생육단계별 환경 권장 밴드 (avg24·VPD)",
+    "text": "파프리카의 생육단계별 24시간 평균기온(avg24)·VPD 권장 밴드.\n\n· 활착기(establish): avg24 [21.2, 23.2]℃ · VPD [0.48, 0.71] kPa\n· 생장기(veg): avg24 [18.8, 21.2]℃ · VPD [0.53, 0.95] kPa\n· 착과·개화기(flower): avg24 [16.8, 19.7]℃ · VPD [0.58, 1.04] kPa\n· 수확기(harvest): avg24 [14.8, 17.7]℃ · VPD [0.62, 1.06] kPa\n\n※ 출처: 스마트농업컨설턴트 교재 [별첨1] 작목별 스마트팜 환경 제어값 기준표.",
+    "path": "환경 관리 > 작목별 권장값",
+    "tags": [
+      "환경관리",
+      "avg24",
+      "VPD",
+      "파프리카"
+    ],
+    "crops": [
+      "파프리카"
+    ],
+    "id": "kb_rule_013",
+    "source": "KAASA Farmingsight 제품 도메인 규칙",
+    "copyright": "㈜이암허브·한국스마트농업AI협회",
+    "chars": 323,
+    "origin": "api/services/climate_plan.py"
+  },
+  {
+    "title": "VPD 계산법과 해석",
+    "text": "VPD(수증기압차)는 증산·병해 관리의 핵심 지표다.\n\n계산: SVP = 0.6108 × exp(17.27T / (T+237.3)),  VPD = SVP × (1 − RH/100)\n\n[예시]\n  22℃ · 70% → VPD 0.79 kPa\n  25℃ · 60% → VPD 1.27 kPa\n  18℃ · 85% → VPD 0.31 kPa\n\n낮으면 과습(환기 강화), 높으면 증산 과다(급액 보완).",
+    "path": "환경 관리 > VPD",
+    "tags": [
+      "VPD",
+      "증산",
+      "습도",
+      "환기"
+    ],
+    "id": "kb_rule_014",
+    "source": "KAASA Farmingsight 제품 도메인 규칙",
+    "copyright": "㈜이암허브·한국스마트농업AI협회",
+    "crops": [],
+    "chars": 221,
+    "origin": "api/services/climate_plan.py"
+  }
+]

@@ -30,6 +30,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 PDF = ROOT / "outputs" / "스마트농업컨설턴트 교재_250630.pdf"
 OUT = ROOT / "out" / "kb_textbook_chunks.json"
+# ★ 서빙본은 api/data/kb/ 다 — out/ 은 .gitignore 대상이라 배포 서버에 안 올라간다.
+#   여기 함께 쓰지 않으면 재생성해도 챗봇이 보는 지식베이스는 그대로다(조용히 어긋남).
+KB_SERVE = ROOT / "api" / "data" / "kb"
+
 
 MIN_CHARS, MAX_CHARS = 400, 1800
 CROPS = ["방울토마토", "완숙토마토", "토마토", "딸기", "파프리카", "오이", "멜론", "참외", "수박", "고추"]
@@ -163,7 +167,10 @@ def main() -> int:
 
     if args.write:
         OUT.parent.mkdir(parents=True, exist_ok=True)
-        OUT.write_text(json.dumps(chunks, ensure_ascii=False, indent=2), encoding="utf-8")
+        _blob = json.dumps(chunks, ensure_ascii=False, indent=2)
+        OUT.write_text(_blob, encoding="utf-8")
+        KB_SERVE.mkdir(parents=True, exist_ok=True)
+        (KB_SERVE / OUT.name).write_text(_blob, encoding="utf-8")  # 서빙본 동기화
         print(f"\n저장: {OUT}  ({OUT.stat().st_size:,} bytes)")
     else:
         print("\n(미리보기 — 저장하려면 --write)")

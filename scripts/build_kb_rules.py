@@ -28,6 +28,10 @@ sys.path.insert(0, str(ROOT))
 
 RAW = ROOT / "out" / "kb_rules_raw.json"
 OUT = ROOT / "out" / "kb_rules_chunks.json"
+# ★ 서빙본은 api/data/kb/ 다 — out/ 은 .gitignore 대상이라 배포 서버에 안 올라간다.
+#   여기 함께 쓰지 않으면 재생성해도 챗봇이 보는 지식베이스는 그대로다(조용히 어긋남).
+KB_SERVE = ROOT / "api" / "data" / "kb"
+
 
 SRC_LABEL = "KAASA Farmingsight 제품 도메인 규칙"
 COPYRIGHT = "㈜이암허브·한국스마트농업AI협회"
@@ -197,7 +201,10 @@ def main() -> int:
 
     if a.write:
         OUT.parent.mkdir(parents=True, exist_ok=True)
-        OUT.write_text(json.dumps(ch, ensure_ascii=False, indent=2), encoding="utf-8")
+        _blob = json.dumps(ch, ensure_ascii=False, indent=2)
+        OUT.write_text(_blob, encoding="utf-8")
+        KB_SERVE.mkdir(parents=True, exist_ok=True)
+        (KB_SERVE / OUT.name).write_text(_blob, encoding="utf-8")  # 서빙본 동기화
         print(f"\n저장: {OUT} ({OUT.stat().st_size:,} bytes)")
     else:
         print("\n(미리보기 — 저장하려면 --write)")

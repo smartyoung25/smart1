@@ -1,10 +1,16 @@
 """지식베이스 검색 (BM25) — 챗봇 근거 제공.
 
-지식베이스(out/):
+지식베이스(api/data/kb/):
   kb_textbook_chunks.json  스마트농업컨설턴트 교재 449쪽 → 735청크 (병해충·환경·재배)
   kb_rules_chunks.json     제품 도메인 규칙 → 15청크 (P1~P6 관수·일사적산·PDCA 임계·VPD)
   두 소스는 상호보완이다 — 교재엔 관수(배액률·dry-back·일사적산·P1~P6)가 0회 등장하고,
   제품 규칙엔 병해충이 없다.
+
+  ★ 왜 out/ 이 아니라 api/data/kb/ 인가: out/ 은 .gitignore 대상(생성 문서 폴더)이라
+    거기 두면 배포 서버에 파일이 없고, 검색이 조용히 0건이 되어 기능이 죽은 채로
+    정상처럼 보인다. 지식베이스는 생성물이 아니라 API 런타임 의존물이므로 추적한다.
+    (같은 유형의 사고: 모델 pkl 이 LFS 포인터로 배포돼 11일간 stub 예측을 뱉었다.)
+    빌드 스크립트는 out/ 에 쓰고, 서빙본은 api/data/kb/ 로 복사한다.
 
 왜 BM25 인가:
   임베딩·벡터DB 없이 동작한다(현재 LLM 크레딧 소진 상태에서도 검색은 유효).
@@ -29,8 +35,9 @@ from threading import Lock
 logger = logging.getLogger(__name__)
 
 ROOT = Path(__file__).resolve().parents[2]
-FILES = [ROOT / "out" / "kb_textbook_chunks.json",
-         ROOT / "out" / "kb_rules_chunks.json"]
+KB_DIR = ROOT / "api" / "data" / "kb"
+FILES = [KB_DIR / "kb_textbook_chunks.json",
+         KB_DIR / "kb_rules_chunks.json"]
 
 _K1, _B = 1.5, 0.75
 
@@ -109,6 +116,11 @@ def _load() -> dict:
                     seen.add(t)
             del d["blob"]
         n = len(docs)
+        if not n:
+            # 조용히 0건으로 지나가면 챗봇이 '근거 없음' 답변만 하면서도 정상처럼 보인다.
+            # 배포에 KB 가 누락된 상황이므로 눈에 띄게 남긴다.
+            logger.error("[kb_search] ★ 지식베이스가 비어 있다 — %s 확인 필요. "
+                         "챗봇이 문헌 근거 없이 답한다.", KB_DIR)
         # 색인에 실재하는 작목명 — 질문에서 작목을 알아채는 데 쓴다(하드코딩 목록 두지 않기 위함).
         # 긴 이름 우선(방울토마토가 토마토보다 먼저 잡히게).
         crops = sorted({c for d in docs for c in (d["c"].get("crops") or []) if c},
