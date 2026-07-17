@@ -1,8 +1,39 @@
 # NEXT — 다음 세션 시작점
-> 마지막 커밋: 3489892 (2026-06-26) · origin 동기화됨
+> 마지막 커밋: 13d6268 (2026-07-18) · origin·iwinv 서버 동기화됨
 
 ## 현재 상태 (1줄)
-코드리뷰 9건 수정 완료(P0보안~P3) + PC콘솔 + 데이터품질 + farmer.py P2-C(5모듈).
+farmingsight.org iwinv 운영·3경로 검증(SW v82) + 중간보고서 갱신 + 6축 모델 데이터확보 설계 확정.
+
+## ★ 이번 세션 결론 (2026-07-18)
+
+### 1. 운영 배포 (iwinv, farmingsight.org)
+- 푸터 문의 채널 `iiam@iiam.co.kr` 3화면(index·intro·console) 추가, **SW v81→v82**.
+- 배포 검증은 **3경로 대조**(컨테이너 실체 / localhost:8000 / 공개 도메인)로 수행 —
+  세 경로 v82 일치 확인(터널 하이재킹 없음). Cloudflare 이메일 난독화로 curl엔 안 보이나
+  실브라우저는 정상 복원(정상).
+- 아티팩트는 named volume이라 `docker compose cp` 필수, 프론트는 이미지 베이크라 rebuild 필수.
+
+### 2. 중간보고서 (out/, gitignore) — 스크립트만 커밋
+- `이암허브_2026_중간보고서.docx` 갱신 + 스냅샷 `_20260718.docx` 보존.
+- 제6장 환경실증 설계 구체화(DIF·CO₂·VPD 처치·농가내 구획·검정력 표본산정) —
+  평가의견 "방법론 구체화" 응답. 배포 3경로 검증·문의채널 실적 반영.
+
+### 3. ★ 모델 튜닝 = 신기루 (재현 가능하게 고정)
+- 파프리카·완숙 M2 하이퍼파라미터/모드 스윕 순이득 미미(≤0.03).
+- **모드 선택을 CV MAPE→CV R²로 바꾸면 전 작목 monthly 쏠려 R² 급등**(참외 -0.122→0.506,
+  완숙 0.099→0.453 등) — 그러나 **자기상관 신기루**. SHAP 상위가 yield_lag1·yield_ewm3(지난달
+  수확)·month_sin/cos·farm_yield_hist_mean뿐, 환경/경영 변수 0. 서빙 시점엔 지난달 실측 없어
+  못 씀 → **모드선택 원복**(주석으로 함정 고정). 재현: `scripts/_tune_m2_experiment.py`.
+- 부산물: 배포 아티팩트가 **stale**(재학습 시 값 변동)이나, run_crop 재학습은 MAPE 모드선택이
+  annual(R² 음수)을 골라 오히려 악화 → 함부로 재학습 금지.
+- **결론: 코드 튜닝으로 얻는 실질 개선 없음. 게이트 판정(아래) 정직하게 유효.**
+
+### 4. 진짜 지렛대 = 외부 데이터 (문서화 완료)
+- `docs/DATA_ACQUISITION_DESIGN.md`(신규) — 6축 병목 성격 분류 + **외부 입력 우선순위**:
+  ①품질·등급(당도·특품율) ②농가 실비용 13항목 ③가격 선행지표 ④근권·양액 실측 ⑤품종·정식일 ⑥병해 라벨.
+  다섯이 과업①(소득조사 20개소)과 겹침.
+- **같은 환경센서 축적은 무효**(신호 약 0.12~0.19·교란). 환경축은 외부입력 아닌 **처치 실험**만이 해법.
+- 수량(kg/m²) 아니라 **소득**을 목표로: 품질·등급 → 매출, 실비용 → 소득 검증.
 
 ## 코드리뷰 작업지시서 처리 완료 (커밋 3489892)
 [x] P0-1 보안: admin 쓰기 불변식 복원(deny-list→전면차단), demo토큰 누출 차단
@@ -123,28 +154,41 @@ P0+P1 — 서비스 신뢰도 버그 7건 수정, 프로세스 흐름 재설계.
 **컨텍스트 전략**: 전체 파일 읽기 금지. Grep으로 함수명 → 줄번호 → 50줄 읽기.
 
 ### 사용자 액션 필요
-- 2022+ 실수확 데이터 확보 → 딸기/완숙 M2 재학습
-- Let's Encrypt 인증서 교체
-- `.env` SMTP/Slack/CoolSMS 키 설정
+- **외부 데이터 확보**(모델 성능의 실질 지렛대) → 우선순위·설계는 `docs/DATA_ACQUISITION_DESIGN.md`.
+  요약: ①품질·등급 ②농가 실비용 13항목 ③가격 선행지표 ④근권·양액 실측 ⑤품종·정식일 ⑥병해 라벨.
+- **환경 실증 실험** 설계 협의(농진청) — 관측으로는 환경효과 식별 불가, 처치 배정만이 해법(보고서 6장).
+- ANTHROPIC 크레딧 충전(챗봇 LLM off) · `.env` SMTP/Slack/CoolSMS 키 · Let's Encrypt(현재 Cloudflare 터널 TLS).
+- ★ 저장소 `github.com/smartyoung25/smart1` **공개 상태**(2026-07-18 재확인) — 비공개 전환은 사용자만 가능.
 
-## 배포 모델 현황 (v4c)
-| 작물 | MAPE | 비고 |
-|------|------|------|
-| 참외 | 27.3% | 실용 수준 ✅ |
-| 방울토마토 | 70.6% | 방향성 참고 |
-| 파프리카 | 68.6% | 방향성 참고 |
-| 딸기 | 102.4% | 데이터 부족 |
-| 완숙토마토 | 137.5% | 데이터 부족 |
+## 배포 모델 현황 (M2 stage2 · CV R² 게이트 · 2026-07-18 재확인)
+> ★ 판정 축은 **교차검증 CV R²**(pipeline/gates.py: MIN=0.20·FALLBACK=0.0). 학습 MAPE 금지.
+> ★ 과거 이 표의 "참외 27.3% 실용" 등 MAPE 수치는 **학습오차라 무효** — CV R²로 대체.
+
+| 작물 | CV R² | 판정 | 비고 |
+|------|-------|------|------|
+| 오이 | 0.386 | 서비스 적용 ✅ | annual, n=61(취약) |
+| 딸기 | 0.291 | 서비스 적용 ✅ | monthly, n=6427 |
+| 파프리카 | 0.076 | 조건부 | monthly, n=858 |
+| 완숙토마토 | 0.099 | 조건부 | annual, n=177 |
+| 참외 | -0.122 | 폴백 | 표본 84·피처 64 |
+| 방울토마토 | -0.257 | 폴백 | n=103, 신호부족 |
+
+※ monthly 고R²는 자기상관 신기루(위 결론 3). 위 값은 **의사결정용 정직한 값**.
 
 ## 서버 실행
-```powershell
-$env:PYTHONPATH="C:\smart_farm"; $env:PUBLIC_DEMO="1"
-python -m uvicorn api.main:app --port 8000
-cloudflared tunnel --config deploy/cloudflare/config.yml run kaasa-smartos
-```
+- **운영(farmingsight.org)**: iwinv Ubuntu(115.68.226.231) Docker가 서빙. 터널은 iwinv
+  systemd `cloudflared-kaasa.service`. 배포는 `git checkout origin/master -- <코드경로>` +
+  프론트 rebuild + 아티팩트 `docker compose cp` (CLAUDE.md 참조).
+- **로컬 개발만**:
+  ```powershell
+  $env:PYTHONPATH="C:\smart_farm"; $env:PUBLIC_DEMO="1"
+  python -m uvicorn api.main:app --port 8000
+  ```
+- ★ **이 PC에서 cloudflared 실행 금지** — iwinv와 같은 터널 UUID라 farmingsight.org 트래픽을
+  이 PC로 가로챈다(2026-07-17 실제 사고). 배포 검증은 3경로 대조(위 결론 1).
 
 ## 주의사항
-- SW 캐시 현재 **v73** — 화면 변경 시 sw.js CACHE 버전 bump 필수
+- SW 캐시 현재 **v82** — 화면 변경 시 sw.js CACHE 버전 bump 필수
 - `PUBLIC_DEMO=1` 환경: `/api/admin/*` 전부 403
 - IP Insight(C:\IPinsight) 관련 작업 절대 수행 금지
 - farmer.py 4300줄 — 직접 전체 읽기 금지, Grep+함수명으로 접근
