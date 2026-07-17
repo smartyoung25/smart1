@@ -21,6 +21,7 @@ import api.routers.farmer_pdca        # noqa: F401 — side-effect: registers PD
 import api.routers.farmer_equipment   # noqa: F401 — side-effect: registers equipment·consent·integration routes
 import api.routers.farmer_env          # noqa: F401 — side-effect: registers climate-plan routes
 import api.routers.farmer_tasks        # noqa: F401 — side-effect: registers daily/weekly task routes
+import api.routers.farmer_shipping     # noqa: F401 — side-effect: registers shipping timing route
 from api.routers.auth import router as auth_router
 from api.routers.recommend_v2 import router as recommend_v2_router
 from api.routers.ws import router as ws_router, _setup_mqtt_bridge

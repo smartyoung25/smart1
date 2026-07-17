@@ -181,6 +181,33 @@ def _env_tasks(farm_id: str, crop: str, env: dict, hour: float,
 
 # ── 데이터 품질 ──────────────────────────────────────────────────────────────
 
+def _shipping_task(crop: str, today: date) -> list[dict]:
+    """출하 시점 — 단가 계절성이 크면 알린다.
+
+    ★ 단가만 본 결과다. 저장성·수확기를 모르므로 '지시'가 아니라 '정보'로 낸다
+      (딸기를 6월→10월로 미루는 건 물리적으로 불가능하다 — 판단은 농가가 한다).
+    """
+    try:
+        from api.services.shipping_timing import recommend
+        r = recommend(crop, today=today)
+    except Exception as e:
+        logger.warning("[task_recommend] 출하 시점 조회 실패: %s", e)
+        return []
+    if not r.get("available"):
+        return []
+    best, gain = r.get("best") or {}, r.get("gain_pct_vs_now")
+    # 지금이 최적이거나 이득이 미미하면 굳이 알리지 않는다(알림 피로)
+    if best.get("months_ahead") == 0 or gain is None or gain < 20:
+        return []
+    return [_task(
+        "shipping", "💰",
+        f"출하 시점 검토 — {best['month']}월 단가가 {gain:+.0f}% 높음",
+        f"실측 월별 단가: 지금 {r['current']['median']:,}원/kg → {best['month']}월 "
+        f"{best['median']:,}원/kg. {r['caveat']}",
+        INFO, screen="c10_roi.html",
+    )]
+
+
 def _record_tasks(env: dict) -> list[dict]:
     """오늘 비어 있는 실측을 채우도록 유도 — 추천 품질이 곧 입력 품질이다."""
     missing = [ko for key, ko in
@@ -208,6 +235,7 @@ def daily_tasks(farm_id: str, crop: str = "딸기", env: dict | None = None,
     tasks: list[dict] = []
     tasks += _irrigation_tasks(farm_id, crop, hour, sunrise, sunset, env)
     tasks += _env_tasks(farm_id, crop, env, hour, sunrise, sunset)
+    tasks += _shipping_task(crop, now.date())
     tasks += _record_tasks(env)
     tasks.sort(key=lambda t: _ORDER.get(t["severity"], 9))
 
