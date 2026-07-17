@@ -252,9 +252,17 @@ class WhatIfResult(BaseModel):
     delta_pct: float                 # 증감률 (%)
     confidence: float                # 모델 신뢰도 0–1
     model_used: str                  # "ml_model" | "stats_fallback"
+    # ── 비용·소득 (2026-07-17 추가) ──────────────────────────────────────────
+    # ★ 구: profit_gain_krw 에 '매출' 델타를 넣어 UI 가 소득으로 오독했다.
+    #   온도를 올리면 매출과 난방비가 함께 오르므로, 비용을 빼지 않으면
+    #   "무조건 온도를 올려라"가 된다. 이제 profit_gain_krw 는 진짜 소득 델타다.
+    baseline_cost_krw: Optional[float] = None   # 현재 환경 기준 예측 비용
+    whatif_cost_krw: Optional[float] = None     # 가상 환경 기준 예측 비용
+    cost_delta_krw: Optional[float] = None      # 비용 차이 (양수=증가)
+    profit_delta_krw: Optional[float] = None    # 소득 차이 = 매출Δ − 비용Δ. 비용 미산출 시 None
     # UI 편의 별칭 (대시보드 JS가 profit_gain_krw, revenue_krw 등으로 접근)
-    profit_gain_krw: float = 0.0     # = delta_krw
-    revenue_gain_krw: float = 0.0    # = delta_krw (legacy)
+    profit_gain_krw: float = 0.0     # = profit_delta_krw (비용 미산출 시 0)
+    revenue_gain_krw: float = 0.0    # = delta_krw (매출 델타 — legacy)
     revenue_krw: float = 0.0         # = whatif_revenue_krw
     yield_kg_forecast: Optional[float] = None
 

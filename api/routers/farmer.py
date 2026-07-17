@@ -1258,9 +1258,42 @@ def whatif(farm_id: str, body: WhatIfInput):
     delta              = whatif_rev - baseline_rev
     delta_pct          = (delta / baseline_rev * 100) if baseline_rev else 0.0
 
+    # ── 비용 연결 — 소득(=매출−비용) 델타 ────────────────────────────────────
+    # ★ 왜: 구 whatif 는 **매출 차이만** 보고 그걸 profit_gain_krw 로 내보냈다.
+    #   온도를 올리면 매출도 오르지만 난방비도 오른다(M4: ΔT×9.12원/℃/m²×계절가중).
+    #   비용을 빼지 않으면 "무조건 온도를 올려라"가 되어 농가를 손해로 이끈다.
+    #   M4CostModel 은 이미 있었으나 whatif 에 연결돼 있지 않았다(pipeline_assembler 만 사용).
+    _cost_delta = None
+    _base_cost = _wi_cost = None
+    try:
+        from models.m4_cost import get_cost_model
+        _cm = get_cost_model()
+        # 비용은 수확량에 비례(수확노무비·포장재비)하므로 시나리오별 수확량을 넘긴다.
+        _price_for_yield = get_price_krw_kg(crop) or 1.0
+        _base_y = (baseline_rev / _price_for_yield / area) if (area and _price_for_yield) else 0.0
+        _wi_y   = (whatif_rev  / _price_for_yield / area) if (area and _price_for_yield) else 0.0
+        _base_cb = _cm.predict(month=month,
+                               temp_internal=float(base_env.get("temp_internal", 20.0)),
+                               temp_external=float(base_env.get("temp_external", 5.0)),
+                               yield_kg_m2=_base_y, crop_ko=crop)
+        _wi_cb = _cm.predict(month=month,
+                             temp_internal=float(hypo_env.get("temp_internal", 20.0)),
+                             temp_external=float(hypo_env.get("temp_external", 5.0)),
+                             yield_kg_m2=_wi_y, crop_ko=crop)
+        _base_cost = _base_cb.total_per_m2 * area      # 비용은 원/m² → 총액 환산
+        _wi_cost   = _wi_cb.total_per_m2 * area
+        _cost_delta = _wi_cost - _base_cost
+    except Exception as e:
+        # 비용을 못 구하면 소득을 만들지 않는다 — 매출을 소득이라 부르지 않기 위함.
+        logger.warning("[whatif] 비용 계산 실패(소득 미산출): %s", e)
+
+    _profit_delta = (delta - _cost_delta) if _cost_delta is not None else None
+
     logger.info(
-        "[whatif] farm=%s crop=%s base=%.0f whatif=%.0f delta=%.0f",
+        "[whatif] farm=%s crop=%s 매출 %.0f→%.0f(Δ%.0f) 비용Δ=%s 소득Δ=%s",
         farm_id, crop, baseline_rev, whatif_rev, delta,
+        f"{_cost_delta:.0f}" if _cost_delta is not None else "—",
+        f"{_profit_delta:.0f}" if _profit_delta is not None else "—",
     )
     # yield_kg_forecast: revenue / price 역산
     _price = get_price_krw_kg(crop) or 1.0
@@ -1273,8 +1306,13 @@ def whatif(farm_id: str, body: WhatIfInput):
         delta_pct=round(delta_pct, 2),
         confidence=0.75 if src == "ml_model" else 0.5,
         model_used=src,
-        # UI 별칭
-        profit_gain_krw=round(delta),
+        # 비용·소득
+        baseline_cost_krw=(round(_base_cost) if _base_cost is not None else None),
+        whatif_cost_krw=(round(_wi_cost) if _wi_cost is not None else None),
+        cost_delta_krw=(round(_cost_delta) if _cost_delta is not None else None),
+        profit_delta_krw=(round(_profit_delta) if _profit_delta is not None else None),
+        # UI 별칭 — profit_gain_krw 는 '소득' 델타다(구: 매출 델타였음)
+        profit_gain_krw=round(_profit_delta) if _profit_delta is not None else 0.0,
         revenue_gain_krw=round(delta),
         revenue_krw=round(whatif_rev),
         yield_kg_forecast=_yield_est,
