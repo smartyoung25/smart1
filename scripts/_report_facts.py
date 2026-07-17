@@ -99,10 +99,33 @@ def kb() -> dict:
     return {"textbook": tb, "rules": rl, "total": tb + rl}
 
 
+def farms() -> dict:
+    """실증·학습 기반 농가 — farm_registry(농진청 수집분)에서 센다.
+
+    ★ 이 716농가는 2018~2022 축적분이며, 2026년 2차년도 소득조사 20개소와는 별개다.
+      보고서에서 섞어 쓰면 하지 않은 조사를 한 것처럼 보인다.
+    """
+    import collections
+    p = ROOT / "api" / "data" / "farm_registry.json"
+    if not p.exists():
+        return {}
+    d = json.loads(p.read_text(encoding="utf-8"))
+    recs = [v for v in (d.get("farms") or {}).values() if isinstance(v, dict)]
+    by_crop = collections.Counter(v.get("crop") for v in recs)
+    by_year = collections.Counter(str(v.get("year")) for v in recs if v.get("year"))
+    return {
+        "total": len(recs),
+        "by_crop": dict(by_crop.most_common()),
+        "years": sorted(by_year),
+        "generated_at": d.get("generated_at"),
+    }
+
+
 def main() -> int:
     facts = {
         "generated": date.today().isoformat(),
         "report_month": f"{date.today():%Y. %m.}",
+        "farms": farms(),
         "gate": {
             "mape_serve": MAPE_SERVE, "mape_fallback": MAPE_FALLBACK,
             "cv_r2_min": CV_R2_MIN, "n_min": N_MIN, "overfit_gap": OVERFIT_GAP,
