@@ -109,13 +109,31 @@ def recommend(crop_ko: str, today: Optional[date] = None,
         return {"crop": crop_ko, "available": False,
                 "reason": f"향후 {horizon_months}개월 단가 데이터 없음"}
 
-    best = max(window, key=lambda x: x["median"])
-    # 연중 최고·최저 — 맥락 제공
-    peak = max(cal, key=lambda x: x["median"])
-    trough = min(cal, key=lambda x: x["median"])
+    # ★ best 는 표본이 충분한 월에서만 고른다.
+    #   구: median 최대만 봤다 → 극단적 이상치를 '최적'으로 추천했다.
+    #   실측: 딸기 10월 24,725원(연중 최고)의 표본은 **24건** · 참외 1월 9,954원은 **22건**.
+    #   거래 20여 건으로 "3.8배 비싸니 미루라"고 하면 농가를 잘못된 판단으로 이끈다.
+    #   (앞서 모델 게이트에서 지적한 소표본 낙관편의와 같은 함정이다.)
+    solid = [x for x in window if not x["low_confidence"]]
+    best = max(solid, key=lambda x: x["median"]) if solid else None
+    # 표본이 빈약해 제외된 고가 월 — 숨기지 않고 참고로 알린다
+    excluded = sorted((x for x in window if x["low_confidence"] and
+                       (best is None or x["median"] > best["median"])),
+                      key=lambda x: -x["median"])
+
+    # 연중 최고·최저 — 맥락 제공(여기도 표본 충분한 월만)
+    cal_solid = [c for c in cal if not c["low_confidence"]] or cal
+    peak = max(cal_solid, key=lambda x: x["median"])
+    trough = min(cal_solid, key=lambda x: x["median"])
+
+    if best is None:
+        return {"crop": crop_ko, "available": False,
+                "reason": (f"향후 {horizon_months}개월 중 표본이 충분한(n≥{_N_MIN}) 월이 없어 "
+                           f"추천하지 않는다"),
+                "calendar": cal}
 
     gain = None
-    if cur and cur["median"]:
+    if cur and cur["median"] and not cur["low_confidence"]:
         gain = round((best["median"] - cur["median"]) / cur["median"] * 100, 1)
 
     return {
@@ -125,12 +143,17 @@ def recommend(crop_ko: str, today: Optional[date] = None,
         "current": cur,
         "best": best,
         "gain_pct_vs_now": gain,
+        # 표본 빈약으로 best 후보에서 제외한 고가 월 — 감추지 않고 근거와 함께 노출
+        "excluded_low_confidence": [
+            {"month": x["month"], "median": x["median"], "n": x["n"]} for x in excluded
+        ],
         "window": window,
         "calendar": cal,
         "peak": {"month": peak["month"], "median": peak["median"]},
         "trough": {"month": trough["month"], "median": trough["median"]},
         "spread_ratio": (round(peak["median"] / trough["median"], 1)
                          if trough["median"] else None),
+        "min_samples": _N_MIN,
         "source": "2018~2025 실측 거래 월별 집계(price_stats.monthly_trend)",
         # ★ 호출측이 반드시 사용자에게 전달해야 하는 한계
         "caveat": ("단가만 고려한 결과다. 저장성·품질 저하·수확 시기는 반영하지 않았다 — "
