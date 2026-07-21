@@ -32,6 +32,7 @@ const {
   Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
   AlignmentType, HeadingLevel, BorderStyle, WidthType, ShadingType,
   LevelFormat, TableOfContents, Footer, PageNumber, PageBreak, VerticalAlign,
+  ImageRun,
 } = require('docx');
 
 const ROOT = path.join(__dirname, '..');
@@ -87,13 +88,33 @@ const CAP = (t) => new Paragraph({
   children: [new TextRun({ text: t, size: 17, color: '595959', font: FONT })],
 });
 
+// 표지 로고 — 원본 588×261(종횡비 2.253) 비율 유지. 파일 없으면 생략(빌드 실패 방지).
+const LOGO = path.join(ROOT, 'assets', 'kaasa_logo.png');
+const logoPara = (w = 200) => {
+  if (!fs.existsSync(LOGO)) {
+    console.warn(`  ⚠ 로고 없음 — 생략: ${LOGO}`);
+    return [];
+  }
+  return [new Paragraph({
+    alignment: AlignmentType.CENTER, spacing: { after: 260 },
+    children: [new ImageRun({
+      type: 'png', data: fs.readFileSync(LOGO),
+      transformation: { width: w, height: Math.round(w * 261 / 588) },
+      altText: { title: 'KAASA', name: 'KAASA 로고',
+                 description: '한국스마트농업AI협회(KAASA) 로고' },
+    })],
+  })];
+};
+
 const S = F.stack, G = F.gate, KB = F.kb, FARMS = F.farms;
 let TN = 0;                                  // 표 번호 자동 채번
 const T = (t) => CAP(`표 ${++TN}. ${t}`);
 
 // ── 표지 ─────────────────────────────────────────────────────────────────────
 const cover = [
-  new Paragraph({ spacing: { before: 800, after: 100 }, alignment: AlignmentType.CENTER,
+  new Paragraph({ spacing: { before: 460 } }),
+  ...logoPara(200),
+  new Paragraph({ spacing: { before: 120, after: 100 }, alignment: AlignmentType.CENTER,
     children: [new TextRun({ text: '2026년(1단계 2년차) 중간보고서', bold: true, size: 40, font: FONT })] }),
   new Paragraph({ spacing: { after: 640 }, alignment: AlignmentType.CENTER,
     children: [new TextRun({ text: '공동연구기관 : (주)이암허브', size: 24, color: '595959', font: FONT })] }),
