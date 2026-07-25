@@ -48,13 +48,19 @@ farmingsight.org iwinv 운영·3경로 검증(SW v82) + 중간보고서 갱신 +
 [x] farmer_equipment.py — 기자재·연동·동의 10라우트 (커밋 82d9b20)
     · _equipment_path는 get_system_diagnosis도 사용 → farmer_state로 이관(공유)
 [x] farmer_env.py — climate-plan 5라우트 (커밋 d73a444) · clean 추출
+[x] 선행 헬퍼 이관 (커밋 c38355a, 2026-07-18): _activity_path·_checklist_path·_load_checklist
+    → farmer_state 이관. 순환 없음(farmer→farmer_state 단방향). 앱 import OK·라우트 166 유지,
+    영향 엔드포인트 4개(activity/summary·diagnosis/checklist·diagnosis·costs) 데모 200 검증.
+    farmer.py 3225→3203줄. ★ 서빙 변경이나 미배포 — 배포 시 사용자 지시 필요.
 [ ] 다음 후보:
-    - diagnosis 클러스터(capability·diagnosis/*·get_system_diagnosis): get_system_diagnosis가
-      _compute_costs(economics)·_activity_path(activity)·_load_checklist 사용.
-      → 선행: _compute_costs·_activity_path를 farmer_state 이관 후 클러스터 통째 추출
-      (비연속 L2442~2535 + L2619~2724)
-    - harvest(흩어짐): _get_env·_detect_alerts·_compute_costs 얽힘. 헬퍼 이관 선행 필수.
-    분리모듈 5개: state·irrigation·pdca·equipment·env (farmer.py 4300→3146줄, -27%)
+    - _compute_costs 이관 (남은 선행): 동반 _RESOURCE_COSTS(L188~)·_now, 외부 import
+      (persistence·stats_loader·schemas.farmer) 재배치 + ★외부 호출부 import 갱신 필수
+      (api/services/ai_chat.py:700, api/services/pdca.py:158 — from api.routers.farmer import _compute_costs).
+      farmer.py 내부 호출부: 385,1159,1505,1599,2651,2711,2810 부근.
+    - diagnosis 클러스터 추출: get_system_diagnosis(@/diagnosis, 현재 L2569~3021 ~450줄) +
+      diagnosis/* 라우트. 세 경로/체크리스트 헬퍼는 이관 완료 → _compute_costs 이관 후 통째 추출.
+    - harvest(흩어짐): _get_env·_detect_alerts·_compute_costs 얽힘. _compute_costs 이관 선행.
+    분리모듈 5개: state·irrigation·pdca·equipment·env (farmer.py 4300→3203줄, -25%)
 
 ## PC 관리자 콘솔 진행 상황 (계획: ~/.claude/plans/peppy-fluttering-quilt.md)
 [x] Step1: TokenResponse.role 노출 (커밋 9f527be)
