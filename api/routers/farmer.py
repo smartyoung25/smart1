@@ -10,6 +10,7 @@ from typing import Optional
 from api.middleware.auth import require_auth
 from api.routers.farmer_state import (  # noqa: F401 — shared state + router
     _FARM_META, _FARM_ENV, _require_farm, router, _verify_farm_ownership, _equipment_path,
+    _activity_path, _checklist_path, _load_checklist,
 )
 
 logger = logging.getLogger(__name__)
@@ -2326,13 +2327,6 @@ class ActivityLog(BaseModel):
     detail: str = Field("", max_length=500)
 
 
-def _activity_path(farm_id: str):
-    from pathlib import Path as _P
-    d = _P(__file__).resolve().parents[1] / "data" / "activity_logs"
-    d.mkdir(parents=True, exist_ok=True)
-    return d / f"{farm_id}.json"
-
-
 @router.post("/activity", summary="이행 활동 로그 적재 (폐루프 학습 — 정책 컨설팅 사이클)")
 def post_activity(farm_id: str, body: ActivityLog):
     """농가 이행 활동(To-do·교육·점검)을 서버에 적재.
@@ -2415,22 +2409,6 @@ def get_activity_summary(farm_id: str):
 # ───────────────────────────────────────────────────────────────────────────
 # 시설 기자재 인벤토리 + 이기종 통합 매핑 (equipment_schema.json 기반)
 # ───────────────────────────────────────────────────────────────────────────
-
-
-def _checklist_path(farm_id: str):
-    from pathlib import Path as _P
-    d = _P(__file__).resolve().parents[1] / "data" / "diagnosis"
-    d.mkdir(parents=True, exist_ok=True)
-    return d / f"{farm_id}.json"
-
-
-def _load_checklist(farm_id: str) -> dict:
-    import json as _json
-    fp = _checklist_path(farm_id)
-    if fp.exists():
-        try: return _json.loads(fp.read_text(encoding="utf-8"))
-        except Exception: return {}
-    return {}
 
 
 # ── 문진 회차 목록(여러 건 저장·조회·수정) ────────────────────────────────────

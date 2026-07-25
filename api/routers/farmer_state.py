@@ -135,6 +135,33 @@ def _equipment_path(farm_id: str):
     return d / f"{farm_id}.json"
 
 
+def _activity_path(farm_id: str):
+    """농가 이행 활동 로그 JSON 경로. farmer(activity)·get_system_diagnosis 공용."""
+    from pathlib import Path as _P
+    d = _P(__file__).resolve().parents[1] / "data" / "activity_logs"
+    d.mkdir(parents=True, exist_ok=True)
+    return d / f"{farm_id}.json"
+
+
+def _checklist_path(farm_id: str):
+    """농가 진단 체크리스트 JSON 경로. farmer(diagnosis)·get_system_diagnosis 공용."""
+    from pathlib import Path as _P
+    d = _P(__file__).resolve().parents[1] / "data" / "diagnosis"
+    d.mkdir(parents=True, exist_ok=True)
+    return d / f"{farm_id}.json"
+
+
+def _load_checklist(farm_id: str) -> dict:
+    import json as _json
+    fp = _checklist_path(farm_id)
+    if fp.exists():
+        try:
+            return _json.loads(fp.read_text(encoding="utf-8"))
+        except Exception:
+            return {}
+    return {}
+
+
 def _require_farm(farm_id: str) -> dict[str, Any]:
     meta = _FARM_META.get(farm_id)
     if meta is None:
