@@ -11,6 +11,7 @@ from api.middleware.auth import require_auth
 from api.routers.farmer_state import (  # noqa: F401 — shared state + router
     _FARM_META, _FARM_ENV, _require_farm, router, _verify_farm_ownership, _equipment_path,
     _activity_path, _checklist_path, _load_checklist,
+    _now, _RESOURCE_COSTS, _compute_costs,
 )
 
 logger = logging.getLogger(__name__)
@@ -201,81 +202,8 @@ def _detect_alerts(farm_id: str, env: dict[str, float], crop_ko: str = "딸기")
 #
 # NOTE: 이전 버전의 _FARM_REVENUE 인메모리 dict는 stats_loader + model_loader 로 대체됨
 
-# ---------------------------------------------------------------------------
-# 농가별 자원 소비 데이터 (일별 기준, 월 30일 적용)
-# 전기: 농업용(갑종) 계시별 요금 기준  105원/kWh
-# 용수: 농업용 지하수·지표수 평균      700원/m³
-# 난방: LPG·도시가스 열량 환산         85원/kWh
-# 인건비: 2026 농업 최저 근로 기준    12,000원/시간
-# ---------------------------------------------------------------------------
-_RESOURCE_COSTS: dict[str, dict] = {
-    "farm_001": {   # 오이 1200m² — 고온·고습, 수막재배
-        "electricity_kwh_day": 120.0,   # 환기팬 + 보광
-        "electricity_rate":    105.0,   # 원/kWh (stats_loader 적용)
-        "water_m3_day":          4.0,   # 오이 다수확 관비 多
-        "water_rate":          700.0,   # 원/m³ (stats_loader 적용)
-        "heating_kwh_day":      72.0,   # 야간 가온
-        "heating_rate":         85.0,   # 원/kWh (가스 환산)
-        "labor_hours_day":       5.0,   # 유인·수확 반복
-        "labor_rate":        12_000.0,  # 원/시간
-        "nutrients_krw_day": 15_000.0,  # 양액 관비
-        "pesticides_krw_day": 3_000.0,  # 노균병 방제
-    },
-    "farm_002": {   # 방울토마토 800m² — 반자동
-        "electricity_kwh_day": 112.0,
-        "electricity_rate":    105.0,
-        "water_m3_day":          3.2,   # 고수량 작물
-        "water_rate":          700.0,
-        "heating_kwh_day":      80.0,   # 고온 필요
-        "heating_rate":         85.0,
-        "labor_hours_day":       3.0,   # 반자동 절감
-        "labor_rate":        12_000.0,
-        "nutrients_krw_day": 14_000.0,
-        "pesticides_krw_day": 4_000.0,
-    },
-    "farm_003": {   # 딸기(설향) 1500m² — 노동집약
-        "electricity_kwh_day": 150.0,
-        "electricity_rate":    105.0,
-        "water_m3_day":          4.5,
-        "water_rate":          700.0,
-        "heating_kwh_day":     135.0,   # 저온 관리 + 야간 가온
-        "heating_rate":         85.0,
-        "labor_hours_day":       8.0,   # 수작업 비중 높음
-        "labor_rate":        12_000.0,
-        "nutrients_krw_day": 22_000.0,
-        "pesticides_krw_day": 6_000.0,  # 병해 취약
-    },
-    "farm_004": {   # 완숙토마토 1000m² — 반자동
-        "electricity_kwh_day": 130.0,
-        "electricity_rate":    105.0,
-        "water_m3_day":          4.0,
-        "water_rate":          700.0,
-        "heating_kwh_day":      90.0,
-        "heating_rate":         85.0,
-        "labor_hours_day":       4.0,
-        "labor_rate":        12_000.0,
-        "nutrients_krw_day": 16_000.0,
-        "pesticides_krw_day": 3_500.0,
-    },
-    "farm_005": {   # 미등록 900m²
-        "electricity_kwh_day":  90.0,
-        "electricity_rate":    105.0,
-        "water_m3_day":          1.8,
-        "water_rate":          700.0,
-        "heating_kwh_day":      54.0,
-        "heating_rate":         85.0,
-        "labor_hours_day":       3.0,
-        "labor_rate":        12_000.0,
-        "nutrients_krw_day":  9_000.0,
-        "pesticides_krw_day": 2_000.0,
-    },
-}
-
+# _RESOURCE_COSTS·_now·_compute_costs → api/routers/farmer_state.py 로 이관 (import)
 # _require_farm → api/routers/farmer_state.py
-
-
-def _now() -> datetime:
-    return datetime.now(tz=timezone.utc)
 
 
 def _get_env(farm_id: str) -> dict[str, float]:
@@ -1411,115 +1339,7 @@ def _predict(env: dict, crop: str, area: float, month: int) -> tuple[float, str]
 # GET /costs  — 자원별 비용 분석
 # ---------------------------------------------------------------------------
 
-def _compute_costs(farm_id: str) -> CostBreakdownResponse:
-    """
-    비용 계산 공통 로직.
-    _MANUAL_COSTS[farm_id] 에 실제값이 있으면 해당 항목 우선 사용,
-    없으면 _RESOURCE_COSTS 기본값 사용.
-    """
-    # farm_id가 _RESOURCE_COSTS에 없으면 farm_001 기본값 사용 (면적은 실제 메타에서 가져옴)
-    rc   = _RESOURCE_COSTS.get(farm_id) or _RESOURCE_COSTS.get("farm_001") or {}
-    mc   = persistence.get_manual_cost(farm_id)
-    # _FARM_META: _require_farm()이 이미 호출된 이후이므로 farm_id 키가 존재
-    meta = _FARM_META.get(farm_id) or _FARM_META.get("farm_001", {})
-    DAYS = 30
-
-    def _v(key_manual: str, default: float) -> tuple[float, bool]:
-        """(값, 실제입력여부)"""
-        v = mc.get(key_manual)
-        return (v, True) if v is not None else (default, False)
-
-    # ── 전기 (단가: stats_loader 실데이터 → KEPCO 농업용갑 112원/kWh) ──────────
-    kwh_m,   kwh_manual   = _v("electricity_kwh_month", rc["electricity_kwh_day"] * DAYS)
-    e_rate,  e_rate_manual = _v("electricity_rate",     get_electricity_rate())
-    elec     = kwh_m * e_rate
-    elec_manual = kwh_manual or e_rate_manual
-
-    # ── 용수 (단가: stats_loader 실데이터 → 농업용 평균 620원/m³) ────────────
-    m3_m,    m3_manual    = _v("water_m3_month",  rc["water_m3_day"] * DAYS)
-    w_rate,  w_rate_m     = _v("water_rate",       get_water_rate())
-    water    = m3_m * w_rate
-    water_manual = m3_manual or w_rate_m
-
-    # ── 난방 ──────────────────────────────────────────────────────────────
-    h_kwh,   h_kwh_m      = _v("heating_kwh_month", rc["heating_kwh_day"] * DAYS)
-    h_rate,  h_rate_m     = _v("heating_rate",       rc["heating_rate"])
-    heat     = h_kwh * h_rate
-    heat_manual = h_kwh_m or h_rate_m
-
-    # ── 인건비 ────────────────────────────────────────────────────────────
-    l_hrs,   l_hrs_m      = _v("labor_hours_month", rc["labor_hours_day"] * DAYS)
-    l_rate,  l_rate_m     = _v("labor_rate",         rc["labor_rate"])
-    labor    = l_hrs * l_rate
-    labor_manual = l_hrs_m or l_rate_m
-
-    # ── 영양제·비료 ───────────────────────────────────────────────────────
-    nutr,    nutr_manual  = _v("nutrients_krw_month",  rc["nutrients_krw_day"] * DAYS)
-    pest,    pest_manual  = _v("pesticides_krw_month", rc["pesticides_krw_day"] * DAYS)
-
-    total = elec + water + heat + labor + nutr + pest
-
-    def pct(v: float) -> float:
-        return round(v / total, 4) if total else 0.0
-
-    # 저장된 실제값 객체 (폼 초기값으로 프론트에 내려줌)
-    stored_mc = ManualCostInput(**mc) if mc else None
-    has_manual = bool(mc)
-
-    def _elec_label() -> str:
-        src = "실제입력" if elec_manual else "KEPCO농업용갑"
-        if elec_manual:
-            return f"실제입력 {kwh_m:,.0f}kWh × {e_rate:.0f}원/kWh"
-        return f"{rc['electricity_kwh_day']}kWh/일 × 30일 × {e_rate:.0f}원/kWh ({src})"
-
-    def _water_label() -> str:
-        src = "실제입력" if water_manual else "농업용평균"
-        if water_manual:
-            return f"실제입력 {m3_m:,.1f}m³ × {w_rate:.0f}원/m³"
-        return f"{rc['water_m3_day']}m³/일 × 30일 × {w_rate:.0f}원/m³ ({src})"
-
-    def _heat_label() -> str:
-        if heat_manual:
-            return f"실제입력 {h_kwh:,.0f}kWh × {h_rate:.0f}원/kWh"
-        return f"{rc['heating_kwh_day']}kWh/일 × 30일 × {h_rate:.0f}원/kWh"
-
-    def _labor_label() -> str:
-        if labor_manual:
-            return f"실제입력 {l_hrs:,.0f}시간 × {l_rate:,.0f}원/시간"
-        return f"{rc['labor_hours_day']}시간/일 × 30일 × {l_rate:,.0f}원/시간"
-
-    def _item(category: str, label_ko: str, amount: float, unit_label: str, is_manual: bool) -> CostItem:
-        return CostItem(
-            category=category, label_ko=label_ko, label=label_ko,
-            amount_krw=round(amount), unit_label=unit_label,
-            pct_of_total=pct(amount), is_manual=is_manual,
-        )
-
-    items = [
-        _item("electricity", "전기료",    elec,  _elec_label(),  elec_manual),
-        _item("water",       "용수비",    water, _water_label(), water_manual),
-        _item("heating",     "난방비",    heat,  _heat_label(),  heat_manual),
-        _item("labor",       "인건비",    labor, _labor_label(), labor_manual),
-        _item("nutrients",   "영양제·비료", nutr,
-              "실제입력" if nutr_manual else f"{rc['nutrients_krw_day']:,.0f}원/일 × 30일",
-              nutr_manual),
-        _item("pesticides",  "농약·방제",  pest,
-              "실제입력" if pest_manual else f"{rc['pesticides_krw_day']:,.0f}원/일 × 30일",
-              pest_manual),
-    ]
-
-    return CostBreakdownResponse(
-        farm_id=farm_id,
-        updated_at=_now(),
-        items=items,
-        total_cost_krw=round(total),
-        total_krw=round(total),           # UI 별칭
-        cost_per_m2=round(total / max(meta["area_m2"], 1.0), 1),
-        electricity_kwh_month=kwh_m,
-        water_m3_month=m3_m,
-        has_manual_input=has_manual,
-        manual_input=stored_mc,
-    )
+# _compute_costs → api/routers/farmer_state.py 로 이관 (아래 import)
 
 
 @router.get("/costs", response_model=CostBreakdownResponse)

@@ -697,7 +697,7 @@ def build_farm_context(
 
     cost_per_m2 = 0.0
     try:
-        from api.routers.farmer import _compute_costs   # type: ignore
+        from api.routers.farmer_state import _compute_costs   # type: ignore
         cost_per_m2 = _compute_costs(farm_id).cost_per_m2
     except Exception:
         pass

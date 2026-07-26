@@ -155,7 +155,7 @@ def calc_efficiency(farm_id: str) -> Dict:
         revenue = 5_000_000
 
     try:
-        from api.routers.farmer import _compute_costs
+        from api.routers.farmer_state import _compute_costs
         cb = _compute_costs(farm_id)
         total_cost = max(cb.total_cost_krw or 1, 1)
     except Exception as e:
