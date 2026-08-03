@@ -1,8 +1,20 @@
 # NEXT — 다음 세션 시작점
-> 마지막 커밋: 13d6268 (2026-07-18) · origin·iwinv 서버 동기화됨
+> 마지막 커밋: 93b5ec8 (2026-07-18) · origin·iwinv 동기화됨 · 브랜치 feature/priva-mobile 대기
 
 ## 현재 상태 (1줄)
-farmingsight.org iwinv 운영·3경로 검증(SW v82) + 중간보고서 갱신 + 6축 모델 데이터확보 설계 확정.
+farmingsight.org iwinv 운영(SW v82) + farmer.py P2-C 리팩터 배포 + 프리바/모바일 트랙 브랜치 준비.
+
+## ★ 다음 트랙: 프리바 연동 + 모바일 재설계 (feature/priva-mobile)
+- **브랜치 개발 확정** — master가 운영 배포 소스(서버 `git checkout origin/master`)라, 다단계·안전critical
+  프리바 물리제어(L2·L3) 코드를 master 직접에 두면 checkout 한 번에 운영 노출 위험. `feature/priva-mobile`
+  브랜치(93b5ec8 기점, 생성 완료·빈 상태)에서 개발, master 병합은 L0→L1→L2·L3 게이트에 묶는다.
+- **핸드오프 패키지는 저장소에 넣지 않음(사용자 결정)** — 설계 청사진+더미데이터 시안이고, 저장소가
+  public이라 커밋 시 온실제어 설계·안전정책·192.168.x가 공개됨. zip 외부 참조로만 사용
+  (`Downloads/KAASA_SmartOS_개발착수_핸드오프패키지_1.zip`, 스크래치패드에 해제해 열람함).
+  ★ **저장소 비공개 전환이 프리바 코드 커밋의 선행 조건** — 태그맵·API·안전정책은 public 금지.
+- **0단계 선행(개발 착수 전 확정)**: 프리바 Connext API vs 게이트웨이 · 태그맵(측정/설정값·Range·Scope) ·
+  폴링주기 · L0~L3 안전정책·인터락 · MAN/0/AUTO 스위치 취득 · 권한매핑 · px→rem 토큰 · 오프라인 쓰기 범위.
+- 착수 순서: **L0 읽기(N1 대시보드, 위험 0)** 우선 → L1(N2 설정 오프셋) → L2·L3(N3 관수·밸브+안전게이트).
 
 ## ★ 이번 세션 결론 (2026-07-18)
 
