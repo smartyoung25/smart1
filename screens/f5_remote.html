@@ -99,7 +99,10 @@ function _openCheckRecord(){
       detail:`${v.finding||'-'} · ${v.action||'-'} · ${_layer} · ${v.date||'오늘'}` }); _refreshRecent(); }
   });
 }
-function _sel(l,el){_layer=l;document.querySelectorAll('.layer-tab').forEach(x=>x.classList.remove('active'));el.classList.add('active');document.getElementById('layerTag').textContent=l+' Mock';_renderMap();}
+function _sel(l,el){_layer=l;document.querySelectorAll('.layer-tab').forEach(x=>x.classList.remove('active'));el.classList.add('active');
+  // ★ 4개 레이어 모두 같은 토양수분 환산값을 색만 바꿔 표시 — NDRE·열화상·RGB는 별도 관측이 아니다.
+  document.getElementById('layerTag').textContent = (l==='NDVI') ? '토양수분 환산 (위성 미연동)' : l+' — 토양수분 환산 표시 (별도 관측 아님)';
+  _renderMap();}
 function _renderMap(){
   const map=document.getElementById('ndviMap');
   map.querySelectorAll('.ndvi-cell').forEach(e=>e.remove());

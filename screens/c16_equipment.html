@@ -530,7 +530,7 @@ async function _save(){
     const api=KaasaData.getApiBase();
     const r=await fetch(`${api}/api/farms/${_farmG}/equipment`,{method:'POST',
       headers:{'Content-Type':'application/json','Authorization':`Bearer ${_tokenG}`},body:JSON.stringify(body)});
-    if(r.status===403){ msg.style.color='var(--green)'; msg.textContent='✓ 저장(데모 모드)'; setTimeout(_afterSave,700); }
+    if(r.status===403){ msg.style.color='var(--muted)'; msg.textContent='🔒 데모 모드 — 저장되지 않습니다'; setTimeout(_afterSave,900); }
     else if(!r.ok){ throw new Error('HTTP '+r.status); }
     else { msg.style.color='var(--green)'; msg.textContent='✓ 저장됨 — 다음 과정으로 안내합니다'; setTimeout(_afterSave,700); }
   }catch(e){ msg.style.color='var(--orange)'; msg.textContent='저장 실패: '+e.message; }

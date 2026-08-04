@@ -35,7 +35,7 @@
     <div class="f3-kpi"><div class="f3-kpi-ico">🌡️</div><div class="f3-kpi-val" id="kEt0" style="color:var(--orange)">—</div><div class="f3-kpi-label">ET₀ 증발산</div></div>
     <div class="f3-kpi"><div class="f3-kpi-ico">⚠️</div><div class="f3-kpi-val" id="kRisk" style="color:var(--green)">낮음</div><div class="f3-kpi-label">재해 위험</div></div>
   </div>
-  <div class="section-label">7일 예보 <span class="trust-badge trust-live">🟢 실측</span> <span id="wfSrc" style="font-weight:400;color:var(--muted);font-size:11px;"></span></div>
+  <div class="section-label">7일 예보 <span class="trust-badge trust-live" id="wfBadge">🟢 실측</span> <span id="wfSrc" style="font-weight:400;color:var(--muted);font-size:11px;"></span></div>
   <div class="card" style="padding:12px;"><div class="day-strip" id="dayStrip"></div></div>
   <div class="mock-note" id="mockNote">기상은 KMA 실데이터, 작업가능시간은 강우·풍속 기반 추정입니다.</div>
   <div class="section-label">16일 장기예보 <span class="trust-badge trust-live">🟢 Open-Meteo</span> <span id="extSrc" style="font-weight:400;color:var(--muted);font-size:11px;"></span></div>
@@ -153,6 +153,11 @@ async function _loadExtended(token,farmId){
         <div style="font-size:9px;color:var(--green-dark);">ET${x.et0}</div></div>`;
     }).join('');
     const hz=d.hazards||[];
+    // 재해위험 KPI 갱신 — 하드코딩 '낮음' 대신 장기예보 hazard 기반 (F1 과 동일 원칙)
+    const kr=document.getElementById('kRisk');
+    if(kr){ if(hz.length>=2){kr.textContent='높음';kr.style.color='var(--red)';}
+      else if(hz.length===1){kr.textContent='주의';kr.style.color='var(--orange)';}
+      else {kr.textContent='낮음';kr.style.color='var(--green)';} }
     document.getElementById('extHazard').innerHTML=hz.length?hz.map(h=>`
       <div style="display:flex;align-items:center;gap:8px;background:var(--orange-soft);color:var(--orange);border-radius:10px;padding:8px 11px;margin-bottom:6px;font-size:12px;font-weight:700;">
         <span>⚠️</span><span>${h.date.slice(5)} ${h.type} 예보 (${h.value})</span></div>`).join(''):'';
@@ -180,17 +185,32 @@ async function _loadWeather(token,farmId){
   const et0=(wf?.et0_forecast_mm||[])[0];
   if(et0!=null) document.getElementById('kEt0').textContent=`${Number(et0).toFixed(1)}mm`;
   document.getElementById('wfSrc').textContent=wf?`출처: ${wf.source||'KMA'}`:'';
-  // 7일 예보 — daily items 있으면 실데이터, 없으면 et0 기반 표시
-  const ICONS=['☀️','⛅','🌧️','☁️','🌤️','🌦️','☀️'];
+  // 7일 예보 — Open-Meteo daily 병렬배열(temperature_2m_max·precipitation_sum)이 실측.
+  // KMA 폴백은 daily.items(1일)로 옴. 둘 다 없으면 합성하지 않고 배지를 강등한다.
   const days=['오늘','+1','+2','+3','+4','+5','+6'];
+  const D=wf?.daily||{};
+  const tmaxArr=Array.isArray(D.temperature_2m_max)?D.temperature_2m_max:[];
+  const rainArr=Array.isArray(D.precipitation_sum)?D.precipitation_sum:[];
+  const items=Array.isArray(D.items)?D.items:[];
+  const n=Math.max(tmaxArr.length, items.length);
+  const strip=document.getElementById('dayStrip');
+  const badge=document.getElementById('wfBadge');
+  if(n===0){
+    strip.innerHTML='<div style="padding:10px 4px;color:var(--muted);font-size:12px;">7일 예보 데이터를 불러오지 못했습니다 (기상 API 미응답).</div>';
+    document.getElementById('kRain').textContent='—';
+    if(badge){ badge.textContent='⚪ 예보 미연동'; badge.className='trust-badge trust-mock'; }
+    return;
+  }
   let totalRain=0;
-  const items=(wf?.daily?.items)||[];
-  document.getElementById('dayStrip').innerHTML=days.map((d,i)=>{
+  strip.innerHTML=days.slice(0,Math.min(n,7)).map((d,i)=>{
     const it=items[i]||{};
-    const rain=it.rain_mm ?? it.precipitation ?? (i%3===2?Math.round(5+i*2):0);
-    totalRain+=rain;
-    const tmax=it.t_max ?? it.temp_max ?? (24+i%3);
-    return `<div class="day-card"><div class="day-name">${d}</div><div class="day-ico">${ICONS[i]}</div><div class="day-temp">${Math.round(tmax)}°</div><div class="day-rain">${rain>0?rain+'mm':'-'}</div></div>`;
+    const tmaxV=tmaxArr[i] ?? it.t_max ?? it.temp_max ?? it.maxTa;
+    const rn=Number(rainArr[i] ?? it.rain_mm ?? it.precipitation ?? 0)||0;
+    totalRain+=rn;
+    const ico=rn>=10?'🌧️':rn>=1?'🌦️':'☀️';
+    const tt=(tmaxV!=null)?Math.round(Number(tmaxV))+'°':'—';
+    const rr=rn>0?(rn<1?rn.toFixed(1):Math.round(rn))+'mm':'-';
+    return `<div class="day-card"><div class="day-name">${d}</div><div class="day-ico">${ico}</div><div class="day-temp">${tt}</div><div class="day-rain">${rr}</div></div>`;
   }).join('');
   document.getElementById('kRain').textContent=`${Math.round(totalRain)}mm`;
 }

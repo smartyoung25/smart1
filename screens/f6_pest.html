@@ -30,12 +30,12 @@
 <main class="sf-main" style="padding:14px;max-width:480px;margin:0 auto;">
   <div class="f6-kpi-row">
     <div class="f6-kpi"><div class="f6-kpi-ico">🍂</div><div class="f6-kpi-val" id="kDisease" style="color:var(--green)">—</div><div class="f6-kpi-label">병해 위험</div></div>
-    <div class="f6-kpi"><div class="f6-kpi-ico">🐛</div><div class="f6-kpi-val" id="kPest" style="color:var(--green)">낮음</div><div class="f6-kpi-label">해충 위험</div></div>
-    <div class="f6-kpi"><div class="f6-kpi-ico">🚿</div><div class="f6-kpi-val" id="kSpray" style="color:var(--green)">가능</div><div class="f6-kpi-label">방제 가능</div></div>
+    <div class="f6-kpi"><div class="f6-kpi-ico">🐛</div><div class="f6-kpi-val" id="kPest" style="color:var(--muted)">낮음</div><div class="f6-kpi-label">해충 위험 (참고)</div></div>
+    <div class="f6-kpi"><div class="f6-kpi-ico">🚿</div><div class="f6-kpi-val" id="kSpray" style="color:var(--muted)">가능</div><div class="f6-kpi-label">방제 적기 (참고)</div></div>
   </div>
-  <!-- ★ 구: "해충·방제 윈도우는 기상 기반 추정" — 실제로는 기상 입력이 없는 고정 목록이라
-       매일·모든 농가에 동일하게 뜬다. 농가가 오늘의 예찰 결과로 오인하므로 정직하게 표기. -->
-  <div class="mock-note">병해 위험도는 M5 모델 실연동. 아래 <b>해충 목록·방제 윈도우는 작목 일반 발생경향(참고용)</b>으로, 실시간 예찰·기상 반영이 아닙니다.</div>
+  <!-- ★ 병해 KPI만 M5 실연동. 해충·방제 KPI와 목록·윈도우는 기상 입력이 없는 작목 일반 경향(고정)이라
+       매일·모든 농가에 동일. 실시간 예찰로 오인되지 않도록 KPI 색을 muted로, mock-note에 명시. -->
+  <div class="mock-note">병해 위험도는 M5 모델 실연동. <b>상단 해충 위험·방제 적기 KPI와 아래 해충 목록·방제 윈도우는 작목 일반 발생경향(참고용)</b>으로, 실시간 예찰·기상 반영이 아닙니다.</div>
   <div class="section-label">오늘의 방제 알림 <span class="trust-badge trust-model">🔵 모델</span></div>
   <div class="card" style="padding:14px;border-left:4px solid var(--green);margin-bottom:14px;">
     <div style="font-size:13px;font-weight:800;" id="alertTitle">분석 중…</div>

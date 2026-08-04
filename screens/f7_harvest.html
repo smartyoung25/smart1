@@ -35,7 +35,7 @@
   <div class="section-label">필지별 수확 예측</div>
   <div class="parcel-strip" id="parcelStrip"></div>
   <div class="card" id="f7Insight" style="padding:12px 14px;margin:14px 0;display:none;"></div>
-  <div class="section-label" style="margin-top:14px;">노지 수익성 요약 <span class="trust-badge trust-model">🔵 모델</span></div>
+  <div class="section-label" style="margin-top:14px;">노지 수익성 요약 <span class="trust-badge trust-model" id="f7Badge">🔵 모델</span></div>
   <div class="card" style="padding:14px;">
     <table class="profit-table">
       <tr><td>총 예상 수확량</td><td id="pYield">—</td></tr>
@@ -98,6 +98,12 @@ async function _load(token,farmId){
   const fmt=v=>Math.round(v).toLocaleString();
   const yieldKg=rev?.yield_kg_forecast??18000;
   const price=ws?.price_krw_kg??rev?.kamis_price_krw_kg??1800;
+  // ★ 실 예측이 없어 폴백(예시값)을 쓰는 경우, "🔵 모델" 배지를 예시로 강등해 실측 오인 방지
+  const _estimated=(rev?.yield_kg_forecast==null);
+  const _fb=document.getElementById('f7Badge');
+  if(_fb && _estimated){ _fb.textContent='⚪ 예시 (실측 입력 필요)'; _fb.className='trust-badge trust-mock'; }
+  const _mn=document.querySelector('.mock-note');
+  if(_mn && _estimated) _mn.innerHTML='<b>표시된 수확량·단가는 예시값</b>입니다 — 수확 실측·시세 연동 시 실데이터로 대체됩니다.';
   const totalArea=PARCELS.reduce((s,p)=>s+p.a,0);
   // KPI
   document.getElementById('kYield').textContent=`${fmt(yieldKg)}kg`;
