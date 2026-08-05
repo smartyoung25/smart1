@@ -229,7 +229,8 @@ ws4["A1"] = "작목별 스마트팜 시설 구성 (조사표 '농가' 시트 제
 ws4["A1"].font = _f(13, True, "FFFFFF"); ws4["A1"].fill = _fill(C_TITLE); ws4["A1"].alignment = CEN
 ws4.row_dimensions[1].height = 24
 ws4.merge_cells(start_row=2, start_column=1, end_row=2, end_column=ncol)
-ws4["A2"] = "★ CAPEX 실 차이는 여기서 온다 — ○설치 자산만 취득가·감가상각 대상. 참외는 보온·차광·관수 미설치/고장으로 최소 CAPEX, 딸기가 최다."
+ws4["A2"] = ("★ CAPEX 실 차이 — ○설치 자산만 취득가·감가상각 대상. 아래 ○/✕는 각 작목 표본농가 1곳. "
+             "작목별 5농가(총 20농가) 실측 시설완비도 계수: 완숙 0.940·딸기 0.934·방울 0.910·참외 0.712 — 참외만 확연히 낮다.")
 ws4["A2"].font = _f(8, False, "595959"); ws4["A2"].alignment = LEF; ws4.row_dimensions[2].height = 24
 # 헤더
 hr4 = 3
