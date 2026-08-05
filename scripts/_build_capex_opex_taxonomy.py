@@ -318,17 +318,21 @@ ws5.freeze_panes = "A4"
 
 # ══ Sheet6: 작목별 CAPEX 실측 집계 ═════════════════════════════════════════
 ws6 = wb.create_sheet("작목별 CAPEX 실측")
-COLS6 = ["작목", "농가수", "평균 총취득가(원)", "취득가 범위(원)", "평균 연감가(gross,원)", "대표 영농시설 자산(평균 취득가)"]
-W6 = [12, 8, 18, 26, 18, 44]
+CROP_FACTOR = {"딸기": 0.934, "방울토마토": 0.910, "완숙토마토": 0.940, "참외": 0.712}  # 5농가 실측 완비도
+TEMPLATE_ANNUAL = 1_458_000  # 조사표 템플릿 상각비(영농시설 783,000 + 대농구 675,000, 900㎡)
+COLS6 = ["작목", "농가수", "평균 총취득가(원)", "취득가 범위(원)", "평균 연감가(실측 gross,원)",
+         "완비도감가(per 900㎡,원)", "대표 영농시설 자산(평균 취득가)"]
+W6 = [12, 8, 17, 24, 17, 17, 38]
 for i, w in enumerate(W6): ws6.column_dimensions[get_column_letter(i+1)].width = w
-ws6.merge_cells("A1:F1")
+ws6.merge_cells("A1:G1")
 ws6["A1"] = "작목별 CAPEX 실측 집계 (20농가 자산등록부 기반)"
 ws6["A1"].font = _f(13, True, "FFFFFF"); ws6["A1"].fill = _fill(C_TITLE); ws6["A1"].alignment = CEN
 ws6.row_dimensions[1].height = 24
-ws6.merge_cells("A2:F2")
-ws6["A2"] = ("★ 조사표 템플릿 상각비(1,458,000·4작목 동일)를 실 취득가로 대체 — 작목별 CAPEX가 실제로 크게 다르다. "
-            "취득가 = 농가별 자산 신조가격 합, 연감가 = Σ(신조가÷내용연수). 규모(온실 형태·면적)가 작목 차이의 주동인.")
-ws6["A2"].font = _f(8, False, "595959"); ws6["A2"].alignment = LEF; ws6.row_dimensions[2].height = 24
+ws6.merge_cells("A2:G2")
+ws6["A2"] = ("★ 감가 두 관점 병기 — '평균 연감가(실측)'은 농가 총자산 실측(Σ신조가÷내용연수), "
+            "'완비도감가'는 템플릿 1,458,000 × 5농가 실측 완비도계수(per 900㎡ 정규화 지표). "
+            "취득가 = 농가별 신조가격 합. 규모(온실 형태·면적)가 작목 차이의 주동인.")
+ws6["A2"].font = _f(8, False, "595959"); ws6["A2"].alignment = LEF; ws6.row_dimensions[2].height = 26
 for i, c in enumerate(COLS6):
     cell = ws6.cell(3, i+1, c); cell.font = _f(9, True, "FFFFFF"); cell.fill = _fill(C_HDR); cell.alignment = CEN; cell.border = BORDER
 r6 = 4
@@ -341,17 +345,18 @@ for crop in CROP_ORDER:
             if a["category"] == "영농시설": agg[a["asset"]].append(a["acq_krw"])
     top = sorted(agg.items(), key=lambda kv: -sum(kv[1]))[:3]
     rep = " · ".join(f"{k}({round(sum(v)/len(v)):,})" for k, v in top)
+    fac_dep = round(TEMPLATE_ANNUAL * CROP_FACTOR.get(crop, 1.0))
     vals = [crop, d.get("n_farms", 0), d.get("capex_mean_krw", 0),
-            f"{d.get('capex_min',0):,} ~ {d.get('capex_max',0):,}", d.get("annual_deprec_mean", 0), rep]
+            f"{d.get('capex_min',0):,} ~ {d.get('capex_max',0):,}", d.get("annual_deprec_mean", 0), fac_dep, rep]
     for ci, v in enumerate(vals):
         cell = ws6.cell(r6, ci+1, v); cell.border = BORDER; cell.font = _f(9)
-        if ci in (2, 4): cell.alignment = RIG; cell.number_format = '#,##0'
+        if ci in (2, 4, 5): cell.alignment = RIG; cell.number_format = '#,##0'
         elif ci == 1: cell.alignment = CEN
         else: cell.alignment = LEF
     r6 += 1
-ws6.merge_cells(start_row=r6+1, start_column=1, end_row=r6+1, end_column=6)
-ws6.cell(r6+1, 1, "※ 완숙토마토 평균 취득가 14.2억(유리온실 평균 17.9억 포함)~참외 2.0억 — 온실 형태·규모 차이가 CAPEX를 좌우한다. "
-         "감가상각은 대형 유리온실(내용연수 30년)일수록 취득가 대비 완만하다.").font = _f(9, False, "595959")
+ws6.merge_cells(start_row=r6+1, start_column=1, end_row=r6+1, end_column=7)
+ws6.cell(r6+1, 1, "※ 완숙 평균 취득가 14.2억(유리온실 17.9억 포함)~참외 2.0억 — 규모가 실 CAPEX를 좌우. "
+         "완비도감가(1,361,772~1,038,096)는 시설구성 정규화 지표로 상세·종합 보고서 품목별 표와 동일값이다.").font = _f(9, False, "595959")
 
 BLUE = "0000FF"  # 입력값(산업표준 색) — 바꾸면 수식 자동 재계산
 
