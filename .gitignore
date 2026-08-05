@@ -28,6 +28,8 @@ api/data/telemetry/
 api/data/password_resets.json
 # user_contacts.json: 가입자 전화·이메일(PII)
 api/data/user_contacts.json
+# integration_requests: 연동신청 사용자 제출(전화번호 등 PII) — 런타임 쓰기, git 커밋 금지
+api/data/integration_requests/
 
 # 재생성 가능한 캐시 (외부 API·계산 결과)
 api/data/kamis_price_cache.json
