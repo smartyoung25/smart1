@@ -353,6 +353,145 @@ ws6.merge_cells(start_row=r6+1, start_column=1, end_row=r6+1, end_column=6)
 ws6.cell(r6+1, 1, "※ 완숙토마토 평균 취득가 14.2억(유리온실 평균 17.9억 포함)~참외 2.0억 — 온실 형태·규모 차이가 CAPEX를 좌우한다. "
          "감가상각은 대형 유리온실(내용연수 30년)일수록 취득가 대비 완만하다.").font = _f(9, False, "595959")
 
+BLUE = "0000FF"  # 입력값(산업표준 색) — 바꾸면 수식 자동 재계산
+
+# ══ Sheet7: 시설 완비도 계수 (산식·live) ═══════════════════════════════════
+ws7 = wb.create_sheet("시설완비도 계수(산식)")
+ws7.sheet_view.showGridLines = False
+for col, w in zip("ABCDEF", [22, 11, 12, 12, 12, 12]): ws7.column_dimensions[col].width = w
+ws7.merge_cells("A1:F1")
+ws7["A1"] = "시설 완비도 계수 — 산식과 계산 (살아있는 수식)"
+ws7["A1"].font = _f(13, True, "FFFFFF"); ws7["A1"].fill = _fill(C_TITLE); ws7["A1"].alignment = CEN; ws7.row_dimensions[1].height = 26
+ws7.merge_cells("A2:F2")
+ws7["A2"] = ("계수 = 0.60(온실구조 공통) + Σ(시설별 가중치 × 설치배수)  ·  설치배수 ○=1.0·고장=0.5·×=0  ·  가중치 합 0.40 → 최대 1.00")
+ws7["A2"].font = _f(9, False, "595959"); ws7["A2"].alignment = LEF; ws7.row_dimensions[2].height = 24
+FAC_HDR = ["시설 항목", "가중치", "딸기(류창영)", "방울(박경종)", "완숙(김선환)", "참외(강석구)"]
+for j, h in enumerate(FAC_HDR):
+    c = ws7.cell(4, j+1, h); c.font = _f(9, True, "FFFFFF"); c.fill = _fill(C_HDR); c.alignment = CEN; c.border = BORDER
+FAC_ROWS = [
+    ("온실구조체(공통)", 0.60, 1, 1, 1, 1), ("일중천장", 0.03, 1, 1, 1, 1), ("이중천장", 0.03, 0, 0, 0, 0),
+    ("측창(환기)", 0.07, 1, 1, 0, 1), ("천정 보온스크린", 0.07, 1, 1, 1, 0), ("측면 보온스크린", 0.06, 1, 0, 0, 0),
+    ("차광 스크린", 0.06, 1, 1, 1, 0), ("관수·관비장치", 0.08, 1, 1, 0, 0.5),
+]
+fr0 = 5
+for i, (name, w, *muls) in enumerate(FAC_ROWS):
+    r = fr0 + i
+    ws7.cell(r, 1, name).font = _f(9, i == 0); ws7.cell(r, 1).alignment = LEF; ws7.cell(r, 1).border = BORDER
+    ws7.cell(r, 2, w).font = _f(9, False, BLUE); ws7.cell(r, 2).alignment = CEN; ws7.cell(r, 2).border = BORDER; ws7.cell(r, 2).number_format = '0.00'
+    for j, v in enumerate(muls):
+        cell = ws7.cell(r, 3+j, v); cell.font = _f(9, False, BLUE); cell.alignment = CEN; cell.border = BORDER; cell.number_format = '0.0'
+        if i == 0: cell.fill = _fill(C_SOFT)
+fr_last = fr0 + len(FAC_ROWS) - 1
+rsum = fr_last + 1
+ws7.cell(rsum, 1, "가중치 합").font = _f(9, True, C_TITLE); ws7.cell(rsum, 1).alignment = LEF; ws7.cell(rsum, 1).border = BORDER; ws7.cell(rsum, 1).fill = _fill(C_SOFT)
+ws7.cell(rsum, 2, f"=SUM(B{fr0}:B{fr_last})").font = _f(9, True); ws7.cell(rsum, 2).alignment = CEN; ws7.cell(rsum, 2).border = BORDER; ws7.cell(rsum, 2).number_format = '0.00'
+rfac = rsum + 1
+ws7.cell(rfac, 1, "시설 완비도 계수").font = _f(10, True, C_TITLE); ws7.cell(rfac, 1).alignment = LEF; ws7.cell(rfac, 1).border = BORDER; ws7.cell(rfac, 1).fill = _fill("E3EFE7")
+ws7.cell(rfac, 2, "").border = BORDER; ws7.cell(rfac, 2).fill = _fill("E3EFE7")
+for j, col in enumerate("CDEF"):
+    cell = ws7.cell(rfac, 3+j, f"=SUMPRODUCT($B${fr0}:$B${fr_last},{col}{fr0}:{col}{fr_last})")
+    cell.font = _f(11, True, C_HDR); cell.alignment = CEN; cell.border = BORDER; cell.fill = _fill("E3EFE7"); cell.number_format = '0.000'
+ws7.merge_cells(start_row=rfac+2, start_column=1, end_row=rfac+2, end_column=6)
+ws7.cell(rfac+2, 1, "※ 위 계수는 각 작목 표본농가 1곳에 산식을 적용(딸기0.97·방울0.91·완숙0.76·참외0.74). "
+         "작목 대표 계수(딸기0.934·방울0.910·완숙0.940·참외0.712)는 같은 산식을 5농가에 적용한 평균. "
+         "파랑 셀(설치배수)을 바꾸면 계수 자동 재계산.").font = _f(9, False, "595959")
+ws7.row_dimensions[rfac+2].height = 42
+
+# ══ Sheet8: 감가상각 (산식·live ⓐ/ⓑ) ═════════════════════════════════════
+ws8 = wb.create_sheet("감가상각(산식)")
+ws8.sheet_view.showGridLines = False
+for col, w in zip("ABCDEF", [24, 16, 10, 12, 17, 17]): ws8.column_dimensions[col].width = w
+ws8.merge_cells("A1:F1")
+ws8["A1"] = "감가상각 — 산식과 계산 (실 자산 예시 · 살아있는 수식)"
+ws8["A1"].font = _f(13, True, "FFFFFF"); ws8["A1"].fill = _fill(C_TITLE); ws8["A1"].alignment = CEN; ws8.row_dimensions[1].height = 26
+ws8.merge_cells("A2:F2")
+ws8["A2"] = "두 관례 →  ⓐ 조사표: 연감가 = 취득가 ÷ 내용연수   |   ⓑ 개선: 연감가 = 취득가 × (1 − 잔존율) ÷ 내용연수 (잔존율 10%)"
+ws8["A2"].font = _f(9, False, "595959"); ws8["A2"].alignment = LEF; ws8.row_dimensions[2].height = 22
+DEP_HDR = ["자산(예시)", "취득가액(원)", "잔존율", "내용연수(년)", "ⓐ 조사표 연감가(원)", "ⓑ 개선 연감가(원)"]
+for j, h in enumerate(DEP_HDR):
+    c = ws8.cell(4, j+1, h); c.font = _f(9, True, "FFFFFF"); c.fill = _fill(C_HDR); c.alignment = CEN; c.border = BORDER
+DEP_ASSETS = [
+    ("완숙 유리온실(김선환)", 3600000000, 0.10, 30), ("딸기 하우스A(이병권)", 800000000, 0.10, 15),
+    ("방울 하우스A(진화)", 435529480, 0.10, 15), ("참외 작업장(유준상)", 100000000, 0.10, 15),
+    ("복합환경제어기(예)", 8000000, 0.10, 8),
+]
+d0 = 5
+for i, (name, acq, res, life) in enumerate(DEP_ASSETS):
+    r = d0 + i
+    ws8.cell(r, 1, name).font = _f(9); ws8.cell(r, 1).alignment = LEF; ws8.cell(r, 1).border = BORDER
+    ws8.cell(r, 2, acq).font = _f(9, False, BLUE); ws8.cell(r, 2).alignment = RIG; ws8.cell(r, 2).border = BORDER; ws8.cell(r, 2).number_format = '#,##0'
+    ws8.cell(r, 3, res).font = _f(9, False, BLUE); ws8.cell(r, 3).alignment = CEN; ws8.cell(r, 3).border = BORDER; ws8.cell(r, 3).number_format = '0%'
+    ws8.cell(r, 4, life).font = _f(9, False, BLUE); ws8.cell(r, 4).alignment = CEN; ws8.cell(r, 4).border = BORDER
+    ca = ws8.cell(r, 5, f"=ROUND(B{r}/D{r},0)"); ca.font = _f(9); ca.alignment = RIG; ca.border = BORDER; ca.number_format = '#,##0'
+    cb = ws8.cell(r, 6, f"=ROUND(B{r}*(1-C{r})/D{r},0)"); cb.font = _f(9, True); cb.alignment = RIG; cb.border = BORDER; cb.number_format = '#,##0'
+d_last = d0 + len(DEP_ASSETS) - 1
+rds = d_last + 1
+ws8.cell(rds, 1, "합계 (연 감가상각)").font = _f(10, True, C_TITLE); ws8.cell(rds, 1).alignment = LEF; ws8.cell(rds, 1).border = BORDER; ws8.cell(rds, 1).fill = _fill("E3EFE7")
+for c in (2, 3, 4): ws8.cell(rds, c).border = BORDER; ws8.cell(rds, c).fill = _fill("E3EFE7")
+for col in (5, 6):
+    L = "E" if col == 5 else "F"
+    cc = ws8.cell(rds, col, f"=SUM({L}{d0}:{L}{d_last})"); cc.font = _f(10, True, C_HDR); cc.alignment = RIG; cc.border = BORDER; cc.fill = _fill("E3EFE7"); cc.number_format = '#,##0'
+ws8.merge_cells(start_row=rds+2, start_column=1, end_row=rds+2, end_column=6)
+ws8.cell(rds+2, 1, "※ 파랑 셀(취득가·잔존율·내용연수)을 조사표 실입력값·견적서로 바꾸면 자동 재계산. "
+         "완숙 유리온실 예: ⓐ 36억÷30 = 120,000,000, ⓑ 36억×0.9÷30 = 108,000,000. "
+         "'작목별 CAPEX 실측'·'실 자산등록부'의 연감가는 ⓐ, 서비스 ERP는 ⓑ.").font = _f(9, False, "595959")
+ws8.row_dimensions[rds+2].height = 42
+
+# ══ Sheet0: 개요·핵심 산식 (표지 시트) ══════════════════════════════════════
+ws0 = wb.create_sheet("개요·핵심 산식")
+ws0.sheet_view.showGridLines = False
+for col, w in zip("ABC", [30, 44, 30]): ws0.column_dimensions[col].width = w
+ws0.merge_cells("A1:C1")
+ws0["A1"] = "스마트팜 CAPEX/OPEX 체계화 — 개선된 소득조사표 종합 모델"
+ws0["A1"].font = _f(14, True, "FFFFFF"); ws0["A1"].fill = _fill(C_TITLE); ws0["A1"].alignment = CEN; ws0.row_dimensions[1].height = 28
+ws0.merge_cells("A2:C2")
+ws0["A2"] = ("근거: 농진청 소득조사표 4작목·20농가(각 5). 현행(집계 상각비 2줄) → 개선(3계층 자산등록부·감가상각 수식·"
+            "시설완비도 계수·OPEX 3대분류 연동). 취득가·내용연수·사양은 조사표 '농가' 시트 실입력, 업체만 견적 보강 필요.")
+ws0["A2"].font = _f(9, False, "595959"); ws0["A2"].alignment = LEF; ws0.row_dimensions[2].height = 34
+# 핵심 산식 2개
+ws0.merge_cells("A4:C4"); ws0.cell(4, 1, "■ 핵심 산식").font = _f(11, True, C_TITLE)
+FORMS = [
+    ("시설 완비도 계수", "= 0.60 + Σ(시설별 가중치 × 설치배수)", "설치배수 ○=1·고장=0.5·×=0 · 최대 1.00 · [시설완비도 계수(산식)] 시트"),
+    ("연 감가상각 ⓐ(조사표)", "= 취득가액 ÷ 내용연수", "조사표 실측 집계 방식 · [감가상각(산식)] 시트"),
+    ("연 감가상각 ⓑ(개선)", "= 취득가액 × (1 − 잔존율) ÷ 내용연수", "잔존율 10% · 서비스 ERP 방식"),
+    ("작목 계수", "= Σ(농가 계수) ÷ 농가수", "작목당 5농가 평균"),
+    ("농가 총취득가", "= Σ(자산 취득가)", "'실 자산등록부' 합"),
+    ("수리유지(OPEX)", "≈ 취득가 × 1~3% / 년", "경험식 · [OPEX-CAPEX 연동] 시트"),
+]
+for j, h in enumerate(["지표", "산식", "비고·위치"]):
+    c = ws0.cell(5, j+1, h); c.font = _f(9, True, "FFFFFF"); c.fill = _fill(C_HDR); c.alignment = CEN; c.border = BORDER
+for i, (name, form, memo) in enumerate(FORMS):
+    r = 6 + i
+    ws0.cell(r, 1, name).font = _f(9, True, C_TITLE); ws0.cell(r, 1).alignment = LEF; ws0.cell(r, 1).border = BORDER
+    ws0.cell(r, 2, form).font = _f(9, True); ws0.cell(r, 2).alignment = LEF; ws0.cell(r, 2).border = BORDER
+    ws0.cell(r, 3, memo).font = _f(8.5, False, "595959"); ws0.cell(r, 3).alignment = LEF; ws0.cell(r, 3).border = BORDER
+    if i % 2:
+        for c in range(1, 4): ws0.cell(r, c).fill = _fill(C_SOFT)
+# 시트 안내
+base0 = 6 + len(FORMS) + 1
+ws0.merge_cells(start_row=base0, start_column=1, end_row=base0, end_column=3)
+ws0.cell(base0, 1, "■ 시트 구성").font = _f(11, True, C_TITLE)
+GUIDE = [
+    "① 개요·핵심 산식 — 본 시트(요약·산식·시트 안내)",
+    "② CAPEX 계층 등록부 — 3계층 자산 프레임(업체·사양·취득가·내용연수·잔존율·감가 수식)",
+    "③ 시설완비도 계수(산식) — SUMPRODUCT 살아있는 계산",
+    "④ 작목별 시설 구성 — 표본농가 ○/✕ 실데이터",
+    "⑤ 감가상각(산식) — ⓐ/ⓑ 살아있는 계산",
+    "⑥ 실 자산등록부(20농가) — 251개 자산 취득가·내용연수·사양 실추출",
+    "⑦ 작목별 CAPEX 실측 — 작목별 총취득가·연감가 집계",
+    "⑧ OPEX-CAPEX 연동 — 3대분류(재료비·경비·노무비) 매트릭스",
+    "⑨ 내용연수 표준·요약 — 자산군별 표준 수명연한",
+]
+for i, g in enumerate(GUIDE):
+    ws0.merge_cells(start_row=base0+1+i, start_column=1, end_row=base0+1+i, end_column=3)
+    ws0.cell(base0+1+i, 1, g).font = _f(9)
+
+# ── 시트 순서 재정리 ────────────────────────────────────────────────────────
+ORDER = ["개요·핵심 산식", "CAPEX 계층 등록부", "시설완비도 계수(산식)", "작목별 시설 구성",
+         "감가상각(산식)", "실 자산등록부(20농가)", "작목별 CAPEX 실측", "OPEX-CAPEX 연동", "내용연수 표준·요약"]
+wb._sheets.sort(key=lambda s: ORDER.index(s.title) if s.title in ORDER else 99)
+wb.active = 0
+
 OUT.parent.mkdir(exist_ok=True)
 wb.save(OUT)
 print(f"저장: {OUT} · 시트 {len(wb.sheetnames)}: {wb.sheetnames}")
