@@ -489,15 +489,16 @@ function _renderDraft(){
 async function _bulkRegister(){
   const msg=document.getElementById('importMsg'); const api=KaasaData.getApiBase();
   if(!_tokenG) _tokenG=await _ensureToken();
-  let ok=0;
+  let ok=0, demo=0;
   for(let i=0;i<_draft.length;i++){ const d=_draft[i];
     const dt=(d.device_type||'').trim(); if(!dt) continue;
     const body={device_id:`IMP-${Date.now().toString(36)}-${i}`, category:d.category||'', device_type:dt,
       gubun:d.gubun||'', model_type:d.model_type||'', grade:d.grade||'', gong:d.gong||'', score100:d.score100||null,
       kc:d.kc||'', maker:d.maker||'', model:d.model||'', protocol:d.protocol||'', datapoints:[]};
-    try{ const r=await fetch(`${api}/api/farms/${_farmG}/equipment`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${_tokenG}`},body:JSON.stringify(body)}); if(r.ok||r.status===403) ok++; }catch(e){}
+    try{ const r=await fetch(`${api}/api/farms/${_farmG}/equipment`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${_tokenG}`},body:JSON.stringify(body)}); if(r.ok) ok++; else if(r.status===403) demo++; }catch(e){}
   }
-  msg.style.color='var(--green)'; msg.textContent=`✓ ${ok}건 등록 완료`;
+  if(ok===0 && demo>0){ msg.style.color='var(--muted)'; msg.textContent=`🔒 데모 모드 — ${demo}건 미리보기(저장 안 됨)`; }
+  else { msg.style.color='var(--green)'; msg.textContent=`✓ ${ok}건 등록 완료`+(demo?` · ${demo}건 데모 미저장`:''); }
   _draft=[]; document.getElementById('importPreview').innerHTML=''; document.getElementById('quoteFile').value=''; _afterSave();
 }
 
@@ -681,7 +682,7 @@ async function _quickBulk(){
   if(!checked.length){msg.style.color='var(--orange)';msg.textContent='등록할 항목을 선택하세요';return;}
   msg.style.color='var(--muted)';msg.textContent='등록 중…';
   if(!_tokenG) _tokenG=await _ensureToken();
-  const api=KaasaData.getApiBase(); let ok=0;
+  const api=KaasaData.getApiBase(); let ok=0, demo=0;
   for(const cb of checked){
     const ci=+cb.dataset.ci, ii=+cb.dataset.ii;
     const cat=QUICK_CATS[ci], it=cat.items[ii];
@@ -690,9 +691,10 @@ async function _quickBulk(){
       model_type:it.name, location:'', maker:'', model:'', protocol:'', datapoints:[]};
     try{const r=await fetch(`${api}/api/farms/${_farmG}/equipment`,{method:'POST',
       headers:{'Content-Type':'application/json',Authorization:`Bearer ${_tokenG}`},body:JSON.stringify(body)});
-      if(r.ok||r.status===403) ok++;}catch(_e){}
+      if(r.ok) ok++; else if(r.status===403) demo++;}catch(_e){}
   }
-  msg.style.color='var(--green)';msg.textContent=`✓ ${ok}건 등록 완료 — 목록에서 제조사·위치를 수정하세요`;
+  if(ok===0 && demo>0){ msg.style.color='var(--muted)';msg.textContent=`🔒 데모 모드 — ${demo}건 미리보기(저장 안 됨)`; }
+  else { msg.style.color='var(--green)';msg.textContent=`✓ ${ok}건 등록 완료 — 목록에서 제조사·위치를 수정하세요`+(demo?` · ${demo}건 데모 미저장`:''); }
   checked.forEach(cb=>{cb.checked=false;_quickCheck(cb);});
   _afterSave();
 }
