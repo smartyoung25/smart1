@@ -473,21 +473,123 @@ ws0.merge_cells(start_row=base0, start_column=1, end_row=base0, end_column=3)
 ws0.cell(base0, 1, "■ 시트 구성").font = _f(11, True, C_TITLE)
 GUIDE = [
     "① 개요·핵심 산식 — 본 시트(요약·산식·시트 안내)",
-    "② CAPEX 계층 등록부 — 3계층 자산 프레임(업체·사양·취득가·내용연수·잔존율·감가 수식)",
-    "③ 시설완비도 계수(산식) — SUMPRODUCT 살아있는 계산",
-    "④ 작목별 시설 구성 — 표본농가 ○/✕ 실데이터",
-    "⑤ 감가상각(산식) — ⓐ/ⓑ 살아있는 계산",
-    "⑥ 실 자산등록부(20농가) — 251개 자산 취득가·내용연수·사양 실추출",
-    "⑦ 작목별 CAPEX 실측 — 작목별 총취득가·연감가 집계",
-    "⑧ OPEX-CAPEX 연동 — 3대분류(재료비·경비·노무비) 매트릭스",
-    "⑨ 내용연수 표준·요약 — 자산군별 표준 수명연한",
+    "② 기능별 운영관점 — 환경제어·관수·재배·병해·수확·운영 도메인 × CAPEX/OPEX/KPI/플랫폼 연계",
+    "③ CAPEX 계층 등록부 — 3계층 자산 프레임(업체·사양·취득가·내용연수·잔존율·감가 수식)",
+    "④ 시설완비도 계수(산식) — SUMPRODUCT 살아있는 계산",
+    "⑤ 작목별 시설 구성 — 표본농가 ○/✕ 실데이터",
+    "⑥ 감가상각(산식) — ⓐ/ⓑ 살아있는 계산",
+    "⑦ 실 자산등록부(20농가) — 251개 자산 취득가·내용연수·사양 실추출",
+    "⑧ 작목별 CAPEX 실측 — 작목별 총취득가·연감가 집계",
+    "⑨ OPEX-CAPEX 연동 — 3대분류(재료비·경비·노무비) 매트릭스",
+    "⑩ 내용연수 표준·요약 — 자산군별 표준 수명연한",
 ]
 for i, g in enumerate(GUIDE):
     ws0.merge_cells(start_row=base0+1+i, start_column=1, end_row=base0+1+i, end_column=3)
     ws0.cell(base0+1+i, 1, g).font = _f(9)
 
+# ══ Sheet: 기능별 운영관점 (환경제어·관수·재배·병해·수확·운영) ═════════════════
+# 자산 분류(무엇을)·비용 종류(얼마)에 더해, 플랫폼 G-시리즈 최적화 도메인(어떻게 운영)을 얹는다.
+# (도메인, CAPEX 자산군, 연동 OPEX, 운영 관점, 핵심 지표, 플랫폼 연계, 자산매칭 키워드)
+DOMAINS = [
+    ("환경제어", "복합환경제어·환기(측창/천창)·보온/차광 스크린·CO₂·센서·유동팬",
+     "전기(제어)·수리유지비", "온·습도·CO₂·광 통합 제어(VPD·DLI 밴딩)",
+     "VPD 0.4~0.6 · DLI(PAR 4.57) · CO₂", "G2 환경최적화",
+     ["환경제어", "제어", "센서", "유동팬", "차광", "보온", "스크린", "co2", "co₂"]),
+    ("관수·양액", "양액기(관비)·펌프·관수관비장치·관정",
+     "용수비·양액소재·전기(펌프)", "급액/배액·EC/pH·함수율(P1~P6)",
+     "배액률 20~30% · 급액EC 2.5~3.5 · pH 5.5~6.5", "G3 관수·양액최적화",
+     ["관수", "양액", "관비", "펌프", "관정"]),
+    ("재배·생육", "온실 구조체·재배베드(거터)·육묘 설비",
+     "종자·종묘·비료·재배노무", "정식~수확 생육단계 관리",
+     "생육단계 · 초장·엽수 · 착과율", "G4 생육최적화",
+     ["하우스", "온실", "베드", "벤치", "육묘", "정식"]),
+    ("병해·방제", "방제기(동력분무·연무)·예찰 장비",
+     "농약·방제 노무", "결로·감염위험·IPM 관리",
+     "결로시간 · 병해위험도 · 방제적기", "G5 병해최적화",
+     ["방제", "예찰", "미스트"]),
+    ("수확·출하", "선별기·수확기·저온저장고·포장 설비",
+     "수확 인건비·포장재비", "수확시기·수율·품질 등급",
+     "수확예측 · Brix · 등급/수율", "G6 수확 · C12 출하",
+     ["선별", "수확", "저온저장"]),
+    ("운영(공통)", "난방기·운반차·트랙터·창고/작업장·전기승압·물탱크",
+     "난방연료·수도광열·임차료·수리유지(공통)", "에너지·물류·시설 유지·경영",
+     "난방부하 · 전력 · 가동시간 · 소득률", "C5 ERP · C25 PDCA(수익최적화)",
+     []),  # catch-all
+]
+def _domain_of(asset_name):
+    s = (asset_name or "").lower()
+    for i, d in enumerate(DOMAINS):
+        for kw in d[6]:
+            if kw in s:
+                return i
+    return len(DOMAINS) - 1  # 운영(공통) catch-all
+# 실 자산등록부 → 도메인별 취득가·연감가·자산수 집계 + 예시
+_dom_agg = [{"acq": 0, "dep": 0, "n": 0, "ex": None} for _ in DOMAINS]
+for crop, d in REG.get("crops", {}).items():
+    for fm in d.get("farms", []):
+        for a in fm.get("assets", []):
+            di = _domain_of(a.get("asset"))
+            _dom_agg[di]["acq"] += a.get("acq_krw", 0) or 0
+            _dom_agg[di]["dep"] += a.get("annual_deprec", 0) or 0
+            _dom_agg[di]["n"] += 1
+            if _dom_agg[di]["ex"] is None and a.get("spec"):
+                _dom_agg[di]["ex"] = f"{a['asset']}({a['spec']})"
+_tot_acq = sum(x["acq"] for x in _dom_agg) or 1
+
+wsD = wb.create_sheet("기능별 운영관점")
+wsD.sheet_view.showGridLines = False
+for col, w in zip("ABCDEFG", [12, 30, 22, 26, 26, 20, 12]):
+    wsD.column_dimensions[col].width = w
+wsD.merge_cells("A1:G1")
+wsD["A1"] = "기능별 운영관점 — CAPEX/OPEX × 환경제어·관수·재배·병해·수확·운영"
+wsD["A1"].font = _f(13, True, "FFFFFF"); wsD["A1"].fill = _fill(C_TITLE); wsD["A1"].alignment = CEN
+wsD.row_dimensions[1].height = 26
+wsD.merge_cells("A2:G2")
+wsD["A2"] = ("자산 분류(무엇을)·비용 종류(얼마)에 더해 플랫폼 G-시리즈 최적화 도메인(어떻게 운영)을 얹는다. "
+            "각 도메인이 어떤 CAPEX를 두고, 어떤 OPEX를 유발하며, 어떤 지표로 관리되고, 어느 화면과 연결되는지의 관점.")
+wsD["A2"].font = _f(8, False, "595959"); wsD["A2"].alignment = LEF; wsD.row_dimensions[2].height = 26
+DHDR = ["운영 도메인", "CAPEX 자산군", "연동 OPEX", "운영 관점(제어·관리)", "핵심 지표(KPI)", "플랫폼 연계", "취득가 점유율"]
+for j, h in enumerate(DHDR):
+    c = wsD.cell(3, j+1, h); c.font = _f(9, True, "FFFFFF"); c.fill = _fill(C_HDR); c.alignment = CEN; c.border = BORDER
+for i, (name, capex, opex, view, kpi, plat, _kw) in enumerate(DOMAINS):
+    r = 4 + i
+    share = _dom_agg[i]["acq"] / _tot_acq
+    vals = [name, capex, opex, view, kpi, plat, share]
+    for j, v in enumerate(vals):
+        c = wsD.cell(r, j+1, v); c.border = BORDER
+        if j == 0:
+            c.font = _f(10, True, C_TITLE); c.alignment = CEN; c.fill = _fill(C_L1)
+        elif j == 6:
+            c.font = _f(10, True, C_HDR); c.alignment = CEN; c.number_format = '0.0%'
+        else:
+            c.font = _f(9); c.alignment = LEF
+    wsD.row_dimensions[r].height = 40
+# 실측 도메인 배분(참고)
+rb = 4 + len(DOMAINS) + 1
+wsD.merge_cells(start_row=rb, start_column=1, end_row=rb, end_column=7)
+wsD.cell(rb, 1, "■ 실측 도메인 배분 (20농가 자산등록부 · 자산명 키워드 기준 배분·참고)").font = _f(10, True, C_TITLE)
+DB2 = ["운영 도메인", "자산 수", "취득가 합(원)", "점유율", "연감가 합(원)", "실측 자산 예시"]
+for j, h in enumerate(DB2):
+    c = wsD.cell(rb+1, j+1, h); c.font = _f(9, True, "FFFFFF"); c.fill = _fill(C_HDR); c.alignment = CEN; c.border = BORDER
+    if j == 5: wsD.merge_cells(start_row=rb+1, start_column=6, end_row=rb+1, end_column=7)
+for i, (name, *_rest) in enumerate(DOMAINS):
+    r = rb + 2 + i; ag = _dom_agg[i]
+    row = [name, ag["n"], ag["acq"], ag["acq"]/_tot_acq, ag["dep"], ag["ex"] or "—"]
+    for j, v in enumerate(row):
+        c = wsD.cell(r, j+1, v); c.border = BORDER
+        if j == 0: c.font = _f(9, True, C_TITLE); c.alignment = LEF; c.fill = _fill(C_L1)
+        elif j == 1: c.font = _f(9); c.alignment = CEN
+        elif j in (2, 4): c.font = _f(9); c.alignment = RIG; c.number_format = '#,##0'
+        elif j == 3: c.font = _f(9, True); c.alignment = CEN; c.number_format = '0.0%'
+        else: c.font = _f(8.5, False, "595959"); c.alignment = LEF
+    if i == 5: pass
+    wsD.merge_cells(start_row=r, start_column=6, end_row=r, end_column=7)
+wsD.merge_cells(start_row=rb+2+len(DOMAINS)+1, start_column=1, end_row=rb+2+len(DOMAINS)+1, end_column=7)
+wsD.cell(rb+2+len(DOMAINS)+1, 1, "※ 배분은 자산명 키워드 기준 추정(온실 구조체는 재배로, 보온/차광은 환경제어로 귀속 등). "
+         "OPEX는 '⑨ OPEX-CAPEX 연동' 3대분류와, 지표는 '④ 시설완비도 계수'·G3 관수 P1~P6과 연결된다.").font = _f(8.5, False, "595959")
+
 # ── 시트 순서 재정리 ────────────────────────────────────────────────────────
-ORDER = ["개요·핵심 산식", "CAPEX 계층 등록부", "시설완비도 계수(산식)", "작목별 시설 구성",
+ORDER = ["개요·핵심 산식", "기능별 운영관점", "CAPEX 계층 등록부", "시설완비도 계수(산식)", "작목별 시설 구성",
          "감가상각(산식)", "실 자산등록부(20농가)", "작목별 CAPEX 실측", "OPEX-CAPEX 연동", "내용연수 표준·요약"]
 wb._sheets.sort(key=lambda s: ORDER.index(s.title) if s.title in ORDER else 99)
 wb.active = 0
