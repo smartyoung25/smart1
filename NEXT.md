@@ -1,8 +1,39 @@
 # NEXT — 다음 세션 시작점
-> 마지막 커밋: 93b5ec8 (2026-07-18) · origin·iwinv 동기화됨 · 브랜치 feature/priva-mobile 대기
+> 마지막 커밋: ef8935e (2026-08-06) · origin·iwinv 동기화됨 · SW v87 · 브랜치 demo/service-showcase(미병합) 대기
 
 ## 현재 상태 (1줄)
-farmingsight.org iwinv 운영(SW v82) + farmer.py P2-C 리팩터 배포 + 프리바/모바일 트랙 브랜치 준비.
+farmingsight.org iwinv 운영(SW v87) — 전 시스템 검수(10에이전트+E2E) 후 CRIT/HIGH 다수 수정·배포 완료 + 소득조사표 CAPEX/OPEX 발주처 산출물 6종 구축.
+
+## ★ 이번 세션 결론 (2026-08-06)
+
+### 1. 소득조사표 CAPEX/OPEX 체계화 — 발주처 산출물 6종 (out/, gitignore·빌더만 커밋)
+- ★ **중대 발견**: 조사표 '농가' 시트에 자산별 **신조가격(취득가)·내용연수·규격(사양) 실입력** — 앞선 "취득가 미수집" 판단 정정. 20농가 251개 자산 추출(`scripts/_extract_asset_register.py` → `out/asset_register.json`).
+- **실 취득가**(작목 5농가 평균): 완숙 14.2억·딸기 7.4억·방울 5.2억·참외 2.0억(템플릿 1,458,000 4작목 동일값 대체).
+- **시설 완비도 계수**(20농가 실측): 딸기 0.934·방울 0.910·완숙 0.940·참외 0.712. 산식 `= 0.60 + Σ(가중치×설치배수)`. ★ 완숙 서사 정정(단일샘플 "자동화 공백 최대" → 5농가 0.940 대부분 완비).
+- 산출물(모두 동일 실측·산식·운영관점으로 정합): 발주처 상세보고서·종합보고서 docx · CAPEX/OPEX 체계화 4작목 xlsx(10시트) · 개선정리 xlsx · 시설계수 실측 xlsx · 산식 워크북 xlsx · 한눈비교 아티팩트.
+- **기능별 운영관점**(6도메인 환경제어·관수·재배·병해·수확·운영 × CAPEX/OPEX/KPI/플랫폼 G2~G6) 3산출물 반영.
+- 빌더: `scripts/_build_capex_opex_taxonomy.py`·`_build_income_survey_report.js`·`_build_income_survey_summary_report.js`·`_build_income_survey_improvement_xlsx.py`·`_build_formula_workbook.py`. m4_cost·ERP `/costs`에 감가상각·수리유지 CostItem 연동(배포됨).
+
+### 2. 전 시스템 검수 (10 에이전트 + E2E) → `docs/시스템검수_원인분석_보고서.md`(커밋됨)
+- 배선(frontend↔backend 계약)은 견고(죽은링크·메서드·응답필드·데모403 거짓성공 0). 문제는 **시스템 로직·논리 일관성**에 집중 → **11대 원인 테마(A~K)**.
+- E2E 발견: 토큰 stale 401→전화면 공백·C5↔G4 수익성 모순·F4 화면내 모순·테스트기록 노출.
+
+### 3. CRIT/HIGH 수정·배포 완료 (전부 3경로 검증, master==origin·iwinv)
+- **B 타임존**(climate_plan·pdca `now()`→KST — UTC컨테이너 P1~P6 9h 오판 해소) · **H PII**(GET /integration-request contact 제거) · **A 인증**(apiFetch 토큰 재조회+401 재발급·재시도, SW /api/ 200게이트) · **C-3**(m2_yield 스케일러 적용) · **K-PII**(integration_requests git 언트랙).
+- **HIGH 기능불능 3**: 재학습 승인 body 스키마·PDCA Do env(`get_environment`)·What-if 이중나눗셈+humidity 파싱.
+- **G 정직성**: m1_growth pickle 가드·활동요약 테스트기록 제외. **F-1 문서**: 모델지표 권위값 정정.
+- **D 지표정합**: **VPD 적정밴드 0.8~1.2 전화면 통일**(CLAUDE.md canonical 정정)·DLI 작목별·배액률 문서정합.
+- **J 상태배선**: sf_correction(PDCA 보정) 홈 예측·매출 반영(루프 완결)·c0_signup role 설정.
+- **I 파이프라인**: 재학습 임계 500→200·알림 rising-edge·오이 ALL_CROPS·stale락 TTL·drift NaN→null.
+
+### 4. ★ 잔여 (제품 결정·데이터 정비 필요 — 코드 일괄 부적절)
+- **C-4** 신뢰도 CV지표화(전작목 "낮음" 표기 변화 → 제품 결정) · **C-1/2** m2_yield 게이트를 `pipeline.gates` 단일출처로 라우팅·탈락작목 하드블록(서빙 값 변경).
+- **F-2** c6_learning 게이트텍스트(C-1/2와 얽힘) · **F-3** 오이 registry 정식항목 신설.
+- **K**: kamis 일별↔price_cache 단위 30배 불일치(권위 소스 도메인 결정)·registry cv_r2 10배 부풀림 동기·kamis 3주 공백·seed vs 런타임 gitignore 분리(kamis/priva_pi/report_snapshots/temp_integration/pipeline_state 추적 중, 배포 시 iwinv 덮어쓰기 위험).
+- **J**: 티어게이트 누출(c3 수확예측 무게이트 vs g4/g6)·c10_roi/g4에도 sf_correction 확장 · 생육단계 일수 g4(season) vs pdca(정식→수확) 정의 상이.
+
+## 미결 인프라 (사용자 액션)
+- **레포 비공개 전환** — gh 미인증. public이라 프리바 코드 커밋 선행조건(아래 프리바 트랙).
 
 ## ★ 다음 트랙: 프리바 연동 + 모바일 재설계 (feature/priva-mobile)
 - **브랜치 개발 확정** — master가 운영 배포 소스(서버 `git checkout origin/master`)라, 다단계·안전critical
@@ -16,7 +47,7 @@ farmingsight.org iwinv 운영(SW v82) + farmer.py P2-C 리팩터 배포 + 프리
   폴링주기 · L0~L3 안전정책·인터락 · MAN/0/AUTO 스위치 취득 · 권한매핑 · px→rem 토큰 · 오프라인 쓰기 범위.
 - 착수 순서: **L0 읽기(N1 대시보드, 위험 0)** 우선 → L1(N2 설정 오프셋) → L2·L3(N3 관수·밸브+안전게이트).
 
-## ★ 이번 세션 결론 (2026-07-18)
+## 이전 세션 (2026-07-18) — 히스토리
 
 ### 1. 운영 배포 (iwinv, farmingsight.org)
 - 푸터 문의 채널 `iiam@iiam.co.kr` 3화면(index·intro·console) 추가, **SW v81→v82**.
