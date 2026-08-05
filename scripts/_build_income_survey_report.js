@@ -69,21 +69,23 @@ const CAP = (t) => new Paragraph({
   children: [new TextRun({ text: t, size: 17, color: '595959', font: FONT })],
 });
 let TN = 0; const T = (t) => CAP(`표 ${++TN}. ${t}`);
-// 강조 상자 — 핵심 요약·실무 예시용 (좌측 녹색 바 + 연녹 배경)
-const BOX = (t, o = {}) => new Paragraph({
-  spacing: { before: o.before ?? 120, after: o.after ?? 160, line: 300 },
-  shading: { fill: o.fill ?? 'EFF5EF', type: ShadingType.CLEAR },
-  border: {
-    top: { style: BorderStyle.SINGLE, size: 2, color: 'C7DECF', space: 6 },
-    bottom: { style: BorderStyle.SINGLE, size: 2, color: 'C7DECF', space: 6 },
-    left: { style: BorderStyle.SINGLE, size: 18, color: '2F9A62', space: 8 },
-    right: { style: BorderStyle.SINGLE, size: 2, color: 'C7DECF', space: 6 },
-  },
-  children: [
-    ...(o.label ? [new TextRun({ text: o.label + '  ', bold: true, size: 19, color: '1C5A3A', font: FONT })] : []),
-    new TextRun({ text: t, size: 19, color: '1B211D', font: FONT }),
-  ],
-});
+// 강조 상자 — 핵심 요약·실무 예시용 (좌측 녹색 바 + 연녹 배경). \n = 줄바꿈.
+const BOX = (t, o = {}) => {
+  const lines = String(t).split('\n');
+  const runs = o.label ? [new TextRun({ text: o.label + '  ', bold: true, size: 19, color: '1C5A3A', font: FONT })] : [];
+  lines.forEach((ln, i) => runs.push(new TextRun({ text: ln, size: 19, color: '1B211D', font: FONT, break: i > 0 ? 1 : undefined })));
+  return new Paragraph({
+    spacing: { before: o.before ?? 120, after: o.after ?? 160, line: 300 },
+    shading: { fill: o.fill ?? 'EFF5EF', type: ShadingType.CLEAR },
+    border: {
+      top: { style: BorderStyle.SINGLE, size: 2, color: 'C7DECF', space: 6 },
+      bottom: { style: BorderStyle.SINGLE, size: 2, color: 'C7DECF', space: 6 },
+      left: { style: BorderStyle.SINGLE, size: 18, color: '2F9A62', space: 8 },
+      right: { style: BorderStyle.SINGLE, size: 2, color: 'C7DECF', space: 6 },
+    },
+    children: runs,
+  });
+};
 const logoPara = (w = 190) => (!fs.existsSync(LOGO) ? [] : [new Paragraph({
   alignment: AlignmentType.CENTER, spacing: { after: 240 },
   children: [new ImageRun({ type: 'png', data: fs.readFileSync(LOGO),
@@ -186,6 +188,25 @@ const ch3 = [
   ], [AlignmentType.LEFT, AlignmentType.LEFT, AlignmentType.LEFT]),
   T('현행 vs 개선 항목 대조'),
   P('요약하면, 개선 후에는 "영농시설 상각비 783,000원"이라는 한 줄이 온실구조·보온·차광 등 자산별로 분해되고, 각 자산의 감가상각이 운영비·소득 계산까지 자동으로 이어진다. 조사표에 실입력된 취득가·내용연수를 넣으면 이 흐름이 그대로 작동한다.', { after: 130 }),
+
+  H('제3절  핵심 산식 정의', HeadingLevel.HEADING_2),
+  P('개선안의 정량 지표는 두 개의 산식으로 계산한다. 첫째는 각 농가의 시설이 얼마나 완비됐는지를 0~1로 나타내는 "시설 완비도 계수"이고, 둘째는 자산별 "감가상각"이다.', { after: 100 }),
+  P('1) 시설 완비도 계수', { bold: true, after: 60 }),
+  BOX('계수 = 0.60 (온실구조 공통) + Σ ( 시설별 가중치 × 설치배수 )\n설치배수: 설치(○) = 1.0,  고장 = 0.5,  미설치(×) = 0.\n가중치 합은 0.40이므로 모든 시설을 갖추면 계수 = 1.00, 온실구조만 있으면 0.60이다.', { label: '산식' }),
+  P('시설별 가중치는 스마트팜 자동화·보온 기여도를 반영해 다음과 같이 부여한다.', { after: 60 }),
+  TBL([2400, 1400, 2400, 1400, 1638], [
+    ['시설 항목', '가중치', '시설 항목', '가중치', '비고'],
+    ['온실구조체(공통)', '0.60', '천정 보온스크린', '0.07', '설치배수'],
+    ['일중천장', '0.03', '측면 보온스크린', '0.06', '○=1'],
+    ['이중천장', '0.03', '차광 스크린', '0.06', '고장=0.5'],
+    ['측창(환기)', '0.07', '관수·관비장치', '0.08', '×=0'],
+    ['', '', '가중치 합', '1.00', '최대 계수'],
+  ], [AlignmentType.LEFT, AlignmentType.CENTER, AlignmentType.LEFT, AlignmentType.CENTER, AlignmentType.CENTER]),
+  T('시설별 가중치 (합 1.00)'),
+  BOX('딸기 표본농가(류창영)는 이중천장만 미설치이므로 →\n0.60 + 0.03(일중천장) + 0.07(측창) + 0.07(천정보온) + 0.06(측면보온) + 0.06(차광) + 0.08(관수) = 0.97.\n작목 대표 계수는 같은 산식을 5농가에 각각 적용한 평균이다(딸기 0.934 등).', { label: '계산 예시' }),
+  P('2) 감가상각 (두 관례)', { bold: true, after: 60 }),
+  BOX('ⓐ 조사표 실측 방식:  연 감가상각 = 취득가액 ÷ 내용연수\nⓑ 개선 표준 방식:  연 감가상각 = 취득가액 × (1 − 잔존율) ÷ 내용연수  (잔존율 표준 10%)\n예) 완숙 유리온실 36억·30년 → ⓐ 1.2억/년, ⓑ 1.08억/년. 제5장의 "평균 연감가"는 ⓐ, 서비스 ERP는 ⓑ를 쓴다.', { label: '산식' }),
+  P('★ 개선 전략과 위 산식의 살아있는 계산 과정은 동봉한 엑셀 "소득조사표_개선_산식.xlsx"에 담았다. 3개 시트(① 시설완비도 계수 산식 · ② 감가상각 산식 · ③ 개선 전략·산식)에서 파랑 셀(설치배수·취득가·내용연수)을 바꾸면 계수·감가가 자동으로 재계산된다.', { after: 130 }),
 ];
 
 // ── 제4장 품목별 ─────────────────────────────────────────────────────────────
