@@ -247,6 +247,8 @@ async function _submit(){
       const d=await r.json();
       if(d.access_token) sessionStorage.setItem('sf_token',d.access_token);
       if(d.farm_id) sessionStorage.setItem('sf_farm_id',d.farm_id);   // 백엔드 발급 농장ID 인계(C1·홈 일관)
+      sessionStorage.setItem('sf_role', d.role || _role);   // ★ 역할 인계 — 구: 실가입 성공 시 role 미설정 → 비농가 배너·콘솔 데모게이트 미작동
+      localStorage.setItem('sf_signup_role', _role);        // ★ 자기선택 역할(모바일 배너: 유통/전문가/공공)
       res.style.color='var(--green)';res.innerHTML=`✓ 가입 완료! ${_landingLabel()}(으)로 이동합니다…`;
       localStorage.setItem('sf_signup_feats',JSON.stringify(_feats));
       setTimeout(()=>location.href=_landing(),1500);

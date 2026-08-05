@@ -1059,15 +1059,23 @@ async function _loadYieldForecast(token, farmId) {
     const set=(id,v)=>{const el=document.getElementById(id); if(el&&v!=null) el.innerHTML=v;};
     const setT=(id,v)=>{const el=document.getElementById(id); if(el&&v!=null) el.textContent=v;};
 
+    // ★ 내 농장 보정(PDCA Adjust) — c25에서 저장한 sf_correction 계수를 예측에 반영해 루프 완결.
+    //   구: sf_correction 을 읽는 화면이 0개라 농가 보정이 예측·ROI에 반영되지 않았다(A 단계 데드엔드).
+    let _cy = 1, _cp = 1;
+    try { const c = JSON.parse(localStorage.getItem('sf_correction') || '{}'); if (+c.yield) _cy = +c.yield; if (+c.price) _cp = +c.price; } catch (e) {}
+    const _corrOn = (_cy !== 1 || _cp !== 1);
+
     // 수확예측 (kg) + 매출
-    const yKg = harvest?.yield_kg_forecast ?? null;
+    let yKg = harvest?.yield_kg_forecast ?? null;
+    if (yKg!=null) yKg *= _cy;   // 보정 계수 적용
     if (yKg!=null) set('kpiYield', `${Math.round(yKg).toLocaleString()}<span style="font-size:13px;font-weight:400"> kg</span>`);
-    if (harvest?.predicted_yield_kg_m2!=null) setT('kpiYieldDelta', `${harvest.predicted_yield_kg_m2.toFixed(1)} kg/m² · D-${harvest.days_to_harvest ?? '—'}`);
-    const rev = revenue?.predicted_revenue_krw ?? revenue?.revenue_krw ?? null;
+    if (harvest?.predicted_yield_kg_m2!=null) setT('kpiYieldDelta', `${(harvest.predicted_yield_kg_m2*_cy).toFixed(1)} kg/m² · D-${harvest.days_to_harvest ?? '—'}${_corrOn?` · 보정 ×${_cy}`:''}`);
+    let rev = revenue?.predicted_revenue_krw ?? revenue?.revenue_krw ?? null;
+    if (rev!=null) rev *= _cy * _cp;   // 매출 = 수량 × 가격 → 두 보정 계수 반영
     if (rev!=null) {
       set('kpiRevenue', `${Math.round(rev/10000).toLocaleString()}<span style="font-size:12px;font-weight:400"> 만원</span>`);
       const price = revenue?.kamis_price_krw_kg ?? revenue?.price_krw_kg;
-      if (price && yKg) setT('kpiRevenueDelta', `${Math.round(price).toLocaleString()}원/kg × ${Math.round(yKg).toLocaleString()}kg`);
+      if (price && yKg) setT('kpiRevenueDelta', `${Math.round(price*_cp).toLocaleString()}원/kg × ${Math.round(yKg).toLocaleString()}kg${_corrOn?' · 내농장 보정 적용':''}`);
     }
 
     // 배액률 (irrigation)
