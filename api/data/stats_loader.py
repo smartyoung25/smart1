@@ -298,7 +298,9 @@ def _build_sensitivity_from_corr(crop_ko: str) -> dict[str, dict]:
         r = corr_map.get(var)
         if r is None:
             continue
-        ratio = round(r * 0.05 / unit, 6)   # 단위 스텝당 변화율
+        # ★ per-step 변화율(폴백 _ENV_YIELD_SENSITIVITY_FALLBACK 와 동일 의미). 구: /unit → 이후
+        #   compute_profit_delta 가 다시 /unit_delta 하여 CO₂·일사·습도 델타가 100·50·5배 축소됐다.
+        ratio = round(r * 0.05, 6)   # 스텝(delta_1c/100ppm/50wm2/5pct)당 변화율
         sensitivity[var] = {key: ratio}
 
     return sensitivity
@@ -352,8 +354,9 @@ def compute_profit_delta(
         parts = key.split("_")
         if len(parts) >= 2:
             try:
-                unit_delta = float(parts[1].replace("c", "").replace("pct", "").replace("ppm", "")
-                                            .replace("wm2", "").replace("m2", ""))
+                # ★ 'c' 제거를 맨 끝으로 — 구: replace("c") 가 "5pct"의 c 를 지워 "pt"→ValueError→humidity 델타=0
+                unit_delta = float(parts[1].replace("pct", "").replace("ppm", "")
+                                            .replace("wm2", "").replace("m2", "").replace("c", ""))
                 yield_ratio = ratio * (delta / unit_delta)
                 break
             except ValueError:

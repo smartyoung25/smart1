@@ -204,7 +204,8 @@
     try {
       var r = await fetch(apiBase() + '/api/admin/pipeline/trigger', {
         method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token() },
-        body: JSON.stringify(crop ? { crop: crop } : {})
+        // ★ 서버 스키마(TriggerRequest): crops(list)·confirm(true) 필요. 구: {crop} → 항상 400(승인 불가)
+        body: JSON.stringify({ crops: crop ? [crop] : null, confirm: true })
       });
       if (!btn) return;
       if (r.status === 403) {

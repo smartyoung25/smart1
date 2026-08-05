@@ -290,8 +290,12 @@ def get_threshold_alerts(farm_id: str, env: Optional[Dict] = None) -> List[Dict]
 
 def _latest_env(farm_id: str) -> Dict:
     try:
-        from api.routers.farmer import _load_environment_data
-        data = _load_environment_data(farm_id)
+        # ★ 구: _load_environment_data (farmer.py에 없는 함수) → ImportError 를 except 가 삼켜
+        #   PDCA 'Do' 환경블록·임계경보가 영구 공백이었다. 실제 env 는 get_environment 가 flat 필드로 제공.
+        from api.routers.farmer import get_environment
+        data = get_environment(farm_id)
+        if hasattr(data, "model_dump"): data = data.model_dump()
+        elif hasattr(data, "dict"): data = data.dict()
         return data if isinstance(data, dict) else {}
     except Exception:
         return {}
