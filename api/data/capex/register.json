@@ -1,0 +1,146 @@
+{
+  "_note": "스마트팜 CAPEX 자산등록부. acquisition_krw 에 견적 취득가를 입력하면 models/capex_cost.py 가 정액 감가상각을 계산해 m4_cost·ERP 에 연동한다. 전부 0(미입력)이면 조사표 표준 템플릿(1,458,000/년·900㎡)을 작목 시설완비도로 차등 사용. life_years·residual_rate 는 법인세법 시행규칙 별표·농진청 농기계 표준.",
+  "area_m2": 900,
+  "assets": [
+    {
+      "category": "영농시설",
+      "sub": "온실 구조체",
+      "item": "철골 골조·기초",
+      "maker": "",
+      "acquisition_krw": 0,
+      "life_years": 12,
+      "residual_rate": 0.1,
+      "opex_link": "수리유지비(영농시설)"
+    },
+    {
+      "category": "영농시설",
+      "sub": "피복",
+      "item": "피복필름(장기성 PO)",
+      "maker": "",
+      "acquisition_krw": 0,
+      "life_years": 3,
+      "residual_rate": 0.0,
+      "opex_link": "당해 자재비(소모성)"
+    },
+    {
+      "category": "영농시설",
+      "sub": "보온",
+      "item": "천정 보온스크린",
+      "maker": "",
+      "acquisition_krw": 0,
+      "life_years": 6,
+      "residual_rate": 0.1,
+      "opex_link": "수리유지비(영농시설)·전기"
+    },
+    {
+      "category": "영농시설",
+      "sub": "보온",
+      "item": "측면 보온스크린",
+      "maker": "",
+      "acquisition_krw": 0,
+      "life_years": 6,
+      "residual_rate": 0.1,
+      "opex_link": "수리유지비(영농시설)·전기"
+    },
+    {
+      "category": "영농시설",
+      "sub": "차광",
+      "item": "차광 스크린",
+      "maker": "",
+      "acquisition_krw": 0,
+      "life_years": 6,
+      "residual_rate": 0.1,
+      "opex_link": "수리유지비(영농시설)"
+    },
+    {
+      "category": "영농시설",
+      "sub": "재배베드",
+      "item": "재배베드(거터)",
+      "maker": "",
+      "acquisition_krw": 0,
+      "life_years": 8,
+      "residual_rate": 0.1,
+      "opex_link": "수리유지비(영농시설)·배지"
+    },
+    {
+      "category": "기자재",
+      "sub": "복합환경제어",
+      "item": "복합환경제어 시스템",
+      "maker": "",
+      "acquisition_krw": 0,
+      "life_years": 8,
+      "residual_rate": 0.1,
+      "opex_link": "전기·SW구독·수리유지비"
+    },
+    {
+      "category": "기자재",
+      "sub": "관수·관비",
+      "item": "양액기(관비장치)·펌프",
+      "maker": "",
+      "acquisition_krw": 0,
+      "life_years": 8,
+      "residual_rate": 0.1,
+      "opex_link": "전기·물·양액소재비"
+    },
+    {
+      "category": "기자재",
+      "sub": "난방",
+      "item": "난방기(온풍/온수)",
+      "maker": "",
+      "acquisition_krw": 0,
+      "life_years": 9,
+      "residual_rate": 0.1,
+      "opex_link": "수도광열비(경유·가스·전기)"
+    },
+    {
+      "category": "기자재",
+      "sub": "CO2 시비",
+      "item": "CO2 발생·공급 설비",
+      "maker": "",
+      "acquisition_krw": 0,
+      "life_years": 8,
+      "residual_rate": 0.1,
+      "opex_link": "CO2 원료비·전기"
+    },
+    {
+      "category": "기자재",
+      "sub": "환기",
+      "item": "측창/천창 개폐 모터",
+      "maker": "",
+      "acquisition_krw": 0,
+      "life_years": 8,
+      "residual_rate": 0.1,
+      "opex_link": "전기·수리유지비"
+    },
+    {
+      "category": "기자재",
+      "sub": "계측·센서",
+      "item": "환경센서(온습도·일사·CO2·EC/pH)",
+      "maker": "",
+      "acquisition_krw": 0,
+      "life_years": 5,
+      "residual_rate": 0.1,
+      "opex_link": "전기·교정비·전극소모품"
+    },
+    {
+      "category": "대농기구",
+      "sub": "운반",
+      "item": "전동 운반차·모노레일",
+      "maker": "",
+      "acquisition_krw": 0,
+      "life_years": 7,
+      "residual_rate": 0.1,
+      "opex_link": "수리유지비(대농기구)·유류"
+    },
+    {
+      "category": "대농기구",
+      "sub": "방제",
+      "item": "방제기(동력분무·연무기)",
+      "maker": "",
+      "acquisition_krw": 0,
+      "life_years": 6,
+      "residual_rate": 0.1,
+      "opex_link": "수리유지비(대농기구)·약제비"
+    }
+  ]
+}

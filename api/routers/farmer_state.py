@@ -250,7 +250,20 @@ def _compute_costs(farm_id: str):
     nutr,    nutr_manual  = _v("nutrients_krw_month",  rc["nutrients_krw_day"] * DAYS)
     pest,    pest_manual  = _v("pesticides_krw_month", rc["pesticides_krw_day"] * DAYS)
 
-    total = elec + water + heat + labor + nutr + pest
+    # ⑦ CAPEX 감가상각·수리유지 (capex_cost 연동 — ERP 소득구조에 투자비 반영)
+    try:
+        from models.capex_cost import compute as _capex_compute
+        _area = float(meta.get("area_m2", 1000.0) or 1000.0)
+        _crop = (meta.get("crop") or "").split("(")[0].strip()   # '딸기(설향)'→'딸기'
+        _cx = _capex_compute(_crop, area_m2=_area)
+        deprec = _cx.depreciation_per_m2_month * _area
+        maint  = _cx.maintenance_per_m2_month * _area
+        _capex_src = _cx.source
+    except Exception:
+        deprec = maint = 0.0
+        _capex_src = "template"
+
+    total = elec + water + heat + labor + nutr + pest + deprec + maint
 
     def pct(v: float) -> float:
         return round(v / total, 4) if total else 0.0
@@ -296,6 +309,10 @@ def _compute_costs(farm_id: str):
         _item("pesticides",  "농약·방제",  pest,
               "실제입력" if pest_manual else f"{rc['pesticides_krw_day']:,.0f}원/일 × 30일",
               pest_manual),
+        _item("depreciation", "감가상각(투자비)", deprec,
+              ("자산등록부 견적" if _capex_src == "register" else "조사표 표준(견적 입력 시 갱신)"), False),
+        _item("maintenance",  "수리유지비", maint,
+              "감가상각 연동 추정(자산 노후)", False),
     ]
 
     return CostBreakdownResponse(
