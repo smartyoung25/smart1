@@ -888,7 +888,9 @@ def get_harvest(farm_id: str):
     try:
         if _meta_path.exists():
             _meta = _json.loads(_meta_path.read_text(encoding="utf-8"))
-            _model_mape = _meta.get("mape")
+            # ★ 신뢰도는 교차검증 지표(cv_mape_mean)를 사용 — mape(훈련 in-sample)는 과적합 모델을
+            #   "높음"으로 과대표기(예: 딸기 훈련 17.9% vs CV 107%). 권위 게이트와 동일 기준.
+            _model_mape = _meta.get("cv_mape_mean") or _meta.get("mape")
     except Exception:
         pass
 

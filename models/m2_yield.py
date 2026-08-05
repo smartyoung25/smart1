@@ -181,8 +181,11 @@ def _predict_format_c(
     X_raw  = pd.DataFrame([row])[feat_cols]
     X_imp  = imputer.transform(X_raw)
     # tree 계열(XGB/LGB)은 DataFrame(feature names), linear 계열(Ridge)은 numpy array 선호
-    X_df   = pd.DataFrame(X_imp, columns=feat_cols)   # XGB/LGB용
-    X_np   = X_imp                                     # Ridge/linear용
+    _scaler = pkg.get("scaler")
+    X_df   = pd.DataFrame(X_imp, columns=feat_cols)   # XGB/LGB용 (스케일 불필요)
+    # ★ Ridge/linear 는 학습 시 StandardScaler 전처리됨 — scaler 있으면 적용(4stage 경로와 동일).
+    #   미적용 시 스케일 안 된 특성을 Ridge 에 넣어 수치가 크게 틀렸다(예: 참외 melon).
+    X_np   = _scaler.transform(X_imp) if _scaler is not None else X_imp
 
     # 앙상블 예측
     preds = []
