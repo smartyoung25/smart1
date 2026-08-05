@@ -20,8 +20,11 @@ def _load(crop_ko: str):
     pkl = os.path.join(ARTS, key, "m1_growth_model.pkl")
     if not os.path.exists(pkl):
         return None
-    with open(pkl, "rb") as f:
-        pkg = pickle.load(f)
+    try:  # ★ 손상 pkl 이 500 으로 전파되던 것 방지 — 실패 시 None(→ stub) 로 정상 강등(m2_yield 와 동일 회복성)
+        with open(pkl, "rb") as f:
+            pkg = pickle.load(f)
+    except Exception:
+        return None
     _cache[key] = pkg
     return pkg
 

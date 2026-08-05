@@ -2208,6 +2208,10 @@ def get_activity_summary(farm_id: str):
     if fp.exists():
         try: logs = _json.loads(fp.read_text(encoding="utf-8"))
         except Exception: logs = []
+    # ★ 테스트/배포검증 흔적(smoke·regress·deploy_verify·verify)을 사용자 기록에서 제외 —
+    #   개발 중 주입된 항목이 '최근 기록'·이행률에 노출되던 문제.
+    _TEST_MARKERS = {"smoke", "regress", "deploy_verify", "verify", "test"}
+    logs = [l for l in logs if str(l.get("item", "")).strip().lower() not in _TEST_MARKERS]
     _ym = _dt.now(_tz.utc).isoformat()[:7]
     month_logs = [l for l in logs if l["ts"][:7] == _ym]
     by_kind = {}
