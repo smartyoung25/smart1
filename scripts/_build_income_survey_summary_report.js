@@ -211,6 +211,25 @@ CROPS.forEach(([name, story]) => {
   body.push(P([R(story, { color: SOFT, size: 19 })], { after: 60 }));
 });
 
+// 작목별 실 취득가·감가 (실 자산등록부 집계) — 상세보고서 제5장·엑셀과 동일
+const _n2 = v => (v == null ? '' : Number(v).toLocaleString());
+const RealRows = ['딸기', '방울토마토', '완숙토마토', '참외'].map(c => {
+  const d = REG.crops[c] || {};
+  return [c, String(d.n_farms || 0), _n2(d.capex_mean_krw), `${_n2(d.capex_min)} ~ ${_n2(d.capex_max)}`, _n2(d.annual_deprec_mean)];
+});
+body.push(P([R('작목별 실 취득가·감가 (20농가 자산등록부 집계)', { bold: true, size: 20 })], { before: 140, after: 40 }));
+body.push(table([1600, 1000, 2300, 3000, 1460], [
+  new TableRow({ tableHeader: true, children: [hcell('작목', 1600, AlignmentType.LEFT), hcell('농가수', 1000), hcell('평균 총취득가(원)', 2300), hcell('취득가 범위(원)', 3000), hcell('평균 연감가(원)', 1460)] }),
+  ...RealRows.map((r, idx) => new TableRow({ children: [
+    cell(r[0], { w: 1600, bold: true, bg: idx % 2 ? ZEBRA : undefined }),
+    cell(r[1], { w: 1000, align: AlignmentType.CENTER, bg: idx % 2 ? ZEBRA : undefined }),
+    cell(r[2], { w: 2300, align: AlignmentType.RIGHT, bg: idx % 2 ? ZEBRA : undefined }),
+    cell(r[3], { w: 3000, align: AlignmentType.RIGHT, size: 17, color: SOFT, bg: idx % 2 ? ZEBRA : undefined }),
+    cell(r[4], { w: 1460, align: AlignmentType.RIGHT, bg: idx % 2 ? ZEBRA : undefined }),
+  ] })),
+]));
+body.push(BOX('위 품목별 감가(완비도 계수 × 템플릿 1,458,000)는 per 900㎡ 지표이고, 이 표의 취득가·연감가는 농가 총자산 실측(신조가격 합·Σ취득가÷내용연수)이다 — 두 관점을 병기한다. 완숙 평균 14.2억(유리온실 다수)~참외 2.0억으로 온실 형태·규모가 실 CAPEX를 좌우한다.', '두 관점'));
+
 // 6 활용
 body.push(H('8. 활용 로드맵'));
 body.push(table([620, 3000, 5740], [
