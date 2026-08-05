@@ -76,8 +76,8 @@ deploy/cloudflare/ ← config.yml·watchdog.ps1
 ## 핵심 KPI 기준값 (PC↔모바일 통일값)
 
 - DLI: PAR계수 4.57 mol/m²·d 사용 (누락 시 ~4.6배 과소 오류)
-- VPD 밴드: 0.4 kPa (하한) / 0.6 kPa (상한)
-- 배액률 정상: norm[20, 35]% / 위험: crit[15, 45]%
+- VPD 밴드: 0.8 kPa (하한) / 1.2 kPa (상한)  # 적정대(green). 낮음<0.8·높음>1.2·위험<0.5|>1.8
+- 배액률: 정상 20~30% · 경보 <15 또는 >40% (data.js warn[15,40]/crit[10,50]·G3표와 일치)
 
 ## G2 환경관리 전략표 (climate_plan.py)
 

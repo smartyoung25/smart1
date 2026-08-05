@@ -123,12 +123,12 @@
     if (vpd != null && vpd > 1.8) items.push({ severity:'warn', title:`VPD ${vpd.toFixed(1)} kPa — 증산 과다`,
       why:'공기가 건조해 수분 스트레스 위험이 있습니다. 환기 약화 또는 가습/급액 보완이 필요합니다.',
       action:'환기 단계 ↓ · 급액 보충', confidence:70, source:'live', updatedMin:age,
-      evidence:'VPD>1.8 kPa는 기공 폐쇄·광합성 저하 구간. 적정대(0.6~1.2) 복귀가 목표.',
+      evidence:'VPD>1.8 kPa는 기공 폐쇄·광합성 저하 구간. 적정대(0.8~1.2) 복귀가 목표.',
       applyLabel:'환경 조정 기록', target:'g2_env.html' });
-    else if (vpd != null && vpd < 0.6) items.push({ severity:'info', title:`VPD ${vpd.toFixed(1)} kPa — 과습 주의`,
+    else if (vpd != null && vpd < 0.8) items.push({ severity:'info', title:`VPD ${vpd.toFixed(1)} kPa — 과습 주의`,
       why:'습도가 높아 결로·곰팡이병 위험이 올라갑니다. 환기 강화를 검토하세요.',
       action:'환기 단계 ↑ · 제습', confidence:66, source:'live', updatedMin:age,
-      evidence:'VPD<0.6 kPa 지속은 잿빛곰팡이 등 병해 발생 환경. 환기로 포차를 높이는 것이 효과적.',
+      evidence:'낮은 VPD(<0.8 kPa) 지속은 잿빛곰팡이 등 병해 발생 환경. 환기로 포차를 높이는 것이 효과적.',
       applyLabel:'환기 조정 기록', target:'g5_disease.html' });
     if (recs.length) {
       const r = recs[0]; const conf = Math.round((r.confidence ?? 0) * 100);

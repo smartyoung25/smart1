@@ -296,7 +296,7 @@
       <div class="env-label">VPD</div>
       <div class="env-value" id="envVpd">—<span class="env-unit"> kPa</span></div>
       <div class="env-status" id="envVpdSt">로드 중…</div>
-      <div class="env-range">적정 0.6~1.2 kPa</div>
+      <div class="env-range">적정 0.8~1.2 kPa</div>
       <div class="gauge-wrap"><div class="gauge-fill ok" id="gaugeVpd" style="width:0%"></div></div>
     </div>
 
@@ -835,8 +835,8 @@ function _updateKpis(env) {
 
   // VPD
   _setKpi('envVpd', `${vpd != null ? vpd.toFixed(2) : '—'}<span class="env-unit"> kPa</span>`,
-    vpd == null ? '' : vpd < 0.4 ? 'danger' : vpd < 0.6 ? 'warn' : vpd > 2.0 ? 'danger' : vpd > 1.5 ? 'warn' : 'ok',
-    vpd == null ? '—' : vpd < 0.4 ? '⚠ 매우 낮음' : vpd < 0.6 ? '낮음' : vpd > 2.0 ? '⚠ 매우 높음' : vpd > 1.5 ? '높음' : '정상',
+    vpd == null ? '' : vpd < 0.5 ? 'danger' : vpd < 0.8 ? 'warn' : vpd > 1.8 ? 'danger' : vpd > 1.2 ? 'warn' : 'ok',
+    vpd == null ? '—' : vpd < 0.5 ? '⚠ 매우 낮음' : vpd < 0.8 ? '낮음' : vpd > 1.8 ? '⚠ 매우 높음' : vpd > 1.2 ? '높음' : '정상',
     vpd != null ? Math.min((vpd / 2.5) * 100, 100) : 0);
 
   // CO₂
@@ -887,7 +887,9 @@ function _updateDli(env) {
   }
   _lastSolarTs = now;
 
-  const target = 10; // 딸기 목표 DLI
+  const _DLI_T = { '딸기':10, '오이':20, '완숙토마토':25, '방울토마토':22, '파프리카':18, '참외':18 };
+  let _dc=''; try{ _dc=(JSON.parse(localStorage.getItem('sf_profile')||'{}').crop_ko||'').split('(')[0].trim(); }catch(e){}
+  const target = _DLI_T[_dc] || 10; // 작목별 목표 DLI(g4와 동일, 미상 시 딸기 10)
   const pct    = Math.min((_dliAccum / target) * 100, 100);
   const el     = document.getElementById('envDli');
   const gauge  = document.getElementById('gaugeDli');
@@ -1124,7 +1126,7 @@ function _updateAlerts(env) {
 
   if (t  != null && t  < 14)    alerts.push({ level:'danger', msg:`온도 ${t.toFixed(1)}°C — 임계 저온, 즉시 난방 필요` });
   if (t  != null && t  > 32)    alerts.push({ level:'danger', msg:`온도 ${t.toFixed(1)}°C — 임계 고온, 즉시 차광 필요` });
-  if (vpd != null && vpd > 2.0) alerts.push({ level:'danger', msg:`VPD ${vpd.toFixed(2)} kPa — 심각한 증산, 급액 증가` });
+  if (vpd != null && vpd > 1.8) alerts.push({ level:'danger', msg:`VPD ${vpd.toFixed(2)} kPa — 심각한 증산, 급액 증가` });
   if (co2 != null && co2 > 1800)alerts.push({ level:'danger', msg:`CO₂ ${Math.round(co2)} ppm — 과농도, 즉시 환기` });
 
   const strip = document.getElementById('alertStrip');

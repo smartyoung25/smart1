@@ -122,8 +122,8 @@ const KaasaData = (() => {
       targets: { drainPct: { min: 20, max: 30 }, ecDrain: { min: 3.0, max: 4.5 }, supply: null },
       steering: '최고 광량 = 배액 EC 최저. 흐린 날 EC 무리하게 낮추지 않음',
       alertRules: [
-        { metric: 'vpd', max: 1.2, severity: 'warn',   msg: 'VPD 낮음 — 환기 강화 권장' },
-        { metric: 'vpd', min: 2.0, severity: 'danger', msg: 'VPD 높음 — 증산 과다, 급액 증가' }
+        { metric: 'vpd', max: 0.8, severity: 'warn',   msg: 'VPD 낮음 — 환기 강화 권장' },
+        { metric: 'vpd', min: 1.8, severity: 'danger', msg: 'VPD 높음 — 증산 과다, 급액 증가' }
       ]
     },
     {
@@ -276,7 +276,7 @@ const KaasaData = (() => {
   // ── PDCA 임계값 기준 (api/services/pdca.py THRESHOLDS와 동기화) ──────────────
   const PDCA_THRESHOLDS = {
     temp_internal: { warn: [16, 30], crit: [12, 35], unit: '°C',   label: '내부 온도' },
-    vpd:           { warn: [0.4, 1.5], crit: [0.2, 2.0], unit: 'kPa', label: 'VPD' },
+    vpd:           { warn: [0.8, 1.2], crit: [0.5, 1.8], unit: 'kPa', label: 'VPD' },
     co2_ppm:       { warn: [400, 1500], crit: [300, 2000], unit: 'ppm', label: 'CO₂' },
     ec_feed:       { warn: [2.0, 4.0], crit: [1.5, 4.5], unit: 'dS/m', label: '급액 EC' },
     drain_pct:     { warn: [15, 40], crit: [10, 50], unit: '%',    label: '배액률' },

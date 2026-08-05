@@ -433,7 +433,7 @@ function handleSensor(env) {
   const vpdStr  = vpd  != null ? ` / ${KaasaData.fmt1(vpd)}` : '';
   document.getElementById('kpiTempVpd').textContent = tempStr + vpdStr;
   document.getElementById('kpiVpdHint').textContent =
-    vpd != null ? (vpd > 2.0 ? '⚠ VPD 높음' : vpd < 0.8 ? '⚠ VPD 낮음' : 'VPD 정상') : '';
+    vpd != null ? (vpd > 1.2 ? '⚠ VPD 높음' : vpd < 0.8 ? '⚠ VPD 낮음' : 'VPD 정상') : '';
 
   // Period별 센서 업데이트
   updatePeriodSensors(env);
