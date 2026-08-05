@@ -260,7 +260,11 @@ def list_integration_requests(farm_id: str):
     if fp.exists():
         try: items = _json.loads(fp.read_text(encoding="utf-8"))
         except Exception: items = []
-    return {"farm_id": farm_id, "requests": items, "total": len(items)}
+    # ★ PII 보호: contact(전화/이메일)는 응답에서 제거 — /api/farms/{id} 라우터가 demo 를 소유권
+    #   검증에서 면제하므로, 이 GET 이 contact 를 반환하면 데모가 cross-farm 으로 타 농가 연락처를
+    #   열람할 수 있다("PII 반환 GET 0개" 불변식). contact 는 서버 저장·운영팀 회신용이라 클라이언트 반환 불필요.
+    safe = [{k: v for k, v in it.items() if k != "contact"} if isinstance(it, dict) else it for it in items]
+    return {"farm_id": farm_id, "requests": safe, "total": len(safe)}
 
 
 @router.post("/integration-request", summary="연동·서비스 신청 접수")

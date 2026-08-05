@@ -345,8 +345,8 @@ def pdca_daily(farm_id: str) -> Dict:
 def _today_plan(farm_id: str, crop: str) -> Dict:
     try:
         from api.services.climate_plan import active_setpoint, current_env_period
-        from datetime import datetime as dt
-        hour = dt.now().hour
+        from datetime import datetime as dt, timezone as _tz, timedelta as _td
+        hour = dt.now(_tz(_td(hours=9))).hour   # ★ KST 기준(UTC 컨테이너 9h 오판 방지)
         sp = active_setpoint(farm_id, crop, hour)
         t = sp.get("target") or {}
         ep = sp.get("ep_name", "—")

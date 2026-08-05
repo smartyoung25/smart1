@@ -14,8 +14,10 @@ import json
 import math
 import urllib.parse
 import urllib.request
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
+
+_KST = timezone(timedelta(hours=9))  # ★ 컨테이너는 UTC — Period 판정은 반드시 KST 기준(9h 오판 방지)
 
 # ── 하루 구간 정의 (열) ───────────────────────────────────────────────────────
 #   (key, 라벨, 시작시각, 끝시각, 설명)
@@ -510,7 +512,7 @@ def active_setpoint(farm_id: str, crop: str = "딸기", hour: int | None = None,
     · ② 일출·일몰 동적 구간 · ③ 온도적산 익일 보정."""
     plan = load_plan(farm_id, crop)
     if hour is None:
-        hour = datetime.now().hour
+        hour = datetime.now(_KST).hour   # ★ KST 기준(UTC 컨테이너 9h 오판 방지) — P1~P6 절대 변경 금지
     # ② 일출·일몰 동적 경계 (제공 시) — 없으면 고정 PERIODS
     if sunrise is not None and sunset is not None:
         periods_used = periods_for_sun(sunrise, sunset)
