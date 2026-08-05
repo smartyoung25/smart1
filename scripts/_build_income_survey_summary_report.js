@@ -2,10 +2,15 @@
 // 근거: 20농가 실측. 아티팩트/엑셀/발주처 docx와 동일 기준.
 // 실행: NODE_PATH="C:/smart_farm/node_modules" node scripts/_build_income_survey_summary_report.js
 const fs = require('fs');
+const path = require('path');
 const {
   Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
   AlignmentType, HeadingLevel, BorderStyle, WidthType, ShadingType, PageNumber, Footer, Header,
 } = require('docx');
+
+// 20농가 실 자산등록부 → 기능별 운영 도메인 배분(취득가 점유율)
+let REG = { crops: {} };
+try { REG = require(path.join(__dirname, '..', 'out', 'asset_register.json')); } catch (e) { /* 없으면 배분 생략 */ }
 
 const FONT = '맑은 고딕';
 const GREEN = '1F7A4D', CLAY = '9C6A2E', WARN = 'B0472E', INK = '1B211D', SOFT = '55605A';
@@ -157,8 +162,37 @@ body.push(P([R('2) 감가상각 (두 관례)', { bold: true })], { after: 40 }))
 body.push(BOX('ⓐ 조사표 실측:  연 감가상각 = 취득가액 ÷ 내용연수\nⓑ 개선 표준:  연 감가상각 = 취득가액 × (1 − 잔존율) ÷ 내용연수 (잔존율 10%)\n예) 완숙 유리온실 36억·30년 → ⓐ 1.2억/년, ⓑ 1.08억/년. 발주처 상세보고서 제5장·자산등록부 엑셀은 ⓐ, 서비스 ERP는 ⓑ를 쓴다.', '산식'));
 body.push(P([R('★ 살아있는 계산 과정은 엑셀 “소득조사표_개선_산식.xlsx”(① 완비도 계수 · ② 감가상각 · ③ 개선 전략·산식) 참조 — 파랑 셀(설치배수·취득가·내용연수)을 바꾸면 자동 재계산된다.', { color: SOFT, size: 18 })]));
 
-// 6 품목별
-body.push(H('6. 품목별 실측 대조 (20농가)'));
+// 6 기능별 운영관점 (환경제어·관수·재배·병해·수확·운영)
+const DOMAINS = [
+  ['환경제어', '복합제어·환기·보온/차광·CO₂·센서', '전기(제어)·수리유지', 'VPD 0.4~0.6·DLI·CO₂', 'G2 환경최적화', ['환경제어', '제어', '센서', '유동팬', '차광', '보온', '스크린', 'co2', 'co₂']],
+  ['관수·양액', '양액기·펌프·관수관비·관정', '용수·양액소재·전기', '배액률 20~30%·EC 2.5~3.5·pH', 'G3 관수최적화', ['관수', '양액', '관비', '펌프', '관정']],
+  ['재배·생육', '온실구조·재배베드·육묘', '종자·비료·재배노무', '생육단계·초장·착과율', 'G4 생육최적화', ['하우스', '온실', '베드', '벤치', '육묘', '정식']],
+  ['병해·방제', '방제기·예찰', '농약·방제노무', '결로시간·병해위험도', 'G5 병해최적화', ['방제', '예찰', '미스트']],
+  ['수확·출하', '선별기·수확기·저온저장', '수확인건비·포장재', '수확예측·Brix·등급', 'G6 수확·C12 출하', ['선별', '수확', '저온저장']],
+  ['운영(공통)', '난방기·운반·창고·전기승압', '난방연료·수도광열·임차', '난방부하·전력·소득률', 'C5 ERP·C25 PDCA', []],
+];
+const _domIdx = nm => { const s = (nm || '').toLowerCase(); for (let i = 0; i < DOMAINS.length; i++) for (const k of DOMAINS[i][5]) if (s.includes(k)) return i; return DOMAINS.length - 1; };
+const _acq = DOMAINS.map(() => 0); let _tot = 0;
+Object.values(REG.crops || {}).forEach(d => (d.farms || []).forEach(fm => (fm.assets || []).forEach(a => { const v = a.acq_krw || 0; _acq[_domIdx(a.asset)] += v; _tot += v; })));
+const _pct = i => _tot ? (_acq[i] / _tot * 100).toFixed(1) + '%' : '—';
+
+body.push(H('6. 기능별 운영관점'));
+body.push(P([R('자산 분류(무엇을)·비용 종류(얼마)에 더해, 플랫폼 최적화 도메인(어떻게 운영)의 관점을 얹는다. 각 도메인이 어떤 CAPEX를 두고 어떤 OPEX를 유발하며 어떤 지표로 관리되고 어느 화면과 연결되는지를 보인다.', {})]));
+body.push(table([1500, 2600, 2000, 2200, 1060], [
+  new TableRow({ tableHeader: true, children: [hcell('운영 도메인', 1500, AlignmentType.LEFT), hcell('CAPEX 자산군', 2600, AlignmentType.LEFT), hcell('연동 OPEX', 2000, AlignmentType.LEFT), hcell('핵심 지표(KPI)', 2200, AlignmentType.LEFT), hcell('연계', 1060)] }),
+  ...DOMAINS.map((d, idx) => new TableRow({ children: [
+    cell(d[0], { w: 1500, bold: true, bg: idx % 2 ? ZEBRA : undefined }),
+    cell(d[1], { w: 2600, size: 17, bg: idx % 2 ? ZEBRA : undefined }),
+    cell(d[2], { w: 2000, size: 17, color: SOFT, bg: idx % 2 ? ZEBRA : undefined }),
+    cell(d[3], { w: 2200, size: 17, bg: idx % 2 ? ZEBRA : undefined }),
+    cell(d[4], { w: 1060, size: 15, color: GREEN, bold: true, bg: idx % 2 ? ZEBRA : undefined }),
+  ] })),
+]));
+body.push(P([R('표. 기능별 운영 도메인 × CAPEX/OPEX/KPI/플랫폼 연계', { italics: true, color: SOFT, size: 16 })], { after: 80 }));
+body.push(BOX(`20농가 실 자산등록부(251자산)를 도메인으로 배분한 취득가 점유율 — 재배·생육 ${_pct(2)}(온실 구조체 중심) · 운영 ${_pct(5)} · 관수·양액 ${_pct(1)} · 환경제어 ${_pct(0)} · 수확·출하 ${_pct(4)} · 병해·방제 ${_pct(3)}. 구조체(하우스)가 최대 CAPEX이므로 재배 비중이 크며, OPEX는 CAPEX 엑셀의 3대분류(재료비·경비·노무비), KPI는 5장 핵심 산식·G3 관수 P1~P6과 연결된다.`, '실측 배분'));
+
+// 7 품목별
+body.push(H('7. 품목별 실측 대조 (20농가)'));
 body.push(P([R('계수·생산량·범위 = 작목별 5농가 실측 평균 · 이후 감가 = 템플릿 1,458,000 × 완비도계수 · 월 감가 = 감가 ÷ 900㎡ ÷ 12', { italics: true, color: SOFT, size: 17 })], { after: 100 }));
 const cropCols = ['🍓 딸기', '🍅 방울', '🍅 완숙', '🍈 참외'];
 body.push(table([2760, 1650, 1650, 1650, 1650], [
@@ -178,7 +212,7 @@ CROPS.forEach(([name, story]) => {
 });
 
 // 6 활용
-body.push(H('7. 활용 로드맵'));
+body.push(H('8. 활용 로드맵'));
 body.push(table([620, 3000, 5740], [
   new TableRow({ tableHeader: true, children: [hcell('#', 620), hcell('과제', 3000, AlignmentType.LEFT), hcell('내용', 5740, AlignmentType.LEFT)] }),
   ...ROAD.map(([t, d], idx) => new TableRow({ children: [
@@ -189,7 +223,7 @@ body.push(table([620, 3000, 5740], [
 ]));
 
 // 7 선행조건·한계
-body.push(H('8. 선행조건 및 한계 (정직성)'));
+body.push(H('9. 선행조건 및 한계 (정직성)'));
 body.push(new Paragraph({
   spacing: { after: 120, line: 276 },
   shading: { fill: CLAY_BG, type: ShadingType.CLEAR, color: 'auto' },
