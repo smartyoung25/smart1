@@ -309,7 +309,26 @@ const KaasaData = (() => {
 
   // ── API 헬퍼 ───────────────────────────────────────────────────────────────
   const _inflight = new Map();
-  async function apiFetch(path, opts = {}) {
+  let _refreshing = null;
+  // 저장된 토큰이 만료/무효(401)면 데모 토큰을 재발급한다. 단일 발급(동시 401 대비).
+  // ★ 실인증 배포에서는 demo-token 이 403 → 재발급 없이 원래 401 전파(데모 다운그레이드 없음).
+  async function _refreshToken() {
+    if (_refreshing) return _refreshing;
+    _refreshing = (async () => {
+      try {
+        const r = await fetch(_apiBase + '/api/v1/auth/demo-token', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}'
+        });
+        if (r.ok) {
+          const d = await r.json();
+          if (d && d.access_token) { _token = d.access_token; sessionStorage.setItem('sf_token', _token); return _token; }
+        }
+      } catch { /* silent */ }
+      return '';
+    })();
+    const t = await _refreshing; _refreshing = null; return t;
+  }
+  async function apiFetch(path, opts = {}, _retried = false) {
     const isGet = !opts.method || opts.method.toUpperCase() === 'GET';
     let ctrl;
     if (isGet) {
@@ -318,16 +337,22 @@ const KaasaData = (() => {
       _inflight.set(path, ctrl);
     }
     try {
+      // ★ 매 호출 최신 토큰 재조회 — init 미호출 화면(_token 공백)도 sessionStorage 토큰 사용
+      const tok = _token || sessionStorage.getItem('sf_token') || '';
       const res = await fetch(_apiBase + path, {
+        ...opts,
         signal: ctrl?.signal,
         headers: {
           'Content-Type': 'application/json',
           ...(opts.headers || {}),
-          ...(_token ? { Authorization: `Bearer ${_token}` } : {})
-        },
-        ...opts
+          ...(tok ? { Authorization: `Bearer ${tok}` } : {})
+        }
       });
       if (isGet) _inflight.delete(path);
+      if (res.status === 401 && !_retried) {   // ★ 만료/무효 토큰 → 재발급 후 1회 재시도(공백KPI 방지)
+        const fresh = await _refreshToken();
+        if (fresh) return apiFetch(path, opts, true);
+      }
       if (!res.ok) {
         const txt = await res.text().catch(() => '');
         throw new Error(`HTTP ${res.status}: ${txt.slice(0, 120)}`);
@@ -344,8 +369,9 @@ const KaasaData = (() => {
   function wsConnect() {
     if (_ws) { _ws.onclose = null; _ws.close(); }
     clearTimeout(_wsTimer);
-    // 인증 토큰을 쿼리로 전달 (WS는 헤더 미지원) — 서버가 소유권 검증
-    const _tq = _token ? `?token=${encodeURIComponent(_token)}` : '';
+    // 인증 토큰을 쿼리로 전달 (WS는 헤더 미지원) — 서버가 소유권 검증. 최신 토큰 재조회.
+    const _wt = _token || sessionStorage.getItem('sf_token') || '';
+    const _tq = _wt ? `?token=${encodeURIComponent(_wt)}` : '';
     const url = `${_apiBase.replace(/^http/, 'ws')}/ws/farms/${_farmId}/sensors${_tq}`;
     try { _ws = new WebSocket(url); } catch { _scheduleRetry(); return; }
 
