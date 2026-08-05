@@ -32,7 +32,7 @@ TRAIN_M1_SCRIPT = TRAIN_DIR / "train_m1.py"
 TRAIN_M2_SCRIPT = TRAIN_DIR / "train_m2.py"    # v4 Optuna-tuned
 PREP_M1_SCRIPT  = TRAIN_DIR / "prep_m1.py"
 
-ALL_CROPS = ["딸기", "방울토마토", "완숙토마토", "참외", "파프리카"]
+ALL_CROPS = ["딸기", "방울토마토", "완숙토마토", "참외", "파프리카", "오이"]  # ★ 오이 추가 — 서빙작목인데 자동재학습 대상서 누락됐었음
 
 logging.basicConfig(
     level=logging.INFO,
@@ -250,6 +250,14 @@ def run(args: argparse.Namespace) -> None:
 
     # 동시 실행 방지: 락 파일 획득 (이미 실행 중이면 즉시 종료)
     STATE_DIR.mkdir(parents=True, exist_ok=True)
+    # ★ stale 락 회수 — SIGKILL/재부팅으로 남은 락이 이후 재학습을 영구 차단하던 문제(TTL 2h)
+    import time as _t
+    try:
+        if LOCK_FILE.exists() and (_t.time() - LOCK_FILE.stat().st_mtime) > 7200:
+            LOCK_FILE.unlink()
+            logger.warning("[retrain_trigger] stale 락(>2h) 회수: %s", LOCK_FILE)
+    except Exception:
+        pass
     try:
         lock_fd = LOCK_FILE.open("x")   # exclusive create — 이미 존재하면 FileExistsError
     except FileExistsError:

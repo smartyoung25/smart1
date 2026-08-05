@@ -177,7 +177,7 @@ async def startup_event():
             import json as _json, math as _math
             loop = asyncio.get_event_loop()
             env_thr  = int(_os.environ.get("RETRAIN_ENV_THRESHOLD", "500"))
-            prod_thr = int(_os.environ.get("RETRAIN_PROD_THRESHOLD", "500"))
+            prod_thr = int(_os.environ.get("RETRAIN_PROD_THRESHOLD", "200"))  # ★ executor default(200)와 일치 — 200~499행이 재학습요인데 미제안하던 문제
             advisories = []
             # 1) 드리프트 RED (작목별)
             try:
@@ -207,8 +207,15 @@ async def startup_event():
             # 3) 제안 기록(관리자 콘솔 조회용, /api/admin/models/advisories) — 자동 실행 안 함
             out = {"generated_at": _dt.now(_tz.utc).isoformat(), "count": len(advisories),
                    "advisories": advisories, "auto_executed": False}
+            sp = _P(__file__).resolve().parents[1] / "pipeline" / "state" / "retrain_advisories.json"
+            # ★ 직전 스냅샷에 threshold 권고가 있었는지 — rising-edge 알림용(임계 유지 중 6h 영구 재알림 방지)
+            _prev_threshold = False
             try:
-                sp = _P(__file__).resolve().parents[1] / "pipeline" / "state" / "retrain_advisories.json"
+                _old = _json.loads(sp.read_text(encoding="utf-8"))
+                _prev_threshold = any(a.get("kind") == "threshold" for a in _old.get("advisories", []))
+            except Exception:
+                pass
+            try:
                 sp.parent.mkdir(parents=True, exist_ok=True)
                 sp.write_text(_json.dumps(out, ensure_ascii=False, indent=2), encoding="utf-8")
             except Exception as e:
@@ -218,7 +225,7 @@ async def startup_event():
                                      len(advisories), [a["crop"] for a in advisories])
                 # 임계 도달 시 사전 알림(미설정 채널은 notifier 내부에서 로그 폴백)
                 try:
-                    if any(a["kind"] == "threshold" for a in advisories):
+                    if any(a["kind"] == "threshold" for a in advisories) and not _prev_threshold:  # rising-edge만
                         from pipeline.retrain_trigger import _load_state
                         from pipeline.notifier import notify_threshold
                         _s2 = _load_state()

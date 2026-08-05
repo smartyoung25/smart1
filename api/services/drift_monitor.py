@@ -331,11 +331,13 @@ def compute_all_drift(farm_id: Optional[str] = None) -> Dict[str, DriftStats]:
 
 def summary_badge(stats: DriftStats) -> Dict[str, Any]:
     """대시보드 카드용 요약 dict."""
+    def _f(v):  # ★ NaN → None — 저표본 NaN 이 기본 JSON 인코더서 'NaN'(파싱불가 JSON) 방출하던 문제
+        return None if (isinstance(v, float) and v != v) else v
     return {
         "crop_ko":         stats.crop_ko,
         "n_samples":       stats.n_samples,
-        "mape":            stats.mape,
-        "bias":            stats.bias,
+        "mape":            _f(stats.mape),
+        "bias":            _f(stats.bias),
         "trend":           stats.trend,
         "trend_delta":     stats.trend_delta,
         "alert":           stats.alert,
