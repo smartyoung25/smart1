@@ -233,7 +233,7 @@ async function _loadAll(token, farmId){
 function _render(ws, revenue){
   const fmt=v=>Math.round(v).toLocaleString();
   const setEl=(id,v)=>{const el=document.getElementById(id); if(el) el.innerHTML=v;};
-  const crop = revenue?.crop_ko || ws?.crop_ko || '오이';
+  const crop = revenue?.crop_ko || ws?.crop_ko || '작목 미지정';   // ★ 구: '오이' 폴백 — 남의 작목 표시
   document.getElementById('cropBadge').textContent=`(${crop})`;
 
   const kamis = revenue?.kamis_price_krw_kg ?? revenue?.price_krw_kg ?? 0;
@@ -315,7 +315,7 @@ function _render(ws, revenue){
 function _openSheet(){ document.getElementById('sheetBd').style.display='block'; document.getElementById('sheet').style.display='block'; document.getElementById('joinResult').textContent=''; }
 function _closeSheet(){ document.getElementById('sheetBd').style.display='none'; document.getElementById('sheet').style.display='none'; }
 function _confirmJoin(){
-  const crop=_revenue?.crop_ko||'오이';
+  const crop=_revenue?.crop_ko||'작목 미지정';   // ★ 구: '오이' 폴백
   const qty=parseFloat(document.getElementById('joinQty')?.value)||null;
   const grade=document.getElementById('joinGrade')?.value||'상';
   const r=document.getElementById('joinResult');

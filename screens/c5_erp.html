@@ -350,7 +350,7 @@ function _renderBanner(erp) {
   setEl('kpiIncomeRate',`${Math.round(erp.income_rate_pct ?? 0)}<span class="erp-kpi-unit">%</span>`);
 
   const upd = document.getElementById('erpUpdated');
-  if (upd) upd.textContent = `${erp.crop_ko || '오이'} · 재배면적 ${Math.round(erp.area_m2||0).toLocaleString()}m² · 실시간 갱신`;
+  if (upd) upd.textContent = `${erp.crop_ko || '작목 미지정'} · 재배면적 ${Math.round(erp.area_m2||0).toLocaleString()}m² · 실시간 갱신`;
 }
 
 // ── 비용 구조 ──────────────────────────────────────────────────────────────

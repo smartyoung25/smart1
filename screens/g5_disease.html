@@ -334,7 +334,7 @@ async function _loadAll(token, farmId) {
     vpd: _calcVpd(envFlat.temp_internal ?? 22, envFlat.humidity_int ?? 70),
   };
 
-  const crop = disease?.crop || env?.crop_ko || '오이';
+  const crop = disease?.crop || env?.crop_ko || '작목 미지정';   // ★ 구: '오이' 폴백 — 남의 작목 표시
   const lbl = document.getElementById('cropLabel');
   if (lbl) lbl.textContent = `(${crop})`;
 
@@ -475,11 +475,13 @@ function _renderAnomalies(data) {
 
 // ── 병해 체크리스트 ─────────────────────────────────────────────────────────
 function _renderDiseaseChecklist(crop, envCtx) {
+  const _fallback = !DISEASE_DB[crop];   // 작목 전용 데이터 없음 → 표준(오이) 참고
   const diseases = DISEASE_DB[crop] || DISEASE_DB['오이'];
   const container = document.getElementById('diseaseChecklist');
   if (!container) return;
 
-  container.innerHTML = diseases.map(d => {
+  const _note = _fallback ? `<div style="font-size:10.5px;color:var(--muted);background:var(--panel-soft);border-radius:8px;padding:7px 9px;margin-bottom:8px;">ℹ️ ${crop} 전용 병해 데이터가 아직 없어 <b>표준(오이 기준) 참고 목록</b>을 표시합니다.</div>` : '';
+  container.innerHTML = _note + diseases.map(d => {
     const isRisk = d.risk_cond(envCtx);
     const riskCls  = isRisk ? 'low' : 'none';
     const riskText = isRisk ? '⚠ 주의' : '정상';
@@ -548,10 +550,12 @@ function _renderQualityTips(crop, env) {
       { icon:'❌', label:'등외 요인', value:'열과·배꼽썩음·기형' },
     ],
   };
+  const _tipsFallback = !TIPS[crop];   // 작목 전용 팁 없음 → 표준(오이) 참고
   const tips = TIPS[crop] || TIPS['오이'];
   const container = document.getElementById('qualityTips');
   if (!container) return;
-  container.innerHTML = tips.map(t => `
+  const _tnote = _tipsFallback ? `<div style="font-size:10.5px;color:var(--muted);background:var(--panel-soft);border-radius:8px;padding:7px 9px;margin-bottom:8px;">ℹ️ ${crop} 전용 품질 팁이 아직 없어 <b>표준(오이 기준)</b>을 표시합니다.</div>` : '';
+  container.innerHTML = _tnote + tips.map(t => `
     <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);">
       <span style="font-size:18px;">${t.icon}</span>
       <div style="font-size:12px;color:var(--muted);min-width:70px;">${t.label}</div>

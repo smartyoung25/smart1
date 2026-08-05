@@ -466,7 +466,7 @@ window.addEventListener('DOMContentLoaded', () => {
       onStatus:    _onWsStatus,
     });
     KaasaData.loadEnvironment();
-    KaasaData.loadRecommend({ crop: '토마토', tier: 'semi_auto', areaMeter: 1000 });
+    KaasaData.loadRecommend({ crop: _profileCrop() || '토마토', tier: 'semi_auto', areaMeter: 1000 });
     _loadPrices(token);
     _loadYieldForecast(token, farmId);
     _loadCapability(token, farmId);
@@ -822,6 +822,11 @@ function _onWsStatus(state) {
   if (window.DeviceAlert) DeviceAlert.onStatus(state);
 }
 
+// 농가 실제 작목(온보딩/프로필) — 없으면 빈 문자열. 하드코딩 작목 처방(남의 작목) 방지.
+function _profileCrop() {
+  try { return (JSON.parse(localStorage.getItem('sf_profile') || '{}').crop_ko || '').split('(')[0].trim(); }
+  catch (e) { return ''; }
+}
 // ── 센서 수신 ───────────────────────────────────────────────────────────────
 let _recommendLoaded = false;
 function _onSensor(env) {
@@ -832,7 +837,7 @@ function _onSensor(env) {
   // 센서 실데이터가 처음 들어오면 추천 재요청 (null env 폴백에서 실데이터로 업그레이드)
   if (!_recommendLoaded && (env.temp_internal != null || env.solar_rad != null)) {
     _recommendLoaded = true;
-    KaasaData.loadRecommend({ crop: '오이', tier: 'semi_auto', areaMeter: 1000 });
+    KaasaData.loadRecommend({ crop: _profileCrop() || env.crop_ko || '토마토', tier: 'semi_auto', areaMeter: 1000 });
   }
 }
 
