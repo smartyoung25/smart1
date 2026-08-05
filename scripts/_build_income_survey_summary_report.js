@@ -15,6 +15,23 @@ const CW = 9360; // content width (US Letter, 1" margins)
 const R = (t, o = {}) => new TextRun({ text: t, font: FONT, size: o.size || 20, bold: !!o.bold, italics: !!o.italics, color: o.color || INK });
 const P = (runs, o = {}) => new Paragraph({ children: Array.isArray(runs) ? runs : [runs], spacing: { after: o.after != null ? o.after : 120, before: o.before || 0, line: 276 }, alignment: o.align, ...(o.bullet ? { bullet: { level: 0 } } : {}) });
 const H = (t, lvl = HeadingLevel.HEADING_1) => new Paragraph({ heading: lvl, spacing: { before: 280, after: 140 }, children: [new TextRun({ text: t, font: FONT, bold: true, size: lvl === HeadingLevel.HEADING_1 ? 30 : 24, color: lvl === HeadingLevel.HEADING_1 ? GREEN : INK })] });
+// 강조 상자 — 산식·예시용 (좌측 녹색 바). \n = 줄바꿈.
+const BOX = (t, label) => {
+  const lines = String(t).split('\n');
+  const runs = label ? [new TextRun({ text: label + '  ', bold: true, size: 19, color: '1C5A3A', font: FONT })] : [];
+  lines.forEach((ln, i) => runs.push(new TextRun({ text: ln, size: 19, color: INK, font: FONT, break: i > 0 ? 1 : undefined })));
+  return new Paragraph({
+    spacing: { before: 100, after: 140, line: 276 },
+    shading: { fill: 'EFF5EF', type: ShadingType.CLEAR, color: 'auto' },
+    border: {
+      top: { style: BorderStyle.SINGLE, size: 2, color: 'C7DECF', space: 6 },
+      bottom: { style: BorderStyle.SINGLE, size: 2, color: 'C7DECF', space: 6 },
+      left: { style: BorderStyle.SINGLE, size: 18, color: '2F9A62', space: 8 },
+      right: { style: BorderStyle.SINGLE, size: 2, color: 'C7DECF', space: 6 },
+    },
+    children: runs,
+  });
+};
 
 const B = { style: BorderStyle.SINGLE, size: 4, color: 'D6DCD2' };
 const BORDERS = { top: B, bottom: B, left: B, right: B, insideHorizontal: B, insideVertical: B };
@@ -117,8 +134,31 @@ body.push(table([3300, 4560, 1500], [
 ]));
 body.push(P([R('핵심 전환:  ', { bold: true, color: GREEN }), R('“영농시설 상각비 783,000”(한 줄)  →  자산별 분해 + 「취득가×(1−잔존율)÷수명」 수식', { color: INK })], { before: 120 }));
 
-// 5 품목별
-body.push(H('5. 품목별 실측 대조 (20농가)'));
+// 5 핵심 산식
+body.push(H('5. 핵심 산식'));
+body.push(P([R('개선안의 정량 지표는 두 산식으로 계산한다 — 시설 완비도 계수와 자산별 감가상각이다.', {})]));
+body.push(P([R('1) 시설 완비도 계수', { bold: true })], { after: 40 }));
+body.push(BOX('계수 = 0.60 (온실구조 공통) + Σ ( 시설별 가중치 × 설치배수 )\n설치배수: 설치(○)=1.0 · 고장=0.5 · 미설치(×)=0.  가중치 합 0.40 → 최대 계수 1.00.', '산식'));
+body.push(table([2600, 1400, 2600, 1400, 1360], [
+  new TableRow({ tableHeader: true, children: [hcell('시설 항목', 2600, AlignmentType.LEFT), hcell('가중치', 1400), hcell('시설 항목', 2600, AlignmentType.LEFT), hcell('가중치', 1400), hcell('설치배수', 1360)] }),
+  ...[['온실구조체(공통)', '0.60', '천정 보온스크린', '0.07', '○=1'],
+      ['일중천장', '0.03', '측면 보온스크린', '0.06', '고장=0.5'],
+      ['이중천장', '0.03', '차광 스크린', '0.06', '×=0'],
+      ['측창(환기)', '0.07', '관수·관비장치', '0.08', ''],
+      ['', '', '가중치 합', '1.00', '']].map((row, idx) => new TableRow({ children: [
+    cell(row[0], { w: 2600, bg: idx % 2 ? ZEBRA : undefined }),
+    cell(row[1], { w: 1400, align: AlignmentType.CENTER, bg: idx % 2 ? ZEBRA : undefined }),
+    cell(row[2], { w: 2600, bold: row[2] === '가중치 합', bg: idx % 2 ? ZEBRA : undefined }),
+    cell(row[3], { w: 1400, align: AlignmentType.CENTER, bold: row[2] === '가중치 합', color: row[2] === '가중치 합' ? GREEN : INK, bg: idx % 2 ? ZEBRA : undefined }),
+    cell(row[4], { w: 1360, align: AlignmentType.CENTER, color: SOFT, size: 17, bg: idx % 2 ? ZEBRA : undefined }),
+  ] }))]));
+body.push(BOX('예시: 딸기 표본(이중천장만 ✕) → 0.60 + 0.03 + 0.07 + 0.07 + 0.06 + 0.06 + 0.08 = 0.97. 작목 대표 계수는 같은 산식을 5농가에 적용한 평균이다(딸기 0.934 · 방울 0.910 · 완숙 0.940 · 참외 0.712).', '계산 예시'));
+body.push(P([R('2) 감가상각 (두 관례)', { bold: true })], { after: 40 }));
+body.push(BOX('ⓐ 조사표 실측:  연 감가상각 = 취득가액 ÷ 내용연수\nⓑ 개선 표준:  연 감가상각 = 취득가액 × (1 − 잔존율) ÷ 내용연수 (잔존율 10%)\n예) 완숙 유리온실 36억·30년 → ⓐ 1.2억/년, ⓑ 1.08억/년. 발주처 상세보고서 제5장·자산등록부 엑셀은 ⓐ, 서비스 ERP는 ⓑ를 쓴다.', '산식'));
+body.push(P([R('★ 살아있는 계산 과정은 엑셀 “소득조사표_개선_산식.xlsx”(① 완비도 계수 · ② 감가상각 · ③ 개선 전략·산식) 참조 — 파랑 셀(설치배수·취득가·내용연수)을 바꾸면 자동 재계산된다.', { color: SOFT, size: 18 })]));
+
+// 6 품목별
+body.push(H('6. 품목별 실측 대조 (20농가)'));
 body.push(P([R('계수·생산량·범위 = 작목별 5농가 실측 평균 · 이후 감가 = 템플릿 1,458,000 × 완비도계수 · 월 감가 = 감가 ÷ 900㎡ ÷ 12', { italics: true, color: SOFT, size: 17 })], { after: 100 }));
 const cropCols = ['🍓 딸기', '🍅 방울', '🍅 완숙', '🍈 참외'];
 body.push(table([2760, 1650, 1650, 1650, 1650], [
@@ -138,7 +178,7 @@ CROPS.forEach(([name, story]) => {
 });
 
 // 6 활용
-body.push(H('6. 활용 로드맵'));
+body.push(H('7. 활용 로드맵'));
 body.push(table([620, 3000, 5740], [
   new TableRow({ tableHeader: true, children: [hcell('#', 620), hcell('과제', 3000, AlignmentType.LEFT), hcell('내용', 5740, AlignmentType.LEFT)] }),
   ...ROAD.map(([t, d], idx) => new TableRow({ children: [
@@ -149,7 +189,7 @@ body.push(table([620, 3000, 5740], [
 ]));
 
 // 7 선행조건·한계
-body.push(H('7. 선행조건 및 한계 (정직성)'));
+body.push(H('8. 선행조건 및 한계 (정직성)'));
 body.push(new Paragraph({
   spacing: { after: 120, line: 276 },
   shading: { fill: CLAY_BG, type: ShadingType.CLEAR, color: 'auto' },
