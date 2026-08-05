@@ -12,6 +12,7 @@
 사용: PYTHONPATH=C:/smart_farm python scripts/_build_capex_opex_taxonomy.py
 """
 from __future__ import annotations
+import json
 from pathlib import Path
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
@@ -20,6 +21,12 @@ from openpyxl.utils import get_column_letter
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "out" / "스마트팜_CAPEX_OPEX_체계화_4작목.xlsx"
 FONT = "맑은 고딕"
+
+# ── 20농가 실 자산등록부 (scripts/_extract_asset_register.py 산출) ────────────
+# '농가' 시트 대농기구·영농시설 상세표에서 신조가격(취득가)·내용년수·사용년수·규격(사양)을 실추출.
+# ★ 앞선 "취득가 미수집" 판단 정정 — 조사표 '농가' 시트에 자산별 실 취득가·사양이 존재한다.
+_REG_PATH = ROOT / "out" / "asset_register.json"
+REG = json.loads(_REG_PATH.read_text(encoding="utf-8")) if _REG_PATH.exists() else {"crops": {}}
 
 # ── 작목별 실 시설 구성 (농진청 소득조사표 '농가' 시트 제어현황 설치유무) ────────
 # ○ 설치 · × 미설치 · '고장' 원문. 소득분석2 의 집계 상각비(675k/783k·홍길동)는
@@ -96,10 +103,11 @@ ws["A1"] = "스마트팜 CAPEX 자산 계층 등록부 (3계층 · 정액 감가
 ws["A1"].font = _f(14, True, "FFFFFF"); ws["A1"].fill = _fill(C_TITLE); ws["A1"].alignment = CEN
 ws.row_dimensions[1].height = 26
 ws.merge_cells("A2:K2")
-ws["A2"] = ("근거: 농진청 스마트팜 소득조사표(딸기·방울·완숙토마토·참외 4작목, 각 900㎡). "
-            "★ 조사표 '소득분석2'의 집계 상각비(대농구675,000+영농시설783,000·이름'홍길동')는 샘플 템플릿이라 4작목 동일 → 실 취득가 아님. "
-            "취득가액은 견적서 「입력」, 내용연수는 법인세법 시행규칙 별표·농진청 농기계 표준. 연 감가상각 = 취득가액×(1−잔존율)÷내용연수(수식). "
-            "작목별 실 차이는 '작목별 시설 구성' 시트 참조.")
+ws["A2"] = ("근거: 농진청 스마트팜 소득조사표(딸기·방울·완숙토마토·참외 4작목·20농가). "
+            "★ '소득분석2'의 집계 상각비(675k/783k·'홍길동')는 샘플 템플릿이나, 조사표 '농가' 시트에는 자산별 "
+            "신조가격(취득가)·내용년수·규격(사양)이 실입력돼 있다 → '실 자산등록부(20농가)'·'작목별 CAPEX 실측' 시트 참조. "
+            "본 시트는 표준 계층 프레임(내용연수=법인세법 별표·농진청 표준, 잔존율 10%)이며 연 감가상각 = 취득가액×(1−잔존율)÷내용연수. "
+            "업체(제조사)는 조사표에 거의 미기재(사양은 45% 기입) — 견적서 연동으로 보강 필요.")
 ws["A2"].font = _f(8, False, "595959"); ws["A2"].alignment = LEF
 ws.row_dimensions[2].height = 30
 
@@ -150,34 +158,48 @@ ws.cell(r, 1, "▶ 조사표 템플릿 상각비(대농구 675,000 + 영농시�
 ws.cell(r, 9, 1458000).number_format = '#,##0'; ws.cell(r, 9).font = _f(9, True, "A6431E"); ws.cell(r, 9).alignment = RIG
 ws.freeze_panes = "A4"
 
-# ══ Sheet2: OPEX ↔ CAPEX 연동 매트릭스 ═════════════════════════════════════
+# ══ Sheet2: OPEX ↔ CAPEX 연동 매트릭스 (3대분류 통합) ══════════════════════
+# ★ 과세분 정리: 조사표 13개 OPEX 세목을 3대분류(재료비·경비·노무비)로 통합.
+#   수도광열(전기/경유/물)·수리유지(시설/대농기구)는 1행으로 접고 세부 연동은 비고에 명시.
 ws2 = wb.create_sheet("OPEX-CAPEX 연동")
-for i, w in enumerate([20, 22, 26, 30]): ws2.column_dimensions[get_column_letter(i+1)].width = w
-ws2.merge_cells("A1:D1")
-ws2["A1"] = "OPEX ↔ CAPEX 연동 매트릭스 (투자비가 유발하는 운영비)"
+for i, w in enumerate([12, 24, 13, 26, 34]): ws2.column_dimensions[get_column_letter(i+1)].width = w
+ws2.merge_cells("A1:E1")
+ws2["A1"] = "OPEX ↔ CAPEX 연동 매트릭스 (3대분류 통합 · 투자비가 유발하는 운영비)"
 ws2["A1"].font = _f(13, True, "FFFFFF"); ws2["A1"].fill = _fill(C_TITLE); ws2["A1"].alignment = CEN
 ws2.row_dimensions[1].height = 24
+ws2.merge_cells("A2:E2")
+ws2["A2"] = ("★ 조사표 13개 OPEX 세목(종자·종묘/무기·유기질비료/농약/수도광열/기타재료/소농구/수리유지/기타/임차/위탁/고용/자가노동)을 "
+            "재료비·경비·노무비 3대분류로 통합. 수도광열(전기·연료·물)·수리유지(시설·대농기구)는 1행으로 접고 세부 연동은 비고에 표기.")
+ws2["A2"].font = _f(8, False, "595959"); ws2["A2"].alignment = LEF; ws2.row_dimensions[2].height = 26
+# (대분류, OPEX 항목(조사표 세목 통합), 성격, 연동 CAPEX, 비고)
+OP_HDR = ["OPEX 대분류", "OPEX 항목 (조사표 세목 통합)", "성격", "연동 CAPEX", "산정·비고"]
 OP = [
-    ["OPEX 항목 (조사표)", "성격", "연동 CAPEX (유발 자산)", "산정·비고"],
-    ["수리유지비 — 영농시설", "유지보수", "① 영농시설 전체(구조·피복·보온·차광·베드)", "취득가 대비 연 1~3% 경험식, 노후시 증가"],
-    ["수리유지비 — 대농기구", "유지보수", "③ 대농기구(운반·방제·관리)", "가동시간 비례, 소모부품 포함"],
-    ["수도광열비 — 전기", "에너지", "② 복합환경제어·관수펌프·환기모터·센서·보광", "제어·양액·환기 가동 전력"],
-    ["수도광열비 — 경유/가스", "에너지", "② 난방기", "난방부하(외기−목표온도)×효율, 계절 편중"],
-    ["수도광열비 — 물", "에너지", "② 관수·관비장치", "관수량(급액−배액) 기반"],
-    ["기타재료비", "소모성 자재", "④ 배지·양액원소재·피복필름", "당해 비용처리(감가상각 아님)"],
-    ["소농구비", "소모성 기구", "④ 소농구", "1년 미만·소액 → 당해 비용"],
-    ["임차료 — 대농기구/영농시설", "임차(소유 대안)", "①③ 자가 소유의 대체", "자가면 감가상각, 임차면 임차료 — 택1"],
-    ["위탁영농비·고용노임", "노무", "(자산 무관 · 참고)", "CAPEX 자동화 수준↑ → 노무비↓ 상충관계"],
+    ("재료비", "종자·종묘 / 비료(무기+유기) / 농약 / 기타재료(배지·양액·피복)", "소모성", "④ 소모성 자재", "무기+유기 비료 통합·당해 비용처리(감가 아님)"),
+    ("경비",   "수도광열비 (전기·연료·물)", "에너지", "② 제어·관수·난방·환기·센서", "전기→제어/관수/환기·센서, 연료→난방, 물→관수 (세부 접음)"),
+    ("경비",   "수리유지비 (영농시설·대농기구)", "유지보수", "①③ 영농시설·대농기구", "취득가 대비 연 1~3%, 노후시 증가 (시설·기구 통합)"),
+    ("경비",   "임차료 (토지·대농기구·영농시설)", "임차(소유 대안)", "①③ 자가소유 대체", "자가=감가상각 / 임차=임차료 — 택1"),
+    ("경비",   "소농구비", "소모성 기구", "④ 소농구", "20만원 미만·당해 비용"),
+    ("노무비", "고용노임 · 자가노동 · 위탁영농비", "노무", "(자산 무관 · 상충)", "CAPEX 자동화↑ → 노무비↓ 상충관계"),
 ]
-for ri, row in enumerate(OP):
-    for ci, v in enumerate(row):
-        cell = ws2.cell(ri+2, ci+1, v); cell.border = BORDER; cell.font = _f(9, ri == 0, "FFFFFF" if ri == 0 else C_INK)
-        cell.alignment = LEF
-        if ri == 0: cell.fill = _fill(C_HDR); cell.alignment = CEN
-        elif ri % 2 == 0: cell.fill = _fill(C_SOFT)
-ws2.merge_cells(start_row=len(OP)+3, start_column=1, end_row=len(OP)+3, end_column=4)
-ws2.cell(len(OP)+3, 1, "※ 핵심: 스마트팜 CAPEX(제어·난방·관수 자동화)는 에너지·유지보수 OPEX를 유발하되, "
-        "노무비는 절감한다. 투자 의사결정은 감가상각+연동 OPEX 증분 vs 노무·수율 편익으로 판단.").font = _f(9, False, "595959")
+for ci, v in enumerate(OP_HDR):
+    cell = ws2.cell(3, ci+1, v); cell.border = BORDER; cell.font = _f(9, True, "FFFFFF"); cell.fill = _fill(C_HDR); cell.alignment = CEN
+# 대분류 병합 렌더
+r2 = 4; grp_start = 4; prev = OP[0][0]
+for idx, (grp, item, kind, capex, note) in enumerate(OP):
+    for ci, v in enumerate([grp, item, kind, capex, note]):
+        cell = ws2.cell(r2, ci+1, v); cell.border = BORDER; cell.font = _f(9); cell.alignment = LEF
+        if idx % 2 == 1: cell.fill = _fill(C_SOFT)
+    r2 += 1
+# 대분류 셀 병합(재료비/경비/노무비)
+def _merge_grp(col, val, r0, r1):
+    ws2.merge_cells(start_row=r0, start_column=col, end_row=r1, end_column=col)
+    c = ws2.cell(r0, col); c.font = _f(10, True, C_TITLE); c.alignment = CEN; c.fill = _fill(C_L1)
+_merge_grp(1, "재료비", 4, 4)
+_merge_grp(1, "경비", 5, 8)
+_merge_grp(1, "노무비", 9, 9)
+ws2.merge_cells(start_row=r2+1, start_column=1, end_row=r2+1, end_column=5)
+ws2.cell(r2+1, 1, "※ 핵심: 스마트팜 CAPEX(제어·난방·관수 자동화)는 에너지·유지보수 OPEX를 유발하되 노무비는 절감한다. "
+        "투자 의사결정 = 감가상각 + 연동 OPEX 증분 vs 노무·수율 편익. 세목은 조사표 원본을 3대분류로 집계했다.").font = _f(9, False, "595959")
 
 # ══ Sheet3: 내용연수 표준 & 계층 요약 ═══════════════════════════════════════
 ws3 = wb.create_sheet("내용연수 표준·요약")
@@ -257,6 +279,80 @@ ws4.merge_cells(start_row=base4+4, start_column=1, end_row=base4+4, end_column=n
 ws4.cell(base4+4, 1, "※ 설치된 시설(○)만 CAPEX 등록부에 취득가·내용연수를 입력해 감가상각을 계산한다. "
          "'고장'은 재투자(교체 CAPEX) 또는 수리(OPEX) 의사결정 대상. 작목별 감가상각 총액은 시설 구성 차이만큼 달라진다.").font = _f(9, False, "595959")
 
+# ══ Sheet5: 실 자산등록부 (20농가 · 조사표 '농가' 시트 실추출) ═══════════════
+ws5 = wb.create_sheet("실 자산등록부(20농가)")
+COLS5 = ["작목", "농가", "분류", "자산", "취득가(신조가,원)", "내용연수(년)", "사용년수(년)", "규격·사양(원문)", "연 감가상각(원)"]
+W5 = [11, 9, 10, 20, 15, 10, 10, 26, 14]
+for i, w in enumerate(W5): ws5.column_dimensions[get_column_letter(i+1)].width = w
+ws5.merge_cells("A1:I1")
+ws5["A1"] = "실 자산등록부 — 20농가 소득조사표 '농가' 시트 대농기구·영농시설 상세표 실추출"
+ws5["A1"].font = _f(13, True, "FFFFFF"); ws5["A1"].fill = _fill(C_TITLE); ws5["A1"].alignment = CEN
+ws5.row_dimensions[1].height = 24
+ws5.merge_cells("A2:I2")
+ws5["A2"] = ("★ 취득가(신조가격)·내용연수·규격(사양)은 조사표에 실입력 — '취득가 미수집' 이전 판단을 정정한다. "
+            "연 감가상각 = 취득가 ÷ 내용연수(gross, 조사작목 부담비율 미적용). "
+            "업체(제조사)는 조사표 ( )칸에 거의 미기재(사양 위주 45% 기입) — 규격·사양 원문 그대로 표기했다.")
+ws5["A2"].font = _f(8, False, "595959"); ws5["A2"].alignment = LEF; ws5.row_dimensions[2].height = 26
+for i, c in enumerate(COLS5):
+    cell = ws5.cell(3, i+1, c); cell.font = _f(9, True, "FFFFFF"); cell.fill = _fill(C_HDR); cell.alignment = CEN; cell.border = BORDER
+r5 = 4
+CROP_ORDER = ["딸기", "방울토마토", "완숙토마토", "참외"]
+for crop in CROP_ORDER:
+    d = REG["crops"].get(crop, {})
+    crop_start = r5
+    for fm in d.get("farms", []):
+        for a in fm["assets"]:
+            vals = [crop, fm["farm"], a["category"], a["asset"], a["acq_krw"], a.get("life_yr"),
+                    a.get("used_yr"), a.get("spec") or "", a.get("annual_deprec")]
+            for ci, v in enumerate(vals):
+                cell = ws5.cell(r5, ci+1, v); cell.border = BORDER; cell.font = _f(8.5)
+                if ci in (4, 8): cell.alignment = RIG; cell.number_format = '#,##0'
+                elif ci in (5, 6): cell.alignment = CEN
+                else: cell.alignment = LEF
+                if a["category"] == "영농시설": cell.fill = _fill("F2F7F4")
+            r5 += 1
+    if r5 > crop_start:
+        ws5.merge_cells(start_row=crop_start, start_column=1, end_row=r5-1, end_column=1)
+        cc = ws5.cell(crop_start, 1); cc.font = _f(10, True, C_TITLE); cc.alignment = CEN; cc.fill = _fill(C_L1)
+ws5.freeze_panes = "A4"
+
+# ══ Sheet6: 작목별 CAPEX 실측 집계 ═════════════════════════════════════════
+ws6 = wb.create_sheet("작목별 CAPEX 실측")
+COLS6 = ["작목", "농가수", "평균 총취득가(원)", "취득가 범위(원)", "평균 연감가(gross,원)", "대표 영농시설 자산(평균 취득가)"]
+W6 = [12, 8, 18, 26, 18, 44]
+for i, w in enumerate(W6): ws6.column_dimensions[get_column_letter(i+1)].width = w
+ws6.merge_cells("A1:F1")
+ws6["A1"] = "작목별 CAPEX 실측 집계 (20농가 자산등록부 기반)"
+ws6["A1"].font = _f(13, True, "FFFFFF"); ws6["A1"].fill = _fill(C_TITLE); ws6["A1"].alignment = CEN
+ws6.row_dimensions[1].height = 24
+ws6.merge_cells("A2:F2")
+ws6["A2"] = ("★ 조사표 템플릿 상각비(1,458,000·4작목 동일)를 실 취득가로 대체 — 작목별 CAPEX가 실제로 크게 다르다. "
+            "취득가 = 농가별 자산 신조가격 합, 연감가 = Σ(신조가÷내용연수). 규모(온실 형태·면적)가 작목 차이의 주동인.")
+ws6["A2"].font = _f(8, False, "595959"); ws6["A2"].alignment = LEF; ws6.row_dimensions[2].height = 24
+for i, c in enumerate(COLS6):
+    cell = ws6.cell(3, i+1, c); cell.font = _f(9, True, "FFFFFF"); cell.fill = _fill(C_HDR); cell.alignment = CEN; cell.border = BORDER
+r6 = 4
+from collections import defaultdict
+for crop in CROP_ORDER:
+    d = REG["crops"].get(crop, {})
+    agg = defaultdict(list)
+    for fm in d.get("farms", []):
+        for a in fm["assets"]:
+            if a["category"] == "영농시설": agg[a["asset"]].append(a["acq_krw"])
+    top = sorted(agg.items(), key=lambda kv: -sum(kv[1]))[:3]
+    rep = " · ".join(f"{k}({round(sum(v)/len(v)):,})" for k, v in top)
+    vals = [crop, d.get("n_farms", 0), d.get("capex_mean_krw", 0),
+            f"{d.get('capex_min',0):,} ~ {d.get('capex_max',0):,}", d.get("annual_deprec_mean", 0), rep]
+    for ci, v in enumerate(vals):
+        cell = ws6.cell(r6, ci+1, v); cell.border = BORDER; cell.font = _f(9)
+        if ci in (2, 4): cell.alignment = RIG; cell.number_format = '#,##0'
+        elif ci == 1: cell.alignment = CEN
+        else: cell.alignment = LEF
+    r6 += 1
+ws6.merge_cells(start_row=r6+1, start_column=1, end_row=r6+1, end_column=6)
+ws6.cell(r6+1, 1, "※ 완숙토마토 평균 취득가 14.2억(유리온실 평균 17.9억 포함)~참외 2.0억 — 온실 형태·규모 차이가 CAPEX를 좌우한다. "
+         "감가상각은 대형 유리온실(내용연수 30년)일수록 취득가 대비 완만하다.").font = _f(9, False, "595959")
+
 OUT.parent.mkdir(exist_ok=True)
 wb.save(OUT)
-print(f"저장: {OUT}")
+print(f"저장: {OUT} · 시트 {len(wb.sheetnames)}: {wb.sheetnames}")
