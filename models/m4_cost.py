@@ -26,12 +26,15 @@ _SURVEY_FILE = _DATA_DIR / "income_survey.json"
 
 @dataclass
 class CostBreakdown:
-    fixed_per_m2: float          # 고정비 (종자·농약·감가 등)
+    fixed_per_m2: float          # 고정비 (종자·농약·기타 — 감가는 아래 분리)
     heating_per_m2: float        # 난방비
     harvest_labor_per_m2: float  # 수확 인건비
     packaging_per_m2: float      # 포장재비
     fertilizer_per_m2: float     # 비료·양액비
-    total_per_m2: float          # 합계
+    depreciation_per_m2: float = 0.0   # CAPEX 감가상각 (capex_cost 연동)
+    maintenance_per_m2: float = 0.0    # 수리유지비 (CAPEX 연동 OPEX)
+    capex_source: str = "template"     # register(견적입력) | template(조사표 표준)
+    total_per_m2: float = 0.0          # 합계
 
 
 class M4CostModel:
@@ -137,7 +140,21 @@ class M4CostModel:
         # ⑤ 비료·양액비
         fertilizer = float(p.get("fertilizer_monthly_per_m2", 25.0))
 
-        total = fixed + heating + harvest_labor + packaging + fertilizer
+        # ⑥ CAPEX 감가상각·수리유지 (capex_cost 연동 — 자산등록부 or 조사표 표준)
+        try:
+            from models.capex_cost import compute as _capex_compute
+            _cx = _capex_compute(crop_ko, area_m2=900.0)
+            depreciation = _cx.depreciation_per_m2_month
+            maintenance = _cx.maintenance_per_m2_month
+            capex_src = _cx.source
+        except Exception:
+            depreciation = maintenance = 0.0
+            capex_src = "template"
+        # 기존 flat 고정비에 감가가 뭉뚱그려져 있었으므로 감가분을 분리(이중계상 방지)
+        fixed = max(0.0, fixed - depreciation)
+
+        total = (fixed + heating + harvest_labor + packaging + fertilizer
+                 + depreciation + maintenance)
 
         return CostBreakdown(
             fixed_per_m2=round(fixed, 2),
@@ -145,6 +162,9 @@ class M4CostModel:
             harvest_labor_per_m2=round(harvest_labor, 2),
             packaging_per_m2=round(packaging, 2),
             fertilizer_per_m2=round(fertilizer, 2),
+            depreciation_per_m2=round(depreciation, 2),
+            maintenance_per_m2=round(maintenance, 2),
+            capex_source=capex_src,
             total_per_m2=round(total, 2),
         )
 
