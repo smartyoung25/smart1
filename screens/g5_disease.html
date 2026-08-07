@@ -461,7 +461,7 @@ function _renderAnomalies(data) {
     const icon = ICON_MAP[a.variable] || '📊';
     const badgeHtml = `<span class="anomaly-badge badge-${cls}">${a.severity === 'major' ? '주의' : '참고'}</span>`;
     const valStr = a.value != null ? `${Number(a.value).toFixed(a.unit?.includes('ppm') ? 0 : 2)} ${a.unit || ''}` : '—';
-    const rangeStr = `정상 범위: ${a.normal_min}~${a.normal_max} ${a.unit || ''}`;
+    const rangeStr = `작목·단계 최적: ${a.normal_min}~${a.normal_max} ${a.unit || ''}`;
     return `<div class="anomaly-item ${cls}">
       <span class="anomaly-icon">${icon}</span>
       <div style="flex:1;">

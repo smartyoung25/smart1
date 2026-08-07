@@ -217,7 +217,7 @@ function _renderAnoms(anom){
     const val=a.value!=null?`${Number(a.value).toFixed(a.unit&&a.unit.includes('ppm')?0:2)} ${a.unit||''}`:'—';
     return `<div class="anom-item ${cls}"><span style="font-size:18px;">${ICON[a.variable]||'📊'}</span>
       <div style="flex:1;"><div class="anom-v">${a.variable_ko||a.variable}: ${val}</div>
-      <div class="anom-m">정상 ${a.normal_min}~${a.normal_max} ${a.unit||''}</div></div></div>`;
+      <div class="anom-m">작목·단계 최적 ${a.normal_min}~${a.normal_max} ${a.unit||''}</div></div></div>`;
   }).join('');
 }
 

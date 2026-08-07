@@ -661,7 +661,7 @@ function renderAiSummary(data) {
         <div>
           <div style="font-weight:700;font-size:13px;">${esc(a.variable_ko || a.variable || '')}</div>
           <div style="font-size:12px;">${esc(a.message_ko || '')}</div>
-          <div style="font-size:11px;color:var(--muted);">현재값: ${a.current_value ?? '—'} (정상 ${a.normal_min ?? ''}~${a.normal_max ?? ''} ${esc(a.unit || '')})</div>
+          <div style="font-size:11px;color:var(--muted);">현재값: ${a.current_value ?? '—'} (작목·단계 최적 ${a.normal_min ?? ''}~${a.normal_max ?? ''} ${esc(a.unit || '')})</div>
         </div>
       </div>`).join('');
   }
@@ -774,7 +774,7 @@ function updatePeriodAi(data) {
           <div class="ai-icon">${a.severity === 'danger' ? '🚨' : '⚠️'}</div>
           <div class="ai-chip-body">
             <div class="ai-chip-title">${esc(a.message_ko || '')}</div>
-            <div class="ai-chip-conf">현재 ${a.current_value ?? '—'} ${esc(a.unit||'')} · 정상 ${a.normal_min}~${a.normal_max}</div>
+            <div class="ai-chip-conf">현재 ${a.current_value ?? '—'} ${esc(a.unit||'')} · 작목·단계 최적 ${a.normal_min}~${a.normal_max}</div>
           </div>
         </div>`).join('');
     }

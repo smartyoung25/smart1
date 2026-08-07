@@ -415,7 +415,7 @@ def pdca_weekly(farm_id: str, week_offset: int = 0) -> Dict:
         "week_offset": week_offset,
         "plan": {
             "summary": f"작기 {week_num}주차 — EP 전략표 준수·수량 목표 달성",
-            "ep_focus": "EP3·EP4 광합성 최대화, VPD 1.0~1.4 kPa 유지",
+            "ep_focus": "EP3·EP4 광합성 최대화, VPD 적정대 0.8~1.2 kPa 유지",
         },
         "do": {
             "ep_compliance_pct": round(eff["ep_compliance"] * 100, 1),
