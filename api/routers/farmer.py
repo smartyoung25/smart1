@@ -2845,6 +2845,36 @@ def get_erp_realtime(
         plant_month=plant_m,
     )
     out = result.to_dict()
+
+    # ── 비용 SSOT (E2E 2026-08-07) — 원가·마진·소득률을 /revenue 와 동일 기준으로 재산출 ──
+    #   구: erp_calculator._COST_DEFAULTS(작목 단순모델)가 _compute_costs(농장 상세, RDA정합)
+    #   보다 비용 과소 → /erp 소득률이 /revenue 보다 높게 괴리(오이 63.6 vs 48). LED·출하
+    #   타이밍·생육단계는 calc_erp 값 유지하고, 원가/마진/소득률/BEP만 통일한다.
+    try:
+        _env_erp = _get_env(farm_id) or {}
+        _env_feat_erp = {
+            "temp_internal_mean": float(_env_erp.get("temp_internal", 20.0)),
+            "humidity_int_mean":  float(_env_erp.get("humidity_int",  70.0)),
+            "co2_ppm_mean":       float(_env_erp.get("co2_ppm",      800.0)),
+            "solar_rad_mean":     float(_env_erp.get("solar_rad",    100.0)),
+            "soil_temp_mean":     float(_env_erp.get("soil_temp",     18.0)),
+            "gdd_monthly":        max(0.0, float(_env_erp.get("temp_internal", 20.0)) - 10.0) * 30.0,
+        }
+        _yf_erp       = get_yield_forecast(crop_ko, _env_feat_erp, area_m2, farm_id=farm_id)
+        _yield_season = _yf_erp["yield_kg_season"]
+        _season_m_erp = _yf_erp.get("season_months") or 8
+        _cost_season  = _compute_costs(farm_id).total_cost_krw * _season_m_erp
+        _price_erp    = float(out.get("market_price_per_kg") or 0)
+        if _yield_season > 0:
+            _cpk = round(_cost_season / _yield_season, 0)
+            out["cost_per_kg"]     = _cpk
+            out["margin_per_kg"]   = round(_price_erp - _cpk, 0)
+            out["income_rate_pct"] = round(((_price_erp - _cpk) / _price_erp * 100) if _price_erp else 0.0, 1)
+            if _price_erp > 0:
+                out["breakeven_kg"] = round(_cost_season / _price_erp, 0)
+    except Exception as _e:
+        logger.debug("[erp_realtime] 비용 SSOT 재산출 실패: %s", _e)
+
     # 제어 모드 첨부 (Hero 배너 pill + 환경탭 일관성)
     _tier = _FARM_META.get(farm_id, {}).get("tier", FarmTier.MANUAL)
     out["control_mode"] = {
