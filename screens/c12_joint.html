@@ -115,7 +115,7 @@
     <div class="ch-box" id="boxJoint">
       <div class="ch-box-label">🤝 공동 출하</div>
       <div class="ch-box-price" id="jointPrice">—</div>
-      <div class="ch-box-sub">도매시장 평균</div>
+      <div class="ch-box-sub">도매시장 출하가·수수료 전</div>
     </div>
   </div>
   <div class="card" style="padding:12px 14px;margin-bottom:10px;border-left:4px solid var(--green);">
@@ -240,17 +240,21 @@ function _render(ws, revenue){
   const joint = ws?.price_krw_kg ?? (kamis*1.08);
   const yieldKg = revenue?.yield_kg_forecast ?? 18000;
 
-  // 채널 비교
+  // 채널 비교 — 순수취(수수료 차감) 기준 (E2E C12-2). 구: 개별(KAMIS)과 공동(도매시장)
+  //   총액을 그대로 비교해 "가입만으로 +N원 추가수익"으로 과장. 공동은 도매시장 출하가라
+  //   물류·선별·조직운영 수수료(~8%, 아래 정산구조와 동일)를 차감해야 실수취가 된다.
+  const POOL_FEE = 0.08;
+  const jointNet = joint * (1 - POOL_FEE);
+  const netDiff  = jointNet - kamis;
   setEl('indivPrice', `${fmt(kamis)}<span style="font-size:12px;font-weight:400;">원</span>`);
   setEl('jointPrice', `${fmt(joint)}<span style="font-size:12px;font-weight:400;">원</span>`);
-  document.getElementById('boxJoint').classList.toggle('win', joint>=kamis);
-  document.getElementById('boxIndiv').classList.toggle('win', kamis>joint);
+  document.getElementById('boxJoint').classList.toggle('win', netDiff>=0);
+  document.getElementById('boxIndiv').classList.toggle('win', netDiff<0);
 
-  const diff = joint - kamis;
-  const diffRev = Math.round(diff*yieldKg/10000);
-  setEl('adviceText', joint>=kamis
-    ? `🤝 공동출하 시 <b>+${fmt(diff)}원/kg</b> → 내 물량 기준 총 <b>${diffRev.toLocaleString()}만원</b> 추가 수익 예상`
-    : `현재 개별 출하가 유리. 공동출하 Pool 조건 확인 후 결정 권장`);
+  const netDiffRev = Math.round(netDiff*yieldKg/10000);
+  setEl('adviceText', netDiff>=0
+    ? `🤝 공동출하는 <b>도매시장 출하가</b> ${fmt(joint)}원/kg — 수수료 ~8% 차감 후 실수취 약 <b>${fmt(jointNet)}원/kg</b>. 개별(KAMIS ${fmt(kamis)}원) 대비 약 <b>${netDiffRev.toLocaleString()}만원</b> 유리(등급·물량·시황 변동)`
+    : `순수취(수수료 차감) 기준 개별 출하가 유리. 공동출하 Pool 조건 확인 후 결정 권장`);
 
   // ── 출하 타이밍 통찰 (30일 시세 추세·위치 해석) ──────────────
   const st = ws?.wholesale_stats || {};
@@ -303,8 +307,9 @@ function _render(ws, revenue){
       ${p.mock?'<div style="font-size:9px;color:var(--muted);margin-top:4px;">(예시 Mock)</div>':''}
     </div>`).join('');
 
-  // 정산 구조 (실데이터 기반 계산)
-  const rev = revenue?.revenue_krw ?? (yieldKg*joint);
+  // 정산 구조 — 공동출하 정산은 공동단가(도매시장 출하가) 기준 총매출 (E2E C12-1).
+  //   구: revenue.revenue_krw(개별 KAMIS 기준)를 써 공동 정산을 개별가로 혼동 표시했다.
+  const rev = yieldKg * joint;
   const logi = rev*0.05, ops = rev*0.03, net = rev - logi - ops;
   setEl('setRevenue', `${fmt(rev/10000)}만원`);
   setEl('setLogi', `-${fmt(logi/10000)}만원`);
