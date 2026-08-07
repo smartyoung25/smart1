@@ -35,6 +35,19 @@ _EP_ALLOW = {"temp": 2.0, "vpd": 0.2, "co2": 150}
 # ── 내부 유틸 ──────────────────────────────────────────────────────────────────
 
 def _farm_meta(farm_id: str) -> Dict:
+    """농장 메타 — 앱 전역 SSOT(_require_farm)와 동일 소스 (E2E 2026-08-07 C25).
+
+    구: api.data.farm_registry.FARM_REGISTRY(별도 소스)를 읽어 farm_001 등이 {} 로 나와
+        작목이 '딸기' 기본값으로 오인됐다 → 효율성·효과성·드리프트가 전부 딸기로 계산·
+        타작목 드리프트 알림. _require_farm 으로 통일(오이 정상 해석).
+    """
+    try:
+        from api.routers.farmer_state import _require_farm
+        m = _require_farm(farm_id)
+        if m:
+            return m
+    except Exception:
+        pass
     try:
         from api.data.farm_registry import FARM_REGISTRY
         return FARM_REGISTRY.get(farm_id) or {}
@@ -64,6 +77,25 @@ def _season_length_days(crop: str) -> int:
     return 180
 
 
+def _days_elapsed_est(farm_id: str, crop: str, td: Optional[str]) -> int:
+    """경과일 — 정식일 있으면 그 기준, 없으면 수확 D-day 역산(=/harvest 방식). E2E C25-2.
+
+    구: 정식일 미설정 시 days=0 → 진척 0% → 효과성 0% → 거짓 "즉각 컨설팅 개입" 알림.
+    """
+    d = _days_since(td)
+    if d > 0:
+        return d
+    try:
+        from api.data.stats_loader import estimate_harvest_days
+        season_days = _season_length_days(crop)
+        dh = estimate_harvest_days(crop, 22.0)
+        if dh >= 999:
+            dh = 45
+        return max(0, season_days - dh)
+    except Exception:
+        return 0
+
+
 # ── 효과성 계산 ───────────────────────────────────────────────────────────────
 
 def calc_effectiveness(farm_id: str, crop: str, transplant_date: Optional[str]) -> Dict:
@@ -71,21 +103,21 @@ def calc_effectiveness(farm_id: str, crop: str, transplant_date: Optional[str]) 
     meta = _farm_meta(farm_id)
     crop = crop or meta.get("crop_ko") or meta.get("crop") or "딸기"
     td = transplant_date or meta.get("transplant_date")
-    days_elapsed = _days_since(td)
+    days_elapsed = _days_elapsed_est(farm_id, crop, td)   # 정식일 없으면 수확 역산 (C25-2)
     season_days = _season_length_days(crop)
 
-    # 수량 진척률
+    # 수량 진척률 — 수확량 SSOT(get_yield_forecast). 구: predict_yield_bounds().get(
+    #   "predicted_yield_kg")는 존재하지 않는 키라 항상 0 → 진척 0% 였다(E2E C25-2).
     yield_progress = 0.5  # 기본 폴백
     try:
-        from api.services.model_loader import predict_yield_bounds
+        from api.services.model_loader import get_yield_forecast
         from api.data.stats_loader import get_yield_kg_m2
         area = meta.get("area_m2", 1000)
-        env_dict = {"temp_internal": 22.0, "humidity_int": 70.0, "solar_rad": 200.0}
-        bounds = predict_yield_bounds(crop, env_dict)
-        predicted = bounds.get("predicted_yield_kg", 0) or 0
+        env_feat = {"temp_internal_mean": 22.0, "humidity_int_mean": 70.0,
+                    "co2_ppm_mean": 800.0, "solar_rad_mean": 150.0,
+                    "soil_temp_mean": 18.0, "gdd_monthly": 360.0}
+        predicted = get_yield_forecast(crop, env_feat, area, farm_id=farm_id)["yield_kg_season"]
         target_total = get_yield_kg_m2(crop) * area
-        # 선형 기대값 대비 진척률
-        expected_so_far = target_total * min(days_elapsed / max(season_days, 1), 1.0)
         yield_progress = min(predicted / max(target_total, 1), 1.0) if target_total else 0.5
         # 경과 기간 가중
         if days_elapsed > 0 and season_days > 0:
@@ -132,35 +164,41 @@ def _calc_ep_compliance(farm_id: str) -> float:
 # ── 효율성 계산 ───────────────────────────────────────────────────────────────
 
 def calc_efficiency(farm_id: str) -> Dict:
-    """효율성 = 예상 수익 / 총비용."""
+    """효율성 = 시즌 예상수익 / 시즌 총비용 (SSOT — /revenue·c5와 동일 기준). E2E C25-4.
+
+    구: predict_revenue_per_m2(하드코딩 env, 디커플)+월 비용을 써 ratio 0.18(하위1%)로
+        c5 소득률(48%)과 정반대였다. 수량(SSOT)×단가 시즌수익 / 월비용×작기개월 로 통일.
+    """
     meta = _farm_meta(farm_id)
     crop = meta.get("crop_ko") or meta.get("crop") or "딸기"
+    area = float(meta.get("area_m2", 1000) or 1000)
 
     revenue = 0.0
     total_cost = 1.0
     benchmark_pct = 50.0
 
     try:
-        from api.data.stats_loader import get_price_krw_kg, get_yield_kg_m2
-        from api.services.model_loader import predict_revenue_per_m2
-        area = meta.get("area_m2", 1000)
-        env_dict = {"temp_internal": 22.0, "humidity_int": 70.0, "solar_rad": 200.0}
-        rev_m2 = predict_revenue_per_m2(crop, env_dict)
-        if rev_m2:
-            revenue = rev_m2 * area
-        else:
-            revenue = get_yield_kg_m2(crop) * get_price_krw_kg(crop) * area
+        from api.services.model_loader import get_yield_forecast
+        from pipeline.kamis_fetcher import get_price_with_fallback
+        env_feat = {"temp_internal_mean": 22.0, "humidity_int_mean": 70.0,
+                    "co2_ppm_mean": 800.0, "solar_rad_mean": 150.0,
+                    "soil_temp_mean": 18.0, "gdd_monthly": 360.0}
+        yf = get_yield_forecast(crop, env_feat, area, farm_id=farm_id)
+        price = float(get_price_with_fallback(crop).get("price_krw_kg", 3000) or 3000)
+        revenue = yf["yield_kg_season"] * price
     except Exception as e:
         logger.debug("효율성 수익 계산 실패: %s", e)
         revenue = 5_000_000
 
     try:
         from api.routers.farmer_state import _compute_costs
+        from models.crop_config import get_season_length_months
         cb = _compute_costs(farm_id)
-        total_cost = max(cb.total_cost_krw or 1, 1)
+        season_m = get_season_length_months(crop, 8)
+        total_cost = max((cb.total_cost_krw or 0) * season_m, 1)  # 월비용 → 시즌 환산
     except Exception as e:
         logger.debug("효율성 비용 계산 실패: %s", e)
-        total_cost = 3_000_000
+        total_cost = 15_000_000
 
     ratio = revenue / total_cost
     # 효율성 0~1 정규화: 1.0 = 수익=비용(손익분기), 1.5이상 = 우수
@@ -449,7 +487,7 @@ def pdca_season(farm_id: str) -> Dict:
     meta = _farm_meta(farm_id)
     crop = meta.get("crop_ko") or meta.get("crop") or "딸기"
     td = meta.get("transplant_date")
-    days = _days_since(td)
+    days = _days_elapsed_est(farm_id, crop, td)   # 정식일 없으면 수확 역산 (C25-2)
     season = _season_length_days(crop)
     weeks_done = days // 7
     weeks_total = season // 7
@@ -606,7 +644,7 @@ def consult_triggers(farm_id: str) -> Dict:
     meta = _farm_meta(farm_id)
     crop = meta.get("crop_ko") or meta.get("crop") or "딸기"
     td = meta.get("transplant_date")
-    days = _days_since(td)
+    days = _days_elapsed_est(farm_id, crop, td)   # 정식일 없으면 수확 역산 (C25-2)
     weeks_done = days // 7
 
     eff = calc_effectiveness(farm_id, crop, td)
@@ -647,14 +685,16 @@ def consult_triggers(farm_id: str) -> Dict:
             "checklist": phenology["checklist"],
         })
 
-    # 트리거 3: 드리프트 🔴 2작목 이상
-    if drift["needs_correction"]:
+    # 트리거 3: 이 농장 작목의 예측 드리프트만 (전역 아님). E2E C25-3.
+    #   구: _drift_summary_all()의 red_crops(딸기·파프리카 등)를 그대로 노출해, 내 작목과
+    #   무관한 타작목 드리프트로 "농장 보정값 조정" 알림이 떴다. 내 작목이 🔴일 때만 트리거.
+    if crop in drift.get("red_crops", []):
         triggers.append({
             "id": "drift_correction",
             "severity": "warn",
             "icon": "🔬",
-            "title": f"예측 정확도 저하 ({drift['red_count']}개 작목 🔴)",
-            "desc": f"드리프트 감지: {', '.join(drift['red_crops'])} — 농장 보정값 수동 조정이 필요합니다.",
+            "title": f"예측 정확도 저하 — {crop}",
+            "desc": f"{crop} 모델 드리프트 감지 — 농장 보정값 수동 조정이 필요합니다.",
             "action": "보정값 조정",
         })
 
