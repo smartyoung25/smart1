@@ -317,7 +317,9 @@ async function _loadAll(token, farmId) {
 
   // /erp/realtime 미구현 — costs+revenue로 동일 지표 계산
   const _rev  = revenue?.revenue_krw ?? revenue?.predicted_revenue_krw ?? 0;
-  const _cost = costs?.total_cost_krw ?? 0;
+  // ★ 시즌 비용(매출·수확량과 단위정합) — /revenue.predicted_cost_krw. 구: costs.total_cost_krw(월값)를
+  //   시즌 수확량으로 나눠 kg원가 176·소득률 90%로 왜곡(월÷시즌). 월별 상세는 _renderCosts(costs)가 담당.
+  const _cost = revenue?.predicted_cost_krw ?? revenue?.cost_krw ?? costs?.total_cost_krw ?? 0;
   const _yield= revenue?.yield_kg_forecast ?? 0;
   const _bepPrice = revenue?.price_krw_kg ?? revenue?.kamis_price_krw_kg ?? 0;
   const erp = {

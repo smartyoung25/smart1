@@ -64,7 +64,7 @@ _COST_DEFAULTS: dict[str, dict] = {
         "nutrient_cost_per_m2_month": 420,
         "labor_cost_per_m2_month": 1100,
         "seed_cost_per_m2_season": 900,
-        "season_months": 8,
+        "season_months": 5,   # ★ 촉성/반촉성 단작 ~4~5개월 (구 8 과대. E2E 캘리브레이션 2026-08-07)
     },
 }
 
