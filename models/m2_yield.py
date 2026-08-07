@@ -50,14 +50,8 @@ CROP_MAP: dict[str, str] = {
 }
 
 # 작기 개월수 — 연간 예측값을 월별로 환산할 때 사용
-_SEASON_MONTHS: dict[str, int] = {
-    "딸기":       6,
-    "방울토마토": 8,
-    "완숙토마토": 8,
-    "참외":       4,
-    "파프리카":  10,
-    "오이":       5,   # ★ 촉성/반촉성 단작 ~4~5개월 (구 8 과대. E2E 캘리브레이션 2026-08-07)
-}
+# 작기 개월수 — SSOT는 models.crop_config.SEASON_LENGTH_MONTHS (구: 여기 중복 정의). E2E 2026-08-07 단일화.
+from models.crop_config import SEASON_LENGTH_MONTHS as _SEASON_MONTHS
 
 _cache:      Dict[str, Any] = {}
 _corr_cache: Dict[str, Any] = {}

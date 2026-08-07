@@ -18,6 +18,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
 
+from models.crop_config import SEASON_LENGTH_MONTHS  # 작기 개월수 SSOT (E2E 2026-08-07)
+
 logger = logging.getLogger(__name__)
 
 ROOT = Path(__file__).parent.parent.parent
@@ -29,42 +31,36 @@ _COST_DEFAULTS: dict[str, dict] = {
         "nutrient_cost_per_m2_month": 580, # 원/m²/월 (양액·비료)
         "labor_cost_per_m2_month": 1200,   # 원/m²/월 (노동)
         "seed_cost_per_m2_season": 2800,   # 원/m²/작기 (종묘)
-        "season_months": 8,
     },
     "방울토마토": {
         "energy_kwh_per_m2_month": 2.8,
         "nutrient_cost_per_m2_month": 620,
         "labor_cost_per_m2_month": 980,
         "seed_cost_per_m2_season": 1800,
-        "season_months": 10,
     },
     "완숙토마토": {
         "energy_kwh_per_m2_month": 3.0,
         "nutrient_cost_per_m2_month": 700,
         "labor_cost_per_m2_month": 1100,
         "seed_cost_per_m2_season": 2200,
-        "season_months": 10,
     },
     "참외": {
         "energy_kwh_per_m2_month": 2.0,
         "nutrient_cost_per_m2_month": 480,
         "labor_cost_per_m2_month": 1400,
         "seed_cost_per_m2_season": 1500,
-        "season_months": 6,
     },
     "파프리카": {
         "energy_kwh_per_m2_month": 3.5,
         "nutrient_cost_per_m2_month": 800,
         "labor_cost_per_m2_month": 1300,
         "seed_cost_per_m2_season": 4500,
-        "season_months": 12,
     },
     "오이": {
         "energy_kwh_per_m2_month": 2.4,
         "nutrient_cost_per_m2_month": 420,
         "labor_cost_per_m2_month": 1100,
         "seed_cost_per_m2_season": 900,
-        "season_months": 5,   # ★ 촉성/반촉성 단작 ~4~5개월 (구 8 과대. E2E 캘리브레이션 2026-08-07)
     },
 }
 
@@ -240,8 +236,8 @@ def calc_erp(
     # ③ 노동비
     labor_cost = defaults["labor_cost_per_m2_month"]
 
-    # ④ 종묘비 (작기당 → 월 일할)
-    seed_monthly = defaults["seed_cost_per_m2_season"] / defaults["season_months"]
+    # ④ 종묘비 (작기당 → 월 일할). 작기 개월수는 SSOT(crop_config) 사용.
+    seed_monthly = defaults["seed_cost_per_m2_season"] / SEASON_LENGTH_MONTHS.get(crop_ko, 8)
 
     total_cost_per_m2 = energy_cost + nutrient_cost + labor_cost + seed_monthly
 

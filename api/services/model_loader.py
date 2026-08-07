@@ -51,14 +51,8 @@ CROP_EN: dict[str, str] = {
 }
 
 # 작목별 작기 개월 수 (연간 yield → 월간 환산)
-_SEASON_MONTHS: dict[str, int] = {
-    "딸기":       6,
-    "방울토마토": 8,
-    "완숙토마토": 8,
-    "참외":       4,
-    "파프리카":  10,
-    "오이":       5,   # ★ 촉성/반촉성 단작 ~4~5개월 (구 8은 과대 → 경영비 시즌화 과대계상, 소득률 17%로 왜곡. E2E 캘리브레이션 2026-08-07)
-}
+# 작기 개월수 — SSOT는 models.crop_config.SEASON_LENGTH_MONTHS (구: 여기 중복 정의). E2E 2026-08-07 단일화.
+from models.crop_config import SEASON_LENGTH_MONTHS as _SEASON_MONTHS
 
 # farm_id → 품목 매핑 (farmer.py _FARM_META와 동기화)
 FARM_CROP: dict[str, str] = {

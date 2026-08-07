@@ -299,6 +299,27 @@ CROP_CONFIGS: dict[str, CropConfig] = {
     ),
 }
 
+# ── 작기 길이(개월) — 비용·수확량 시즌화용 SSOT (E2E 2026-08-07) ──────────────
+#   ★ CropConfig.season_months(위)와 개념이 다르다: 저건 '활동 캘린더월 리스트'
+#     (예: 오이=1~12월 연중 하우스 가동)로 학습·기후 필터용. 이건 '1작기(파종~수확
+#     종료) 기간의 개월수'로, 월 단위 비용/수확량을 시즌 총액으로 환산할 때 쓴다.
+#   구: model_loader·m2_yield·erp_calculator 3곳에 각각 중복 정의되어 값이 갈렸다
+#     (오이 8 vs 5, 딸기 6 vs 8 등). 여기 단일 정본으로 통합.
+SEASON_LENGTH_MONTHS: dict[str, int] = {
+    "딸기":       6,
+    "방울토마토": 8,
+    "완숙토마토": 8,
+    "참외":       4,
+    "파프리카":  10,
+    "오이":       5,   # 촉성/반촉성 단작 ~4~5개월 (E2E 캘리브레이션)
+}
+
+
+def get_season_length_months(crop_ko: str, default: int = 8) -> int:
+    """작목의 1작기 개월수(비용·수확량 시즌화용). 미등록 작목은 default."""
+    return SEASON_LENGTH_MONTHS.get(crop_ko, default)
+
+
 # 영문 → 한글 역조회
 CROP_EN_TO_KO: dict[str, str] = {v.crop_en: k for k, v in CROP_CONFIGS.items()}
 
