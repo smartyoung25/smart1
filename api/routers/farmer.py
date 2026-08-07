@@ -322,6 +322,30 @@ def get_regions(sido: str | None = None):
 # GET /summary
 # ---------------------------------------------------------------------------
 
+def _days_to_harvest(farm_id: str, crop: str, env=None) -> int:
+    """수확 잔여일 SSOT (E2E 2026-08-07 C4-3).
+
+    현재 내부온도를 3일 단기예보(외기+내외차 3℃)로 보정한 뒤 GDD 기반 추정.
+    구: /summary(raw 온도)와 /harvest(예보 보정 온도)가 estimate_harvest_days 를
+        서로 다른 temp 로 호출해 D-day 가 갈렸다(37 vs 28). 이 함수로 단일화.
+    """
+    if env is None:
+        env = _get_env(farm_id)
+    temp_now = float((env or {}).get("temp_internal", 18.0))
+    try:
+        fcst_days = get_forecast_3day(farm_id)
+        if fcst_days:
+            ext_temps = [d["temp_avg"] for d in fcst_days if d.get("temp_avg") is not None]
+            if ext_temps:
+                fcst_temp_avg = sum(ext_temps) / len(ext_temps)
+                # 하우스 내부는 외기보다 평균 +3℃ 가정, 현재온도와 50:50 가중
+                temp_now = round((temp_now + (fcst_temp_avg + 3.0)) / 2, 1)
+    except Exception:
+        pass  # 예보 실패 시 현재 온도만 사용
+    d = estimate_harvest_days(crop, temp_now)
+    return 45 if d >= 999 else d
+
+
 @router.get("/summary", response_model=FarmSummary)
 def get_summary(farm_id: str):
     meta = _require_farm(farm_id)
@@ -336,12 +360,8 @@ def get_summary(farm_id: str):
     cb       = _compute_costs(farm_id)
     revenue_mtd = yield_m2 * price * area - cb.total_cost_krw
 
-    # 수확 예정일: GDD 기반 (현재 온도 활용)
-    env = _get_env(farm_id)
-    temp_now = (env or {}).get("temp_internal", 18.0)
-    harvest_days = estimate_harvest_days(crop, float(temp_now))
-    if harvest_days >= 999:
-        harvest_days = 30   # 온도 너무 낮은 경우 기본값
+    # 수확 예정일: 수확 잔여일 SSOT(_days_to_harvest) — /harvest 와 동일 계산 (E2E C4-3)
+    harvest_days = _days_to_harvest(farm_id, crop, env)
 
     return FarmSummary(
         farm_id=farm_id,
@@ -760,27 +780,9 @@ def get_harvest(farm_id: str):
     crop = meta.get("crop", "딸기")
 
     # 현재 내부 온도: IoT/수동 → ASOS 추정값 순으로 가져옴
-    env      = _get_env(farm_id)
-    temp_now = float((env or {}).get("temp_internal", 18.0))
-
-    # 단기예보 3일 평균 외부온도 → 하우스 내부온도 추정 보정
-    # (외부온도 + 내외 온도차 평균 3°C 반영) → GDD 계산에 사용
-    try:
-        fcst_days = get_forecast_3day(farm_id)
-        if fcst_days:
-            ext_temps = [d["temp_avg"] for d in fcst_days if d.get("temp_avg") is not None]
-            if ext_temps:
-                # 하우스는 외부보다 평균 +3°C 높다고 가정 (겨울 +5, 여름 +1 평균)
-                fcst_temp_avg = sum(ext_temps) / len(ext_temps)
-                indoor_offset = 3.0
-                # 현재 IoT 실내온도와 평균 사용 (50:50 가중치)
-                temp_now = round((temp_now + (fcst_temp_avg + indoor_offset)) / 2, 1)
-    except Exception:
-        pass  # 예보 실패 시 현재 IoT 온도만 사용
-
-    days_to_harvest = estimate_harvest_days(crop, temp_now)
-    if days_to_harvest >= 999:
-        days_to_harvest = 45   # 온도 너무 낮은 예외 상황 기본값
+    env             = _get_env(farm_id)
+    # 수확 잔여일 SSOT — /summary 와 동일 계산(3일예보 보정 GDD) (E2E C4-3)
+    days_to_harvest = _days_to_harvest(farm_id, crop, env)
 
     predicted_date = (date.today() + timedelta(days=days_to_harvest)).isoformat()
     yield_m2       = get_yield_kg_m2(crop)
