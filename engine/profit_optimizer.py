@@ -570,6 +570,35 @@ def optimize(
                 "과증산" if nl_pct > _NL_NORMAL_MAX else "증산부족",
             )
 
+    # ── 추천 선별 (E2E 2026-08-07 C4-1) ──────────────────────────────────────
+    #   구: generate_candidates 의 ±섭동 그리드를 필터 없이 반환 → (a) 순이익 개선이
+    #   0인 후보 다수 (b) 일사량·지온 등 농가가 직접 제어 못 하는 변수 (c) +/- 동시
+    #   추천(모순)이 '개선 추천'으로 노출됐다. 유효(순이익>임계)하고, 모든 변경변수가
+    #   제어불가(일사·지온)는 아닌 후보만, 변수조합별 최선 방향 1개만 남긴다.
+    _UNCONTROLLABLE = {"solar_rad", "soil_temp"}
+    _MIN_PROFIT = max(1000.0, 0.0001 * price * area_m2)
+
+    def _is_actionable(r: Recommendation) -> bool:
+        if r.profit_delta <= _MIN_PROFIT:
+            return False
+        ch = r.canonical_changes or {}
+        if ch and all(v in _UNCONTROLLABLE for v in ch):
+            return False   # 일사량·지온만 바꾸는 추천은 농가가 실행 불가
+        return True
+
+    _best_by_vars: dict[tuple, Recommendation] = {}
+    for r in results:
+        if not _is_actionable(r):
+            continue
+        key = tuple(sorted((r.canonical_changes or {}).keys())) or (r.action_ko[:12],)
+        cur = _best_by_vars.get(key)
+        if cur is None or r.profit_delta > cur.profit_delta:
+            _best_by_vars[key] = r
+    _n_before = len(results)
+    results = list(_best_by_vars.values())
+    logger.info("[profit_optimizer] C4-1 선별: %d → %d (제어가능·순이익>%.0f·변수중복제거)",
+                _n_before, len(results), _MIN_PROFIT)
+
     results.sort(key=lambda r: r.profit_delta, reverse=True)
     top = results[:MAX_RECOMMENDATIONS]
     for i, rec in enumerate(top, start=1):
