@@ -66,15 +66,12 @@ def _days_since(dt_str: Optional[str]) -> int:
 
 
 def _season_length_days(crop: str) -> int:
-    """작목별 표준 작기 일수."""
-    _MAP = {
-        "딸기": 210, "방울토마토": 180, "완숙토마토": 180,
-        "파프리카": 270, "오이": 120, "참외": 150,
-    }
-    for k, v in _MAP.items():
-        if k in (crop or ""):
-            return v
-    return 180
+    """운영 작기 일수 — crop_config SSOT(get_season_length_days). E2E 2026-08-07.
+
+    구: 여기 별도 dict(오이 120 등)로 SEASON_LENGTH_MONTHS·farmer 와 값이 갈렸다(삼중 상이).
+    """
+    from models.crop_config import get_season_length_days
+    return get_season_length_days(crop or "", default_months=6)
 
 
 def _days_elapsed_est(farm_id: str, crop: str, td: Optional[str]) -> int:

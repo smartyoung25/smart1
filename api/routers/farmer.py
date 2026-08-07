@@ -802,15 +802,14 @@ def get_harvest(farm_id: str):
             _now_month = date.today().month
             _months_elapsed = (_now_month - _pm) % 12
             _days_since = _months_elapsed * 30
+        # 생육 페놀로지 주기(정식→초수확) — crop_config SSOT (운영작기와 개념 구분). E2E C-season
+        from models.crop_config import get_phenology_cycle_days
+        _total_est = get_phenology_cycle_days(crop)
         if _days_since is None:
             # 정식 정보 없으면 days_to_harvest 역산으로 추정
-            _crop_total_days = {"딸기": 150, "완숙토마토": 120, "방울토마토": 90,
-                                "파프리카": 180, "참외": 90, "오이": 60}.get(crop, 120)
-            _days_since = max(0, _crop_total_days - days_to_harvest)
+            _days_since = max(0, _total_est - days_to_harvest)
         # 생육단계 결정
-        _total_est = {"딸기": 150, "완숙토마토": 120, "방울토마토": 90,
-                      "파프리카": 180, "참외": 90, "오이": 60}.get(crop, 120)
-        _ratio = _days_since / _total_est
+        _ratio = _days_since / max(_total_est, 1)
         if days_to_harvest <= 14:
             _growth_stage_ko = "수확기"
         elif _ratio < 0.20:

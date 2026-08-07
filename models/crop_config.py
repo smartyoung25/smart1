@@ -315,9 +315,46 @@ SEASON_LENGTH_MONTHS: dict[str, int] = {
 }
 
 
+def _season_key(crop_ko: str, keys) -> str | None:
+    """작목명 느슨한 매칭 — '딸기(설향)'·'방울토마토 등'도 기본 작목키에 대응."""
+    c = crop_ko or ""
+    if c in keys:
+        return c
+    for k in keys:
+        if k in c:
+            return k
+    return None
+
+
 def get_season_length_months(crop_ko: str, default: int = 8) -> int:
     """작목의 1작기 개월수(비용·수확량 시즌화용). 미등록 작목은 default."""
-    return SEASON_LENGTH_MONTHS.get(crop_ko, default)
+    k = _season_key(crop_ko, SEASON_LENGTH_MONTHS)
+    return SEASON_LENGTH_MONTHS[k] if k else default
+
+
+def get_season_length_days(crop_ko: str, default_months: int = 8) -> int:
+    """운영 작기 일수(=개월수×30). pdca 진척률 등 '작기 전체' 기준. E2E 2026-08-07.
+
+    구: pdca._season_length_days 에 별도 값(오이 120 등)이 중복 정의돼 SEASON_LENGTH_MONTHS
+        와 갈렸다. 여기(운영작기 SSOT)에서 파생.
+    """
+    return get_season_length_months(crop_ko, default_months) * 30
+
+
+# ── 생육 페놀로지 주기(일) — '정식→초수확' 기준 (운영작기와 개념 다름) ──────────
+#   ★ SEASON_LENGTH_MONTHS(운영작기: 정식~수확종료)와 구분: 이건 생육단계(초기·영양생장·
+#     착과개화·성숙) 비율 산정용 '정식→첫 수확' 주기다. 오이는 촉성 후 연속수확이라
+#     운영작기(150일)보다 초수확 주기(60일)가 짧다. E2E 2026-08-07 — farmer 내 2중복 통합.
+_PHENOLOGY_CYCLE_DAYS: dict[str, int] = {
+    "딸기": 150, "완숙토마토": 120, "방울토마토": 90,
+    "파프리카": 180, "참외": 90, "오이": 60,
+}
+
+
+def get_phenology_cycle_days(crop_ko: str, default: int = 120) -> int:
+    """작목의 생육 페놀로지 주기(정식→초수확, 일). 생육단계 비율 산정용."""
+    k = _season_key(crop_ko, _PHENOLOGY_CYCLE_DAYS)
+    return _PHENOLOGY_CYCLE_DAYS[k] if k else default
 
 
 # 영문 → 한글 역조회
