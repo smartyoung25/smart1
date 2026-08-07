@@ -30,12 +30,28 @@ def _proxy(fid: str, salt: str, lo: float, hi: float) -> float:
     return lo + (h % 1000) / 1000.0 * (hi - lo)
 
 
+_VIGOR_LO, _VIGOR_HI = 0.28, 0.86   # NDVI 프록시 범위 (하한 완화 — 이상농가 NDVI 스프레드 확보, C20-1)
+
+
 def _vigor(fid: str) -> float:
-    return round(_proxy(fid, "ndvi", 0.42, 0.86), 3)
+    # 좌편포(sqrt): 대부분 건강(고NDVI), 저작황 꼬리는 넓게 분포시켜 이상농가 NDVI가
+    #   하한에 뭉치지 않게 한다. 구: 균등분포+하한 0.42 → 최저순 20농가가 전부 0.42로
+    #   표시돼 스텁처럼 보였다(E2E C20-1).
+    frac = _proxy(fid, "ndvi", 0.0, 1.0)
+    return round(_VIGOR_LO + (frac ** 0.5) * (_VIGOR_HI - _VIGOR_LO), 3)
 
 
-def _diag(fid: str) -> int:
-    return int(round(_proxy(fid, "diag", 45, 94)))
+def _diag(fid: str, vigor: float | None = None) -> int:
+    """진단점수 — 작황(NDVI)과 상관. E2E C20-2.
+
+    구: 독립 해시(salt 'diag')라 작황과 무관 → 저NDVI(이상)인데 진단 87점 같은 모순이
+        났다. NDVI를 [45,94]로 선형 매핑 + ±6 지터로, 저작황→저진단이 되도록 정합.
+    """
+    if vigor is None:
+        vigor = _vigor(fid)
+    base = 45 + (vigor - _VIGOR_LO) / (_VIGOR_HI - _VIGOR_LO) * (94 - 45)
+    jitter = _proxy(fid, "diagjit", -6.0, 6.0)
+    return int(round(max(40, min(96, base + jitter))))
 
 
 def build_overview(farms: dict, region: str = "", crop: str = "",
@@ -56,7 +72,7 @@ def build_overview(farms: dict, region: str = "", crop: str = "",
             continue
         if crop and crop != c:
             continue
-        v = _vigor(fid); dg = _diag(fid)
+        v = _vigor(fid); dg = _diag(fid, v)   # 진단은 작황(vigor)과 상관 (C20-2)
         status = "이상" if (v < 0.50 or dg < 55) else ("주의" if (v < 0.58 or dg < 65) else "정상")
         rows.append({"farm_id": (_anon(fid) if anonymize else fid), "sido": sido,
                      "sigungu": (f.get("sigungu") or "").strip(),
