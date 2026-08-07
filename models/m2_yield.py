@@ -156,7 +156,21 @@ def _predict_format_c(
 
     # 피처 행 구성
     row: Dict[str, float] = {c: 0.0 for c in feat_cols}
-    row.update({k: v for k, v in season_env.items() if k in feat_cols})
+    # ── 환경 피처 이름 규약 정합 (환경→수확 반응 복구) ────────────────────────
+    # 모델마다 환경 평균 피처를 '*_mean'(연간집계: 오이·참외) 또는 접미사 없이
+    # (월집계: 딸기·파프리카) 쓴다. 서빙은 한 규약('*_mean')만 넘겨서, 무접미사 규약
+    # 모델은 그 피처가 0.0 으로 박제됐다 — imputer 는 0.0 을 결측으로 안 봐 학습분포
+    # 밖의 값(예: 딸기 temp_internal=0℃)을 그대로 먹였다. 두 규약을 상호 별칭해
+    # feature_cols 이름과 맞는 쪽이 채워지게 한다(값은 동일한 실측 평균).
+    # ★ '*_std'(방울 humidity_int_std) 에는 평균을 절대 넣지 않는다 — '*_mean'↔무접미사만.
+    _se = dict(season_env)
+    for _b in ("temp_internal", "humidity_int", "co2_ppm",
+               "solar_rad", "soil_temp", "temp_external"):
+        if _b in _se and f"{_b}_mean" not in _se:
+            _se[f"{_b}_mean"] = _se[_b]
+        elif f"{_b}_mean" in _se and _b not in _se:
+            _se[_b] = _se[f"{_b}_mean"]
+    row.update({k: v for k, v in _se.items() if k in feat_cols})
 
     # 농가 이력 피처
     fe  = pkg.get("farm_encoding", {})

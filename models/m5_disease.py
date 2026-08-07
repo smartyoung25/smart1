@@ -454,6 +454,21 @@ def _score_disease(env: dict, key: str, thresholds: dict) -> tuple[float, float,
         co2_penalty = 0.05
         score += co2_penalty
 
+    # ⑥ 결로(이슬)·엽면습윤 위험 — 노점 근접(습도 포화)에서 물막이 형성돼 다습성 병해
+    #    (잿빛곰팡이·노균·역병 등)가 급증한다. 잎 표면 습윤 지속시간이 감염의 1차 인자다.
+    #    ★ 현재 env 는 스냅샷(시계열 아님)이라 '결로 지속시간(wet_hours)'을 직접 못 잰다.
+    #      대신 노점 근접도(습도 포화도)로 '지금 결로 위험'을 대리 산출하고, 임계표의
+    #      wet_hours 요구치(길수록 습윤 의존이 큰 병해)를 민감도 가중으로 쓴다.
+    #      실측 결로/엽면습윤 센서·누적시간 연동은 TODO(하드웨어·시계열 필요).
+    #      건조성 병해(흰가루·시들음)는 결로와 무관하므로 제외.
+    wet_req = float(thresholds.get("wet_hours", 0) or 0)
+    if key not in ("powdery_mildew", "fusarium_wilt") and wet_req > 0 and rh >= 90.0:
+        dew_prox  = min(1.0, (rh - 90.0) / 10.0)          # 90%→0 · 100%→1 (노점 근접)
+        cond_risk = dew_prox * min(1.0, wet_req / 6.0)    # 습윤 요구 6h 기준 정규화
+        score += cond_risk * 0.12
+        if dew_prox >= 0.5:
+            reasons.append(f"결로 위험 — 습도 {rh:.0f}% 노점 근접 (엽면습윤 {wet_req:.0f}h급 병해)")
+
     return min(1.0, score), round(baud_idx, 4), round(vpd_risk, 4), reasons
 
 
