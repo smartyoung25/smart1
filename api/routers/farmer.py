@@ -1115,6 +1115,51 @@ def _env_to_feat(env: dict, crop_ko: str) -> dict:
     }
 
 
+def _agronomic_assessment(crop_ko: str, hypo_env: dict, base_env: dict) -> list | None:
+    """변경한 환경변수를 작목별 농학적 최적범위(crop_config)와 대조 — 정직한 판단 근거.
+
+    ★ 왜 이걸 쓰나: 환경→수확량 인과는 관측 데이터로 신뢰 복구가 안 된다
+      (env_response CV R² 전 작목 음수 — 2026-08-08 진단). 그래서 '수확 얼마 증가'를
+      확신처럼 내밀지 않고, RDA·연구 기반 최적범위 이탈/유지라는 **방어 가능한** 신호만
+      제공한다. 최적범위는 models/crop_config.py 의 opt_*_range(작목별 설정).
+    """
+    from models.crop_config import CROP_CONFIGS
+    cfg = CROP_CONFIGS.get(crop_ko)
+    if cfg is None:
+        return None
+    ranges = {
+        "temp_internal": ("내부온도", "℃",  cfg.opt_temp_range),
+        "humidity_int":  ("내부습도", "%",   cfg.opt_humid_range),
+        "co2_ppm":       ("CO₂",      "ppm", cfg.opt_co2_range),
+    }
+    out: list = []
+    for key, (ko, unit, rng) in ranges.items():
+        v = hypo_env.get(key)
+        b = base_env.get(key)
+        if v is None:
+            continue
+        v = float(v)
+        # 변경하지 않은 변수는 평가 생략(현재값과 동일)
+        if b is not None and abs(v - float(b)) < 1e-6:
+            continue
+        lo, hi = float(rng[0]), float(rng[1])
+        if v < lo:
+            status = "below"; note = f"{ko} {v:g}{unit} — 최적 {lo:g}~{hi:g}{unit} 하한 미만(생육 저하 위험)"
+        elif v > hi:
+            status = "above"; note = f"{ko} {v:g}{unit} — 최적 {lo:g}~{hi:g}{unit} 상한 초과"
+        else:
+            status = "in";    note = f"{ko} {v:g}{unit} — 최적 {lo:g}~{hi:g}{unit} 이내 ✓"
+        out.append({"var": key, "label": ko, "value": round(v, 1),
+                    "opt_lo": lo, "opt_hi": hi, "status": status, "note": note})
+    return out or None
+
+
+_YIELD_EFFECT_NOTE = (
+    "환경→수확량 영향은 현재 관측 데이터로 신뢰 예측이 어렵습니다"
+    "(연도 교차검증 R²<0). 농학적 최적범위 유지와 비용 영향으로 판단하세요."
+)
+
+
 @router.post("/whatif", response_model=WhatIfResult)
 def whatif(farm_id: str, body: WhatIfInput):
     """가상 환경값으로 매출 변화 예측.
@@ -1206,6 +1251,9 @@ def whatif(farm_id: str, body: WhatIfInput):
         revenue_gain_krw=round(delta),
         revenue_krw=round(whatif_rev),
         yield_kg_forecast=_yield_est,
+        # 정직 재설계: 농학적 최적범위 평가 + 수확 영향 한계 고지
+        agronomic=_agronomic_assessment(crop, hypo_env, base_env),
+        yield_effect_note=_YIELD_EFFECT_NOTE,
     )
     _WHATIF_CACHE[_wi_ck] = (_time.monotonic() + _WHATIF_TTL, _wi_result)
     return _wi_result

@@ -265,6 +265,12 @@ class WhatIfResult(BaseModel):
     revenue_gain_krw: float = 0.0    # = delta_krw (매출 델타 — legacy)
     revenue_krw: float = 0.0         # = whatif_revenue_krw
     yield_kg_forecast: Optional[float] = None
+    # ── 정직 재설계 (2026-08-08) ──────────────────────────────────────────────
+    # 환경→수확 인과는 관측 데이터로 신뢰 복구 불가(env_response CV R² 전 작목 음수).
+    #   → 수확량 델타를 확신처럼 내밀지 않고, (a) 농학적 최적범위 이탈도(defensible)와
+    #     (b) M4 실비용 영향으로 의사결정을 지원한다. yield_effect_note 로 한계 명시.
+    agronomic: Optional[list] = None       # 변경 환경변수별 최적범위 평가 [{var,label,value,opt_lo,opt_hi,status,note}]
+    yield_effect_note: Optional[str] = None  # 수확량 영향 신뢰예측 불가 고지
 
 
 class WhatIfScenario(BaseModel):
