@@ -1285,10 +1285,19 @@ def whatif_multi(farm_id: str, body: WhatIfMultiInput):
 
 # _predict 헬퍼: whatif / whatif_multi 공용
 def _predict(env: dict, crop: str, area: float, month: int) -> tuple[float, str]:
-    feat   = _env_to_feat(env, crop)
-    ml_rev = predict_revenue_per_m2(crop, feat, month=month)
-    if ml_rev is not None and ml_rev > 0:
-        return ml_rev * area, "ml_model"
+    # ★ 매출 SSOT — 수량(get_yield_forecast) × 단가. /revenue 와 동일 산식(E2E Phase3 whatif 통일).
+    #   구: predict_revenue_per_m2 × area(원/m²/월 · 디커플)를 써 What-if 기준매출이
+    #   /revenue(수량×단가·시즌)와 갈렸다(1,221만 vs 3,195만). env 민감도는 수확량 모델이 담당.
+    feat = _env_to_feat(env, crop)
+    try:
+        from api.services.model_loader import get_yield_forecast
+        yf    = get_yield_forecast(crop, feat, area)
+        price = get_price_krw_kg(crop)
+        rev   = yf["yield_kg_season"] * price
+        if rev > 0:
+            return rev, "yield_x_price"
+    except Exception as _e:
+        logger.debug("[whatif._predict] SSOT 실패 %s: %s", crop, _e)
     from api.data.stats_loader import get_yield_kg_m2
     yield_m2   = get_yield_kg_m2(crop)
     price      = get_price_krw_kg(crop)

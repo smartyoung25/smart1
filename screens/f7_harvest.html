@@ -119,9 +119,10 @@ async function _load(token,farmId){
       <div class="pc-row"><span class="k">예상매출</span><span class="v">${pRev.toLocaleString()}만원</span></div>
       <button class="pc-btn" onclick="location.href='c12_joint.html'">출하 신청</button></div>`;
   }).join('');
-  // 수익성
-  const revenue=rev?.revenue_krw??(yieldKg*price);
-  const profit=rev?.predicted_profit_krw??(revenue*0.85);
+  // 수익성 — ★ 필지별과 동일 기준(수량×공동단가)으로 총매출 산출 → 필지합=총계 (E2E f7 정합).
+  //   구: rev.revenue_krw(개별 /revenue)를 총매출로 써, 공동단가로 계산한 필지별 합과 갈렸다.
+  const revenue=yieldKg*price;
+  const profit=Math.round(revenue*0.85);   // 공동출하 물류·수수료 등 차감 후 순이익 추정
   document.getElementById('pYield').textContent=`${fmt(yieldKg)} kg`;
   document.getElementById('pPrice').textContent=`${fmt(price)} 원/kg`;
   document.getElementById('pRevenue').textContent=`${fmt(revenue/10000)} 만원`;
