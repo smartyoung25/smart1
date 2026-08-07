@@ -84,10 +84,11 @@
   </script>
   <link rel="stylesheet" href="../components/base.css"/>
   <style>
-    /* 상단 safe-area·주소창 접힘 영역이 밝은 --bg로 비쳐 '흰 공백'처럼 보이던 문제 →
-       루트를 히어로 상단색으로 칠해 어떤 브라우저 여백도 그린으로 이어지게 함 */
+    /* ★ 상단 흰 공백의 진짜 원인: base.css 가 고정 헤더(--header-h 52px)·하단탭(--tab-h 60px)
+       오프셋으로 body 에 상하 패딩을 준다. 이 랜딩은 헤더·하단탭이 없어 그 패딩이 상단 빈칸·
+       하단 여백으로 남는다 → 0 으로 리셋한다(overscroll 방어용 html 그린 배경은 유지). */
     html{background:#0c2a1c;}
-    body{background:var(--bg);}
+    body{background:var(--bg);padding-top:0;padding-bottom:0;}
     .wrap{max-width:480px;margin:0 auto;padding:0 16px 40px;}
 
     /* ── Hero ───────────────────────────────────────────── */
