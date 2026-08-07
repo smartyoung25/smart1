@@ -138,23 +138,23 @@ function _onWsStatus(s){const dot=document.getElementById('wsDot'),lbl=document.
 
 async function _loadAll(token, farmId){
   const api=KaasaData.getApiBase(), H={Authorization:`Bearer ${token}`};
-  const [rec, anom, summary] = await Promise.all([
+  const [rec, anom, summary, diag] = await Promise.all([
     fetch(`${api}/api/farms/${farmId}/recommendations`,{headers:H}).then(r=>r.ok?r.json():null).catch(()=>null),
     fetch(`${api}/api/farms/${farmId}/anomalies/latest`,{headers:H}).then(r=>r.ok?r.json():null).catch(()=>null),
     fetch(`${api}/api/farms/${farmId}/summary`,{headers:H}).then(r=>r.ok?r.json():null).catch(()=>null),
+    fetch(`${api}/api/farms/${farmId}/diagnosis`,{headers:H}).then(r=>r.ok?r.json():null).catch(()=>null),
   ]);
-  _renderScore(rec, anom, summary);
+  _renderScore(rec, anom, summary, diag);
   _renderRecs(rec);
   _renderAnoms(anom);
-  _loadDiagCtx(token, farmId);
+  _renderDiagCtx(diag);
 }
 
 // ★ 종합진단(C17/C18) 컨텍스트 → 전문가 추천·첨부
 const _EXPERT_BY_DOMAIN={actuator:'재배기술',cultivation:'재배기술',sensor:'재배기술',sales:'경영컨설팅',operation:'경영컨설팅',data:'경영컨설팅'};
-async function _loadDiagCtx(token, farmId){
+function _renderDiagCtx(d){
   try{
-    const api=KaasaData.getApiBase(), H={Authorization:`Bearer ${token}`};
-    const d=await fetch(`${api}/api/farms/${farmId}/diagnosis`,{headers:H}).then(r=>r.json());
+    if(!d) return;
     const doms=(d.domains||[]).slice().sort((a,b)=>a.score-b.score);
     const decs=(d.priority_decisions||[]).slice(0,3);
     _diagCtx={overall:d.overall_score, grade:d.grade, weak:doms.slice(0,2), decisions:decs};
@@ -173,17 +173,20 @@ async function _loadDiagCtx(token, farmId){
   }catch(e){}
 }
 
-function _renderScore(rec, anom, summary){
-  // 종합 점수 = 추천 신뢰도 평균 × 100 - 이상값 패널티
+function _renderScore(rec, anom, summary, diag){
+  // ★ 종합 진단 점수 = /diagnosis overall_score (권위, consulting_diagnosis 6영역).
+  //   구: '추천 신뢰도×100 − 이상값' 휴리스틱(66점)을 상단에 표시해, 컨설팅 섹션의
+  //   실제 종합진단(44점, /diagnosis)과 한 화면에서 라벨 충돌했다(E2E C4-4).
+  //   신뢰도는 부제(sub) 지표로만 표기.
   const recs=rec?.recommendations||[];
   const avgConf = recs.length ? recs.reduce((s,r)=>s+(r.confidence||0),0)/recs.length : 0.7;
   const anomCount = anom?.count||0, critical=anom?.critical_count||0;
-  let score = Math.round(avgConf*100 - anomCount*3 - critical*10);
-  score = Math.max(40, Math.min(99, score));
-  const grade = score>=85?'우수':score>=70?'양호':score>=55?'주의':'개선 필요';
-  document.getElementById('diagScore').textContent=`${score}점`;
-  document.getElementById('diagGrade').textContent=`${grade} · 이상값 ${anomCount}건${critical?` (위험 ${critical})`:''}`;
-  document.getElementById('diagSub').textContent=`추천 신뢰도 평균 ${Math.round(avgConf*100)}% · 수확 D-${summary?.harvest_days_remaining??'?'}`;
+  const score = (diag && diag.overall_score!=null) ? diag.overall_score : null;
+  const grade = (diag && diag.grade) ? diag.grade
+              : (score!=null ? (score>=85?'우수':score>=70?'양호':score>=55?'주의':'개선 필요') : '—');
+  document.getElementById('diagScore').textContent = score!=null ? `${score}점` : '—';
+  document.getElementById('diagGrade').textContent = `${grade} · 이상값 ${anomCount}건${critical?` (위험 ${critical})`:''}`;
+  document.getElementById('diagSub').textContent = `추천 신뢰도 평균 ${Math.round(avgConf*100)}% · 수확 D-${summary?.harvest_days_remaining??'?'}`;
 }
 
 function _renderRecs(rec){
