@@ -186,7 +186,7 @@ function _renderPriority(){
     const cls=i===0?'p1':i===1?'p2':'p3';
     // 관개 필요량 ≈ (목표60% - 현재) × 면적 환산 (간이)
     const needMm=Math.round((60-p.moisture)*0.8);
-    const liters=Math.round(needMm*p.area*1000);
+    const liters=Math.round(needMm*p.area*10000);  // ★ 1ha=10,000㎡·1mm=1L/㎡ (구: ×1000 → 10배 과소. E2E F4-2)
     return `<div class="irr-card ${cls}">
       <div class="irr-rank ${cls}">${i+1}</div>
       <div style="flex:1;"><div class="irr-name">${p.name}</div>

@@ -475,9 +475,12 @@ function renderPeriodTimeline() {
   const container = document.getElementById('periodTimeline');
   container.innerHTML = '';
 
+  const _curIdx = KaasaData.PERIODS.findIndex(x => x.id === _currentPeriod.id);
   KaasaData.PERIODS.forEach((p, i) => {
-    const isDone   = hm > parseFloat(p.timeRange.split('~')[0].replace(':','.')); // 간이 판별
-    const isActive = _currentPeriod.id === p.id;
+    // ★ 완료/진행 판정은 Period 순서 기준. 구: parseFloat(timeRange)가 "일출 후 2~3h"·
+    //   "15:00~일몰"·"일몰~05:00" 상대표기서 NaN → P2가 진행중 이후에도 "대기" 고착(E2E G3-4).
+    const isActive = _curIdx >= 0 && i === _curIdx;
+    const isDone   = _curIdx >= 0 && i < _curIdx;
 
     const card = document.createElement('div');
     card.className = `period-card ${isActive ? 'active-period' : ''} ${isDone && !isActive ? 'done' : ''}`;

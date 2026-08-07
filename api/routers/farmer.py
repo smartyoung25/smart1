@@ -61,7 +61,7 @@ from api.data.stats_loader import (
     estimate_harvest_days,
 )
 from api.services import persistence
-from api.services.model_loader import predict_revenue_per_m2, get_model_meta, predict_yield_bounds
+from api.services.model_loader import predict_revenue_per_m2, get_model_meta, predict_yield_bounds, get_yield_forecast
 from models.m5_disease import env_risk_predict as _env_risk_predict
 from adapters.irrigation_adapter import adapt_irrigation
 from models.crop_config import CROP_CONFIGS
@@ -822,61 +822,25 @@ def get_harvest(farm_id: str):
     except Exception:
         _growth_stage_ko = "생육중"
 
-    # ── LegacyModelAdapter (RDA 5000행, R²≥0.75) — 딸기 등 우선 사용 ─────
-    try:
-        from api.engine.legacy_model_adapter import (
-            LegacyModelAdapter, build_iot_features_from_env,
-        )
-        from datetime import datetime as _dt
-        _la = LegacyModelAdapter()
-        if _la.supports(crop):
-            _plant_m = meta.get("plant_month")
-            _days_elapsed = (
-                (_dt.now().month - int(_plant_m)) % 12 * 30
-                if _plant_m else 75
-            )
-            _iot_feats = build_iot_features_from_env(
-                env or {},
-                month=_dt.now().month,
-                days_since_planting=_days_elapsed,
-                crop_ko=crop,
-            )
-            _la_res = _la.predict(crop, _iot_feats)
-            if _la_res["cv_r2"] >= 0.60:
-                yield_m2   = _la_res["yield_per_m2"]
-                total_kg   = round(yield_m2 * area, 1)
-                confidence = min(0.92, _la_res["cv_r2"])
-                model_used = "rda_legacy"
-                logger.info("[harvest] LegacyAdapter 사용 crop=%s R²=%.3f y=%.3f kg/m²",
-                            crop, _la_res["cv_r2"], yield_m2)
-    except Exception as _la_err:
-        logger.debug("[harvest] LegacyAdapter 미사용: %s", _la_err)
-
-    # ── M2 모델 실제 Q10/Q90 신뢰구간 ──────────────────────────────────────
-    env_feat_for_bounds = {
+    # ── 수확량 SSOT (E2E 2026-08-07 §B) ─────────────────────────────────────
+    #   점예측 권위 = m2_yield.predict_yield (블렌딩·게이트). 구: LegacyAdapter·
+    #   predict_yield_bounds 가 각각 점예측을 덮어써 /harvest 와 /revenue 수확량이
+    #   2~6배 불일치(딸기 0.82·완숙 55.84 외삽오류). get_yield_forecast 로 단일화.
+    _env_feat_yf = {
         "temp_internal_mean": float((env or {}).get("temp_internal", 20.0)),
         "humidity_int_mean":  float((env or {}).get("humidity_int",  70.0)),
         "co2_ppm_mean":       float((env or {}).get("co2_ppm",      800.0)),
         "solar_rad_mean":     float((env or {}).get("solar_rad",    100.0)),
         "soil_temp_mean":     float((env or {}).get("soil_temp",     18.0)),
+        "gdd_monthly":        max(0.0, float((env or {}).get("temp_internal", 20.0)) - 10.0) * 30.0,
     }
-    bounds = predict_yield_bounds(crop, env_feat_for_bounds)
-    if bounds["has_bounds"]:
-        # M2 모델 Q10/Q90 → 면적 적용 (kg/m² × m²)
-        yield_q10 = round(bounds["yield_lower"] * area, 1)
-        yield_q90 = round(bounds["yield_upper"] * area, 1)
-        # M2 점예측이 있으면 total_kg도 업데이트
-        if bounds["yield_per_m2"]:
-            total_kg  = round(bounds["yield_per_m2"] * area, 1)
-            yield_m2  = bounds["yield_per_m2"]
-        confidence = 0.82
-        model_used = "m2_quantile"
-    else:
-        # 폴백: stats 기반 ±20% (M2 미학습 작목)
-        yield_q10  = round(total_kg * 0.80, 1)
-        yield_q90  = round(total_kg * 1.20, 1)
-        confidence = 0.60
-        model_used = "stats_fallback"
+    _yf       = get_yield_forecast(crop, _env_feat_yf, area, farm_id=farm_id)
+    yield_m2   = _yf["yield_kg_m2_season"]
+    total_kg   = _yf["yield_kg_season"]
+    yield_q10  = _yf["q10"]
+    yield_q90  = _yf["q90"]
+    confidence = _yf["confidence"]
+    model_used = _yf["source"]
 
     # ── confidence_grade: MAPE 기반 신뢰도 등급 (농가 화면 표시용) ───────────────
     import json as _json
@@ -1060,55 +1024,51 @@ def get_revenue(farm_id: str):
         "gdd_monthly":         max(0.0, float(env.get("temp_internal", 20.0)) - 10.0) * 30.0,
     }
 
-    # M2 직접 호출 → yield_kg_total + gate_pass + mape_cv
-    from models.m2_yield import predict_yield as _m2_predict
-    _m2_result    = _m2_predict(crop, env_feat, area_m2=area, farm_id=farm_id)
-    _m2_yield_kg  = _m2_result.get("yield_kg_total", 0.0)
-    _m2_yield_m2  = _m2_result.get("yield_kg_m2", 0.0)
-    _m2_mape      = float(_m2_result.get("mape_cv", 99.0))
-    _m2_gate      = _m2_result.get("gate_pass", None)
-    _m2_src       = _m2_result.get("source", "stub")
-    # 신뢰도 = 1 - MAPE/100 (0 이상, 최대 0.95)
-    _m2_conf      = round(max(0.0, min(0.95, 1.0 - _m2_mape / 100.0)), 3)
+    # 수확량 SSOT — /harvest 와 동일한 get_yield_forecast 사용(E2E §B). 구: 여기서만
+    #   m2_yield 를 직접 호출해 /harvest(bounds)와 수확량이 갈렸다.
+    _yf           = get_yield_forecast(crop, env_feat, area_m2=area, farm_id=farm_id)
+    _m2_yield_kg  = _yf["yield_kg_season"]
+    _m2_yield_m2  = _yf["yield_kg_m2_season"]
+    _m2_mape      = float(_yf["mape_cv"])
+    _m2_gate      = _yf["gate_pass"]
+    _m2_src       = _yf["source"]
+    _m2_conf      = _yf["confidence"]
 
-    # ── ML 모델 예측 (없으면 통계 기반 폴백) ──────────────────────────────────
-    ml_rev_pm2 = predict_revenue_per_m2(crop, env_feat, month=_cur_month)
+    # ── 매출 = 수확량(SSOT) × 단가(SSOT) 파생 (E2E 2026-08-07 §D) ──────────────
+    #   구: predict_revenue_per_m2(원/m²/월 × 작기)를 매출로 써, 함께 실어보내는
+    #   단가×수량과 곱이 안 맞았다(6,106만 ≠ 1,690×18,000, 방울 −206%,
+    #   kg마진>단가). 항상 수량×단가로 파생해 캡션·값 일치 보장.
     model_meta = get_model_meta(crop)
-
-    if ml_rev_pm2 is not None and ml_rev_pm2 > 0:
-        # ML 예측값: 원/m²/월 → 시즌 전체 매출
-        # ml_rev_pm2는 월별 단가이므로 season_months를 곱해 시즌 총 매출로 환산
-        from api.services.model_loader import _SEASON_MONTHS as _sm_map, normalize_crop as _nc
-        _season_m = _sm_map.get(_nc(crop), 8)
-        revenue      = ml_rev_pm2 * area * _season_m
-        revenue_src  = "ml_model"
-        logger.info(
-            "[get_revenue] farm=%s crop=%s ML예측 %.0f원/m²/월 × %.0fm² × %d개월 = %.0f원",
-            farm_id, crop, ml_rev_pm2, area, _season_m, revenue,
-        )
-    elif _m2_yield_kg > 0:
-        # M2 수확량 × 단가 → 매출 (gate 통과/미통과 무관, blending 이미 적용)
-        revenue     = _m2_yield_kg * price
-        revenue_src = "m2_yield_x_price"
-        logger.info(
-            "[get_revenue] farm=%s crop=%s M2×가격 yield=%.0fkg × %.0f원/kg = %.0f원",
-            farm_id, crop, _m2_yield_kg, price, revenue,
-        )
-    else:
-        # 통계 폴백: 수확량 × 단가 × 면적
+    if _m2_yield_kg <= 0:
+        # 폴백: 표준 단위수확량 × 면적
         _stat_yield_m2 = get_yield_kg_m2(crop)
         _m2_yield_kg   = _stat_yield_m2 * area
         _m2_yield_m2   = _stat_yield_m2
-        revenue        = _m2_yield_kg * price
-        revenue_src    = "stats_fallback"
-        logger.info(
-            "[get_revenue] farm=%s crop=%s 통계폴백 yield=%.2f kg/m² → %.0f원",
-            farm_id, crop, _stat_yield_m2, revenue,
-        )
+        revenue_src    = "stats_fallback_x_price"
+    else:
+        revenue_src    = "yield_x_price"
+    revenue = _m2_yield_kg * price
+    # 교차검증(표시 안 함): 구 ML 매출모델과 괴리 로깅
+    _rev_ml_xcheck = None
+    try:
+        _ml_pm2 = predict_revenue_per_m2(crop, env_feat, month=_cur_month)
+        if _ml_pm2 and _ml_pm2 > 0:
+            from api.services.model_loader import _SEASON_MONTHS as _sm_map, normalize_crop as _nc
+            _rev_ml_xcheck = round(_ml_pm2 * area * _sm_map.get(_nc(crop), 8), 0)
+    except Exception:
+        pass
+    logger.info(
+        "[get_revenue] farm=%s crop=%s 매출=수량%.0fkg×단가%.0f원=%.0f원 (ml_xcheck=%s)",
+        farm_id, crop, _m2_yield_kg, price, revenue, _rev_ml_xcheck,
+    )
 
-    # 비용: _compute_costs 상세 항목 합산 (실단가 반영)
+    # 비용: _compute_costs 상세항목(월) → 시즌 환산 (E2E 2026-08-07 §E).
+    #   구: 월비용을 시즌매출과 직접 비교해 소득률 95%(비현실). 매출과 동일한
+    #   시즌 기준으로 맞춘다. (_compute_costs 자체는 월값 유지 — 타 소비처 호환)
     cb   = _compute_costs(farm_id)
-    cost = cb.total_cost_krw
+    from api.services.model_loader import _SEASON_MONTHS as _sm_cost, normalize_crop as _nc_cost
+    _season_m_cost = _yf.get("season_months") or _sm_cost.get(_nc_cost(crop), 8)
+    cost = round(cb.total_cost_krw * _season_m_cost, 0)
 
     _profit          = round(revenue - cost, 0)
     _profit_margin   = round((_profit / revenue * 100) if revenue else 0.0, 1)
@@ -2855,12 +2815,10 @@ def get_erp_realtime(
     from datetime import datetime
     from api.engine.erp_calculator import calc_erp
 
-    # 농장 메타 조회
-    try:
-        from api.data_access import get_farm_meta
-        meta = get_farm_meta(farm_id) or {}
-    except Exception:
-        meta = {}
+    # 농장 메타 조회 — ★ SSOT: /harvest·/revenue와 동일한 _require_farm 사용.
+    #   구: 존재하지 않는 api.data_access.get_farm_meta import 실패 → except meta={} →
+    #       전 농가 ERP가 '딸기'·1200㎡로 계산되던 버그(E2E 2026-08-07 G4-1).
+    meta = _require_farm(farm_id)
 
     crop_ko   = meta.get("crop", "딸기")
     area_m2   = float(meta.get("plant_area_m2", meta.get("area_m2", 1200.0)) or 1200.0)

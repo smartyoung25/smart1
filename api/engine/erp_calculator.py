@@ -164,32 +164,22 @@ class ERPResult:
 
 
 def _get_kamis_price(crop_ko: str) -> float:
-    """KAMIS 캐시에서 작목 도매가 조회 (원/kg)."""
-    try:
-        import json
-        cache = ROOT / "api" / "data" / "kamis_price_cache.json"
-        if cache.exists():
-            data = json.loads(cache.read_text(encoding="utf-8"))
-            prices = data.get("prices", data)
-            # 작목명 매핑
-            _MAP = {
-                "딸기": ["딸기", "strawberry"],
-                "방울토마토": ["방울토마토", "cherry_tomato"],
-                "완숙토마토": ["완숙토마토", "토마토", "tomato"],
-                "참외": ["참외", "melon"],
-                "파프리카": ["파프리카", "paprika"],
-                "오이": ["오이", "cucumber"],
-            }
-            for alias in _MAP.get(crop_ko, [crop_ko]):
-                if alias in prices:
-                    v = prices[alias]
-                    price = v.get("price", v) if isinstance(v, dict) else v
-                    if isinstance(price, (int, float)) and price > 0:
-                        return float(price)
-    except Exception as e:
-        logger.debug("KAMIS 가격 조회 실패: %s", e)
+    """단가 SSOT (E2E 2026-08-07 §C) — /revenue 와 동일한 권위 함수 사용.
 
-    # 작목별 기본 도매가 (원/kg) — KAMIS 연평균
+    구: 별도 캐시(api/data/kamis_price_cache.json)를 읽어 /revenue 의
+        pipeline.kamis_fetcher.get_price_with_fallback 와 단가가 갈렸다
+        (딸기 3,000 vs 12,500). 동일 소스로 위임해 전 화면 단가 통일.
+    """
+    try:
+        from pipeline.kamis_fetcher import get_price_with_fallback
+        info = get_price_with_fallback(crop_ko)
+        p = info.get("price_krw_kg")
+        if isinstance(p, (int, float)) and p > 0:
+            return float(p)
+    except Exception as e:
+        logger.debug("단가 조회 실패(get_price_with_fallback): %s", e)
+
+    # 작목별 기본 도매가 (원/kg) — 위 권위 함수 실패 시 최후 폴백
     _DEFAULT_PRICES = {
         "딸기": 8500, "방울토마토": 3800, "완숙토마토": 2200,
         "참외": 3500, "파프리카": 5500, "오이": 1200,

@@ -494,6 +494,52 @@ def predict_yield_bounds(
     return result
 
 
+def get_yield_forecast(crop_ko: str, env_feat: dict, area_m2: float,
+                       farm_id: str | None = None) -> dict:
+    """수확량 SSOT (E2E 2026-08-07 §B).
+
+    점예측 권위 = m2_yield.predict_yield (MAPE 블렌딩·게이트·정직지표 보유).
+    구간(q10/q90) = predict_yield_bounds 의 '상대폭'을 점예측에 정렬(없으면 MAPE 기반).
+    구: /harvest 는 predict_yield_bounds(raw ML, 딸기 0.82·완숙 55.84 외삽오류),
+        /revenue 는 m2_yield 를 각각 써 수확량이 2~6배 불일치했다. 이 함수로 단일화.
+
+    Returns: yield_kg_m2_season·yield_kg_season·yield_kg_m2_monthly·season_months·
+             q10·q90·mape_cv·gate_pass·source·confidence
+    """
+    from models.m2_yield import predict_yield as _m2_predict
+    m2 = _m2_predict(crop_ko, env_feat, area_m2=area_m2, farm_id=farm_id)
+    y_m2  = float(m2.get("yield_kg_m2", 0.0) or 0.0)
+    y_tot = float(m2.get("yield_kg_total", y_m2 * area_m2) or 0.0)
+    mape  = float(m2.get("mape_cv", 99.0))
+
+    # 구간: bounds 상대폭을 점예측에 정렬(점예측 자체는 m2 권위 유지)
+    q10 = q90 = None
+    try:
+        b = predict_yield_bounds(crop_ko, env_feat)
+        if b.get("has_bounds") and b.get("yield_per_m2"):
+            _pt = float(b["yield_per_m2"])
+            if _pt > 0:
+                q10 = round(y_tot * float(b["yield_lower"]) / _pt, 1)
+                q90 = round(y_tot * float(b["yield_upper"]) / _pt, 1)
+    except Exception as _e:
+        logger.debug("[get_yield_forecast] bounds 구간 실패 %s: %s", crop_ko, _e)
+    if q10 is None or q90 is None:
+        f = min(0.6, max(0.1, mape / 100.0))
+        q10 = round(y_tot * (1 - f), 1)
+        q90 = round(y_tot * (1 + f), 1)
+
+    conf = round(max(0.0, min(0.95, 1.0 - mape / 100.0)), 3)
+    return {
+        "yield_kg_m2_season":  round(y_m2, 4),
+        "yield_kg_season":     round(y_tot, 1),
+        "yield_kg_m2_monthly": m2.get("yield_kg_m2_monthly"),
+        "season_months":       m2.get("season_months"),
+        "q10": q10, "q90": q90,
+        "mape_cv": mape, "gate_pass": m2.get("gate_pass"),
+        "source": m2.get("source", "m2_yield"), "confidence": conf,
+    }
+
+
 def _get_season_start(crop_ko: str) -> int:
     """작목별 작기 시작 월."""
     return {
