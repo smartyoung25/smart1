@@ -568,7 +568,7 @@ async function _loadList(){
         <button class="eq-del" style="background:var(--blue-soft);color:var(--blue);" onclick="_openEdit(${ix})">수정</button>
         <button class="eq-del" onclick="_del('${it.device_id}')">삭제</button></div>
       <div class="eq-sub">${it.maker||'-'} ${it.model||''} · ${it.gong&&it.gong!=='기타'?it.gong+' · ':''}${it.location||'위치 미지정'}${it.host?` · ${it.host}${it.port?':'+it.port:''}`:''}</div>
-      <div style="margin-top:6px;">${dps.map(p=>`<span class="eq-dp">${p.tag}${p.canonical_name?` → ${p.canonical_name}`:''}</span>`).join('')||'<span class="eq-sub">데이터 포인트 없음</span>'}</div>
+      <div style="margin-top:6px;">${dps.map(p=>`<span class="eq-dp">${p.canonical_name?((_schema&&_schema.variable_labels&&_schema.variable_labels[p.canonical_name])||p.canonical_name):p.tag}</span>`).join('')||'<span class="eq-sub">데이터 포인트 없음</span>'}</div>
     </div>`;
   }).join('');
   _renderGradeSummary(items);
@@ -578,7 +578,7 @@ async function _loadList(){
   ms.style.display='block';
   ms.innerHTML=`<div style="font-size:13px;font-weight:800;">통합 현황</div>
     <div class="eq-sub">장비 ${items.length}대 · 표준변수 매핑 ${mappedVars.length}종</div>
-    <div style="margin-top:5px;">${mappedVars.map(v=>`<span class="eq-dp">${v}</span>`).join('')||'<span class="eq-sub">아직 매핑된 표준변수가 없습니다.</span>'}</div>`;
+    <div style="margin-top:5px;">${mappedVars.map(v=>`<span class="eq-dp">${(_schema&&_schema.variable_labels&&_schema.variable_labels[v])||v}</span>`).join('')||'<span class="eq-sub">아직 매핑된 표준변수가 없습니다.</span>'}</div>`;
 }
 // ★ 보유 기자재 평가 요약 — 평균 등급·분포·개선 우선순위
 function _renderGradeSummary(items){

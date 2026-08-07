@@ -27,6 +27,11 @@
     .ap-btn{width:100%;min-height:48px;margin-top:14px;background:var(--green);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:800;cursor:pointer;}
     .req-row{display:flex;gap:10px;align-items:center;padding:11px 13px;background:var(--panel);border:1px solid var(--border);border-radius:12px;margin-bottom:8px;}
     .req-st{font-size:10px;font-weight:800;padding:3px 8px;border-radius:8px;background:var(--blue-soft);color:var(--blue);white-space:nowrap;}
+    .req-steps{display:flex;align-items:center;gap:4px;margin-top:5px;flex-wrap:wrap;}
+    .req-step{font-size:10px;font-weight:700;color:var(--muted);padding:1px 7px;border-radius:8px;background:var(--panel-soft);}
+    .req-step.done{color:var(--green-dark,#15803d);background:var(--green-soft);}
+    .req-step.cur{color:#fff;background:var(--blue);font-weight:800;}
+    .req-arrow{font-size:10px;color:var(--muted);}
   </style>
 </head>
 <body>
@@ -127,11 +132,16 @@ async function _loadReqs(){
     const d=await fetch(`${_api}/api/farms/${_farm}/integration-request`,{headers:_H()}).then(r=>r.json());
     const rl=document.getElementById('reqList');
     if(!d.requests||!d.requests.length){rl.innerHTML='<div style="text-align:center;padding:12px;color:var(--muted);font-size:12.5px;">신청 내역이 없습니다.</div>';return;}
-    rl.innerHTML=d.requests.slice().reverse().map(r=>`
+    const STEPS=['접수','검토','연동완료'];
+    rl.innerHTML=d.requests.slice().reverse().map(r=>{
+      const ci=Math.max(0,STEPS.indexOf(r.status||'접수'));   // 현재 단계(대부분 '접수')
+      const stepper=`<div class="req-steps">${STEPS.map((s,i)=>`<span class="req-step${i<ci?' done':''}${i===ci?' cur':''}">${s}</span>`).join('<span class="req-arrow">›</span>')}</div>`;
+      return `
       <div class="req-row"><span style="font-size:18px;">${({equipment:'🔌',external_data:'🛰️',expert:'👨‍🌾',upgrade:'⭐'})[r.kind]||'📄'}</span>
         <div style="flex:1;"><div style="font-size:13px;font-weight:700;">${r.title}</div>
-          <div style="font-size:11px;color:var(--muted);">${(r.ts||'').slice(0,10)} · ${r.maker||r.contact||''}</div></div>
-        <span class="req-st">${r.status||'접수'}</span></div>`).join('');
+          <div style="font-size:11px;color:var(--muted);">${(r.ts||'').slice(0,10)} · ${r.maker||r.contact||''}</div>
+          ${stepper}</div></div>`;
+    }).join('');
   }catch(e){}
 }
 function _open(it){

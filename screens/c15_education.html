@@ -24,6 +24,12 @@
     .lesson::before{content:'•';position:absolute;left:4px;color:var(--purple);}
     .mod-btn{width:100%;margin-top:10px;padding:11px;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:800;cursor:pointer;}
     .ws-dot{width:8px;height:8px;border-radius:50%;background:var(--muted);display:inline-block;}
+    .mod-meta{display:flex;gap:5px;flex-wrap:wrap;margin-top:4px;}
+    .mod-tag{font-size:10px;font-weight:700;color:var(--muted);background:var(--panel-soft);border-radius:6px;padding:1px 6px;}
+    .mod-tag.prep{color:#b45309;background:#fef3c7;}
+    .mod-outline{font-size:11px;font-weight:800;color:var(--muted);margin:10px 0 2px;}
+    .mod-prep-note{font-size:11px;color:#92600b;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:8px 10px;margin-top:10px;line-height:1.5;}
+    .edu-cta{width:100%;margin-top:12px;padding:11px;border:none;border-radius:10px;background:#fff;color:#5b21b6;font-size:13px;font-weight:800;cursor:pointer;}
   </style>
 </head>
 <body>
@@ -38,6 +44,7 @@
     <div class="edu-rate"><span id="eduRate">0</span>% 이수</div>
     <div style="font-size:13px;opacity:.85;" id="eduDone">0 / 8 모듈 완료</div>
     <div class="edu-bar"><div class="edu-bar-f" id="eduBar" style="width:0%"></div></div>
+    <button class="edu-cta" id="eduCta" onclick="_startFirst()">첫 모듈 시작 →</button>
   </div>
   <div class="section-label">6대 운영관리 교육모듈 + 심화</div>
   <div id="modList"></div>
@@ -54,38 +61,51 @@
 </nav>
 <script>
 'use strict';
+// [id, icon, title, sub, lessons[], 소요시간(분), 형식]
 const MODULES=[
-  ['m1','💰','경영전략 수립','채널·매출·비용·소득률·ROI',['손익구조 이해','채널별 수취가 분석','목표 소득률 설정','ROI 시뮬레이션 활용']],
-  ['m2','🌡️','환경관리','온도·습도·VPD·CO₂·일사·환기·차광·보온',['VPD 개념과 관리','CO₂ 시비 타이밍','환기·차광·보온 연동제어','환경데이터 해석']],
-  ['m3','💧','관수·양액관리','급액시점·급액량·배액률·EC·pH',['Priva ET₀ 관수 원리','배액률 20~30% 관리','EC·pH 조정','관수 기록·분석']],
-  ['m4','⚡','에너지관리','전력·연료·피크요금·에너지비/kg',['시간대별 요금제 이해','피크 회피 운영','보온커튼·이중화','에너지비/kg 절감']],
-  ['m5','🔬','병해관리','결로시간·병해위험도·이미지진단·IPM',['결로 조기경보 활용','환경기반 병해예방','이미지 진단','IPM·약제저항성 관리']],
-  ['m6','🚚','수확·출하관리','수확량·상품률·출하시기·채널·수취가',['수확 예측 활용','상품률 향상','출하 시기 결정','공동출하 전략']],
-  ['m7','📋','경영성과 리포트 해석','월간 리포트·성과지표',['9대 성과지표 이해','취약항목 진단','변화율 추세 분석']],
-  ['m8','✅','실행계획 수립·점검','To-do·이행점검',['실행 To-do 작성','2~4주 이행점검','전문가 컨설팅 연계']],
+  ['m1','💰','경영전략 수립','채널·매출·비용·소득률·ROI',['손익구조 이해','채널별 수취가 분석','목표 소득률 설정','ROI 시뮬레이션 활용'],25,'영상'],
+  ['m2','🌡️','환경관리','온도·습도·VPD·CO₂·일사·환기·차광·보온',['VPD 개념과 관리','CO₂ 시비 타이밍','환기·차광·보온 연동제어','환경데이터 해석'],30,'영상'],
+  ['m3','💧','관수·양액관리','급액시점·급액량·배액률·EC·pH',['Priva ET₀ 관수 원리','배액률 20~30% 관리','EC·pH 조정','관수 기록·분석'],30,'영상'],
+  ['m4','⚡','에너지관리','전력·연료·피크요금·에너지비/kg',['시간대별 요금제 이해','피크 회피 운영','보온커튼·이중화','에너지비/kg 절감'],20,'문서'],
+  ['m5','🔬','병해관리','결로시간·병해위험도·이미지진단·IPM',['결로 조기경보 활용','환경기반 병해예방','이미지 진단','IPM·약제저항성 관리'],25,'영상'],
+  ['m6','🚚','수확·출하관리','수확량·상품률·출하시기·채널·수취가',['수확 예측 활용','상품률 향상','출하 시기 결정','공동출하 전략'],25,'영상'],
+  ['m7','📋','경영성과 리포트 해석','월간 리포트·성과지표',['9대 성과지표 이해','취약항목 진단','변화율 추세 분석'],20,'문서'],
+  ['m8','✅','실행계획 수립·점검','To-do·이행점검',['실행 To-do 작성','2~4주 이행점검','전문가 컨설팅 연계'],15,'문서'],
 ];
 window.addEventListener('DOMContentLoaded',_render);
 function _key(){return 'sf_edu_done';}
 function _doneSet(){return new Set(JSON.parse(localStorage.getItem(_key())||'[]'));}
 function _render(){
   const done=_doneSet();
-  document.getElementById('modList').innerHTML=MODULES.map(([id,ic,t,sub,lessons])=>`
+  document.getElementById('modList').innerHTML=MODULES.map(([id,ic,t,sub,lessons,dur,fmt])=>`
     <div class="mod-card ${done.has(id)?'done':''}" id="mod-${id}">
       <div class="mod-head" onclick="document.getElementById('mod-${id}').classList.toggle('expanded')">
         <span class="mod-ico">${ic}</span>
-        <div class="mod-title">${t}<div class="mod-sub">${sub}</div></div>
+        <div class="mod-title">${t}
+          <div class="mod-meta"><span class="mod-tag">${fmt==='영상'?'📹':'📄'} ${fmt}</span><span class="mod-tag">⏱ ${dur}분</span><span class="mod-tag prep">준비중</span></div>
+          <div class="mod-sub">${sub}</div></div>
         <div class="mod-check">${done.has(id)?'✓':''}</div>
       </div>
       <div class="mod-body">
+        <div class="mod-outline">이 모듈에서 다루는 내용</div>
         ${lessons.map(l=>`<div class="lesson">${l}</div>`).join('')}
+        <div class="mod-prep-note">🚧 학습 콘텐츠(${fmt})는 준비 중입니다. 아래에서 학습 완료를 직접 표시할 수 있어요.</div>
         <button class="mod-btn" style="background:${done.has(id)?'var(--gray-soft)':'var(--purple)'};color:${done.has(id)?'var(--muted)':'#fff'};" onclick="event.stopPropagation();_toggle('${id}')">
-          ${done.has(id)?'이수 취소':'이수 완료 체크'}</button>
+          ${done.has(id)?'학습 완료 취소':'학습 완료 표시'}</button>
       </div>
     </div>`).join('');
   const n=done.size, rate=Math.round(n/MODULES.length*100);
   document.getElementById('eduRate').textContent=rate;
   document.getElementById('eduDone').textContent=`${n} / ${MODULES.length} 모듈 완료`;
   document.getElementById('eduBar').style.width=`${rate}%`;
+  const cta=document.getElementById('eduCta');
+  if(cta){ const next=MODULES.find(m=>!done.has(m[0])); cta.textContent=next?(n>0?`이어서 학습 · ${next[2]} →`:`첫 모듈 시작 · ${next[2]} →`):'전체 모듈 완료 🎉'; cta.style.display=next?'block':'none'; }
+}
+function _startFirst(){
+  const done=_doneSet();
+  const next=MODULES.find(m=>!done.has(m[0]))||MODULES[0];
+  const card=document.getElementById('mod-'+next[0]);
+  if(card){ card.classList.add('expanded'); card.scrollIntoView({behavior:'smooth',block:'center'}); }
 }
 function _toggle(id){
   const arr=JSON.parse(localStorage.getItem(_key())||'[]');

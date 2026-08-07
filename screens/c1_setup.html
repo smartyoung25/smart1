@@ -47,6 +47,10 @@
     /* 필수/선택 배지 */
     .opt-badge { font-size:10px; font-weight:700; padding:2px 7px; border-radius:8px; border:1.5px solid var(--border); color:var(--muted); margin-left:6px; vertical-align:middle; display:inline-block; }
     .opt-badge.req { border-color:var(--orange); color:var(--orange); background:var(--orange-soft,#fff7ed); }
+    .onboard-guide { background:var(--panel-soft); border:1px solid var(--border); border-radius:12px; padding:12px 13px; margin:4px 0 14px; }
+    .og-title { font-size:12.5px; font-weight:800; margin-bottom:8px; }
+    .og-row { font-size:12px; color:var(--text); line-height:1.6; margin-bottom:4px; }
+    .og-note { font-size:11px; color:var(--muted); margin-top:6px; line-height:1.5; }
     /* 컨설팅 토글 카드 */
     .consult-card { margin-top:16px; padding:13px 14px; border:2px solid var(--border); border-radius:12px; background:var(--panel); cursor:pointer; display:flex; align-items:flex-start; gap:12px; }
     .consult-card.on { border-color:var(--blue); background:var(--blue-soft); }
@@ -123,11 +127,17 @@
   <div class="wiz-step active" data-step="1">
     <div class="wiz-title">농장 기본 정보</div>
     <div class="wiz-desc">농장을 식별할 기본 정보를 입력하세요.</div>
+    <div class="onboard-guide">
+      <div class="og-title">📋 8단계 온보딩 안내</div>
+      <div class="og-row"><span class="opt-badge req">필수</span><b>1·2단계</b> — 농장 기본정보·재배 작물</div>
+      <div class="og-row"><span class="opt-badge">선택</span><b>3~8단계</b> — 시설·규모·작기·목표·경영현황 (언제든 <b>건너뛰기</b> 가능, 이후 수정 가능)</div>
+      <div class="og-note">💡 전문가 컨설팅을 신청하면 3~8단계가 필수로 바뀝니다(2단계에서 선택).</div>
+    </div>
     <label class="wiz-label">농장명 <span style="color:var(--red)">*</span></label>
     <input class="wiz-input" id="fFarmName" placeholder="예: 논산 햇살딸기농장"/>
     <div style="font-size:11px;color:var(--muted);margin-top:5px;">농장 ID(자동): <b id="fFarmIdView">—</b> <span style="opacity:.7;">— 시스템이 자동 부여(중복 없음)</span></div>
 
-    <label class="wiz-label" style="margin-top:14px;">재배 지역</label>
+    <label class="wiz-label" style="margin-top:14px;">재배 지역 <span class="opt-badge">선택</span></label>
     <div class="opt-grid" style="grid-template-columns:1fr 1fr;gap:8px;">
       <select class="wiz-input" id="fSido" onchange="_onSido()"><option value="">시도 선택</option></select>
       <select class="wiz-input" id="fSigungu"><option value="">시군구 선택</option></select>
@@ -172,7 +182,7 @@
   <div class="wiz-step" data-step="4">
     <div class="wiz-title">재배 규모</div>
     <div class="wiz-desc">면적과 재배 방식을 입력하세요.</div>
-    <label class="wiz-label">재배 면적 (m²)</label>
+    <label class="wiz-label">재배 면적 (m²) <span class="opt-badge">선택</span></label>
     <input class="wiz-input" id="fArea" type="number" inputmode="decimal" placeholder="예: 1200"/>
     <label class="wiz-label">재배 방식</label>
     <div class="opt-grid" id="methodGrid"></div>
@@ -195,11 +205,11 @@
   <div class="wiz-step" data-step="5">
     <div class="wiz-title">작기 정보</div>
     <div class="wiz-desc">정식~수확 기간과 재배 연차를 입력하세요.</div>
-    <label class="wiz-label">작기 시작 (정식일)</label>
+    <label class="wiz-label">작기 시작 (정식일) <span class="opt-badge">선택</span></label>
     <input class="wiz-input" id="fStart" type="date"/>
-    <label class="wiz-label">작기 종료 (예상 수확)</label>
+    <label class="wiz-label">작기 종료 (예상 수확) <span class="opt-badge">선택</span></label>
     <input class="wiz-input" id="fEnd" type="date"/>
-    <label class="wiz-label">재배 연차</label>
+    <label class="wiz-label">재배 연차 <span class="opt-badge">선택</span></label>
     <input class="wiz-input" id="fYear" type="number" value="1" min="1"/>
   </div>
 
@@ -211,7 +221,7 @@
     <div id="painOtherBlock" style="display:none;margin-top:8px;">
       <input class="wiz-input" id="fPainOther" placeholder="개선 목표를 직접 입력하세요"/>
     </div>
-    <label class="wiz-label">목표 수확량 (kg/10a · 면적당)</label>
+    <label class="wiz-label">목표 수확량 (kg/10a · 면적당) <span class="opt-badge">선택</span></label>
     <input class="wiz-input" id="fKpiYield" type="number" inputmode="decimal" placeholder="예: 4500 (10a=1,000㎡ 당)"/>
     <div id="yieldTotalHint" style="font-size:11px;color:var(--muted);margin-top:6px;"></div>
   </div>
@@ -713,7 +723,8 @@ function _renderStepDots(){
   el.innerHTML=Array.from({length:TOTAL},(_,i)=>{
     const n=i+1;
     const cls=n<_step?'step-dot done':n===_step?'step-dot cur':'step-dot';
-    return `<div class="${cls}" title="${STEP_NAMES[i]}"></div>`;
+    const st=n<_step?'완료':n===_step?'현재':'예정';
+    return `<div class="${cls}" title="${n}. ${STEP_NAMES[i]} (${st})" aria-label="${n}단계 ${STEP_NAMES[i]} ${st}"></div>`;
   }).join('');
 }
 

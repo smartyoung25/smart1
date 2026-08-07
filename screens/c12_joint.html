@@ -248,13 +248,24 @@ function _render(ws, revenue){
   const netDiff  = jointNet - kamis;
   setEl('indivPrice', `${fmt(kamis)}<span style="font-size:12px;font-weight:400;">원</span>`);
   setEl('jointPrice', `${fmt(joint)}<span style="font-size:12px;font-weight:400;">원</span>`);
-  document.getElementById('boxJoint').classList.toggle('win', netDiff>=0);
-  document.getElementById('boxIndiv').classList.toggle('win', netDiff<0);
-
+  // ★ 개별(KAMIS)과 공동(도매시장) 단가가 사실상 같거나, 도매 실단가 데이터가 없으면(폴백 추정)
+  //   한쪽을 기계적으로 "유리"로 찍지 않고 중립 안내 (E2E C12-1).
+  const hasWholesale = !!(ws && ws.price_krw_kg > 0);
+  const sameRef = Math.abs(joint - kamis) < kamis * 0.02;   // 원단가 2% 이내 = 사실상 동일 기준(출처만 다름)
   const netDiffRev = Math.round(netDiff*yieldKg/10000);
-  setEl('adviceText', netDiff>=0
-    ? `🤝 공동출하는 <b>도매시장 출하가</b> ${fmt(joint)}원/kg — 수수료 ~8% 차감 후 실수취 약 <b>${fmt(jointNet)}원/kg</b>. 개별(KAMIS ${fmt(kamis)}원) 대비 약 <b>${netDiffRev.toLocaleString()}만원</b> 유리(등급·물량·시황 변동)`
-    : `순수취(수수료 차감) 기준 개별 출하가 유리. 공동출하 Pool 조건 확인 후 결정 권장`);
+  if (!hasWholesale || sameRef) {
+    document.getElementById('boxJoint').classList.remove('win');
+    document.getElementById('boxIndiv').classList.remove('win');
+    setEl('adviceText', !hasWholesale
+      ? `ℹ️ 현재 도매시장 실단가 데이터가 없어 공동출하 단가는 <b>추정치</b>입니다 — 개별과 직접 비교가 어렵습니다. 실단가 연동 후 판단 권장.`
+      : `ℹ️ 개별(KAMIS ${fmt(kamis)}원)과 공동(도매시장 ${fmt(joint)}원) 단가 차이가 <b>미미</b>해 가격 비교 의미가 낮습니다. 물량 안정성·정산 편의 등 <b>가격 외 요인</b>으로 판단 권장.`);
+  } else {
+    document.getElementById('boxJoint').classList.toggle('win', netDiff>=0);
+    document.getElementById('boxIndiv').classList.toggle('win', netDiff<0);
+    setEl('adviceText', netDiff>=0
+      ? `🤝 공동출하는 <b>도매시장 출하가</b> ${fmt(joint)}원/kg — 수수료 ~8% 차감 후 실수취 약 <b>${fmt(jointNet)}원/kg</b>. 개별(KAMIS ${fmt(kamis)}원) 대비 약 <b>${netDiffRev.toLocaleString()}만원</b> 유리(등급·물량·시황 변동)`
+      : `순수취(수수료 차감) 기준 개별 출하가 유리. 공동출하 Pool 조건 확인 후 결정 권장`);
+  }
 
   // ── 출하 타이밍 통찰 (30일 시세 추세·위치 해석) ──────────────
   const st = ws?.wholesale_stats || {};

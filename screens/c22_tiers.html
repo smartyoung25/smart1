@@ -25,6 +25,12 @@
     .tz-btn{width:100%;margin-top:9px;min-height:44px;border:none;border-radius:9px;font-size:12px;font-weight:800;cursor:pointer;}
     .tz-sec{font-size:12.5px;font-weight:900;margin:16px 2px 7px;color:var(--text);display:flex;align-items:center;gap:7px;}
     .tz-sec::before{content:"";width:4px;height:14px;border-radius:3px;background:var(--green);}
+    details.tz-sec-group{margin:14px 0 0;}
+    summary.tz-sec{list-style:none;cursor:pointer;margin:0 2px 7px;}
+    summary.tz-sec::-webkit-details-marker{display:none;}
+    summary.tz-sec::after{content:"▾";margin-left:auto;font-size:11px;color:var(--muted);transition:transform .15s;}
+    details.tz-sec-group[open]>summary.tz-sec::after{transform:rotate(180deg);}
+    .tz-sec-cnt{font-size:10px;font-weight:800;padding:1px 7px;border-radius:7px;background:var(--panel-soft);color:var(--muted);}
     .tz-row{display:flex;align-items:center;gap:9px;padding:9px 11px;border:1px solid var(--border);border-radius:10px;margin-bottom:6px;background:var(--panel);}
     .tz-row .lbl{flex:1;font-size:13px;font-weight:600;}
     .tz-need{font-size:10px;font-weight:800;padding:2px 7px;border-radius:7px;}
@@ -98,13 +104,17 @@ function _render(){
   _feats.forEach(f=>{ (secs[f.section]=secs[f.section]||[]).push(f); });
   let h='';
   Object.keys(secs).forEach(sec=>{
-    h+=`<div class="tz-sec">${SEC_KO[sec]||sec}</div>`;
-    h+=secs[sec].map(f=>{
+    const rows=secs[sec];
+    const lockedN=rows.filter(f=>RANK[f.min_tier]>RANK[view]).length;   // 현재 뷰 기준 잠긴 기능 수
+    const open=lockedN>0?' open':'';                                     // 잠긴 기능 있는 섹션만 기본 펼침(밀도↓)
+    const body=rows.map(f=>{
       const ok=RANK[f.min_tier]<=RANK[view];
+      const disp=(f.label_ko||'').replace(/\s*\(([a-z0-9_./+]+)\)/gi,'');   // 영문 전용 괄호(dr_pct_mean 등) 표시 제거
       return `<div class="tz-row"><span class="tz-state">${ok?'🔓':'🔒'}</span>
-        <span class="lbl" style="${ok?'':'color:var(--muted);'}">${f.label_ko}</span>
+        <span class="lbl" title="${(f.label_ko||'').replace(/"/g,'&quot;')}" style="${ok?'':'color:var(--muted);'}">${disp}</span>
         <span class="tz-need" style="background:${TCOL[f.min_tier]}22;color:${TCOL[f.min_tier]};">${(TIERS.find(t=>t[0]===f.min_tier)||[,'?'])[1]}</span></div>`;
     }).join('');
+    h+=`<details class="tz-sec-group"${open}><summary class="tz-sec">${SEC_KO[sec]||sec}<span class="tz-sec-cnt">${lockedN?`🔒 ${lockedN}`:`✓ ${rows.length}`}</span></summary>${body}</details>`;
   });
   document.getElementById('tzMatrix').innerHTML=h;
 }
