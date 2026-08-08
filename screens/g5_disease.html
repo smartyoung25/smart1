@@ -123,6 +123,19 @@
     <div style="margin-top:8px;font-size:11px;" id="riskUpdated">데이터 로드 중…</div>
   </div>
 
+  <!-- ══ 이미지×환경×시기 3축 병해 판단 ══ -->
+  <div class="section-label" style="margin-top:16px;">이미지×환경×시기 3축 판단 <span class="trust-badge trust-model">🔵 앙상블</span></div>
+  <div class="card" id="axis3Card" style="padding:14px;margin-bottom:12px;">
+    <div style="font-size:12px;color:var(--muted);">불러오는 중…</div>
+  </div>
+  <div class="card" style="padding:14px;margin-bottom:14px;">
+    <div style="font-size:13px;font-weight:800;margin-bottom:4px;">📷 잎 이미지 진단 <span style="font-size:10px;font-weight:700;color:var(--orange);">베타</span></div>
+    <div style="font-size:11px;color:var(--muted);line-height:1.5;margin-bottom:8px;">잎 사진을 올리면 외부 진단 API(Plant.id) 결과를 환경·시기 축과 합쳐 판단합니다. 업로드 이미지는 자체 모델 학습용으로 수집됩니다.</div>
+    <input type="file" accept="image/*" id="leafImg" style="display:none;" onchange="_onLeafImg(event)"/>
+    <button onclick="document.getElementById('leafImg').click()" style="width:100%;padding:11px;background:var(--purple);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:800;cursor:pointer;min-height:46px;">이미지 선택 → 진단</button>
+    <div id="imgDiagResult" style="margin-top:10px;"></div>
+  </div>
+
   <!-- 환경 이상값 알림 -->
   <div class="section-label">환경 이상값 알림 <span class="trust-badge trust-live">🟢 실측</span></div>
   <div id="anomalyGuard">
@@ -316,15 +329,67 @@ function _onWsStatus(s) {
 }
 
 // ── 전체 로드 ───────────────────────────────────────────────────────────────
+let _g5Farm = 'farm_001', _g5Token = '';
+
+// 이미지×환경×시기 3축 판단 카드
+function _render3Axis(d) {
+  const el = document.getElementById('axis3Card'); if (!el) return;
+  const ens = d?.ensemble;
+  if (!ens || !ens.top) { el.innerHTML = '<div style="font-size:12px;color:var(--muted);">3축 데이터 없음</div>'; return; }
+  const t = ens.top, ax = t.axes || {};
+  const pct = v => Math.round((v || 0) * 100);
+  const bar = (label, v, col) => `<div style="display:flex;align-items:center;gap:8px;margin:4px 0;">
+    <span style="width:44px;font-size:11px;color:var(--muted);">${label}</span>
+    <div style="flex:1;height:8px;background:var(--panel-soft);border-radius:5px;overflow:hidden;"><div style="width:${pct(v)}%;height:100%;background:${col};"></div></div>
+    <span style="width:30px;text-align:right;font-size:11px;font-weight:700;">${pct(v)}</span></div>`;
+  const lvlCol = {high:'var(--red)',medium:'var(--orange)',low:'var(--green-dark)',none:'var(--muted)'}[ens.risk_level] || 'var(--muted)';
+  const lvlKo  = {high:'높음',medium:'보통',low:'낮음',none:'없음'}[ens.risk_level] || ens.risk_level;
+  el.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;">
+      <span style="font-size:15px;font-weight:800;color:${lvlCol};">${t.name_ko}</span>
+      <span style="font-size:12px;font-weight:800;color:${lvlCol};">${pct(t.score)}점 · ${lvlKo}</span>
+    </div>
+    ${bar('이미지', ax.image, 'var(--purple)')}
+    ${bar('환경', ax.env, 'var(--blue)')}
+    ${bar('시기', ax.timing, 'var(--green)')}
+    <div style="font-size:10.5px;color:var(--muted);margin-top:8px;line-height:1.5;background:var(--panel-soft);border-radius:8px;padding:7px 9px;">ℹ️ ${ens.note}${d.growth_stage ? ` · 생육단계: ${d.growth_stage}` : ''}</div>`;
+}
+
+// 잎 이미지 업로드 → /disease/detect (데모 403 정직 처리)
+async function _onLeafImg(ev) {
+  const file = ev.target.files?.[0]; if (!file) return;
+  const res = document.getElementById('imgDiagResult');
+  res.innerHTML = '<div style="font-size:12px;color:var(--muted);">진단 중…</div>';
+  const reader = new FileReader();
+  reader.onload = async () => {
+    const b64 = String(reader.result).split(',')[1];
+    try {
+      const api = KaasaData.getApiBase();
+      const r = await fetch(`${api}/api/farms/${_g5Farm}/disease/detect`, {method:'POST',
+        headers:{'Content-Type':'application/json', Authorization:`Bearer ${_g5Token}`},
+        body: JSON.stringify({ image_base64: b64 })});
+      if (r.status === 403) { res.innerHTML = '<div style="font-size:12px;color:var(--orange);line-height:1.5;">🔒 데모에서는 이미지 업로드 진단이 제한됩니다(실서비스 전용). 환경·시기 2축 판단은 위 카드에서 제공됩니다.</div>'; return; }
+      const d = await r.json();
+      if (!r.ok) { res.innerHTML = `<div style="font-size:12px;color:var(--red);">오류 ${r.status}</div>`; return; }
+      res.innerHTML = `<div style="font-size:13px;font-weight:800;">${d.disease_ko} · ${Math.round((d.score||0)*100)}점</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:3px;line-height:1.5;">${d.action_ko||''}<br>출처: ${(d.source_chain||[]).join(' → ') || '환경 규칙'}</div>`;
+    } catch (e) { res.innerHTML = '<div style="font-size:12px;color:var(--red);">네트워크 오류</div>'; }
+  };
+  reader.readAsDataURL(file);
+}
+
 async function _loadAll(token, farmId) {
   const api = KaasaData.getApiBase();
   const H   = { Authorization: `Bearer ${token}` };
 
-  const [disease, anomalies, env] = await Promise.all([
+  _g5Farm = farmId; _g5Token = token;
+  const [disease, anomalies, env, riskEns] = await Promise.all([
     fetch(`${api}/api/farms/${farmId}/disease-risk/augmented`, {headers:H}).then(r=>r.ok?r.json():null).catch(()=>null),
     fetch(`${api}/api/farms/${farmId}/anomalies/latest`, {headers:H}).then(r=>r.ok?r.json():null).catch(()=>null),
     fetch(`${api}/api/farms/${farmId}/environment`, {headers:H}).then(r=>r.ok?r.json():null).catch(()=>null),
+    fetch(`${api}/api/farms/${farmId}/disease-risk`, {headers:H}).then(r=>r.ok?r.json():null).catch(()=>null),
   ]);
+  _render3Axis(riskEns);
 
   const envFlat = {};
   for (const m of (env?.measurements || [])) envFlat[m.canonical_name] = m.value;

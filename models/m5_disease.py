@@ -155,7 +155,13 @@ class M5DiseaseModel:
             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
         ])
         dataset = datasets.ImageFolder(str(data_dir), transform=transform)
-        loader  = DataLoader(dataset, batch_size=16, shuffle=True, num_workers=4)
+        # ★ 구: 학습셋으로 F1 을 재 과적합 낙관 → train/val 분할 후 val-F1 로 게이트 판정.
+        from torch.utils.data import random_split
+        _nval = max(1, int(len(dataset) * 0.2))
+        _tr, _va = random_split(dataset, [len(dataset) - _nval, _nval],
+                                generator=torch.Generator().manual_seed(42))
+        loader     = DataLoader(_tr, batch_size=16, shuffle=True, num_workers=4)
+        val_loader = DataLoader(_va, batch_size=16, shuffle=False, num_workers=4)
         model   = models.efficientnet_b4(weights="IMAGENET1K_V1")
         model.classifier[1] = nn.Linear(model.classifier[1].in_features, len(CLASS_NAMES))
         device  = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -173,7 +179,7 @@ class M5DiseaseModel:
                 optimizer.step()
         model.eval()
         with torch.no_grad():
-            for images, labels in loader:
+            for images, labels in val_loader:   # ★ val 셋으로 F1 산출(과적합 낙관 제거)
                 preds = model(images.to(device)).argmax(dim=1).cpu().numpy()
                 all_preds.extend(preds)
                 all_labels.extend(labels.numpy())
@@ -587,3 +593,107 @@ def env_risk_predict_all(env: dict, crop_ko: str = "딸기") -> list[dict]:
             })
     results.sort(key=lambda x: x["score"], reverse=True)
     return results
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 3축 앙상블 — 이미지 × 환경 × 시기 (2026-08-08)
+#   환경축(env_risk_predict_all): 지금 환경이 어느 병해에 유리한가(규칙, 0~1).
+#   시기축(timing_prior): 이 작목의 이 생육단계·계절에 어느 병해가 흔한가(사전확률).
+#   이미지축(Plant.id 등): 실제 잎 이미지가 병해로 보이는가(외부 API).
+#   → 세 축 가중 융합. 이미지 없으면 환경·시기만. ★ 인과·정확도 과장 금지(규칙·사전지식 기반).
+# ══════════════════════════════════════════════════════════════════════════════
+
+# 생육단계(한글) → 그룹. farmer.py growth_stage_ko('초기 (정식기)'·'성숙·수확기' 등) 키워드 매칭.
+def _stage_group(stage_ko: Optional[str]) -> Optional[str]:
+    s = stage_ko or ""
+    if any(k in s for k in ("착과", "개화", "성숙", "수확")):
+        return "fruiting"
+    if any(k in s for k in ("초기", "정식", "영양", "생육")):
+        return "vegetative"
+    return None
+# 시기축 근거(농진청 발생환경 지침·교재 kb): 다습·저온성은 결로 잦은 저온다습기(11~4월)↑,
+#   고온성은 생육기 고온다습(5~9월)↑, 과실 관련은 착과·수확기(fruiting)↑.
+_COOL_SEASON_DISEASES = {"gray_mold", "botrytis_fruit_rot", "downy_mildew"}
+_WARM_SEASON_DISEASES = {"powdery_mildew", "bacterial_spot", "phytophthora", "anthracnose", "fusarium_wilt"}
+_FRUIT_STAGE_DISEASES = {"botrytis_fruit_rot", "gray_mold", "anthracnose", "bacterial_spot"}
+_VEG_STAGE_DISEASES   = {"powdery_mildew", "downy_mildew", "fusarium_wilt"}
+
+
+def timing_prior(crop_ko: str, growth_stage_ko: Optional[str], month: Optional[int]) -> dict:
+    """작목×생육단계×계절 → 병해별 시기 사전확률(0~1). 규칙·사전지식 기반(인과 아님)."""
+    priority = _CROP_PRIORITY.get(crop_ko, _DEFAULT_PRIORITY)
+    n = max(len(priority), 1)
+    prior = {d: round(1.0 - 0.6 * i / n, 3) for i, d in enumerate(priority)}  # 우선순위 랭크 0.4~1.0
+    stage_grp = _stage_group(growth_stage_ko)
+    for d in list(prior):
+        if month is not None:
+            cool = month in (11, 12, 1, 2, 3, 4)
+            if cool and d in _COOL_SEASON_DISEASES:        prior[d] = min(1.0, prior[d] + 0.15)
+            if (not cool) and d in _WARM_SEASON_DISEASES:  prior[d] = min(1.0, prior[d] + 0.15)
+        if stage_grp == "fruiting" and d in _FRUIT_STAGE_DISEASES:   prior[d] = min(1.0, prior[d] + 0.15)
+        if stage_grp == "vegetative" and d in _VEG_STAGE_DISEASES:   prior[d] = min(1.0, prior[d] + 0.15)
+    return prior
+
+
+# 외부 이미지 진단 병해명 → 내부 8키(부분 문자열 매칭). 실패 시 overall 위험만 반영.
+_IMAGE_NAME_MAP = [
+    ("botrytis", "gray_mold"), ("gray mold", "gray_mold"), ("잿빛", "gray_mold"),
+    ("powdery", "powdery_mildew"), ("흰가루", "powdery_mildew"),
+    ("downy", "downy_mildew"), ("노균", "downy_mildew"),
+    ("phytophthora", "phytophthora"), ("late blight", "phytophthora"), ("역병", "phytophthora"),
+    ("anthracnose", "anthracnose"), ("탄저", "anthracnose"),
+    ("bacterial", "bacterial_spot"), ("세균", "bacterial_spot"),
+    ("fusarium", "fusarium_wilt"), ("시들음", "fusarium_wilt"),
+    ("fruit rot", "botrytis_fruit_rot"), ("과실", "botrytis_fruit_rot"),
+]
+
+
+def map_image_probs(image_result: Optional[dict]) -> tuple[dict, float]:
+    """외부 이미지 진단 결과 → ({내부키: 확률}, 전체 병해확률). Plant.id health 형식 가정."""
+    if not image_result:
+        return {}, 0.0
+    overall = float(image_result.get("disease_probability",
+                    1.0 - float(image_result.get("is_healthy", 1.0))))
+    probs: dict = {}
+    for d in (image_result.get("diseases") or []):
+        nm = str(d.get("name", "")).lower()
+        p  = float(d.get("probability", 0.0))
+        for frag, key in _IMAGE_NAME_MAP:
+            if frag in nm:
+                probs[key] = max(probs.get(key, 0.0), p)
+                break
+    return probs, round(overall, 4)
+
+
+def assess_disease_3axis(env: dict, crop_ko: str = "딸기",
+                         growth_stage_ko: Optional[str] = None, month: Optional[int] = None,
+                         image_result: Optional[dict] = None) -> dict:
+    """이미지×환경×시기 3축 앙상블 병해 판단(가중 융합, 축별 기여 반환)."""
+    env_p = {r["disease"]: r["score"] for r in env_risk_predict_all(env, crop_ko)}
+    tim_p = timing_prior(crop_ko, growth_stage_ko, month)
+    img_p, img_overall = map_image_probs(image_result)
+    has_image = bool(image_result)
+    w = {"img": 0.5, "env": 0.3, "tim": 0.2} if has_image else {"img": 0.0, "env": 0.6, "tim": 0.4}
+
+    fused = []
+    for k in (set(env_p) | set(tim_p) | set(img_p)):
+        e = env_p.get(k, 0.0); t = tim_p.get(k, 0.0)
+        im = (img_p.get(k, img_overall * 0.5)) if has_image else 0.0   # 매핑 실패 병해는 overall 약반영
+        score = w["img"] * im + w["env"] * e + w["tim"] * t
+        thr = _DISEASE_THRESHOLDS.get(k, {})
+        fused.append({
+            "disease": k, "name_ko": thr.get("name_ko", k),
+            "score": round(min(1.0, score), 4),
+            "axes": {"image": round(im, 3), "env": round(e, 3), "timing": round(t, 3)},
+            "action_ko": thr.get("action_ko", ""),
+        })
+    fused.sort(key=lambda x: x["score"], reverse=True)
+    top = fused[0] if fused else None
+    lvl = ("high" if top and top["score"] >= 0.6 else "medium" if top and top["score"] >= 0.4
+           else "low" if top and top["score"] >= 0.2 else "none")
+    return {
+        "crop": crop_ko, "growth_stage": growth_stage_ko, "month": month,
+        "has_image": has_image, "weights": w, "top": top, "ranked": fused[:5], "risk_level": lvl,
+        "note": ("이미지·환경·시기 3축 앙상블" if has_image else "환경·시기 2축(이미지 미제출)")
+                + " — 규칙·사전지식 기반, 인과 아님. 이미지 진단은 외부 API(Plant.id).",
+    }

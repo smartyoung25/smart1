@@ -1415,9 +1415,30 @@ def get_disease_risk(farm_id: str):
 
     result = _env_risk_predict(env_snapshot, crop)
 
+    # ── 3축 앙상블(이미지 미제출 → 환경·시기 2축) ─────────────────────────────
+    _stage = None
+    try:
+        from models.crop_config import get_phenology_cycle_days
+        _pm_raw = meta.get("plant_month") or meta.get("season_start")
+        _total  = max(get_phenology_cycle_days(crop), 1)
+        if _pm_raw:
+            _pm   = int(str(_pm_raw).split("-")[0])
+            _days = ((date.today().month - _pm) % 12) * 30
+            _r    = _days / _total
+            _stage = ("초기 (정식기)" if _r < 0.20 else "영양생장기" if _r < 0.50
+                      else "착과·개화기" if _r < 0.75 else "성숙·수확기")
+    except Exception:
+        _stage = None
+    _ens = None
+    try:
+        from models.m5_disease import assess_disease_3axis
+        _ens = assess_disease_3axis(env_snapshot, crop, _stage, date.today().month, image_result=None)
+    except Exception as e:
+        logger.warning("[disease_risk] 3축 앙상블 실패: %s", e)
+
     logger.info(
-        "[disease_risk] farm=%s crop=%s → %s [%s] score=%.2f",
-        farm_id, crop, result.disease, result.risk_level, result.score,
+        "[disease_risk] farm=%s crop=%s → %s [%s] score=%.2f stage=%s",
+        farm_id, crop, result.disease, result.risk_level, result.score, _stage,
     )
 
     return DiseaseRiskResponse(
@@ -1431,6 +1452,8 @@ def get_disease_risk(farm_id: str):
         reasons=result.reasons,
         action_ko=result.action_ko,
         env_snapshot=env_snapshot,
+        growth_stage=_stage,
+        ensemble=_ens,
     )
 
 
@@ -1979,7 +2002,7 @@ def get_model_performance(farm_id: str):
         "m2_yield":  sorted(m2_results, key=lambda x: x["mape_pct"]),
         "m3_revenue": sorted(m3_results, key=lambda x: x["mape_pct"]),
         "m4_cost": {"status": "parameter_based", "grade": "✅"},
-        "m5_disease": {"status": "rule_based_v2_8diseases", "grade": "⚠️ 이미지모델 미구축"},
+        "m5_disease": {"status": "3axis_ensemble(env+timing+image)", "grade": "🔵 환경규칙+시기prior+외부API(Plant.id) · 자체 이미지모델 미구축(데이터 수집 중)"},
         "priva_irrigation": {"status": "active", "grade": "⭐⭐⭐ 신규"},
         "api_connections": {k: v["status"] for k, v in api_status["apis"].items()},
         "missing_guide_url": "/api/farms/{farm_id}/system/api-status",
@@ -2077,6 +2100,61 @@ def detect_disease_endpoint(farm_id: str, body: DiseaseDetectRequest):
         ncpms_detail=result.get("ncpms_detail", []),
         updated_at=result.get("updated_at", _now().isoformat()),
     )
+
+
+# ---------------------------------------------------------------------------
+# POST /disease/capture — 병해 이미지 수집(이미지·라벨·환경·시기 페어 적재)
+#   자체 이미지 모델(EfficientNet) 학습 데이터 축적. 코드·학습루프는 완성돼 있으나
+#   학습용 이미지·라벨이 0건이라 시작을 못 했음 → 이 수집이 그 선결과제.
+#   ImageFolder 구조({crop}/{label}/{id}.jpg)로 저장해 M5DiseaseModel.train() 바로 호출 가능.
+#   ★ PUBLIC_DEMO 에서는 쓰기 차단(403). 실서비스 전용.
+# ---------------------------------------------------------------------------
+
+class DiseaseCaptureRequest(BaseModel):
+    image_base64: str
+    label: Optional[str] = None   # 병해키(gray_mold 등)·'unknown'. 없으면 3축 자동판단 top 사용
+    note: Optional[str] = None
+
+
+@router.post("/disease/capture", summary="병해 이미지 수집 — (이미지·라벨·환경·시기) 페어 적재")
+def capture_disease_image(farm_id: str, body: DiseaseCaptureRequest):
+    import base64, uuid, json as _json
+    from pathlib import Path as _Path
+    _require_farm(farm_id)
+    meta    = _FARM_META.get(farm_id, {})
+    crop_ko = meta.get("crop", "딸기")
+    env = _get_env(farm_id) or {}
+    env_snap = {k: float(env.get(k, d)) for k, d in
+                (("temp_internal", 20.0), ("humidity_int", 70.0), ("co2_ppm", 800.0),
+                 ("solar_rad", 150.0), ("soil_temp", 18.0))}
+    label = body.label
+    if not label:
+        try:
+            from models.m5_disease import assess_disease_3axis
+            _a = assess_disease_3axis(env_snap, crop_ko, None, date.today().month)
+            label = (_a.get("top") or {}).get("disease") or "unknown"
+        except Exception:
+            label = "unknown"
+    try:
+        raw = base64.b64decode(body.image_base64.split(",")[-1])
+    except Exception:
+        raise HTTPException(status_code=400, detail="image_base64 디코드 실패")
+    cid = uuid.uuid4().hex[:12]
+    img_dir = _Path("api/data/disease_images") / crop_ko / label   # = ImageFolder 클래스 폴더
+    img_dir.mkdir(parents=True, exist_ok=True)
+    img_path = img_dir / f"{cid}.jpg"
+    img_path.write_bytes(raw)
+    meta_dir = _Path("api/data/disease_captures"); meta_dir.mkdir(parents=True, exist_ok=True)
+    rec = {"id": cid, "farm_id": farm_id, "crop": crop_ko, "label": label,
+           "env": env_snap, "month": date.today().month,
+           "plant_month": meta.get("plant_month"), "note": body.note,
+           "image": str(img_path), "ts": _now().isoformat()}
+    with (meta_dir / f"{farm_id}.jsonl").open("a", encoding="utf-8") as f:
+        f.write(_json.dumps(rec, ensure_ascii=False) + "\n")
+    logger.info("[disease/capture] farm=%s crop=%s label=%s id=%s", farm_id, crop_ko, label, cid)
+    return {"ok": True, "id": cid, "crop": crop_ko, "label": label,
+            "stored": str(img_path),
+            "note": "수집 완료 — 자체 이미지모델(EfficientNet) 학습 데이터로 축적됩니다."}
 
 
 # ══════════════════════════════════════════════════════════════════════════════

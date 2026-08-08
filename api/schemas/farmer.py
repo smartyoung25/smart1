@@ -350,4 +350,7 @@ class DiseaseRiskResponse(BaseModel):
     reasons: list[str]             # 위험 판단 근거 문구
     action_ko: str                 # 권장 조치
     env_snapshot: dict             # 판단에 사용된 환경값
+    # ── 3축 앙상블 (2026-08-08): 이미지×환경×시기. GET(이미지 미제출)은 환경·시기 2축 ──
+    growth_stage: Optional[str] = None      # 생육단계(시기축)
+    ensemble: Optional[dict] = None         # assess_disease_3axis 결과(top·ranked·axes·note)
 
