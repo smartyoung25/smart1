@@ -330,6 +330,25 @@ _CROP_PRIORITY: dict[str, list[str]] = {
         "phytophthora", "gray_mold", "bacterial_spot",
         "anthracnose", "fusarium_wilt",
     ],
+    # ── 제주 노지작물 (8병해 셋 내 농학적 매핑 — 노지 주요병해 근사) ──────────────
+    "감귤": [        # 궤양병·검은점무늬(탄저)·흰가루·역병
+        "anthracnose", "bacterial_spot", "powdery_mildew", "phytophthora",
+    ],
+    "월동무": [      # 노균병·무름병·흰가루·검은무늬
+        "downy_mildew", "bacterial_spot", "powdery_mildew", "anthracnose",
+    ],
+    "당근": [        # 검은잎마름·흰가루·무름·노균
+        "anthracnose", "powdery_mildew", "bacterial_spot", "downy_mildew",
+    ],
+    "양배추": [      # 노균병·무름병·검은무늬·흰가루
+        "downy_mildew", "bacterial_spot", "anthracnose", "powdery_mildew",
+    ],
+    "마늘": [        # 노균·잎마름·흑색썩음균핵(잿빛곰팡이 근사)·무름
+        "downy_mildew", "gray_mold", "bacterial_spot",
+    ],
+    "양파": [        # 노균·잿빛곰팡이·잎마름·무름
+        "downy_mildew", "gray_mold", "bacterial_spot", "botrytis_fruit_rot",
+    ],
 }
 _DEFAULT_PRIORITY = [
     "gray_mold", "powdery_mildew", "phytophthora", "anthracnose",
