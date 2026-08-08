@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
-  <title>C4 — AI 진단 | KAASA Farmingsight</title>
+  <title>C4 — 종합진단 | KAASA Farmingsight</title>
   <link rel="stylesheet" href="../components/base.css"/>
   <style>
     .diag-hero { background:linear-gradient(135deg,#1e3a5f 0%,#7c3aed 100%); border-radius:var(--radius); padding:18px 20px; margin-bottom:14px; color:#fff; }
@@ -47,7 +47,7 @@
     <span class="ws-dot" id="wsDot"></span>
     <span style="font-size:12px;color:rgba(255,255,255,.8)" id="wsLabel">연결 중…</span>
   </div>
-  <span style="font-size:15px;font-weight:800;color:#fff;">C4 AI 진단</span>
+  <span style="font-size:15px;font-weight:800;color:#fff;">C4 종합진단</span>
   <select id="farmSel" aria-label="농장 선택" onchange="onFarmChange(this.value)"
           style="font-size:12px;background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:8px;padding:4px 8px;cursor:pointer;outline:none;">
     <option value="farm_001">farm_001</option>
@@ -62,7 +62,7 @@
   <script>try{if(localStorage.getItem('sf_signup_role')==='expert')document.getElementById('expertRoleBanner').style.display='block';}catch(e){}</script>
 
   <div class="diag-hero">
-    <div style="font-size:12px;opacity:.75;">AI 종합 진단 점수</div>
+    <div style="font-size:12px;opacity:.75;">종합 진단 점수 (RDA 현장컨설팅 기준)</div>
     <div class="diag-score" id="diagScore">—</div>
     <div class="diag-grade" id="diagGrade">분석 중…</div>
     <div class="diag-sub" id="diagSub">recommendations·anomalies 기반 종합 평가</div>
@@ -80,7 +80,7 @@
   <div class="section-label" style="margin-top:16px;">전문가 컨설팅</div>
   <div class="card" style="padding:14px;">
     <div id="consultCtx"></div>
-    <div style="font-size:13px;color:var(--muted);margin-bottom:12px;line-height:1.5;">AI 진단으로 해결이 어려운 경우, 분야별 전문가 미팅을 예약할 수 있습니다. <b>현장 점검 결과가 자동 첨부</b>됩니다.</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:12px;line-height:1.5;">종합진단으로 해결이 어려운 경우, 분야별 전문가 미팅을 예약할 수 있습니다. <b>현장 점검 결과가 자동 첨부</b>됩니다.</div>
     <button class="expert-btn" onclick="_openSheet()">전문가 미팅 예약</button>
   </div>
 

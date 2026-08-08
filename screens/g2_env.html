@@ -342,15 +342,15 @@
     <div class="mode-tab active" id="modeSuggest" onclick="setMode('suggest')">
       <span class="mode-icon">💡</span>권고형
     </div>
-    <div class="mode-tab" id="modeApprove" onclick="setMode('approve')">
-      <span class="mode-icon">✅</span>승인형
+    <div class="mode-tab" id="modeApprove" onclick="_lockedMode()" style="opacity:.5;" title="기기 연동 시 제공">
+      <span class="mode-icon">✅</span>승인형 🔒
     </div>
-    <div class="mode-tab" id="modeAuto" onclick="setMode('auto')">
-      <span class="mode-icon">🤖</span>자동
+    <div class="mode-tab" id="modeAuto" onclick="_lockedMode()" style="opacity:.5;" title="기기 연동 시 제공">
+      <span class="mode-icon">🤖</span>자동 🔒
     </div>
   </div>
   <div id="modeDesc" style="font-size:12px;color:var(--muted);margin-bottom:14px;padding:8px 12px;background:var(--panel);border-radius:var(--radius-sm);">
-    AI 추천을 표시하지만 실행은 직접 합니다.
+    규칙 기반 제어 권고를 표시합니다. 실행은 직접 합니다.
   </div>
   <!-- ★ 환경관리 전략표 (생육시기 × 하루 구간) -->
   <div class="section-label" style="margin-top:4px;">환경관리 전략표 <span class="trust-badge trust-model">🔵 정식 기준</span></div>
@@ -378,8 +378,8 @@
   <div class="section-label">AI 에이전트 (빠른 루프) <span class="trust-badge trust-model">🔵 30초 루프</span></div>
   <div class="card" id="agentCard" style="padding:13px 14px;margin-bottom:14px;border-left:4px solid var(--blue,var(--chart-cool));"></div>
 
-  <!-- AI 제어 추천 -->
-  <div class="section-label">AI 제어 추천</div>
+  <!-- 규칙 기반 제어 권고 -->
+  <div class="section-label">규칙 기반 제어 권고</div>
   <div id="aiControls">
     <div class="card" style="text-align:center;padding:20px;color:var(--muted);">
       <div class="spinner"></div>
@@ -612,10 +612,10 @@ let _dliAccum = 0;    // mol/m²/day 누적값
 let _lastSolarTs = null;
 
 const MODE_DESC = {
-  manual:  '제어는 수동으로 합니다. AI 추천 없이 직접 판단합니다.',
-  suggest: 'AI 추천을 표시하지만 실행은 직접 합니다.',
-  approve: 'AI 추천을 표시하고 승인 후 자동 실행합니다.',
-  auto:    '⚠️ AI가 자동으로 제어합니다. 주의해서 사용하세요.',
+  manual:  '제어는 수동으로 합니다. 권고 없이 직접 판단합니다.',
+  suggest: '규칙 기반 제어 권고를 표시합니다. 실행은 직접 합니다.',
+  approve: '🔒 기기 연동 시 제공 — 현재는 권고 확인·기록만 가능합니다(직접 실행 필요).',
+  auto:    '🔒 기기 연동 시 제공 — 자동 제어는 하드웨어 연동 후 가능합니다.',
 };
 
 // ── 제어 추천 데이터 (실데이터 없으면 규칙 기반) ──────────────────────────────
@@ -957,7 +957,6 @@ function _renderControls(container, results, planBased) {
   container.innerHTML = tag + results.map(({ rule, result }) => {
     const levelBadge = result.level === 'danger' ? 'urgent' : result.level === 'warn' ? 'suggest' : 'info';
     const levelText  = result.level === 'danger' ? '즉시 조치' : result.level === 'warn' ? '권고' : '제안';
-    const conf = Math.round(result.conf * 100);
     const actionBtns = _mode !== 'manual' ? `
       <div class="action-row">
         <button class="btn-accept" onclick="_acceptControl('${rule.id}','${result.action.replace(/'/g,"\\'")}')">✓ 확인·기록</button>
@@ -968,7 +967,6 @@ function _renderControls(container, results, planBased) {
       <div class="control-card-head">
         <span class="control-card-icon">${rule.icon}</span>
         <span class="control-card-title">${rule.title}</span>
-        <span class="control-card-conf">${conf}%</span>
       </div>
       <div class="control-card-body">
         <div class="control-desc">📌 ${result.action}</div>
@@ -1146,6 +1144,12 @@ function setMode(mode) {
   const desc = document.getElementById('modeDesc');
   if (desc) desc.textContent = MODE_DESC[mode];
   _updateAiControls(_env);
+}
+
+// 승인형·자동 모드는 기기 연동 전까지 실행 불가(하드웨어 미연동) → 잠금.
+function _lockedMode() {
+  const desc = document.getElementById('modeDesc');
+  if (desc) desc.textContent = '🔒 승인형·자동 제어는 기기 연동 후 제공됩니다. 현재는 권고 확인·기록(직접 실행)만 가능합니다.';
 }
 
 // ── 유틸 ───────────────────────────────────────────────────────────────────

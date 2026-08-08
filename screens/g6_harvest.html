@@ -127,7 +127,7 @@
 
   <!-- AI 출하 추천 -->
   <div class="card" id="channelAdvice" style="padding:14px;margin-bottom:14px;border-left:4px solid var(--green);">
-    <div style="font-size:13px;font-weight:800;margin-bottom:6px;">🤖 AI 출하 추천</div>
+    <div style="font-size:13px;font-weight:800;margin-bottom:6px;">🚚 출하 채널 비교 <span style="font-size:10px;font-weight:700;color:var(--muted);">(수수료 차감 순수취 기준)</span></div>
     <div id="channelAdviceText" style="font-size:13px;color:var(--muted);">분석 중…</div>
     <div style="margin-top:10px;">
       <button class="action-chip" onclick="location.href='c12_joint.html'">Pool 신청하기</button>
@@ -348,8 +348,12 @@ function _renderChannels(revenue, wholesale, crop) {
   // AI 조언 — 순수취 기준, 조건부 표기
   const yieldKg = revenue?.yield_kg_forecast ?? 0;
   const netDiffRevenue = Math.round(netDiff * yieldKg / 10000);
+  // 수확량 미입력 시 총액(만원)을 지어내지 않는다(구: 0만원으로 오도).
+  const _amtPhrase = yieldKg > 0
+    ? ` 개별(KAMIS ${fmt(indiv)}원) 대비 약 <b>${netDiffRevenue.toLocaleString()}만원</b> 유리(등급·물량·시황 따라 변동).`
+    : ` 개별(KAMIS ${fmt(indiv)}원) 대비 순수취 유리 — 총액은 수확량 입력 후 산출됩니다.`;
   const adviceText = recommended === 'joint'
-    ? `공동출하는 <b>도매시장 출하가</b> ${fmt(joint)}원/kg 기준 — 수수료 ~8% 차감 후 실수취 약 <b>${fmt(jointNet)}원/kg</b>. 개별(KAMIS ${fmt(indiv)}원) 대비 약 <b>${netDiffRevenue.toLocaleString()}만원</b> 유리(등급·물량·시황 따라 변동). Pool 조건·마감 확인`
+    ? `공동출하는 <b>도매시장 출하가</b> ${fmt(joint)}원/kg 기준 — 수수료 ~8% 차감 후 실수취 약 <b>${fmt(jointNet)}원/kg</b>.${_amtPhrase} Pool 조건·마감 확인`
     : `순수취(수수료 차감) 기준 개별(KAMIS) 출하가 유리. 공동출하 Pool 조건과 비교 후 결정`;
   const advEl = document.getElementById('channelAdviceText');
   if (advEl) advEl.innerHTML = adviceText;
@@ -392,6 +396,7 @@ function _renderCI(h){
 // ── 수확 시나리오 ───────────────────────────────────────────────────────────
 function _renderScenarios(harvest, revenue) {
   const predDate = harvest?.predicted_date ? new Date(harvest.predicted_date) : null;
+  const _yEstimated = revenue?.yield_kg_forecast == null;   // 결측 시 표준 추정임을 배지로 명시
   const yieldKg  = revenue?.yield_kg_forecast ?? 18000;
   const priceKg  = revenue?.kamis_price_krw_kg ?? revenue?.price_krw_kg ?? 1800;
   const container = document.getElementById('scenarios');
@@ -402,11 +407,12 @@ function _renderScenarios(harvest, revenue) {
   // 3가지 시나리오: 조기(D-7), 예정(D-0), 지연(D+7)
   const scenarios = [
     { label:'조기 수확', date: new Date(predDate.getTime()-7*86400000), yield: yieldKg*0.90, price: priceKg*1.05, note:'85~90% 착색 · 출하가 약간 상승' },
-    { label:'예정 수확', date: predDate,                                yield: yieldKg,      price: priceKg,     note:`AI 예측 기준 (${Math.round(harvest?.confidence*100||60)}% 신뢰)` },
+    { label:'예정 수확', date: predDate,                                yield: yieldKg,      price: priceKg,     note: harvest?.confidence ? `예측 기준 (${Math.round(harvest.confidence*100)}% 신뢰)` : '예측 기준' },
     { label:'지연 수확', date: new Date(predDate.getTime()+7*86400000), yield: yieldKg*1.05, price: priceKg*0.97, note:'완숙 수확 · 물량 집중 시기' },
   ];
 
-  container.innerHTML = scenarios.map((s, i) => {
+  const _estNote = _yEstimated ? `<div style="font-size:10px;color:var(--orange);margin-bottom:6px;line-height:1.5;">⚠ 수확량 미입력 — 표준 추정(18,000kg)으로 계산. 실제 수확 입력 시 정확해집니다.</div>` : '';
+  container.innerHTML = _estNote + scenarios.map((s, i) => {
     const dday = Math.round((s.date - new Date()) / 86400000);
     const rev  = Math.round(s.yield * s.price / 10000);
     const isBest = i === 1;

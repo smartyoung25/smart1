@@ -223,7 +223,7 @@ async function _sendForgot(){
 
 // 역할별 가입 후 첫 화면 (농가=농장세팅 / 유통=공동출하 / 전문가=AI진단 / 공공=클러스터관제)
 const _LAND={farmer:['c1_setup.html','농장 세팅'], org:['c1_setup.html','농장 세팅'],
-  distributor:['c12_joint.html','공동출하·산지소싱'], expert:['c4_diagnosis.html','AI 진단·컨설팅'],
+  distributor:['c12_joint.html','공동출하·산지소싱'], expert:['c4_diagnosis.html','종합진단·컨설팅'],
   public:['c20_cluster_admin.html','다중농가 관제']};
 function _landing(){ return (_LAND[_role]||_LAND.farmer)[0]; }
 function _landingLabel(){ return (_LAND[_role]||_LAND.farmer)[1]; }

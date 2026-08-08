@@ -129,7 +129,7 @@
     <div class="harvest-date" id="harvestDate">—</div>
     <div class="harvest-dday" id="harvestDday">계산 중…</div>
     <div>
-      <span class="harvest-conf">
+      <span class="harvest-conf" id="harvestConfWrap">
         <span id="harvestConf">—</span>% 신뢰도
       </span>
     </div>
@@ -390,7 +390,7 @@ function _renderHarvest(d) {
   const predDate = d.predicted_date ? new Date(d.predicted_date) : null;
   const today    = new Date();
   const ddays    = predDate ? Math.round((predDate - today) / 86400000) : null;
-  const conf     = d.confidence ? Math.round(d.confidence * 100) : 0;
+  const conf     = d.confidence ? Math.round(d.confidence * 100) : null;   // 결측 시 '0% 신뢰도' 오도 방지
   const crop     = d.crop_ko || '';   // ★ 구: '오이' 하드코딩 폴백 — 남의 작목 표시
 
   // 히어로
@@ -399,7 +399,9 @@ function _renderHarvest(d) {
     setEl('harvestDate', `${predDate.getFullYear()}년 ${predDate.getMonth()+1}월 ${predDate.getDate()}일`);
     setEl('harvestDday', ddays > 0 ? `D-${ddays} — ${crop} 수확 예정` : ddays === 0 ? '오늘 수확!' : `${-ddays}일 지남`);
   }
-  setEl('harvestConf', conf);
+  const _confWrap = document.getElementById('harvestConfWrap');
+  if (conf != null) { setEl('harvestConf', conf); if (_confWrap) _confWrap.style.display = ''; }
+  else if (_confWrap) { _confWrap.style.display = 'none'; }
 
   // 타임라인 — 정식~수확 전체 기간에서 현재 위치
   const totalDays = CROP_SEASON_DAYS[crop] || 90;
