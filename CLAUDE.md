@@ -15,7 +15,7 @@
   증상이 조용하다(도메인 200·SW 버전 동일) → **배포 검증은 `curl localhost:8000`(iwinv 실체)와
   `curl https://farmingsight.org` 를 반드시 대조**할 것. 다르면 터널이 다른 연결자를 보고 있다.
 - **로컬 개발 서버**: `PYTHONPATH=C:\smart_farm PUBLIC_DEMO=1 python -m uvicorn api.main:app --port 8000`
-- **SW 캐시**: 현재 **v99** (2026-08-08 환경→수확 정직 재설계·intro 여백수정 배포) — 화면 변경 시 반드시 bump (`sw.js` 의 `CACHE`). ※ 이 표기는 문서일 뿐 권위는 `sw.js` — 컨테이너 미참조라 정정만으로 재배포 불필요
+- **SW 캐시**: 현재 **v100** (2026-08-08 병해 이미지×환경×시기 3축 앙상블+수집 파이프라인·화면 정직화 일괄 배포) — 화면 변경 시 반드시 bump (`sw.js` 의 `CACHE`). ※ 이 표기는 문서일 뿐 권위는 `sw.js` — 컨테이너 미참조라 정정만으로 재배포 불필요
 - **감시**: `deploy/cloudflare/watchdog.ps1` — **로컬 uvicorn:8000 전용**(30초 주기).
   cloudflared 는 관리하지 않는다(위 사고). 발견 시 경고 로그만 남긴다.
 
