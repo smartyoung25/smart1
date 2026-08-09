@@ -3,10 +3,10 @@
 M5 이미지 모델 미구축 상태에서도 최대한 정확한 병해 진단 제공.
 
 우선순위:
-  ① Plant.id Plant Health API  (이미지 기반 — 상업용 최고 정밀도)
-       https://web.plant.id/plant-health-assessment-api/
+  ① Plant.id Plant Health API  (이미지 기반 — 상업용 최고 정밀도) — 운영: Kindwise
+       https://www.kindwise.com/plant-id  (구 web.plant.id 는 폐쇄)
        PLANT_ID_API_KEY 필요 — 무료: 100건/월, 유료: $9/월 (500건)
-       발급: https://web.plant.id/ → 가입 → API Keys
+       발급: https://admin.kindwise.com → 가입 → API Keys
 
   ② NCPMS 농촌진흥청 병해충관리시스템 (작목×증상 매칭 DB)
        https://ncpms.rda.go.kr/npms/Main.np
@@ -527,9 +527,9 @@ PLANT_ID_KEY_GUIDE = {
     "used_for": "M5 이미지 기반 병해 탐지 (현재 미구축 대체)",
     "free_plan": "월 100건 무료",
     "paid_plan": "$9/월 (500건), $29/월 (무제한)",
-    "get_key_url": "https://web.plant.id/",
+    "get_key_url": "https://admin.kindwise.com",
     "setup_steps": [
-        "1. https://web.plant.id/ 접속 → 가입 (GitHub/Google 가능)",
+        "1. https://admin.kindwise.com 접속 → 가입 (Plant.id API는 Kindwise가 운영)",
         "2. Dashboard → API Keys → Create new key",
         "3. .env 에 PLANT_ID_API_KEY=your_key 추가",
         "4. docker compose restart api  (또는 uvicorn 재시작)",

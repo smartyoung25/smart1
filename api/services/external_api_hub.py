@@ -608,11 +608,11 @@ MISSING_API_GUIDE: dict[str, dict] = {
     "PLANT_ID_API_KEY": {
         "service": "Plant.id Plant Health Assessment API",
         "used_for": "M5 이미지 기반 병해 탐지 (EfficientNet 대체)",
-        "get_key_url": "https://web.plant.id/",
+        "get_key_url": "https://admin.kindwise.com",
         "cost": "무료: 100건/월  |  유료: $9/월(500건), $29/월(무제한)",
         "env_var": "PLANT_ID_API_KEY",
         "setup": (
-            "1. https://web.plant.id/ → 가입 (GitHub/Google OK)\n"
+            "1. https://admin.kindwise.com → 가입 (Plant.id API는 Kindwise 운영)\n"
             "2. Dashboard → API Keys → Create new key\n"
             "3. .env 에 PLANT_ID_API_KEY=your_key 추가\n"
             "4. POST /api/farms/{farm_id}/disease/detect 로 이미지 전송"
@@ -735,9 +735,9 @@ def get_api_status_report() -> dict:
         # Plant.id: 미설정 시 NCPMS→M5규칙→EPPO 폴백 체인 동작 → fallback_active
         "Plant.id 병해 탐지":         {"key_var": "PLANT_ID_API_KEY",
                                      "status": "connected" if _has("PLANT_ID_API_KEY") else "fallback_active",
-                                     "note": "" if _has("PLANT_ID_API_KEY") else "NCPMS→M5규칙기반→EPPO 폴백 체인 동작 중 (web.plant.id 에서 무료 100건/월 발급 가능)",
+                                     "note": "" if _has("PLANT_ID_API_KEY") else "NCPMS→M5규칙기반→EPPO 폴백 체인 동작 중 (admin.kindwise.com 에서 무료 100건/월 발급 가능)",
                                      "used_for": "M5 이미지 병해 탐지 (미설정 시 환경센서 기반 규칙)",
-                                     "get_key_url": "https://web.plant.id/"},
+                                     "get_key_url": "https://admin.kindwise.com"},
         # ── 수확량 기준 ──────────────────────────────────────────────────────
         # USDA NASS: RDA 내장 기준값이 한국 스마트팜에 더 적합 → available
         "USDA NASS 수확량기준":        {"key_var": "USDA_NASS_API_KEY",

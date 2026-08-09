@@ -10664,7 +10664,7 @@ class TestExternalApiHubUpdated:
         from api.services.external_api_hub import MISSING_API_GUIDE
         assert "PLANT_ID_API_KEY" in MISSING_API_GUIDE
         guide = MISSING_API_GUIDE["PLANT_ID_API_KEY"]
-        assert "web.plant.id" in guide["get_key_url"]
+        assert "kindwise" in guide["get_key_url"]
 
     def test_missing_api_guide_has_usda_nass(self):
         from api.services.external_api_hub import MISSING_API_GUIDE
@@ -11203,7 +11203,7 @@ class TestPlantDiseaseCoverage:
 
     def test_key_guides_present(self):
         from api.services.plant_disease_service import PLANT_ID_KEY_GUIDE, NCPMS_KEY_GUIDE
-        assert "web.plant.id" in PLANT_ID_KEY_GUIDE["get_key_url"]
+        assert "kindwise" in PLANT_ID_KEY_GUIDE["get_key_url"]
         assert "무료" in NCPMS_KEY_GUIDE["cost"]
         assert "service" in PLANT_ID_KEY_GUIDE
 
@@ -11219,7 +11219,7 @@ class TestExternalApiHubCoverage:
     def test_missing_guide_plant_id(self):
         from api.services.external_api_hub import MISSING_API_GUIDE
         assert "PLANT_ID_API_KEY" in MISSING_API_GUIDE
-        assert "web.plant.id" in MISSING_API_GUIDE["PLANT_ID_API_KEY"]["get_key_url"]
+        assert "kindwise" in MISSING_API_GUIDE["PLANT_ID_API_KEY"]["get_key_url"]
 
     def test_missing_guide_usda(self):
         from api.services.external_api_hub import MISSING_API_GUIDE

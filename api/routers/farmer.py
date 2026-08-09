@@ -2048,7 +2048,7 @@ def detect_disease_endpoint(farm_id: str, body: DiseaseDetectRequest):
 
     **키 미설정 시:** M5 규칙기반 + NCPMS(DATA_GO_KR_SERVICE_KEY) 자동 사용.
 
-    **Plant.id 키 발급:** https://web.plant.id/ → 무료 100건/월
+    **Plant.id 키 발급:** https://admin.kindwise.com → 무료 100건/월 (Plant.id API는 Kindwise 운영)
     """
     _require_farm(farm_id)
     meta    = _FARM_META.get(farm_id, {})
