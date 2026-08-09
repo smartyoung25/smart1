@@ -50,6 +50,12 @@ _FARM_META: dict[str, dict[str, Any]] = {
         "name": "SANWOO 딸기 농장",    "crop": "딸기",
         "sido": None, "sigungu": None, "address_detail": "",
     },
+    # 노지 쇼케이스 데모 농장 — 노지 재배력·필지·기상 기능 시연용(제주)
+    "farm_jeju": {
+        "tier": FarmTier.MANUAL,    "area_m2": 3000, "iot_available": False,
+        "name": "제주 노지 감귤원",  "crop": "감귤",
+        "sido": "제주특별자치도", "sigungu": "서귀포시", "address_detail": "",
+    },
 }
 
 # ---------------------------------------------------------------------------

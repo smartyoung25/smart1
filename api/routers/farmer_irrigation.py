@@ -495,6 +495,23 @@ def get_field_parcels(farm_id: str):
             "note": "팜맵 미연동 (FARMMAP_API_URL 설정 시 자동 전환)"}
 
 
+@router.get("/field/calendar", summary="노지 표준 재배력 (작목×이번달 + ERA5 평년기후, 표준 참고)")
+def get_field_calendar(farm_id: str):
+    """작목 표준재배력(cultivation_calendar SSOT) + 이번 달 phase + ERA5 평년 기후 병합.
+
+    ★ 정직화: 미적재 작목은 available:false. 값은 '표준 참고(출처)'이며 필지·농가
+      개인화가 아니다. 품종/날짜 세밀 해상도는 외부 표준재배력 적재 작목만.
+    """
+    import datetime as _dt
+    _require_farm(farm_id)
+    meta = _FARM_META.get(farm_id, {})
+    crop = meta.get("crop") or "감귤"
+    from models.cultivation_calendar import get_calendar
+    out = get_calendar(crop, month=_dt.date.today().month)
+    out["farm_id"] = farm_id
+    return out
+
+
 @router.get("/field/cluster", summary="노지 클러스터 작황 모니터링 (무센서·위성/기상 + 위치특정 이상알림)")
 def get_field_cluster(farm_id: str):
     """위성 식생지수(미연동 시 프록시) + 16일 기상 스트레스로 무센서 광역 작황진단.

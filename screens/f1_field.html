@@ -86,6 +86,12 @@
     <div class="fd-kpi"><div class="fd-kpi-ico">⚠️</div><div class="fd-kpi-val" id="kpiRisk" style="color:var(--green)">—</div><div class="fd-kpi-label">재해 위험</div></div>
   </div>
 
+  <!-- ★ 표준 재배력 (작목×이번달 + ERA5 평년기후) -->
+  <div class="section-label" style="margin-top:4px;">표준 재배력 <span class="trust-badge trust-model">🔵 표준 참고</span></div>
+  <div class="card" id="calCard" style="padding:14px;margin-bottom:14px;">
+    <div style="font-size:12px;color:var(--muted);">불러오는 중…</div>
+  </div>
+
   <!-- ★ 오늘의 결정 (AI 의사결정) -->
   <div class="section-label" style="display:flex;align-items:center;justify-content:space-between;">
     <span>오늘의 결정 <span style="font-size:10px;color:var(--muted);font-weight:600;">AI 의사결정</span></span>
@@ -180,8 +186,47 @@ window.addEventListener('DOMContentLoaded', ()=>{
     KaasaData.init({farmId,token,onStatus:_onWsStatus});
     _loadWeather(token,farmId);
     _loadParcels(token,farmId);  // ★ 팜맵 연동 여부 자동 감지
+    _loadCalendar(token,farmId); // ★ 표준 재배력 + 평년기후
   });
 });
+
+// ★ 표준 재배력 카드 — 작목×이번달 phase + ERA5 평년기후. 전 값 '표준 참고(출처)'.
+async function _loadCalendar(token, farmId){
+  const el=document.getElementById('calCard'); if(!el) return;
+  const api=KaasaData.getApiBase();
+  const d=await fetch(`${api}/api/farms/${farmId}/field/calendar`,{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.ok?r.json():null).catch(()=>null);
+  if(!d||!d.available){
+    el.innerHTML=`<div style="font-size:12px;color:var(--muted);line-height:1.5;">이 작목의 표준재배력은 아직 적재되지 않았습니다${d&&d.crop_ko?` (${d.crop_ko})`:''}.<br>지원: ${(d&&d.supported||[]).join('·')||'—'}</div>`;
+    return;
+  }
+  const mm=d.month;
+  const phCol={ '파종·정식기':'var(--green-dark)','수확기':'var(--orange)','생육·관리기':'var(--blue)','작기 외':'var(--muted)' }[d.phase_now]||'var(--muted)';
+  const range=a=>a&&a.months&&a.months.length?`${a.months[0]}~${a.months[a.months.length-1]}월`:'—';
+  // ERA5 평년 기후(정량, 실측 근거)
+  const cn=d.climate_normal; let clim='';
+  if(cn&&cn.available&&cn.normal){
+    const n=cn.normal; const g=(x)=>x&&x.mean!=null?x.mean:null;
+    clim=`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
+      ${g(n.t_ext)!=null?`<span style="font-size:10px;font-weight:700;background:var(--blue-soft);color:var(--blue);border-radius:8px;padding:2px 7px;">🌡️ 평년기온 ${g(n.t_ext)}℃</span>`:''}
+      ${g(n.gdd)!=null?`<span style="font-size:10px;font-weight:700;background:var(--blue-soft);color:var(--blue);border-radius:8px;padding:2px 7px;">🔥 적산온도 ${g(n.gdd)}</span>`:''}
+      ${g(n.rain_mm)!=null?`<span style="font-size:10px;font-weight:700;background:var(--blue-soft);color:var(--blue);border-radius:8px;padding:2px 7px;">🌧️ 강수 ${g(n.rain_mm)}mm</span>`:''}
+    </div>
+    <div style="font-size:10px;color:var(--muted);margin-top:5px;">기후 근거: ${cn.source} ${cn.years} · 지역 ${(cn.regions||[]).slice(0,2).join(',')||'-'}</div>`;
+  }
+  el.innerHTML=`
+    <div style="display:flex;align-items:baseline;justify-content:space-between;">
+      <span style="font-size:15px;font-weight:800;">${d.crop_ko} <span style="font-size:11px;color:var(--muted);font-weight:600;">${d.variety||''}</span></span>
+      <span style="font-size:12px;font-weight:800;color:${phCol};">${mm}월 · ${d.phase_now}</span>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:8px;">
+      <div style="flex:1;background:var(--panel-soft);border-radius:9px;padding:8px 10px;"><div style="font-size:10px;color:var(--muted);">파종·정식</div><div style="font-size:13px;font-weight:700;">${d.sow_transplant?range(d.sow_transplant):'—(다년생)'}</div></div>
+      <div style="flex:1;background:var(--panel-soft);border-radius:9px;padding:8px 10px;"><div style="font-size:10px;color:var(--muted);">수확</div><div style="font-size:13px;font-weight:700;">${range(d.harvest)}</div></div>
+    </div>
+    ${clim}
+    <div style="font-size:10px;color:var(--muted);margin-top:8px;line-height:1.5;background:var(--panel-soft);border-radius:8px;padding:7px 9px;">
+      ℹ️ 재배력 출처: ${d.source} ${d.harvest&&d.harvest.precision==='coarse'?'· <b>거친 표준(작형월 기반)</b> — 품종별 정밀 재배력은 외부 출처 적재 예정':''}. 병해는 <a href="f6_pest.html" style="color:var(--blue);">F6 3축 판단</a> 참조.
+    </div>`;
+}
 
 // ★ 팜맵 연동 자동 감지 — FARMMAP_API_URL 설정 시 실데이터로 자동 전환
 async function _loadParcels(token, farmId){
