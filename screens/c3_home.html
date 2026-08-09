@@ -700,11 +700,35 @@ function _updateHero() {
 }
 
 // ── 온보딩 미완성 넛지 ────────────────────────────────────────────────────────
-function _checkOnboardingNudge() {
+async function _checkOnboardingNudge() {
   const nudge = document.getElementById('onboardingNudge');
   if (!nudge) return;
 
-  // 1) 로컬 프로필 확인
+  // 0) 서버 온보딩 상태 — 등록 사용자면 완성도%·'막힌 분석(해결 과제)' 제공.
+  //    설정 공백을 구체 과제로 환류(구: 넛지가 로컬 5필드 유무만 표시).
+  let srv = null;
+  try {
+    const api = KaasaData.getApiBase();
+    const tok = sessionStorage.getItem('sf_token') || '';
+    srv = await fetch(`${api}/api/v1/auth/onboarding/status`, {headers:{Authorization:`Bearer ${tok}`}}).then(r=>r.ok?r.json():null).catch(()=>null);
+  } catch(e) {}
+  if (srv && srv.data && typeof srv.completion_pct === 'number') {
+    const blocked = srv.blocked_analysis || [];
+    if (srv.completion_pct >= 100 && !blocked.length) { nudge.style.display = 'none'; return; }
+    nudge.style.display = 'flex';
+    const descEl = document.getElementById('nudgeDesc');
+    if (descEl) descEl.textContent = `설정 완성도 ${srv.completion_pct}% · 아래를 입력하면 해당 분석이 열립니다.`;
+    const progEl = document.getElementById('nudgeProgress');
+    if (progEl) {
+      const gauge = `<div style="width:100%;height:6px;background:var(--gray-soft);border-radius:4px;overflow:hidden;margin-bottom:6px;"><div style="width:${srv.completion_pct}%;height:100%;background:var(--orange);transition:width .5s;"></div></div>`;
+      const chips = blocked.map(b =>
+        `<span onclick="event.stopPropagation();location.href='${b.screen}'" style="font-size:10px;font-weight:700;padding:3px 8px;border-radius:10px;background:var(--panel);border:1px solid var(--orange);color:var(--orange-dark,#92400e);cursor:pointer;">＋${b.gap} → ${b.unlocks}</span>`).join('');
+      progEl.innerHTML = gauge + `<div style="display:flex;gap:4px;flex-wrap:wrap;">${chips || '<span style="font-size:10px;color:var(--muted);">핵심 항목 입력 완료 ✓</span>'}</div>`;
+    }
+    return;
+  }
+
+  // 1) 폴백: 로컬 프로필(데모·미등록) — 기존 5필드 체크리스트
   let profile = {};
   try { profile = JSON.parse(localStorage.getItem('sf_profile') || '{}'); } catch(e) {}
 

@@ -110,9 +110,7 @@ def calc_effectiveness(farm_id: str, crop: str, transplant_date: Optional[str]) 
         from api.services.model_loader import get_yield_forecast
         from api.data.stats_loader import get_yield_kg_m2
         area = meta.get("area_m2", 1000)
-        env_feat = {"temp_internal_mean": 22.0, "humidity_int_mean": 70.0,
-                    "co2_ppm_mean": 800.0, "solar_rad_mean": 150.0,
-                    "soil_temp_mean": 18.0, "gdd_monthly": 360.0}
+        env_feat = _env_feat_from_latest(farm_id)   # 실측 환경 반영(결측 시 표준값 폴백)
         predicted = get_yield_forecast(crop, env_feat, area, farm_id=farm_id)["yield_kg_season"]
         target_total = get_yield_kg_m2(crop) * area
         yield_progress = min(predicted / max(target_total, 1), 1.0) if target_total else 0.5
@@ -177,9 +175,7 @@ def calc_efficiency(farm_id: str) -> Dict:
     try:
         from api.services.model_loader import get_yield_forecast
         from pipeline.kamis_fetcher import get_price_with_fallback
-        env_feat = {"temp_internal_mean": 22.0, "humidity_int_mean": 70.0,
-                    "co2_ppm_mean": 800.0, "solar_rad_mean": 150.0,
-                    "soil_temp_mean": 18.0, "gdd_monthly": 360.0}
+        env_feat = _env_feat_from_latest(farm_id)   # 실측 환경 반영(결측 시 표준값 폴백)
         yf = get_yield_forecast(crop, env_feat, area, farm_id=farm_id)
         price = float(get_price_with_fallback(crop).get("price_krw_kg", 3000) or 3000)
         revenue = yf["yield_kg_season"] * price
@@ -334,6 +330,31 @@ def _latest_env(farm_id: str) -> Dict:
         return data if isinstance(data, dict) else {}
     except Exception:
         return {}
+
+
+def _env_feat_from_latest(farm_id: str) -> Dict:
+    """농가 실측 환경(_latest_env)을 수확량 예측용 env_feat 로 변환.
+
+    ★ 구: 효과성·효율성 지수가 env_feat 를 22℃ 등으로 하드코딩해, 농가가 g2_env 에 입력한
+      실측이 핵심 KPI 게이지에 전혀 반영되지 않았다(입력해도 지수가 안 움직임 = 분석-입력 절연).
+      실측을 쓰되, 결측 필드는 기존 표준값으로 폴백해 회귀를 막는다.
+    """
+    e = _latest_env(farm_id) or {}
+    def _g(k: str, d: float) -> float:
+        v = e.get(k)
+        try:
+            return float(v) if v is not None else d
+        except (TypeError, ValueError):
+            return d
+    t = _g("temp_internal", 22.0)
+    return {
+        "temp_internal_mean": t,
+        "humidity_int_mean":  _g("humidity_int", 70.0),
+        "co2_ppm_mean":       _g("co2_ppm", 800.0),
+        "solar_rad_mean":     _g("solar_rad", 150.0),
+        "soil_temp_mean":     _g("soil_temp", 18.0),
+        "gdd_monthly":        max(0.0, t - 10.0) * 30.0,
+    }
 
 
 def _alert_action(field: str, direction: str) -> str:

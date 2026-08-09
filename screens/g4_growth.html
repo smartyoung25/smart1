@@ -323,9 +323,25 @@ function _openGrowthMeasure(){
       {id:'flower', label:'화방수/착과수', type:'number', unit:'개', placeholder:'예: 5'},
       {id:'date',   label:'측정일', type:'date'},
     ],
-    onSubmit: async (v)=>{ await RecordSheet.logActivity(_farmG,_tokenG,{
-      kind:'growth', item:'생육 측정', value:parseFloat(v.height)||null,
-      detail:`초장 ${v.height||'-'}cm · 엽수 ${v.leaves||'-'} · 줄기 ${v.stem||'-'}mm · 화방 ${v.flower||'-'} · ${v.date||'오늘'}` }); _refreshRecent(); }
+    onSubmit: async (v)=>{
+      // ① 타임라인 활동 로그(기존 유지)
+      await RecordSheet.logActivity(_farmG,_tokenG,{
+        kind:'growth', item:'생육 측정', value:parseFloat(v.height)||null,
+        detail:`초장 ${v.height||'-'}cm · 엽수 ${v.leaves||'-'} · 줄기 ${v.stem||'-'}mm · 화방 ${v.flower||'-'} · ${v.date||'오늘'}` });
+      // ② M1 생육 학습 엔드포인트로 실제 전송 — 구: 활동로그만 남겨 "학습 반영" 표현과 동작 불일치.
+      try{
+        if(!_tokenG) _tokenG=sessionStorage.getItem('sf_token')||'';
+        const api=KaasaData.getApiBase(); const H={'Content-Type':'application/json',Authorization:`Bearer ${_tokenG}`};
+        let crop=(await KaasaData.getCrop())||'';
+        try{ const hv=await fetch(`${api}/api/farms/${_farmG}/harvest`,{headers:H}).then(r=>r.ok?r.json():null).catch(()=>null); if(hv&&hv.crop_ko) crop=hv.crop_ko; }catch(_){}
+        const body={farm_id:_farmG, crop_ko:crop,
+          recorded_date:(v.date)||new Date().toISOString().slice(0,10), source:'manual',
+          plant_height_cm:parseFloat(v.height)||null, leaf_count:parseInt(v.leaves)||null,
+          stem_diameter_mm:parseFloat(v.stem)||null, fruit_count:parseInt(v.flower)||null};
+        await fetch(`${api}/api/data/growth`,{method:'POST',headers:H,body:JSON.stringify(body)}).catch(()=>null);
+      }catch(_){}
+      _refreshRecent();
+    }
   });
 }
 

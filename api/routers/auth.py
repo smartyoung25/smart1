@@ -490,6 +490,42 @@ async def save_onboarding(
 
 # ── 온보딩 상태 조회 ──────────────────────────────────────────────────────────
 
+def _compute_onboarding_completion(data: Optional[dict]) -> dict:
+    """온보딩 데이터 → 완성도%·미입력필드·'막힌 분석' 매핑.
+
+    설정 공백을 '해결 과제'로 환류하기 위한 산출(홈 넛지·과제칩이 소비).
+    핵심 필드만 완성도에 반영하고, 각 공백이 막는 분석을 명시한다.
+    """
+    d = data or {}
+    def _has(k: str) -> bool:
+        v = d.get(k)
+        return v not in (None, "", 0, 0.0, [], "0")
+    key_fields = ["farm_name", "crop_ko", "facility_type", "area_m2",
+                  "sido", "season_start", "kpi_yield_per_10a", "revenue_main_wan"]
+    filled = sum(1 for k in key_fields if _has(k))
+    pct = round(filled / len(key_fields) * 100)
+    groups = {
+        "기본정보": ["farm_name", "crop_ko", "facility_type", "area_m2"],
+        "지역":     ["sido"],
+        "작기":     ["season_start", "season_end"],
+        "목표":     ["kpi_yield_per_10a"],
+        "경영현황": ["revenue_main_wan"],
+    }
+    missing = {g: [k for k in ks if not _has(k)] for g, ks in groups.items()}
+    missing = {g: ks for g, ks in missing.items() if ks}
+    # 설정 공백 → 막히는 분석(해결 과제) 매핑
+    blocked = []
+    if not _has("revenue_main_wan"):
+        blocked.append({"gap": "경영현황(총수입·비용)", "unlocks": "손익분기·소득률(C5 ERP)", "screen": "c1_setup.html"})
+    if not (_has("sido") or _has("region")):
+        blocked.append({"gap": "재배 지역", "unlocks": "기상·시세 자동연동", "screen": "c1_setup.html"})
+    if not _has("season_start"):
+        blocked.append({"gap": "작기(정식일)", "unlocks": "수확 예측 정밀도·PDCA 적기적작", "screen": "c1_setup.html"})
+    if not _has("kpi_yield_per_10a"):
+        blocked.append({"gap": "목표 수확량", "unlocks": "목표 대비 진척·맞춤 처방", "screen": "c1_setup.html"})
+    return {"completion_pct": pct, "missing": missing, "blocked_analysis": blocked}
+
+
 @router.get("/onboarding/status", summary="온보딩 완료 여부 조회")
 async def get_onboarding_status(
     token_user: dict = Depends(__import__("api.middleware.auth", fromlist=["require_auth"]).require_auth),
@@ -511,4 +547,5 @@ async def get_onboarding_status(
         "completed": completed,
         "user_id":   user_id,
         "data":      onboarding_data,
+        **_compute_onboarding_completion(onboarding_data),
     }

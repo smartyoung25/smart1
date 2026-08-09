@@ -107,8 +107,26 @@ const TOTAL=6, _step0=1;
 let _step=1;
 const STEP_NAMES=['조직 선택','출하 품목','예상 물량','품질 등급','약정 동의','확인'];
 const form={ org:'', crop_ko:'', volume_kg:null, ship_date:'', min_grade:'', consents:{c1:false,c2:false,c3:false} };
-const ORGS=[['논산딸기연합','🍓'],['부여토마토조합','🍅'],['청양파프리카','🫑'],['KAASA 통합Pool','🤝']];
-const CROPS=[['딸기','🍓'],['오이','🥒'],['가지','🍆'],['완숙토마토','🍅'],['방울토마토','🍅'],['파프리카','🫑'],['참외','🍈'],['감귤','🍊'],['월동무','🥬'],['당근','🥕'],['양배추','🥬'],['브로콜리','🥦'],['마늘','🧄'],['양파','🧅']];
+// [표시명, 이모지, 허용작목(빈 배열=전작목)] — 조직 전용작목 정합(비정합 가입 방지)
+const ORGS=[
+  ['논산딸기연합','🍓',['딸기']],
+  ['부여토마토조합','🍅',['완숙토마토','방울토마토']],
+  ['청양파프리카','🫑',['파프리카']],
+  ['KAASA 통합Pool','🤝',[]],   // 전작목
+];
+// 시스템 지원 12작목(crop_config SSOT) — 유령작목(가지·브로콜리: crop_config·KAMIS 미등록) 제거
+const CROPS=[['딸기','🍓'],['방울토마토','🍅'],['완숙토마토','🍅'],['참외','🍈'],['파프리카','🫑'],['오이','🥒'],
+  ['감귤','🍊'],['월동무','🥬'],['당근','🥕'],['양배추','🥬'],['마늘','🧄'],['양파','🧅']];
+function _allowedCrops(){
+  const org=ORGS.find(o=>o[0]===form.org);
+  const allow=(org&&org[2]&&org[2].length)?org[2]:null;   // null = 전작목(통합Pool·미선택)
+  return allow?CROPS.filter(([c])=>allow.includes(c)):CROPS;
+}
+function _renderCrops(){
+  document.getElementById('cropGrid').innerHTML=_allowedCrops().map(([c,i])=>
+    `<div class="opt-card${form.crop_ko===c?' sel':''}" onclick="_sel('crop_ko','${c}',this,'#cropGrid')"><span class="opt-ico">${i}</span>${c}</div>`).join('')
+    || '<div style="color:var(--muted);font-size:12px;padding:8px;">먼저 조직을 선택하세요.</div>';
+}
 // ── 작목별 품질 등급 체계 (현장 표기 상이) ──────────────────────────
 //   num : 숫자형(1·2·3등급) — 딸기·완숙토마토·방울토마토
 //   ts  : 특·상·등외 — 오이·가지
@@ -128,7 +146,7 @@ function _renderGrades(){
 window.addEventListener('DOMContentLoaded', ()=>{
   _ensureToken();
   document.getElementById('orgGrid').innerHTML=ORGS.map(([c,i])=>`<div class="opt-card" onclick="_sel('org','${c}',this,'#orgGrid')"><span class="opt-ico">${i}</span>${c}</div>`).join('');
-  document.getElementById('cropGrid').innerHTML=CROPS.map(([c,i])=>`<div class="opt-card" onclick="_sel('crop_ko','${c}',this,'#cropGrid')"><span class="opt-ico">${i}</span>${c}</div>`).join('');
+  _renderCrops();   // 조직 선택 전엔 전작목, 선택 후 허용작목으로 필터
   _renderGrades();   // 기본(표준형) 1회 렌더 — step4 진입 시 작목 기준 재렌더
   // 기존 farm 작물 자동 선택 시도
   _showStep(1);
@@ -145,6 +163,12 @@ function _sel(key,val,el,grid){
   form[key]=val; document.querySelectorAll(`${grid} .opt-card`).forEach(x=>x.classList.remove('sel')); el.classList.add('sel');
   // 작목이 바뀌면 등급 체계가 달라지므로 선택 초기화
   if(key==='crop_ko'){ form.min_grade=''; }
+  // 조직 선택 시: 전용작목이면 취급 품목만 남기고, 기존 선택이 비허용이면 해제 후 필터 렌더
+  if(key==='org'){
+    const allow=(ORGS.find(o=>o[0]===val)||[])[2];
+    if(allow&&allow.length&&!allow.includes(form.crop_ko)) form.crop_ko='';
+    _renderCrops();
+  }
 }
 function _toggleConsent(id){ form.consents[id]=!form.consents[id]; document.getElementById(id).classList.toggle('checked', form.consents[id]); }
 
@@ -164,7 +188,11 @@ function _collect(){
 }
 function _validate(){
   if(_step===1&&!form.org){alert('조직을 선택하세요');return false;}
-  if(_step===2&&!form.crop_ko){alert('품목을 선택하세요');return false;}
+  if(_step===2){
+    if(!form.crop_ko){alert('품목을 선택하세요');return false;}
+    const allow=(ORGS.find(o=>o[0]===form.org)||[])[2];
+    if(allow&&allow.length&&!allow.includes(form.crop_ko)){alert(`${form.org}은(는) ${form.crop_ko}을(를) 취급하지 않습니다. 다른 품목을 선택하세요.`);return false;}
+  }
   if(_step===4&&!form.min_grade){alert('등급을 선택하세요');return false;}
   if(_step===5&&!(form.consents.c1&&form.consents.c2&&form.consents.c3)){alert('모든 약정에 동의해야 합니다');return false;}
   return true;
@@ -174,7 +202,8 @@ function _prev(){ if(_step>1)_showStep(_step-1); }
 
 function _renderSummary(){
   const rows=[['조직',form.org],['품목',form.crop_ko],['예상물량',form.volume_kg?form.volume_kg.toLocaleString()+'kg':'—'],
-    ['출하시작',form.ship_date||'—'],['최저등급',form.min_grade],['약정동의','3/3 완료 ✓']];
+    ['출하시작',form.ship_date||'—'],['최저등급',form.min_grade],['약정동의','3/3 완료 ✓'],
+    ['처리상태','접수 예정 — 담당자 검토 후 승인']];
   document.getElementById('summaryCard').innerHTML=rows.map(([k,v])=>`<div class="summary-row"><span class="k">${k}</span><span class="v">${v}</span></div>`).join('');
 }
 // ★ 공동출하 가입 전용 API는 아직 없다. 구: localStorage에만 쓰고 "담당자 확인 후
@@ -195,7 +224,7 @@ async function _save(){
     return;
   }
   _persist(rec);
-  res.style.color='var(--green)'; res.innerHTML='✓ 공동출하 가입 신청이 기록되었습니다 — 담당자 확인 예정';
+  res.style.color='var(--green)'; res.innerHTML='✓ 공동출하 가입 신청이 <b>접수</b>되었습니다 — 담당자 검토 후 승인됩니다';
   setTimeout(()=>location.href='c12_joint.html', 2000);
 }
 // ★ 키 통일: C12 운영화면이 'sf_pool_joined'를 읽어 가입 전/후 분기 → 동일 키 사용
