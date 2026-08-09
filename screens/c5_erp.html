@@ -275,24 +275,10 @@ function _logSaving(){
   });
 }
 
-// ── 지출 기록 (실측 비용 부착) ────────────────────────────────────────────────
-const _EXP_CATS=[['fertilizer','비료'],['pesticide','농약'],['labor','인건'],['material','자재'],['seed','종묘'],['energy','에너지'],['other','기타']];
+// ── 지출 기록 (실측 비용 부착) — 공용 헬퍼 사용(c3·g1·f1과 동일) ─────────────
 function _logExpense(){
   if(!window.RecordSheet){ return; }
-  RecordSheet.open({ title:'💸 지출 기록', submitLabel:'지출 저장',
-    fields:[ {id:'cat',label:'항목',type:'select',options:_EXP_CATS.map(c=>c[1]),required:true},
-             {id:'amount',label:'지출액',type:'number',unit:'원',placeholder:'예: 50000',required:true},
-             {id:'item',label:'내용',type:'text',placeholder:'예: 복합비료 20kg 2포'} ],
-    onSubmit: async (v)=>{
-      const amt=parseFloat(v.amount);
-      if(!isFinite(amt)||amt<=0){ throw new Error('지출액을 입력하세요'); }
-      const catKey=(_EXP_CATS.find(c=>c[1]===v.cat)||['other'])[0];
-      await RecordSheet.logActivity(_farmG,_tokG,{
-        kind:'expense', econ:'cost', category:catKey, amount_krw:Math.round(amt),
-        item:v.item||v.cat||'지출', detail:`${v.cat} ${Math.round(amt).toLocaleString()}원` });
-      _loadLedger();
-    }
-  });
+  RecordSheet.openExpense(_farmG, _tokG, _loadLedger);   // 저장 후 수지 카드 갱신
 }
 
 // ── 실측 수지 집계 렌더 (/ledger/summary) ─────────────────────────────────────

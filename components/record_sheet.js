@@ -160,5 +160,27 @@
     }catch(e){ el.innerHTML=`<div class="rl-empty">기록을 불러오지 못했습니다.</div>`; }
   }
 
-  global.RecordSheet = { open, logActivity, renderRecent };
+  // ── 지출 기록 공용 헬퍼 ─────────────────────────────────────────────────
+  // c5(경영)·c3(홈)·f1(노지홈) 어디서든 동일한 지출 입력 시트를 띄운다.
+  // onDone: 저장 성공 후 콜백(예: 수지 카드 새로고침). token 없으면 데모 토큰 폴백.
+  const EXPENSE_CATS = [['fertilizer','비료'],['pesticide','농약'],['labor','인건'],
+                        ['material','자재'],['seed','종묘'],['energy','에너지'],['other','기타']];
+  function openExpense(farmId, token, onDone) {
+    open({ title:'💸 지출 기록', submitLabel:'지출 저장',
+      fields:[ {id:'cat',   label:'항목',   type:'select', options:EXPENSE_CATS.map(c=>c[1]), required:true},
+               {id:'amount',label:'지출액', type:'number', unit:'원', placeholder:'예: 50000', required:true},
+               {id:'item',  label:'내용',   type:'text',   placeholder:'예: 복합비료 20kg 2포'} ],
+      onSubmit: async (v) => {
+        const amt = parseFloat(v.amount);
+        if (!isFinite(amt) || amt <= 0) throw new Error('지출액을 입력하세요');
+        const catKey = (EXPENSE_CATS.find(c => c[1] === v.cat) || ['other'])[0];
+        await logActivity(farmId, token, {
+          kind:'expense', econ:'cost', category:catKey, amount_krw:Math.round(amt),
+          item:v.item || v.cat || '지출', detail:`${v.cat} ${Math.round(amt).toLocaleString()}원` });
+        if (typeof onDone === 'function') onDone();
+      }
+    });
+  }
+
+  global.RecordSheet = { open, logActivity, renderRecent, openExpense };
 })(window);

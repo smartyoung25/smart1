@@ -294,6 +294,7 @@
       <button class="btn secondary" style="flex:1;font-size:12.5px;" onclick="location.href='c17_diagnosis.html'">🩺 종합진단</button>
       <button class="btn secondary" style="flex:1;font-size:12.5px;" onclick="location.href='c9_benchmark.html'">📈 벤치마킹</button>
     </div>
+    <button class="btn secondary full" style="margin-top:8px;font-size:12.5px;" onclick="_openExpense()">💸 지출 기록 (비료·농약·인건 등)</button>
   </div>
 
   <div class="sum-panel" id="sumMarket">
@@ -419,6 +420,7 @@
 </nav>
 
 <script src="../components/data.js"></script>
+<script src="../components/record_sheet.js"></script>
 <script src="../components/decision_card.js"></script>
 <script src="../components/device_alert.js"></script>
 <script src="../components/stage_flow.js"></script>
@@ -857,6 +859,14 @@ async function _sendTodoActivity(t) {
     });
     if (!r.ok && r.status !== 403) console.warn('[C3] todo 서버 적재 실패:', r.status);
   } catch (e) { console.warn('[C3] todo 서버 적재 예외:', e.message); }
+}
+
+// 지출 기록 빠른버튼 — 공용 헬퍼(온실·노지·경영 공통). 홈엔 수지카드 없어 onDone 생략.
+function _openExpense() {
+  if (!window.RecordSheet || !RecordSheet.openExpense) return;
+  const farmId = sessionStorage.getItem('sf_farm_id') || 'farm_001';
+  const tok = sessionStorage.getItem('sf_token') || '';
+  RecordSheet.openExpense(farmId, tok);
 }
 
 // ── WebSocket 상태 ──────────────────────────────────────────────────────────

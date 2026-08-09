@@ -152,6 +152,8 @@
       <div class="sub-ico">🚚</div><div class="sub-name">수확·유통</div><div class="sub-desc">필지별 수확·공동출하</div></a>
   </div>
 
+  <button onclick="_openExpense()" style="width:100%;margin-top:14px;padding:13px;background:var(--panel);color:var(--text);border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-weight:800;cursor:pointer;min-height:46px;">💸 지출 기록 (비료·농약·인건 등)</button>
+
 </main>
 
 <nav class="sf-bottom-nav">
@@ -163,11 +165,18 @@
 </nav>
 
 <script src="../components/data.js"></script>
+<script src="../components/record_sheet.js"></script>
 <script src="../components/decision_card.js"></script>
 <script>
 'use strict';
 let _todos=[];
 let _tokenG='', _farmG='farm_001';
+
+// 지출 기록 빠른버튼 — 공용 헬퍼(온실·노지·경영 공통).
+function _openExpense() {
+  if (!window.RecordSheet || !RecordSheet.openExpense) return;
+  RecordSheet.openExpense(_farmG, _tokenG || sessionStorage.getItem('sf_token') || '');
+}
 // Mock 필지 (실측 센서 연동 시 교체) — 각 필지 토양수분%
 const PARCELS=[
   {name:'1번 필지', x:6, y:12, w:42, h:38, moisture:62, status:'ok'},
