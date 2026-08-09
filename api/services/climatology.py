@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""평년 기상 기준값(climatology) — ERA5 재분석 5년치(2018~2022) 월별 정규값.
+"""평년 기상 기준값(climatology) — ERA5 재분석 다년치(작목별 스팬 상이) 월별 정규값.
 
 scripts/fetch_era5_openmeteo.py 가 적재한 작물 주산지 ERA5(api/data/real/era5_*_monthly.json)를
 달력월(01~12)별로 평균/표준편차 집계 → '평년 대비' 비교의 기준선 제공.
@@ -54,8 +54,12 @@ def _normals(crop_en: str) -> Optional[dict]:
                 "min": round(min(xs), 1), "max": round(max(xs), 1),
                 "std": round(_st.pstdev(xs), 1) if len(xs) > 1 else 0.0}
 
+    # ★ 구: years 를 "2018~2022" 하드코딩 → 파일마다 스팬이 달라(예: cabbage 2007~2022) 틀린 라벨.
+    #   실제 데이터 키에서 연도 스팬을 계산해 표기(정직).
+    _yrs = sorted({k.split("-")[0] for k in monthly.keys() if "-" in k})
+    _years = f"{_yrs[0]}~{_yrs[-1]}" if _yrs else "미상"
     out = {"crop_en": crop_en, "regions": raw.get("regions", []),
-           "years": "2018~2022", "source": "ERA5(Open-Meteo archive)", "by_month": {}}
+           "years": _years, "source": "ERA5(Open-Meteo archive)", "by_month": {}}
     for mm, d in bym.items():
         out["by_month"][mm] = {"t_ext": _agg(d["t"]), "solar_mj": _agg(d["s"]),
                                "rain_mm": _agg(d["r"]), "gdd": _agg(d["g"])}

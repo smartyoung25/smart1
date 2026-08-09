@@ -1,0 +1,89 @@
+{
+  "_meta": {
+    "schema_version": 1,
+    "note": "노지 표준재배력 SSOT. 모든 시기/기준 값은 source 필드 필수(없으면 미기재). 품종(조생/중생/만생) 세밀 재배력·정식/수확 날짜는 외부 표준재배력(농진청 표준영농교본·농사로·지역 농업기술센터) 적재 작목만 노출 — 창작 금지. 현재 seed는 crop_config 작형월(수기 큐레이션) 기반의 '거친 표준 작형'이며, 정밀 재배력은 docs/cultivation_calendar_sources.md 매니페스트에 따라 Phase1에서 출처와 함께 승격한다.",
+    "region_default": "제주",
+    "resolution": "coarse_month",
+    "climate_ref": "climatology.get_climatology (ERA5 평년 기온·일사·강수·GDD)",
+    "disease_ref": "assess_disease_3axis (_CROP_PRIORITY, 노지는 온실 8병해 농학 근사)"
+  },
+  "감귤": {
+    "crop_en": "citrus",
+    "crop_type": "perennial",
+    "region": "제주",
+    "source": "crop_config(감귤 노지 온주) + 노지 온주밀감 표준 수확기",
+    "varieties": {
+      "기본(노지 온주)": {
+        "sow_transplant": null,
+        "harvest": {"months": [10, 11, 12], "label": "노지 온주 수확", "source": "표준(노지 온주밀감)", "precision": "coarse"},
+        "season_months": [1,2,3,4,5,6,7,8,9,10,11,12],
+        "note": "상록 다년생 — 파종 개념 없음. 봄전정·여름순관리·수확이 연간 주기."
+      }
+    }
+  },
+  "월동무": {
+    "crop_en": "winter_radish",
+    "crop_type": "annual",
+    "region": "제주",
+    "source": "crop_config season_months(제주 월동 작형, 수기 큐레이션)",
+    "varieties": {
+      "기본": {
+        "sow_transplant": {"months": [9, 10], "label": "가을 파종", "source": "crop_config 작형월 파생", "precision": "coarse"},
+        "harvest": {"months": [12, 1, 2], "label": "월동 수확", "source": "crop_config 작형월 파생", "precision": "coarse"},
+        "season_months": [9,10,11,12,1,2,3]
+      }
+    }
+  },
+  "당근": {
+    "crop_en": "carrot",
+    "crop_type": "annual",
+    "region": "제주",
+    "source": "crop_config season_months(제주 가을·월동 당근, 수기 큐레이션)",
+    "varieties": {
+      "기본": {
+        "sow_transplant": {"months": [8, 9], "label": "가을 파종", "source": "crop_config 작형월 파생", "precision": "coarse"},
+        "harvest": {"months": [12, 1, 2], "label": "월동 수확", "source": "crop_config 작형월 파생", "precision": "coarse"},
+        "season_months": [8,9,10,11,12,1,2,3]
+      }
+    }
+  },
+  "양배추": {
+    "crop_en": "cabbage",
+    "crop_type": "annual",
+    "region": "제주",
+    "source": "crop_config season_months(제주 월동 양배추, 수기 큐레이션)",
+    "varieties": {
+      "기본": {
+        "sow_transplant": {"months": [8, 9], "label": "정식", "source": "crop_config 작형월 파생", "precision": "coarse"},
+        "harvest": {"months": [12, 1, 2], "label": "월동 결구 수확", "source": "crop_config 작형월 파생", "precision": "coarse"},
+        "season_months": [9,10,11,12,1,2,3]
+      }
+    }
+  },
+  "마늘": {
+    "crop_en": "garlic",
+    "crop_type": "annual",
+    "region": "제주",
+    "source": "crop_config season_months(제주 난지형 마늘, 수기 큐레이션)",
+    "varieties": {
+      "기본(난지형)": {
+        "sow_transplant": {"months": [9, 10], "label": "가을 파종", "source": "crop_config 주석(제주 난지형)", "precision": "coarse"},
+        "harvest": {"months": [5, 6], "label": "초여름 수확", "source": "crop_config 주석", "precision": "coarse"},
+        "season_months": [9,10,11,12,1,2,3,4,5,6]
+      }
+    }
+  },
+  "양파": {
+    "crop_en": "onion",
+    "crop_type": "annual",
+    "region": "제주",
+    "source": "crop_config season_months(가을정식~초여름수확, 수기 큐레이션)",
+    "varieties": {
+      "기본": {
+        "sow_transplant": {"months": [10, 11], "label": "가을 정식", "source": "crop_config 주석", "precision": "coarse"},
+        "harvest": {"months": [5, 6], "label": "초여름 수확", "source": "crop_config 주석", "precision": "coarse"},
+        "season_months": [9,10,11,12,1,2,3,4,5,6]
+      }
+    }
+  }
+}
