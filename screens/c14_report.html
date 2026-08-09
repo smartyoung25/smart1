@@ -124,17 +124,11 @@ function onFarmChange(id){sessionStorage.setItem('sf_farm_id',id);location.reloa
 async function _ensureToken(){const s=sessionStorage.getItem('sf_token');if(s)return s;try{const a=sessionStorage.getItem('sf_api')||location.origin;const r=await fetch(`${a}/api/v1/auth/demo-token`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({})});if(r.ok){const d=await r.json();sessionStorage.setItem('sf_token',d.access_token);return d.access_token;}}catch{}return '';}
 function _ws(s){const d=document.getElementById('wsDot'),l=document.getElementById('wsLabel');if(d)d.className='ws-dot '+s;if(l)l.textContent=s==='connected'?'실시간 연결 중':'연결 안 됨';}
 
-// To-do 이행률 — 전 화면 localStorage 집계
-function _todoRate(){
-  let done=0,total=0;
-  const today=new Date().toDateString();
-  for(const key of ['sf_g1todo_','sf_f1todo_']){
-    const arr=JSON.parse(localStorage.getItem(key+today)||'[]'); done+=arr.length;
-  }
-  // C3 홈 todo
-  const c3=JSON.parse(localStorage.getItem('sf_todo_done_'+today)||'[]'); done+=c3.length;
-  total=7+5+3; // c3 7 + g1 5 + f1 3
-  return total?Math.round(done/total*100):0;
+// To-do 이행률 — ★ 서버 SSOT 사용. 구: 전 화면 localStorage 재집계(기기간·리뷰 불일치)를
+// 제거하고 서버 monthly report 의 'To-do 이행률' KPI(activity 로그 기반 산출)를 그대로 사용.
+function _serverTodoRate(d){
+  const k=(d.kpis||[]).find(x=>x.name && x.name.includes('To-do'));
+  return (k && k.achievement_pct!=null) ? k.achievement_pct : null;
 }
 
 async function _load(token,farmId){
@@ -156,11 +150,10 @@ async function _load(token,farmId){
     <div class="area-card"><div class="area-head">${AREA_ICON[name]||'📊'} ${name}관리</div>
       <div class="area-metrics">${Object.entries(m).map(([k,v])=>`<span class="area-m"><span class="k">${k}</span><span class="v">${v}</span></span>`).join('')}</div></div>`).join('');
 
-  // 9대 KPI
-  const todoR=_todoRate();
+  // 9대 KPI — 서버값을 그대로 신뢰(To-do 이행률 포함, 로컬 덮어쓰기 제거)
+  const todoR=_serverTodoRate(d);
   document.getElementById('kpiList').innerHTML=d.kpis.map(k=>{
     let ach=k.achievement_pct, st=k.status;
-    if(k.name.includes('To-do')){ ach=todoR; st=ach>=95?'good':ach>=80?'warn':'low'; }
     const w=ach!=null?Math.min(ach,100):0;
     return `<div class="kpi-row"><span class="kpi-name">${k.name}</span>
       <div class="kpi-bar-wrap"><div class="kpi-bar-f kf-${st}" style="width:${w}%"></div></div>
@@ -192,8 +185,9 @@ async function _load(token,farmId){
   document.getElementById('weakList').innerHTML=d.weak_points.map(w=>`
     <div class="weak-item"><span>⚠️</span><div class="wt"><b>${w.area}</b> · ${w.detail}</div></div>`).join('');
 
-  // To-do
-  document.getElementById('todoRate').textContent=`(이행률 ${todoR}%)`;
+  // To-do — 서버 기록(activity) 기반 이행률. 미기록이면 '—'(허위 0% 표기 방지).
+  document.getElementById('todoRate').textContent=
+    todoR!=null ? `(이행률 ${todoR}% · 서버 기록 기준)` : '(이행 기록 없음)';
   document.getElementById('todoList').innerHTML=d.todos.map(t=>`
     <div class="todo-item"><div class="todo-check"></div><div style="font-size:12px;">${t.title}</div></div>`).join('')
     || '<div style="color:var(--muted);font-size:12px;text-align:center;padding:8px;">실행 항목 없음 — 양호</div>';

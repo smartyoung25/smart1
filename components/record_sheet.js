@@ -83,9 +83,18 @@
 
   async function logActivity(farmId, token, rec) {
     const api = (global.KaasaData && KaasaData.getApiBase) ? KaasaData.getApiBase() : location.origin;
+    const payload = { kind: rec.kind, item: rec.item || '', value: rec.value ?? null, detail: rec.detail || '' };
+    // 계획 구조화 필드(선택) — PDCA 계획↔실행 대조용. 값이 있을 때만 전송.
+    if (rec.due != null)     payload.due = rec.due;
+    if (rec.plan_id != null) payload.plan_id = rec.plan_id;
+    if (rec.done != null)    payload.done = rec.done;
+    // 경제 금액 필드(선택) — 실측 수지(수익/비용) 부착. 값이 있을 때만 전송.
+    if (rec.amount_krw != null) payload.amount_krw = rec.amount_krw;
+    if (rec.econ != null)       payload.econ = rec.econ;
+    if (rec.category != null)   payload.category = rec.category;
     const r = await fetch(`${api}/api/farms/${farmId}/activity`, {
       method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (token||'') },
-      body: JSON.stringify({ kind: rec.kind, item: rec.item || '', value: rec.value ?? null, detail: rec.detail || '' })
+      body: JSON.stringify(payload)
     });
     if (r.status === 403) throw new Error('데모(읽기 전용) 모드 — 기록 저장은 비활성화되어 있습니다.');
     if (!r.ok) throw new Error('HTTP ' + r.status);
@@ -107,6 +116,7 @@
     growth:        { ico:'🌿', label:'생육측정' },
     cost_reduction:{ ico:'💡', label:'절감조치' },
     integration_request:{ ico:'🔌', label:'연동신청' },
+    expense:       { ico:'💸', label:'지출' },
   };
   function _ago(ts){
     try{ const d=new Date(ts), now=new Date(), m=Math.floor((now-d)/60000);

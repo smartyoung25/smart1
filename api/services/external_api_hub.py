@@ -825,11 +825,70 @@ def naas_soil_by_pnu(pnu: str) -> Optional[dict]:
         return None
 
 
+def _parse_farmmap(raw: Any) -> list:
+    """팜맵 응답(raw)을 필지 리스트로 정규화하는 방어적 파서(스캐폴드).
+
+    ★ 정직화: data.go.kr 팜맵 실 응답 스펙을 아직 검증하지 못했다(키 미승인).
+      아래는 공공데이터포털의 통상 구조(response.body.items.item[])와 필드
+      별칭을 방어적으로 훑는 준비용 매퍼다. 실 응답 샘플을 확보하면 이 함수의
+      키 매핑을 확정한다. 알 수 없는 형태면 [] 를 반환(호출부는 raw 를 보존).
+    """
+    # 1) items 리스트 위치 탐색 — 공공데이터포털 표준 경로 + 흔한 변형
+    items = None
+    node = raw
+    if isinstance(node, dict):
+        for path in (("response", "body", "items", "item"),
+                     ("response", "body", "items"),
+                     ("items", "item"), ("items",), ("data",), ("features",)):
+            cur = node
+            ok = True
+            for k in path:
+                if isinstance(cur, dict) and k in cur:
+                    cur = cur[k]
+                else:
+                    ok = False; break
+            if ok and cur is not None:
+                items = cur; break
+    if isinstance(items, dict):        # 단건이면 리스트로 승격
+        items = [items]
+    if not isinstance(items, list):
+        return []
+
+    # 2) 필드 별칭 매핑 — 확정 전까지 다수 후보 허용
+    def _pick(d: dict, *names):
+        for n in names:
+            if isinstance(d, dict) and d.get(n) not in (None, ""):
+                return d[n]
+        return None
+
+    parcels = []
+    for it in items:
+        # GeoJSON 형태면 properties 안에 속성이 들어있다
+        props = it.get("properties") if isinstance(it, dict) and isinstance(it.get("properties"), dict) else it
+        if not isinstance(props, dict):
+            continue
+        pnu  = _pick(props, "pnu", "PNU", "pnuCode", "PNU_CODE", "ld_cpsg_code")
+        area = _pick(props, "area_m2", "area", "AREA", "parea", "flr_area", "lndpcl_ar")
+        jimok = _pick(props, "jimok", "JIMOK", "lndcgr_code_nm", "lndcgrCodeNm")
+        name = _pick(props, "name", "NAME", "addr", "ADDR", "lnm", "jibun")
+        try:
+            area = float(area) if area is not None else None
+        except (TypeError, ValueError):
+            area = None
+        parcels.append({"pnu": pnu, "area_m2": area, "jimok": jimok, "name": name})
+    return parcels
+
+
 def farmmap_parcels(pnu_prefix: str) -> Optional[dict]:
-    """팜맵 농경지전자지도 필지 조회 (행정구역 PNU 접두 기준).
+    """팜맵 농경지전자지도 필지 조회 (행정구역 admCode 접두 기준).
 
     Returns:
-        {"parcels": [{"pnu","area_m2","jimok"}...], "source": "farmmap"} | None
+        {"adm","parcels":[{"pnu","area_m2","jimok","name"}...],"raw","parsed",
+         "source":"farmmap"} | None
+
+    ★ 정직화: 파싱 스펙 미검증. parsed=False 면 실 응답 형태를 인식 못한 것이며
+      raw 를 그대로 보존한다(호출부가 raw 폴백 표기). 실 응답 샘플 확보 후
+      _parse_farmmap 키 매핑을 확정하면 parsed=True 로 승격된다.
     """
     base = os.environ.get("FARMMAP_API_URL", "").strip()
     key  = _datago_key()
@@ -843,7 +902,11 @@ def farmmap_parcels(pnu_prefix: str) -> Optional[dict]:
         ctx = _insecure_ctx()
         with urllib.request.urlopen(f"{base}?{params}", timeout=8, context=ctx) as r:
             raw = json.loads(r.read().decode("utf-8", "replace"))
-        return {"adm": pnu_prefix, "raw": raw, "source": "farmmap"}
+        parcels = _parse_farmmap(raw)
+        if not parcels:
+            logger.warning("[farmmap] 응답 파싱 실패(미검증 스펙) — raw 보존 adm=%s", pnu_prefix)
+        return {"adm": pnu_prefix, "parcels": parcels, "parsed": bool(parcels),
+                "raw": raw, "source": "farmmap"}
 
     try:
         return _cached(f"farmmap_{pnu_prefix}", 86400, _fetch)

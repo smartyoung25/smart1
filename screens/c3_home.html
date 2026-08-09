@@ -830,10 +830,33 @@ function _toggleTodo(id) {
   if (!t) return;
   t.done = !t.done;
 
+  // 로컬 폴백(오프라인·즉시 UI) — 서버 전송과 병행
   const doneKey = `sf_todo_done_${new Date().toDateString()}`;
   const doneIds = _todos.filter(x => x.done).map(x => x.id);
   localStorage.setItem(doneKey, JSON.stringify(doneIds));
   _renderTodos();
+
+  // ★ PDCA 배선: 계획(예정 todo)→실행(완료)을 서버 activity 로그로 전송.
+  //   구: localStorage 만 → 기기간·리뷰(c14) 이행률과 단절. 완료 시에만 적재.
+  if (t.done) _sendTodoActivity(t);
+}
+
+// C3 todo 완료를 서버 이행 로그로 적재(계획-실행-리뷰 폐루프). 실패는 조용히 폴백.
+async function _sendTodoActivity(t) {
+  try {
+    const api = KaasaData.getApiBase();
+    const tok = sessionStorage.getItem('sf_token') || '';
+    if (!tok) return;  // 미인증이면 로컬 폴백만
+    const farmId = sessionStorage.getItem('sf_farm_id') || 'farm_001';
+    const today = new Date().toISOString().slice(0, 10);
+    const r = await fetch(`${api}/api/farms/${farmId}/activity`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${tok}` },
+      body: JSON.stringify({ kind: 'todo', item: t.title || '', detail: t.desc || '',
+                             plan_id: t.id, due: today, done: true }),
+    });
+    if (!r.ok && r.status !== 403) console.warn('[C3] todo 서버 적재 실패:', r.status);
+  } catch (e) { console.warn('[C3] todo 서버 적재 예외:', e.message); }
 }
 
 // ── WebSocket 상태 ──────────────────────────────────────────────────────────

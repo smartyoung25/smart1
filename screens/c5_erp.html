@@ -216,6 +216,13 @@
   <button onclick="_logSaving()" style="width:100%;margin-top:10px;padding:13px;background:var(--green);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:800;cursor:pointer;min-height:46px;">💡 절감 조치 이행 기록</button>
   <div class="card" style="padding:12px 14px;margin-top:10px;" id="savingRecent"></div>
 
+  <!-- ★ 실측 수지 (활동 부착 금액 집계) — 경제 PDCA 기록·리뷰 -->
+  <div class="section-label" style="margin-top:18px;">실측 수지 <span style="font-weight:400;color:var(--muted);font-size:11px;">· 내가 기록한 판매·지출만 (표준 추정과 별개)</span></div>
+  <button onclick="_logExpense()" style="width:100%;margin-bottom:10px;padding:13px;background:var(--panel);color:var(--text);border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-weight:800;cursor:pointer;min-height:46px;">💸 지출 기록 (비료·농약·인건 등)</button>
+  <div class="card" style="padding:14px;" id="ledgerCard">
+    <div style="text-align:center;padding:8px;color:var(--muted);font-size:12px;">기록된 실측 수지가 없습니다 — 수확 시 실수취 단가, 지출 발생 시 위 버튼으로 남기세요.</div>
+  </div>
+
 </main>
 
 <!-- ══ 하단 탭 바 ══ -->
@@ -267,6 +274,51 @@ function _logSaving(){
     onSubmit: async (v)=>{ await RecordSheet.logActivity(_farmG,_tokG,{kind:'cost_reduction', item:v.item||'절감 조치', detail:v.detail||'', value:null}); _refreshSaving(); }
   });
 }
+
+// ── 지출 기록 (실측 비용 부착) ────────────────────────────────────────────────
+const _EXP_CATS=[['fertilizer','비료'],['pesticide','농약'],['labor','인건'],['material','자재'],['seed','종묘'],['energy','에너지'],['other','기타']];
+function _logExpense(){
+  if(!window.RecordSheet){ return; }
+  RecordSheet.open({ title:'💸 지출 기록', submitLabel:'지출 저장',
+    fields:[ {id:'cat',label:'항목',type:'select',options:_EXP_CATS.map(c=>c[1]),required:true},
+             {id:'amount',label:'지출액',type:'number',unit:'원',placeholder:'예: 50000',required:true},
+             {id:'item',label:'내용',type:'text',placeholder:'예: 복합비료 20kg 2포'} ],
+    onSubmit: async (v)=>{
+      const amt=parseFloat(v.amount);
+      if(!isFinite(amt)||amt<=0){ throw new Error('지출액을 입력하세요'); }
+      const catKey=(_EXP_CATS.find(c=>c[1]===v.cat)||['other'])[0];
+      await RecordSheet.logActivity(_farmG,_tokG,{
+        kind:'expense', econ:'cost', category:catKey, amount_krw:Math.round(amt),
+        item:v.item||v.cat||'지출', detail:`${v.cat} ${Math.round(amt).toLocaleString()}원` });
+      _loadLedger();
+    }
+  });
+}
+
+// ── 실측 수지 집계 렌더 (/ledger/summary) ─────────────────────────────────────
+async function _loadLedger(){
+  const card=document.getElementById('ledgerCard'); if(!card) return;
+  try{
+    const api=KaasaData.getApiBase();
+    const d=await fetch(`${api}/api/farms/${_farmG}/ledger/summary`,{headers:{Authorization:`Bearer ${_tokG}`}}).then(r=>r.ok?r.json():null);
+    if(!d || (d.total_money_records||0)===0){ return; }  // 기록 없으면 안내문 유지
+    const won=v=>Math.round(v||0).toLocaleString();
+    const net=v=>{const c=v>0?'var(--green)':v<0?'var(--red)':'var(--muted)';return `<b style="color:${c}">${v>0?'+':''}${won(v)}원</b>`;};
+    const row=(label,w)=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);">
+        <span style="font-size:13px;font-weight:700;">${label}</span>
+        <span style="font-size:12px;color:var(--muted);">수입 ${won(w.revenue_krw)} · 지출 ${won(w.cost_krw)} → 순수지 ${net(w.net_krw)}</span></div>`;
+    let html=`<div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+        <span style="font-size:11px;font-weight:800;color:var(--green);background:var(--green-soft);padding:2px 8px;border-radius:8px;">🟢 실측 기록</span>
+        <span style="font-size:10px;color:var(--muted);">기록 ${d.total_money_records}건</span></div>`;
+    html+=row('오늘',d.today)+row('이번 주(7일)',d.week)+row(`작기 누계(${d.season_months||8}개월)`,d.season);
+    // 작기 지출 카테고리 분해
+    const bc=d.season?.by_category_cost||{}; const cats=Object.entries(bc).sort((a,b)=>b[1]-a[1]);
+    if(cats.length){ const lab={fertilizer:'비료',pesticide:'농약',labor:'인건',material:'자재',seed:'종묘',energy:'에너지',other:'기타'};
+      html+=`<div style="margin-top:8px;font-size:11px;color:var(--muted);">작기 지출: ${cats.map(([k,v])=>`${lab[k]||k} ${won(v)}`).join(' · ')}</div>`; }
+    html+=`<div style="margin-top:8px;font-size:10px;color:var(--muted);line-height:1.4;">${d.note||''}</div>`;
+    card.innerHTML=html;
+  }catch(e){ /* silent — 안내문 유지 */ }
+}
 window.addEventListener('DOMContentLoaded', () => {
   const farmId = new URLSearchParams(location.search).get('farm') ||
                  sessionStorage.getItem('sf_farm_id') || 'farm_001';
@@ -276,6 +328,7 @@ window.addEventListener('DOMContentLoaded', () => {
     KaasaData.init({ farmId, token, onStatus: _onWsStatus });
     _loadAll(token, farmId);
     _refreshSaving();
+    _loadLedger();
     // 등급 게이팅: 이익률(소득률) 분석은 pro 등급 전용 (energy_profit_margin)
     KaasaTier.init(farmId, token).then(() => {
       KaasaTier.guard(document.getElementById('marginCard'), 'energy_profit_margin',

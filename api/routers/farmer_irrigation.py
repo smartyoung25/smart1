@@ -475,9 +475,16 @@ def get_field_parcels(farm_id: str):
 
     from api.services.external_api_hub import farmmap_parcels
     live = farmmap_parcels(adm) if adm else None
+    if live and live.get("parsed") and live.get("parcels"):
+        # 파싱 확정된 실데이터
+        return {"farm_id": farm_id, "source": "farmmap", "adm": adm,
+                "parcels": live["parcels"],
+                "note": f"팜맵 실데이터 ({len(live['parcels'])}필지)"}
     if live:
-        return {"farm_id": farm_id, "source": "farmmap", "adm": adm, "data": live.get("raw"),
-                "note": "팜맵 실데이터"}
+        # 응답은 받았으나 스펙 미검증으로 파싱 실패 — 정직하게 raw 표기(자동전환 아님)
+        return {"farm_id": farm_id, "source": "farmmap_raw", "adm": adm,
+                "data": live.get("raw"), "parcels": [],
+                "note": "팜맵 응답 수신했으나 파싱 스펙 미검증 — 실 응답 샘플 확보 후 확정 필요"}
 
     real = _real_parcels_lookup(meta)
     if real:

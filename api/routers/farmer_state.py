@@ -55,6 +55,14 @@ _FARM_META: dict[str, dict[str, Any]] = {
         "tier": FarmTier.MANUAL,    "area_m2": 3000, "iot_available": False,
         "name": "제주 노지 감귤원",  "crop": "감귤",
         "sido": "제주특별자치도", "sigungu": "서귀포시", "address_detail": "",
+        # ── 팜맵 실연동 준비(스캐폴드) ───────────────────────────────────────
+        # adm_code 가 있어야 get_field_parcels 가 farmmap_parcels 를 호출한다.
+        # 값 "50130" = 서귀포시 법정동 시군구 접두(5자리). ★ 실연동 시에는 대상
+        # 읍면동 10자리 법정동코드로 교체 권장(예: 서귀포시 ○○동). 팜맵 admCode
+        # 정밀도·응답형은 실 응답 샘플로 확정(docs/INTEGRATION_GUIDE.md 참조).
+        # FARMMAP_API_URL 미설정 시 이 필드는 무해(여전히 실데이터 적재→mock 폴백).
+        "adm_code": "50130",
+        "pnu": "",   # 특정 필지 PNU(19자리) — 확보 시 흙토람 토양검정 자동 연결
     },
 }
 

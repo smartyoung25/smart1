@@ -79,11 +79,18 @@ function _openHarvestRecord(){
       {id:'parcel', label:'필지', type:'select', options:PARCELS.map(p=>p.n), required:true},
       {id:'qty',    label:'수확량', type:'number', unit:'kg', placeholder:'예: 320', required:true},
       {id:'grade',  label:'등급', type:'select', options:['특','상','보통','등외']},
+      {id:'price',  label:'실수취 단가(원/kg)', type:'number', unit:'원/kg', placeholder:'선택 — 입력 시 실측 매출로 기록'},
       {id:'date',   label:'수확일', type:'date'},
     ],
-    onSubmit: async (v)=>{ await RecordSheet.logActivity(_farmG,_tokenG,{
-      kind:'harvest', item:`${v.parcel} 수확`, value:parseFloat(v.qty)||null,
-      detail:`${v.qty||'-'}kg · 등급 ${v.grade||'-'} · ${v.date||'오늘'}` }); _refreshRecent(); }
+    onSubmit: async (v)=>{
+      const rec={ kind:'harvest', item:`${v.parcel} 수확`, value:parseFloat(v.qty)||null,
+        detail:`${v.qty||'-'}kg · 등급 ${v.grade||'-'} · ${v.date||'오늘'}` };
+      const up=parseFloat(v.price), q=parseFloat(v.qty);
+      if(isFinite(up)&&up>0&&isFinite(q)&&q>0){   // 실측 매출 부착
+        rec.amount_krw=Math.round(up*q); rec.econ='revenue'; rec.category=v.parcel;
+        rec.detail+=` · 실수취 ${up.toLocaleString()}원/kg`;
+      }
+      await RecordSheet.logActivity(_farmG,_tokenG,rec); _refreshRecent(); }
   });
 }
 async function _ensureToken(){const s=sessionStorage.getItem('sf_token');if(s)return s;try{const a=sessionStorage.getItem('sf_api')||location.origin;const r=await fetch(`${a}/api/v1/auth/demo-token`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({})});if(r.ok){const d=await r.json();sessionStorage.setItem('sf_token',d.access_token);return d.access_token;}}catch{}return '';}

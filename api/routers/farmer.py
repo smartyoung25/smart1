@@ -2236,11 +2236,23 @@ def _cfg_check(env_var: str) -> bool:
 
 
 class ActivityLog(BaseModel):
-    """농가 이행 활동 로그 (To-do 완료·교육 이수·수확 입력 등)."""
+    """농가 이행 활동 로그 (To-do 완료·교육 이수·수확 입력 등).
+
+    ★ 계획-실행-리뷰(PDCA) 배선: due·plan_id·done 로 '계획(예정)'과 '실행(완료)'을
+      한 스키마에 담아 계획↔실행 대조가 가능하다(구: 실행 이벤트만 기록).
+    """
     kind:   str = Field(..., description="todo|education|harvest|irrigation|disease_check")
     item:   str = Field("", max_length=200, description="활동 항목명")
     value:  Optional[float] = Field(None, description="수치값(선택)")
     detail: str = Field("", max_length=500)
+    due:     Optional[str] = Field(None, max_length=32, description="예정일(계획, ISO/날짜문자열·선택)")
+    plan_id: Optional[str] = Field(None, max_length=80, description="계획 항목 식별자(todo id 등·선택)")
+    done:    Optional[bool] = Field(None, description="완료 여부(계획 대비 실행·선택)")
+    # ── 경제 PDCA: 활동에 실측 금액 부착(수확→판매·지출 발생 순간) ──────────────
+    # value 는 kind별 물리량(mL/cm/kg)로 오버로드돼 있어 금액은 별도 필드로 분리한다.
+    amount_krw: Optional[float] = Field(None, description="실측 금액(원)·선택 — 판매액 또는 지출액")
+    econ:       Optional[str]   = Field(None, max_length=16, description="경제 방향 'revenue'|'cost'·선택")
+    category:   Optional[str]   = Field(None, max_length=32, description="비용 카테고리(fertilizer/pesticide/labor/energy/material/seed/other) 또는 수익 채널·선택")
 
 
 @router.post("/activity", summary="이행 활동 로그 적재 (폐루프 학습 — 정책 컨설팅 사이클)")
@@ -2260,6 +2272,14 @@ def post_activity(farm_id: str, body: ActivityLog):
         except Exception: logs = []
     rec = {"ts": _dt.now(_tz.utc).isoformat(), "kind": body.kind,
            "item": body.item, "value": body.value, "detail": body.detail}
+    # 계획 구조화 필드(선택) — 값이 있을 때만 저장해 기존 로그 형태와 호환
+    if body.due is not None:     rec["due"] = body.due
+    if body.plan_id is not None: rec["plan_id"] = body.plan_id
+    if body.done is not None:    rec["done"] = body.done
+    # 경제 금액 필드(선택) — 실측 수지 집계(/ledger/summary)의 근거
+    if body.amount_krw is not None: rec["amount_krw"] = body.amount_krw
+    if body.econ is not None:       rec["econ"] = body.econ
+    if body.category is not None:   rec["category"] = body.category
     logs.append(rec)
     # 최근 1000건 유지
     logs = logs[-1000:]
@@ -2324,6 +2344,78 @@ def get_activity_summary(farm_id: str):
         "contribution_points": pts, "total_lifetime": len(logs),
         "recent": recent,
     }
+
+
+@router.get("/ledger/summary", summary="실측 수지 집계 (일/주/작기 — 활동 부착 금액 합산)")
+def get_ledger_summary(farm_id: str):
+    """활동 로그에 부착된 실측 금액(amount_krw)을 일·주·작기 창으로 집계.
+
+    ★ 정직화: '실측 기록'만 합산한다(예측 매출·표준 비용과 별개). 농가가 수확→판매
+      순간에 입력한 판매액, 지출 발생 시 입력한 비용만 근거로 삼는다. 미입력분은
+      집계에 없다(허위 0 표기 없음). 손익 SSOT(_compute_costs·예측매출) 반영은 다음 단계.
+    """
+    import json as _json
+    from datetime import datetime as _dt, timezone as _tz, timedelta as _td
+    _require_farm(farm_id)
+    fp = _activity_path(farm_id)
+    logs = []
+    if fp.exists():
+        try: logs = _json.loads(fp.read_text(encoding="utf-8"))
+        except Exception: logs = []
+
+    # 작기 길이(개월) — 작목 표준. 실패 시 8개월 폴백.
+    meta = _FARM_META.get(farm_id, {})
+    crop = meta.get("crop") or ""
+    season_months = 8
+    try:
+        _yf = get_yield_forecast(crop)
+        season_months = int(_yf.get("season_months") or 8)
+    except Exception:
+        pass
+    season_days = max(30, season_months * 30)
+
+    now = _dt.now(_tz.utc)
+    today = now.date().isoformat()
+    windows = {
+        "today":  (today, 1),
+        "week":   ((now - _td(days=7)).date().isoformat(), 7),
+        "season": ((now - _td(days=season_days)).date().isoformat(), season_days),
+    }
+
+    # 금액 부착 레코드만 (econ + amount_krw)
+    money = [l for l in logs if l.get("amount_krw") is not None and l.get("econ") in ("revenue", "cost")]
+
+    def _agg(since_date: str):
+        rev = cost = 0.0
+        by_cat_cost = {}
+        by_cat_rev = {}
+        n = 0
+        for l in money:
+            d = str(l.get("ts", ""))[:10]
+            if d < since_date:
+                continue
+            amt = float(l.get("amount_krw") or 0)
+            cat = l.get("category") or "기타"
+            if l["econ"] == "revenue":
+                rev += amt; by_cat_rev[cat] = by_cat_rev.get(cat, 0) + amt
+            else:
+                cost += amt; by_cat_cost[cat] = by_cat_cost.get(cat, 0) + amt
+            n += 1
+        return {
+            "revenue_krw": round(rev), "cost_krw": round(cost),
+            "net_krw": round(rev - cost), "count": n,
+            "by_category_cost": {k: round(v) for k, v in by_cat_cost.items()},
+            "by_category_revenue": {k: round(v) for k, v in by_cat_rev.items()},
+        }
+
+    out = {w: _agg(since) for w, (since, _n) in windows.items()}
+    out.update({
+        "farm_id": farm_id, "season_months": season_months,
+        "total_money_records": len(money),
+        "note": "실측 기록(농가 입력) 합산. 예측 매출·표준 비용과 별개 — 손익 SSOT 반영은 다음 단계.",
+        "source": "measured",
+    })
+    return out
 
 
 # ───────────────────────────────────────────────────────────────────────────

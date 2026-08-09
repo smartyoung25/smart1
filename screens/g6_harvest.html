@@ -228,6 +228,11 @@
         <option value="direct">직거래</option>
       </select>
     </div>
+    <div>
+      <label style="font-size:12px;font-weight:700;color:var(--muted);">실수취 단가 (원/kg) <span style="font-weight:400;">· 선택 — 입력 시 실측 매출로 기록</span></label>
+      <input id="harvestPrice" type="number" inputmode="decimal" placeholder="예: 3200 (판매 후 실제 받은 kg당 금액)"
+             style="width:100%;padding:10px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:15px;margin-top:4px;outline:none;"/>
+    </div>
   </div>
   <div style="display:flex;gap:8px;margin-top:16px;">
     <button onclick="_submitHarvest()" style="flex:1;padding:13px;background:var(--green);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:800;cursor:pointer;">저장</button>
@@ -501,6 +506,8 @@ async function _submitHarvest() {
   const qty     = parseFloat(document.getElementById('harvestQty').value);
   const grade   = document.getElementById('harvestGrade').value;
   const channel = document.getElementById('harvestChannel').value;
+  const priceEl = document.getElementById('harvestPrice');
+  const unitPrice = priceEl ? parseFloat(priceEl.value) : NaN;   // 실수취 단가(원/kg)·선택
   const result  = document.getElementById('harvestResult');
 
   if (!qty || qty <= 0) { result.textContent = '수확량을 입력해주세요'; result.style.color='var(--red)'; return; }
@@ -523,10 +530,17 @@ async function _submitHarvest() {
         yield_kg_m2: yield_kg_m2>0?yield_kg_m2:0.01, area_m2:area,
         total_yield_kg: qty, source:'mobile_app', notes:`등급 ${grade}, 채널 ${channel}` })
     });
-    // ② 이행 활동 로그 (폐루프 기여)
+    // ② 이행 활동 로그 (폐루프 기여) — 실수취 단가 입력 시 실측 매출 부착
+    const _act = { kind:'harvest', item:`수확 ${qty}kg`, value:qty, detail:`${grade}등급·${channel}` };
+    if (isFinite(unitPrice) && unitPrice > 0) {
+      _act.amount_krw = Math.round(unitPrice * qty);   // 실측 매출 = 실수취단가 × 수확량
+      _act.econ = 'revenue';
+      _act.category = channel;
+      _act.detail += ` · 실수취 ${unitPrice.toLocaleString()}원/kg`;
+    }
     await fetch(`${api}/api/farms/${farmId}/activity`, {
       method:'POST', headers:{'Content-Type':'application/json', Authorization:`Bearer ${token}`},
-      body: JSON.stringify({ kind:'harvest', item:`수확 ${qty}kg`, value:qty, detail:`${grade}등급·${channel}` })
+      body: JSON.stringify(_act)
     }).catch(()=>{});
 
     if (hr.ok) {
