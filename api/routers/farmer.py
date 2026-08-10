@@ -2857,11 +2857,17 @@ def get_monthly_report(farm_id: str, month: str = ""):
     cfg = get_config(crop) if "get_config" in globals() else None
 
     # ── 6대 영역 요약 ─────────────────────────────────────────────────────
-    cost_per_kg   = round(costs.cost_per_m2 / max(yield_, 0.1), 0)
-    revenue_total = round(yield_ * price * area / 10000)            # 만원
-    cost_total    = round(costs.cost_per_m2 * area / 10000)         # 만원
+    # ★ 경제 KPI를 /revenue(시즌 reflected 손익 SSOT)에서 소비 — c5·PDCA와 일치.
+    #   구: 시즌 매출(정적 yield×price) vs 월 비용(cost_per_m2×area) 혼재 → 소득률 과대.
+    #   get_revenue는 v108 안전 블렌드(실측이 계획 초과 시 반영)를 이미 담는다.
+    _rev = get_revenue(farm_id)
+    _ytot = _rev.yield_kg_forecast or (yield_ * area)              # 시즌 총 수확량(kg)
+    revenue_total = round((_rev.reflected_revenue_krw or 0) / 10000)   # 만원
+    cost_total    = round((_rev.reflected_cost_krw or 0) / 10000)      # 만원
     profit_total  = revenue_total - cost_total
-    income_rate   = round(profit_total / revenue_total * 100, 1) if revenue_total else 0.0
+    income_rate   = (_rev.reflected_margin_pct if _rev.reflected_margin_pct is not None
+                     else (round(profit_total / revenue_total * 100, 1) if revenue_total else 0.0))
+    cost_per_kg   = round((_rev.reflected_cost_krw or 0) / max(_ytot, 0.1), 0)
     margin_per_kg = round(price - cost_per_kg, 0)
     energy_per_m2 = next((i.amount_krw for i in costs.items if i.category in ("electricity","heating")), 0)
     # 에너지비/kg
