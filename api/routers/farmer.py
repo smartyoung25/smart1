@@ -1086,6 +1086,29 @@ def get_revenue(farm_id: str):
     _refl_margin = round((_refl_profit / _refl_rev * 100) if _refl_rev else 0.0, 1)
     _pl_source = "reflected" if (_act_rev > revenue or _act_cost > cost) else "plan"
 
+    # ── 착지 전망(EAC) — 비용만 시간기반, 매출은 forecast 유지 ────────────────────
+    # projected_cost = 실측 경과분 + 계획 잔여분(선형). reflected(max)보다 초과/미달을
+    # 조기 포착. 정식일(season_start)+실측 지출이 있을 때만 산출(지어내지 않음).
+    _proj_cost = _proj_rev = _proj_profit = _proj_margin = _progress_pct = None
+    _eac_ok = False
+    try:
+        from api.routers.farmer_state import get_season_start as _gss
+        _ss = _gss(farm_id)
+        if _ss and _act["count"] > 0:
+            import datetime as _dt2
+            _sd = _dt2.date.fromisoformat(_ss[:10])
+            _elapsed = (_dt2.date.today() - _sd).days
+            _season_days = max(30, int(_season_m_cost or 8) * 30)
+            _progress = min(max(_elapsed / _season_days, 0.0), 1.0)
+            _proj_cost = round(_act_cost + cost * (1 - _progress), 0)   # 실측경과 + 계획잔여
+            _proj_rev = round(_refl_rev, 0)                            # 매출: forecast 유지
+            _proj_profit = round(_proj_rev - _proj_cost, 0)
+            _proj_margin = round((_proj_profit / _proj_rev * 100) if _proj_rev else 0.0, 1)
+            _progress_pct = round(_progress * 100, 1)
+            _eac_ok = True
+    except Exception as _e:
+        logger.debug("[revenue] EAC 산출 실패: %s", _e)
+
     return RevenueResponse(
         farm_id=farm_id,
         updated_at=_now(),
@@ -1116,6 +1139,13 @@ def get_revenue(farm_id: str):
         reflected_profit_krw=_refl_profit,
         reflected_margin_pct=_refl_margin,
         pl_source=_pl_source,
+        # 착지 전망(EAC)
+        projected_cost_krw=_proj_cost,
+        projected_revenue_krw=_proj_rev,
+        projected_profit_krw=_proj_profit,
+        projected_margin_pct=_proj_margin,
+        season_progress_pct=_progress_pct,
+        eac_available=_eac_ok,
     )
 
 

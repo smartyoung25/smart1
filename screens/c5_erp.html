@@ -423,12 +423,24 @@ function _renderPlanActual(revenue) {
     ['실적(실측 누계)', (revenue.actual_records>0 ? `매출 ${won(actRev)} · 지출 ${won(actCost)} → 순 ${won(actRev-actCost)}원 · ${revenue.actual_records}건` : '실측 기록 없음 — 수확 시 실수취 단가·지출 기록으로 축적'), 'var(--text)'],
     ['반영 손익', `매출 ${won(revenue.reflected_revenue_krw)} · 비용 ${won(revenue.reflected_cost_krw)} → 손익 ${won(reflProfit)}원`, reflProfit>=0?'var(--green)':'var(--red)'],
   ];
+  // 착지 전망(EAC) — 정식일+실측 지출이 있을 때만. 비용=실측경과+계획잔여, 매출=forecast.
+  if (revenue.eac_available) {
+    const projProfit = revenue.projected_profit_krw||0;
+    const projCost = revenue.projected_cost_krw||0, planCost = revenue.predicted_cost_krw||0;
+    const trend = projCost>planCost*1.02 ? ' ⚠ 계획 초과 추세' : projCost<planCost*0.98 ? ' ✓ 계획 이내' : '';
+    rows.push(['착지 전망(EAC)',
+      `경과 ${Math.round(revenue.season_progress_pct||0)}% · 착지비용 ${won(projCost)} → 착지손익 ${won(projProfit)}원${trend}`,
+      projProfit>=0?'var(--green)':'var(--red)']);
+  }
+  const eacNote = revenue.eac_available
+    ? `착지 전망 = 비용(실측 경과분+계획 잔여분)·매출(예측 유지). 작기 경과율 ${Math.round(revenue.season_progress_pct||0)}% 기준 — 추세 조기 신호(확정 손익 아님).`
+    : `착지 전망은 정식일+실측 지출 기록 시 제공(현재 미가용).`;
   box.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
       <div class="section-label" style="margin:0;">손익 — 계획 대비 실측 반영</div>${badge}</div>` +
     rows.map(([k,v,c])=>`<div style="display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);">
         <span style="font-size:12.5px;font-weight:700;min-width:96px;">${k}</span>
         <span style="font-size:11.5px;color:${c};text-align:right;">${v}</span></div>`).join('') +
-    `<div style="margin-top:8px;font-size:10px;color:var(--muted);line-height:1.4;">실측이 계획을 넘으면(비용 초과·초과 달성) 손익에 반영, 아직 미달이면 계획 유지. 위 KPI·손익은 '반영' 기준.</div>`;
+    `<div style="margin-top:8px;font-size:10px;color:var(--muted);line-height:1.4;">실측이 계획을 넘으면(비용 초과·초과 달성) 손익에 반영, 아직 미달이면 계획 유지. 위 KPI·손익은 '반영' 기준. ${eacNote}</div>`;
 }
 
 // ── 비용 구조 ──────────────────────────────────────────────────────────────

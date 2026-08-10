@@ -145,6 +145,14 @@ class RevenueResponse(BaseResponse):
     reflected_profit_krw: Optional[float] = None   # reflected 매출 − reflected 비용
     reflected_margin_pct: Optional[float] = None   # reflected 소득률(%)
     pl_source: str = "plan"                        # "plan" | "reflected"
+    # ── 착지 전망(EAC) — 비용=실측경과+계획잔여(선형), 매출=forecast 유지(back-loaded) ──
+    # 정식일(season_start)+실측 지출이 있을 때만 산출(eac_available). c5 표시 전용(SSOT 아님).
+    projected_cost_krw: Optional[float] = None     # 착지 예상 비용(EAC)
+    projected_revenue_krw: Optional[float] = None  # 착지 예상 매출(=reflected, forecast)
+    projected_profit_krw: Optional[float] = None   # 착지 예상 손익
+    projected_margin_pct: Optional[float] = None   # 착지 소득률(%)
+    season_progress_pct: Optional[float] = None    # 작기 경과율(%)
+    eac_available: bool = False                    # 착지 전망 산출 가능 여부
 
 
 class CostItem(BaseModel):

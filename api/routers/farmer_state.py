@@ -15,25 +15,32 @@ logger = logging.getLogger(__name__)
 # Farm registry — IoT 가용성·작목·규모·지역
 # ---------------------------------------------------------------------------
 _FARM_META: dict[str, dict[str, Any]] = {
+    # ★ season_start(정식일) — 데모농가 쇼케이스 시딩. 착지 전망(EAC) 경과율 산출 기준.
+    #   2026-08-10 기준 시즌 중반이 되도록 진행중 시즌 정식일로 시딩(데모 데이터).
+    #   실 등록농가는 온보딩 season_start(api/data/onboarding/{farm}.json)를 사용.
     "farm_001": {
         "tier": FarmTier.MANUAL,    "area_m2": 1200, "iot_available": True,
         "name": "동서 오이 농장",  "crop": "오이",
         "sido": "경상남도", "sigungu": "창녕군", "address_detail": "",
+        "season_start": "2026-05-20",
     },
     "farm_002": {
         "tier": FarmTier.SEMI_AUTO, "area_m2": 800,  "iot_available": True,
         "name": "청풍 토마토 농장", "crop": "방울토마토",
         "sido": "충청북도", "sigungu": "충주시", "address_detail": "",
+        "season_start": "2026-05-01",
     },
     "farm_003": {
         "tier": FarmTier.MANUAL,    "area_m2": 1500, "iot_available": True,
         "name": "한솔 딸기 농장",  "crop": "딸기(설향)",
         "sido": "전라북도", "sigungu": "군산시", "address_detail": "",
+        "season_start": "2026-04-25",
     },
     "farm_004": {
         "tier": FarmTier.SEMI_AUTO, "area_m2": 1000, "iot_available": True,
         "name": "대원 토마토 농장", "crop": "완숙토마토",
         "sido": "경상북도", "sigungu": "상주시", "address_detail": "",
+        "season_start": "2026-04-20",
     },
     "farm_005": {
         "tier": FarmTier.MANUAL,    "area_m2": 900,  "iot_available": False,
@@ -44,11 +51,13 @@ _FARM_META: dict[str, dict[str, Any]] = {
         "tier": FarmTier.SEMI_AUTO, "area_m2": 6611, "iot_available": False,
         "name": "조남헌 파프리카 농장", "crop": "파프리카",
         "sido": "강원도", "sigungu": "철원군", "address_detail": "",
+        "season_start": "2026-03-15",
     },
     "sanwoo": {
         "tier": FarmTier.MANUAL,    "area_m2": 4000, "iot_available": False,
         "name": "SANWOO 딸기 농장",    "crop": "딸기",
         "sido": None, "sigungu": None, "address_detail": "",
+        "season_start": "2026-05-05",
     },
     # 노지 쇼케이스 데모 농장 — 노지 재배력·필지·기상 기능 시연용(제주)
     "farm_jeju": {
@@ -175,6 +184,29 @@ def _load_checklist(farm_id: str) -> dict:
         except Exception:
             return {}
     return {}
+
+
+def get_season_start(farm_id: str) -> str | None:
+    """정식일(작기 시작, ISO 날짜문자열) — 착지 전망(EAC) 경과율 산출 기준.
+
+    우선순위: ① _FARM_META season_start(데모 시딩) ② 온보딩 사이드파일
+    (api/data/onboarding/{farm}.json 의 season_start, farm_id 키) ③ None.
+    None 이면 EAC 미제공(정직 — 정식일을 지어내지 않는다).
+    """
+    ss = (_FARM_META.get(farm_id, {}) or {}).get("season_start")
+    if ss:
+        return str(ss)
+    import json as _json
+    from pathlib import Path as _P
+    fp = _P(__file__).resolve().parents[1] / "data" / "onboarding" / f"{farm_id}.json"
+    if fp.exists():
+        try:
+            d = _json.loads(fp.read_text(encoding="utf-8"))
+            v = d.get("season_start")
+            return str(v) if v else None
+        except Exception:
+            return None
+    return None
 
 
 def ledger_season_totals(farm_id: str, season_months: int = 8) -> dict:
