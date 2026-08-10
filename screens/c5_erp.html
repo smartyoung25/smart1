@@ -355,10 +355,10 @@ async function _loadAll(token, farmId) {
   ]);
 
   // /erp/realtime 미구현 — costs+revenue로 동일 지표 계산
-  const _rev  = revenue?.revenue_krw ?? revenue?.predicted_revenue_krw ?? 0;
-  // ★ 시즌 비용(매출·수확량과 단위정합) — /revenue.predicted_cost_krw. 구: costs.total_cost_krw(월값)를
-  //   시즌 수확량으로 나눠 kg원가 176·소득률 90%로 왜곡(월÷시즌). 월별 상세는 _renderCosts(costs)가 담당.
-  const _cost = revenue?.predicted_cost_krw ?? revenue?.cost_krw ?? costs?.total_cost_krw ?? 0;
+  // ★ 실측 반영(안전 블렌드): reflected_*는 실측이 계획을 넘을 때만 계획과 달라진다.
+  //   계획값(predicted_*)은 아래 _renderPlanActual에서 병행 표시.
+  const _rev  = revenue?.reflected_revenue_krw ?? revenue?.revenue_krw ?? revenue?.predicted_revenue_krw ?? 0;
+  const _cost = revenue?.reflected_cost_krw ?? revenue?.predicted_cost_krw ?? revenue?.cost_krw ?? costs?.total_cost_krw ?? 0;
   const _yield= revenue?.yield_kg_forecast ?? 0;
   const _bepPrice = revenue?.price_krw_kg ?? revenue?.kamis_price_krw_kg ?? 0;
   const erp = {
@@ -370,9 +370,11 @@ async function _loadAll(token, farmId) {
     breakeven_kg:    _bepPrice > 0 ? _cost / _bepPrice : 0,
     crop_ko:         revenue?.crop_ko ?? costs?.crop_ko ?? '',
     area_m2:         revenue?.area_m2 ?? costs?.area_m2 ?? 0,
+    pl_source:       revenue?.pl_source ?? 'plan',
   };
 
   _renderBanner(erp);
+  _renderPlanActual(revenue);
   _renderCosts(costs);
   _renderProfitability(revenue, erp, costs);
   _renderIncomeFlow(revenue, erp, costs);
@@ -392,6 +394,41 @@ function _renderBanner(erp) {
 
   const upd = document.getElementById('erpUpdated');
   if (upd) upd.textContent = `${erp.crop_ko || '작목 미지정'} · 재배면적 ${Math.round(erp.area_m2||0).toLocaleString()}m² · 실시간 갱신`;
+}
+
+// ── 계획 / 실적(누계) / 반영 병행 (실측 반영 손익) ─────────────────────────────
+// reflected_* = max(계획, 실측누계). 실측이 계획을 넘을 때만 KPI가 계획과 달라진다.
+function _renderPlanActual(revenue) {
+  if (!revenue) return;
+  // 배너(KPI 카드) 뒤에 삽입할 컨테이너 확보
+  let box = document.getElementById('planActualCard');
+  if (!box) {
+    const anchor = document.getElementById('kpiIncomeRate');
+    const card = anchor ? anchor.closest('.card, .erp-banner, section, div') : null;
+    box = document.createElement('div'); box.id = 'planActualCard';
+    box.className = 'card'; box.style.cssText = 'padding:14px;margin:12px 0;';
+    if (card && card.parentNode) card.parentNode.insertBefore(box, card.nextSibling);
+    else (document.querySelector('main') || document.body).appendChild(box);
+  }
+  const won = v => Math.round(v||0).toLocaleString();
+  const reflected = (revenue.pl_source === 'reflected');
+  const planProfit = revenue.predicted_profit_krw ?? ((revenue.predicted_revenue_krw||0)-(revenue.predicted_cost_krw||0));
+  const actRev = revenue.actual_revenue_krw||0, actCost = revenue.actual_cost_krw||0;
+  const reflProfit = revenue.reflected_profit_krw ?? planProfit;
+  const badge = reflected
+    ? '<span style="font-size:11px;font-weight:800;color:#fff;background:var(--green);padding:2px 8px;border-radius:8px;">🟢 실측 반영</span>'
+    : '<span style="font-size:11px;font-weight:800;color:var(--muted);background:var(--gray-soft);padding:2px 8px;border-radius:8px;">⚪ 계획 기준</span>';
+  const rows = [
+    ['계획(예측 시즌)', `매출 ${won(revenue.predicted_revenue_krw)} · 비용 ${won(revenue.predicted_cost_krw)} → 손익 ${won(planProfit)}원`, 'var(--muted)'],
+    ['실적(실측 누계)', (revenue.actual_records>0 ? `매출 ${won(actRev)} · 지출 ${won(actCost)} → 순 ${won(actRev-actCost)}원 · ${revenue.actual_records}건` : '실측 기록 없음 — 수확 시 실수취 단가·지출 기록으로 축적'), 'var(--text)'],
+    ['반영 손익', `매출 ${won(revenue.reflected_revenue_krw)} · 비용 ${won(revenue.reflected_cost_krw)} → 손익 ${won(reflProfit)}원`, reflProfit>=0?'var(--green)':'var(--red)'],
+  ];
+  box.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <div class="section-label" style="margin:0;">손익 — 계획 대비 실측 반영</div>${badge}</div>` +
+    rows.map(([k,v,c])=>`<div style="display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);">
+        <span style="font-size:12.5px;font-weight:700;min-width:96px;">${k}</span>
+        <span style="font-size:11.5px;color:${c};text-align:right;">${v}</span></div>`).join('') +
+    `<div style="margin-top:8px;font-size:10px;color:var(--muted);line-height:1.4;">실측이 계획을 넘으면(비용 초과·초과 달성) 손익에 반영, 아직 미달이면 계획 유지. 위 KPI·손익은 '반영' 기준.</div>`;
 }
 
 // ── 비용 구조 ──────────────────────────────────────────────────────────────
@@ -500,8 +537,10 @@ function _renderIncomeFlow(revenue, erp, costs) {
   if (!el) return;
 
   // API 응답 우선, 없으면 ERP 기반 추정
-  const totalRev   = revenue?.revenue_krw ?? erp?.predicted_revenue_krw ?? 0;
-  const mgmtCost   = costs?.total_cost_krw ?? erp?.total_cost_krw ?? 0;
+  // ★ reflected(시즌·실측반영) 기준으로 KPI 배너와 정합. 구: mgmtCost=costs.total_cost_krw(월값)를
+  //   시즌 매출과 비교해 소득률 과대. reflected_cost_krw(시즌)로 통일.
+  const totalRev   = revenue?.reflected_revenue_krw ?? revenue?.revenue_krw ?? 0;
+  const mgmtCost   = revenue?.reflected_cost_krw ?? revenue?.predicted_cost_krw ?? costs?.total_cost_krw ?? 0;
   const income     = totalRev - mgmtCost;
   const selfLabor  = erp?.self_labor_cost_krw ?? Math.round(mgmtCost * 0.092);
   const capitalSvc = erp?.capital_service_krw ?? Math.round(mgmtCost * 0.112);

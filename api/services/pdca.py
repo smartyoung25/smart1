@@ -183,6 +183,7 @@ def calc_efficiency(farm_id: str) -> Dict:
         logger.debug("효율성 수익 계산 실패: %s", e)
         revenue = 5_000_000
 
+    season_m = 8
     try:
         from api.routers.farmer_state import _compute_costs
         from models.crop_config import get_season_length_months
@@ -192,6 +193,20 @@ def calc_efficiency(farm_id: str) -> Dict:
     except Exception as e:
         logger.debug("효율성 비용 계산 실패: %s", e)
         total_cost = 15_000_000
+
+    # ── 실측 반영(안전 블렌드) — /revenue와 동일 규칙 ─────────────────────────
+    # 계획(plan)은 그대로, 실측 시즌 누계가 계획을 넘으면 반영(max). 효율성이
+    # 비용 초과·초과 달성을 반영한다. 부분 실측이 지표를 왜곡하지 않는다.
+    pl_source = "plan"
+    try:
+        from api.routers.farmer_state import ledger_season_totals
+        act = ledger_season_totals(farm_id, int(season_m))
+        if act["revenue_krw"] > revenue or act["cost_krw"] > total_cost:
+            pl_source = "reflected"
+        revenue = max(revenue, act["revenue_krw"])
+        total_cost = max(total_cost, act["cost_krw"], 1)
+    except Exception as e:
+        logger.debug("효율성 실측 블렌드 실패: %s", e)
 
     ratio = revenue / total_cost
     # 효율성 0~1 정규화: 1.0 = 수익=비용(손익분기), 1.5이상 = 우수
@@ -209,6 +224,7 @@ def calc_efficiency(farm_id: str) -> Dict:
         "revenue_cost_ratio": round(ratio, 3),
         "benchmark_pct": benchmark_pct,
         "status": _score_status(score),
+        "pl_source": pl_source,   # "plan" | "reflected"(실측이 계획 초과 시)
     }
 
 

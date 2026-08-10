@@ -135,6 +135,16 @@ class RevenueResponse(BaseResponse):
     revenue_source: str = "stats_fallback"       # "ml_model" | "stats_fallback"
     area_m2: Optional[float] = None              # 재배 면적
     profit_margin_pct: Optional[float] = None    # 이익률 (%)
+    # ── 실측 반영 손익 (안전 블렌드: max(계획, 실측누계)) ──────────────────────
+    # predicted_*(계획)는 유지. reflected_*는 실측이 계획을 넘을 때만 계획과 달라진다.
+    actual_revenue_krw: Optional[float] = None     # 실측 시즌 매출 누계(농가 입력)
+    actual_cost_krw: Optional[float] = None        # 실측 시즌 지출 누계
+    actual_records: int = 0                        # 실측 금액 레코드 수
+    reflected_revenue_krw: Optional[float] = None  # max(계획매출, 실측매출)
+    reflected_cost_krw: Optional[float] = None     # max(계획비용, 실측지출)
+    reflected_profit_krw: Optional[float] = None   # reflected 매출 − reflected 비용
+    reflected_margin_pct: Optional[float] = None   # reflected 소득률(%)
+    pl_source: str = "plan"                        # "plan" | "reflected"
 
 
 class CostItem(BaseModel):

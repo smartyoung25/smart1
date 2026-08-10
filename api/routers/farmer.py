@@ -1074,6 +1074,18 @@ def get_revenue(farm_id: str):
     _profit          = round(revenue - cost, 0)
     _profit_margin   = round((_profit / revenue * 100) if revenue else 0.0, 1)
 
+    # ── 실측 반영 손익 (안전 블렌드) ──────────────────────────────────────────
+    # 계획(plan=예측 시즌)은 그대로 두고, 실측 시즌 누계가 계획을 '초과'할 때만
+    # 손익에 반영(max). 부분 데이터가 손익을 급감/급증시키지 않는 단조 안전 규칙.
+    from api.routers.farmer_state import ledger_season_totals as _lst
+    _act = _lst(farm_id, int(_season_m_cost or 8))
+    _act_rev, _act_cost = _act["revenue_krw"], _act["cost_krw"]
+    _refl_rev  = max(revenue, _act_rev)
+    _refl_cost = max(cost, _act_cost)
+    _refl_profit = round(_refl_rev - _refl_cost, 0)
+    _refl_margin = round((_refl_profit / _refl_rev * 100) if _refl_rev else 0.0, 1)
+    _pl_source = "reflected" if (_act_rev > revenue or _act_cost > cost) else "plan"
+
     return RevenueResponse(
         farm_id=farm_id,
         updated_at=_now(),
@@ -1095,6 +1107,15 @@ def get_revenue(farm_id: str):
         revenue_source=revenue_src,
         area_m2=area,
         profit_margin_pct=_profit_margin,
+        # 실측 반영 손익
+        actual_revenue_krw=round(_act_rev, 0),
+        actual_cost_krw=round(_act_cost, 0),
+        actual_records=_act["count"],
+        reflected_revenue_krw=round(_refl_rev, 0),
+        reflected_cost_krw=round(_refl_cost, 0),
+        reflected_profit_krw=_refl_profit,
+        reflected_margin_pct=_refl_margin,
+        pl_source=_pl_source,
     )
 
 

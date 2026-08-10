@@ -177,6 +177,42 @@ def _load_checklist(farm_id: str) -> dict:
     return {}
 
 
+def ledger_season_totals(farm_id: str, season_months: int = 8) -> dict:
+    """실측 시즌 수지 누계 — activity 로그의 econ(revenue/cost)·amount_krw 합산.
+
+    손익 SSOT 블렌드(계획 vs 실측)의 '실측' 축. 최근 season_months×30일 창의
+    실측 매출·비용 누계를 반환한다(/ledger/summary season 창과 동일 데이터·기준).
+    부분 누계이므로 소비처는 max(계획, 실측) 안전 블렌드로만 사용한다.
+
+    Returns: {"revenue_krw": float, "cost_krw": float, "count": int}
+    """
+    import json as _json
+    from datetime import timedelta as _td
+    fp = _activity_path(farm_id)
+    if not fp.exists():
+        return {"revenue_krw": 0.0, "cost_krw": 0.0, "count": 0}
+    try:
+        logs = _json.loads(fp.read_text(encoding="utf-8"))
+    except Exception:
+        return {"revenue_krw": 0.0, "cost_krw": 0.0, "count": 0}
+    season_days = max(30, int(season_months or 8) * 30)
+    since = (_now() - _td(days=season_days)).date().isoformat()
+    rev = cost = 0.0
+    n = 0
+    for l in logs:
+        if l.get("amount_krw") is None or l.get("econ") not in ("revenue", "cost"):
+            continue
+        if str(l.get("ts", ""))[:10] < since:
+            continue
+        amt = float(l.get("amount_krw") or 0)
+        if l["econ"] == "revenue":
+            rev += amt
+        else:
+            cost += amt
+        n += 1
+    return {"revenue_krw": round(rev), "cost_krw": round(cost), "count": n}
+
+
 def _now() -> datetime:
     return datetime.now(tz=timezone.utc)
 
